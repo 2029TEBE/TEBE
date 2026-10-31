@@ -475,6 +475,18 @@ export class MicrosoftService {
     const { tenantId, userId } = this.ctx();
     const token = await this.accessToken('graph');
 
+    // Graph calls can outlive an OAuth reconnect or disconnect. Snapshot the
+    // consenting owner's encrypted credential AFTER accessToken may rotate it;
+    // the final location write must still match this exact credential.
+    // A benign concurrent refresh may require a retry, never a stale write.
+    const [locationCredential] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+      SELECT refresh_token FROM integration_connections
+      WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+        AND status = 'connected' AND refresh_token IS NOT NULL`)));
+    if (!locationCredential?.refresh_token) {
+      throw new ConflictException('Microsoft connection changed before folder selection. Reconnect and retry.');
+    }
+
     // The folder is named after the workspace, so somebody browsing their own
     // SharePoint can tell whose documents these are without opening one.
     const [t] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
@@ -488,6 +500,18 @@ export class MicrosoftService {
     const root = await this.folder(token, b.driveId, 'root', folder);
 
     await withTenant(tenantId, async (tx) => {
+      // Authorization can be revoked while Graph is creating the folder.
+      // Recheck the active administrator and lock membership for this commit.
+      const [authorized] = rows(await tx.execute(sql`
+        SELECT m.id FROM memberships AS m
+        JOIN users AS u ON u.id = m.user_id
+        WHERE m.tenant_id = ${tenantId} AND m.user_id = ${userId}
+          AND m.is_active = true AND u.is_active = true
+          AND m.role IN ('owner', 'admin', 'client_admin')
+        FOR SHARE OF m, u`));
+      if (!authorized) {
+        throw new ForbiddenException('Workspace administrator access changed during folder selection.');
+      }
       const [done] = rows(await tx.execute(sql`
         UPDATE integration_connections SET
           site_id = ${b.siteId ?? null}, site_name = ${site?.displayName ?? site?.name ?? null},
@@ -496,8 +520,12 @@ export class MicrosoftService {
           root_item_id = ${root.id}, root_path = ${folder},
           updated_at = now()
         WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-          AND status = 'connected' RETURNING id`));
-      if (!done) throw new ConflictException('Microsoft is not connected to this workspace yet.');
+          AND status = 'connected'
+          AND refresh_token = ${locationCredential.refresh_token}
+        RETURNING id`));
+      if (!done) {
+        throw new ConflictException('Microsoft connection changed during folder selection. Reconnect and retry.');
+      }
       await this.audit(tx, PROVIDER, 'microsoft.location_set',
         { site: site?.webUrl ?? null, drive: drive?.name, folder });
     });
