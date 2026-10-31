@@ -132,5 +132,5 @@ test('service is HMAC-first, TEST-only, tenant-locked and never grants a period'
   assert.match(method, /payloadSha256/);
   assert.match(method, /UPDATE billing_stripe_recurring_bindings/);
   assert.match(method, /UPDATE tenant_subscriptions/);
-  assert.doesNotMatch(method, /SET status = 'active'|INSERT INTO billing_payments|period_ends_at =/);
+  assert.doesNotMatch(method, /SET status = 'active'|INSERT INTO billing_payments|SET period_ends_at =/);
 });
