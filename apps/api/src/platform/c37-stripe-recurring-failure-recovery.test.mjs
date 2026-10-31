@@ -28,7 +28,7 @@ const check = (b = binding, l = local, v = paid,
 test('C37: late paid renewal recovers expired C34 past_due only with matching failure receipt', () => {
   assert.doesNotThrow(() => check());
   assert.throws(() => check(binding, local, paid, subscriptionId, now, false));
-  assert.throws(() => check(binding, local, paid, subscriptionId, now, undefined));
+  assert.throws(() => check(binding, local, paid, subscriptionId, now, null));
   assert.throws(() => check(binding, local, paid, subscriptionId,
     Date.parse('2026-10-31T00:00:00Z')));
 });
