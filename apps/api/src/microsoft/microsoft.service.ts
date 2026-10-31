@@ -241,14 +241,24 @@ export class MicrosoftService {
           account_name = EXCLUDED.account_name,
           -- Consent accumulates, so the scope string grows rather than being
           -- replaced: connecting Power BI must not look like losing Files.
-          scopes = (
+          -- A different Microsoft identity must never inherit the previous
+          -- account's accumulated delegated scope claims or connection date.
+          scopes = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email) THEN (
             SELECT string_agg(DISTINCT s, ' ')
             FROM unnest(string_to_array(
-              coalesce(integration_connections.scopes, '') || ' ' || EXCLUDED.scopes, ' ')) AS s
-            WHERE s <> ''),
+              coalesce(integration_connections.scopes, '') || ' ' || coalesce(EXCLUDED.scopes, ''), ' ')) AS s
+            WHERE s <> '') ELSE EXCLUDED.scopes END,
           refresh_token = EXCLUDED.refresh_token,
           connected_by = EXCLUDED.connected_by,
-          connected_at = coalesce(integration_connections.connected_at, EXCLUDED.connected_at),
+          connected_at = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                         THEN coalesce(integration_connections.connected_at, EXCLUDED.connected_at)
+                         ELSE EXCLUDED.connected_at END,
           -- Never reuse a SharePoint/OneDrive destination after the consenting
           -- owner selects another Microsoft account. Unknown identity also
           -- resets the destination, rather than risking a stale Graph upload.
