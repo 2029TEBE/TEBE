@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * F44: real browser customer journeys against a DISPOSABLE LOOPBACK stack.
- * Requires two distinct .test accounts with admin and restricted roles.
+ * Requires two distinct .test accounts: an admin in two disposable workspaces
+ * and a restricted user. Workspace switches affect only synthetic sessions.
  * Does not use real invitations, send recovery email, change workspace data,
  * or claim HTTPS staging/provider acceptance. No credential-bearing traces.
  */
@@ -19,6 +20,8 @@ const known = new Set([
   'authentication_failed', 'missing_admin_invitation_form', 'missing_billing_screen',
   'restricted_billing_access', 'restricted_invitation_access', 'mutation_not_rejected',
   'unsafe_mutation_redirect', 'unexpected_mutation_feedback', 'unexpected_auth_redirect',
+  'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
+  'workspace_switch_revert_failed',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
 let browser;
@@ -50,7 +53,8 @@ try {
         const capture = new Set([
           'expired_login_bilingual', 'recovery_503_no_success',
           'invitation_403_no_acceptance', 'admin_login_and_onboarding',
-          'admin_subscription_read', 'restricted_login_and_no_invitation_form',
+          'admin_subscription_read', 'admin_workspace_switch_round_trip',
+          'restricted_login_and_no_invitation_form',
           'restricted_billing_redirect',
         ]);
         const screenshot = capture.has(name) ? variant.name + '-' + name + '.png' : undefined;
@@ -130,9 +134,68 @@ try {
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
         await layout();
       });
+      await step('admin_workspace_switch_round_trip', async () => {
+        // Only the disposable admin's active session changes; no project data is written.
+        await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
+        const chip = page.locator('button.orgchip');
+        const original = (await chip.locator('.who > b').innerText()).trim();
+        await chip.click();
+        const alternateButton = page.locator('.sheet form[action="/api/session/tenant"] button.ident').first();
+        if (!(await alternateButton.count())) throw new Error('workspace_switch_fixture_missing');
+        const alternate = (await alternateButton.locator('.nm > b').innerText()).trim();
+        if (!original || !alternate || original === alternate)
+          throw new Error('workspace_switch_fixture_missing');
+        await alternateButton.click();
+        await page.waitForFunction(expected =>
+          document.querySelector('button.orgchip .who > b')?.textContent?.trim() === expected,
+        alternate, { timeout: 15000 });
+        if (new URL(page.url()).pathname !== '/settings')
+          throw new Error('workspace_switch_not_confirmed');
+        await layout();
+
+        await page.locator('button.orgchip').click();
+        const returnButton = page.locator('.sheet form[action="/api/session/tenant"] button.ident')
+          .filter({ hasText: original }).first();
+        if (!(await returnButton.count())) throw new Error('workspace_switch_revert_failed');
+        await returnButton.click();
+        await page.waitForFunction(expected =>
+          document.querySelector('button.orgchip .who > b')?.textContent?.trim() === expected,
+        original, { timeout: 15000 });
+        if (new URL(page.url()).pathname !== '/settings')
+          throw new Error('workspace_switch_revert_failed');
+        await layout();
+      });
+      await step('unauthorized_workspace_switch_rejected', async () => {
+        // This UUID is not a member workspace; a rejected POST must never switch tenants.
+        const before = (await page.locator('button.orgchip .who > b').innerText()).trim();
+        const res = await page.request.post(cfg.origin + '/api/session/tenant', {
+          data: new URLSearchParams({
+            tenantId: '00000000-0000-4000-8000-000000000000',
+            returnTo: '/projects/00000000-0000-4000-8000-000000000000',
+          }).toString(),
+          headers: { origin: cfg.origin, 'content-type': 'application/x-www-form-urlencoded' },
+          maxRedirects: 0, timeout: 15000,
+        });
+        assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
+          { path: '/settings', key: 'switch', value: 'forbidden' });
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        if ((await page.locator('button.orgchip .who > b').innerText()).trim() !== before)
+          throw new Error('workspace_switch_not_confirmed');
+        await layout();
+      });
       await step('expired_onboarding_cookie_rejected', async () => {
         await context.clearCookies();
         const res = await mutation({ action: 'revoke', id: '00000000-0000-4000-8000-000000000000' });
+        assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
+          { path: '/login', key: 'error', value: 'expired' });
+      });
+      await step('expired_workspace_switch_cookie_rejected', async () => {
+        const res = await page.request.post(cfg.origin + '/api/session/tenant', {
+          data: new URLSearchParams({ tenantId: '00000000-0000-4000-8000-000000000000',
+            returnTo: '/settings' }).toString(),
+          headers: { origin: cfg.origin, 'content-type': 'application/x-www-form-urlencoded' },
+          maxRedirects: 0, timeout: 15000,
+        });
         assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
           { path: '/login', key: 'error', value: 'expired' });
       });
