@@ -602,6 +602,19 @@ export class MicrosoftService {
     }
     const token = await this.accessToken('graph');
 
+    // Bind the bearer to the exact consenting user's sealed credential before
+    // sending customer bytes to Graph. A reconnect between token issuance and
+    // this snapshot must not associate the old bearer with a new account.
+    const [uploadCredential] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+      SELECT refresh_token FROM integration_connections
+      WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+        AND status = 'connected' AND refresh_token IS NOT NULL`)));
+    const issued = this.tokens.get(`${tenantId}:${userId}:graph`);
+    if (!uploadCredential?.refresh_token || !issued ||
+        issued.accessToken !== token || issued.credential !== uploadCredential.refresh_token) {
+      throw new ConflictException('Microsoft connection changed before upload. Reconnect and retry.');
+    }
+
     const c = await withTenant(tenantId, (tx) => this.connection(tx));
 
     // A folder per project, so a customer opening their SharePoint sees their
@@ -634,11 +647,25 @@ export class MicrosoftService {
       // change. Revalidate the consenting user and exact destination before
       // persisting the document. Hold a row lock through the insert and audit
       // so revocation cannot commit between the check and the local write.
+      // An administrator may lose access while the Graph request is in flight.
+      // Lock active membership and user status in the same transaction as the
+      // document insert; an earlier route capability check is not sufficient.
+      const [authorized] = rows(await tx.execute(sql`
+        SELECT m.id FROM memberships AS m
+        JOIN users AS u ON u.id = m.user_id
+        WHERE m.tenant_id = ${tenantId} AND m.user_id = ${userId}
+          AND m.is_active = true AND u.is_active = true
+          AND m.role IN ('owner', 'admin', 'client_admin')
+        FOR SHARE OF m, u`));
+      if (!authorized) {
+        throw new ForbiddenException('Workspace administrator access changed during Microsoft upload.');
+      }
       const [active] = rows(await tx.execute(sql`
         SELECT id FROM integration_connections
         WHERE provider = ${PROVIDER} AND connected_by = ${userId}
           AND status = 'connected' AND drive_id = ${c.drive_id}
           AND root_item_id = ${c.root_item_id}
+          AND refresh_token = ${uploadCredential.refresh_token}
         FOR SHARE`));
       if (!active) {
         throw new ConflictException(
