@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { stripeCheckoutRedirect } from '@/lib/billing-checkout-redirect';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { billingFailurePath } from '@/lib/billing-mutation-feedback.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const COOKIE = 'pmo_session';
@@ -12,8 +15,11 @@ export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
   const token = req.cookies.get(COOKIE)?.value;
-  if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
-  const form = await req.formData();
+  if (!token) return NextResponse.redirect(publicUrl(req, billingFailurePath(401)), 303);
+  const parsed = await readBoundedBrowserForm(req, 16_384);
+  if (!parsed.form) return NextResponse.json({ error: 'Invalid billing form submission' },
+    { status: parsed.error === 'too-large' ? 413 : 400 });
+  const form = parsed.form;
   const action = form.get('action');
   const invoiceId = String(form.get('invoiceId') ?? '');
   const target = publicUrl(req, '/billing');
@@ -26,19 +32,17 @@ export async function POST(req: NextRequest) {
     path = '/api/v1/subscription/billing/stripe/checkout';
     payload = { invoiceId };
   } else {
-    target.searchParams.set('error', 'Invalid billing request');
-    return NextResponse.redirect(target, 303);
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(400)), 303);
   }
-  const response = await fetch(`${BASE}${path}`, {
-    method: 'POST', cache: 'no-store', redirect: 'error',
+  const response = await fetchTenantMutation(fetch, `${BASE}${path}`, {
+    method: 'POST', cache: 'no-store',
     headers: { 'content-type': 'application/json', cookie: `${COOKIE}=${token}` },
     body: JSON.stringify(payload),
-  }).catch(() => null);
-  // A credentialed API request must never follow an upstream redirect, and
-  // untrusted API diagnostics must never be reflected into a customer URL.
-  if (!response || response.redirected || (response.status >= 300 && response.status < 400) || !response.ok) {
-    target.searchParams.set('error', 'Billing service unavailable');
-    return NextResponse.redirect(target, 303);
+  });
+  // The shared mutation proxy enforces a 15s deadline, rejects redirects and
+  // never replays an ambiguous payment-related POST.
+  if (!response?.ok || response.redirected) {
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(response?.status)), 303);
   }
   if (action === 'issue-invoice') {
     target.searchParams.set('success', '1');
@@ -47,8 +51,7 @@ export async function POST(req: NextRequest) {
   const data = await response.json().catch(() => null);
   const url = stripeCheckoutRedirect(data, invoiceId);
   if (!url) {
-    target.searchParams.set('error', 'Invalid payment-provider redirect');
-    return NextResponse.redirect(target, 303);
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
   }
   return NextResponse.redirect(url, 303);
 }

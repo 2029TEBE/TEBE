@@ -136,6 +136,18 @@ try {
         assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
           { path: '/login', key: 'error', value: 'expired' });
       });
+      await step('expired_billing_mutations_rejected', async () => {
+        // No real invoice or subscription is touched: cookies were cleared above.
+        for (const path of ['/api/billing/checkout', '/api/billing/subscription']) {
+          const res = await page.request.post(cfg.origin + path, {
+            data: new URLSearchParams({ action: 'resume' }).toString(),
+            headers: { origin: cfg.origin, 'content-type': 'application/x-www-form-urlencoded' },
+            maxRedirects: 0, timeout: 15000,
+          });
+          assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
+            { path: '/login', key: 'error', value: 'expired' });
+        }
+      });
       await step('restricted_login_and_no_invitation_form', async () => {
         await login(cfg.restricted, process.env.EPMO_JOURNEY_RESTRICTED_PASSWORD);
         await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });

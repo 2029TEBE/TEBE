@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { billingFailurePath } from '@/lib/billing-mutation-feedback.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const COOKIE = 'pmo_session';
@@ -10,24 +13,25 @@ export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
   const token = req.cookies.get(COOKIE)?.value;
-  if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
+  if (!token) return NextResponse.redirect(publicUrl(req, billingFailurePath(401)), 303);
+  const parsed = await readBoundedBrowserForm(req, 16_384);
+  if (!parsed.form) return NextResponse.json({ error: 'Invalid billing form submission' },
+    { status: parsed.error === 'too-large' ? 413 : 400 });
   const target = publicUrl(req, '/billing');
-  const action = (await req.formData()).get('action');
+  const action = parsed.form.get('action');
   const path = action === 'schedule-cancellation' ? '/api/v1/subscription/cancel-at-period-end'
     : action === 'resume' ? '/api/v1/subscription/resume' : null;
   if (!path) {
-    target.searchParams.set('error', 'invalid-action');
-    return NextResponse.redirect(target, 303);
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(400)), 303);
   }
-  const response = await fetch(`${BASE}${path}`, {
-    method: 'POST', cache: 'no-store', redirect: 'error',
+  const response = await fetchTenantMutation(fetch, `${BASE}${path}`, {
+    method: 'POST', cache: 'no-store',
     headers: { 'content-type': 'application/json', cookie: `${COOKIE}=${token}` },
     body: '{}',
-  }).catch(() => null);
-  // Never forward the authenticated session cookie through an upstream redirect.
-  if (!response || response.redirected || (response.status >= 300 && response.status < 400) || !response.ok) {
-    target.searchParams.set('error', 'subscription-action-failed');
-    return NextResponse.redirect(target, 303);
+  });
+  // A timed-out mutation may have committed upstream; never retry or claim success.
+  if (!response?.ok || response.redirected) {
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(response?.status)), 303);
   }
   target.searchParams.set('updated', '1');
   return NextResponse.redirect(target, 303);
