@@ -249,6 +249,44 @@ export class MicrosoftService {
           refresh_token = EXCLUDED.refresh_token,
           connected_by = EXCLUDED.connected_by,
           connected_at = coalesce(integration_connections.connected_at, EXCLUDED.connected_at),
+          -- Never reuse a SharePoint/OneDrive destination after the consenting
+          -- owner selects another Microsoft account. Unknown identity also
+          -- resets the destination, rather than risking a stale Graph upload.
+          site_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_id ELSE NULL END,
+          site_name = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_name ELSE NULL END,
+          site_url = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_url ELSE NULL END,
+          drive_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.drive_id ELSE NULL END,
+          drive_name = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.drive_name ELSE NULL END,
+          root_item_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.root_item_id ELSE NULL END,
+          root_path = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.root_path ELSE NULL END,
           last_error = NULL,
           updated_at = now()
         WHERE integration_connections.connected_by = EXCLUDED.connected_by
