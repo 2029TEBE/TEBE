@@ -4,6 +4,7 @@ import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { billingFailurePath } from '@/lib/billing-mutation-feedback.mjs';
+import { readBillingMutationJson, isSubscriptionPreferenceAcknowledged } from '@/lib/billing-mutation-ack.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const COOKIE = 'pmo_session';
@@ -33,6 +34,10 @@ export async function POST(req: NextRequest) {
   if (!response?.ok || response.redirected) {
     return NextResponse.redirect(publicUrl(req, billingFailurePath(response?.status)), 303);
   }
+  // Verify the actual tenant-scoped API acknowledgement, not merely HTTP 200.
+  const data = await readBillingMutationJson(response);
+  if (!isSubscriptionPreferenceAcknowledged(data, action === 'schedule-cancellation'))
+    return NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
   target.searchParams.set('updated', '1');
   return NextResponse.redirect(target, 303);
 }

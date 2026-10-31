@@ -13,6 +13,7 @@ import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlem
 import { recurringPaidChargeId, assertUnreversedRecurringCharge } from './stripe-recurring-charge-guard';
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringSuspension, assertRecurringSuspensionProvider, recurringSuspensionTransition, type RecurringSuspensionCandidate } from './stripe-recurring-suspension';
+import { requiresRecurringLifecycleReconciliation } from './stripe-recurring-unhandled-lifecycle';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseRecurringResumption, assertRecurringResumptionProvider, type RecurringResumptionCandidate } from './stripe-recurring-resumption';
 import { assertRecurringReversalProvider, type RecurringReversalLedger } from './stripe-recurring-reversal';
@@ -1545,6 +1546,13 @@ export class StripeBillingService {
         return this.settleRecurringInvoice(candidate, sha256(rawBody), config);
       }
     }
+
+    // C41: signed recurring terminal/past-due events with no tenant-locked
+    // reconciliation MUST NOT be acknowledged by the generic ignored-event
+    // fallback. Keep provider retries and fail closed until supported.
+    if (requiresRecurringLifecycleReconciliation(signedEnvelope))
+      throw new ServiceUnavailableException(
+        'Recurring Stripe lifecycle event requires tenant reconciliation');
 
     // Provider-signed reversal events are processed independently from
     // successful Checkout events and NEVER grant a new subscription period.

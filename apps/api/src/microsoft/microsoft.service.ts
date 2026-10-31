@@ -441,10 +441,14 @@ export class MicrosoftService {
       this.invalidateTenantTokens(tenantId);
       const msg = 'Microsoft credentials are invalid or have expired. Reconnect the account.';
       await withTenant(tenantId, async (tx) => {
+        // Provider-confirmed invalid credentials must not remain decryptable at
+        // rest. CAS on the exact consenting owner, connected status and sealed
+        // token: a concurrent reconnect must never be erased by a stale error.
         await tx.execute(sql`
-          UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
+          UPDATE integration_connections SET status = 'error', refresh_token = NULL,
+              last_error = ${msg}, updated_at = now()
           WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-            AND refresh_token = ${row.refresh_token}`);
+            AND status = 'connected' AND refresh_token = ${row.refresh_token}`);
       });
       throw new ConflictException(
         'The Microsoft connection is no longer valid — it may have been revoked, or the ' +
