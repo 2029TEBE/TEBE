@@ -186,8 +186,8 @@ test('C40 scenario 6/7: refunds and disputes block new entitlement grants', () =
     { object: 'dispute', id: 'dp_C40', livemode: false,
       charge: 'ch_C40', payment_intent: 'pi_C40', amount: 12000,
       currency: 'sar', status: 'needs_response' }), false);
-  assert.equal(refund.type, 'charge.refunded');
-  assert.equal(dispute.type, 'charge.dispute.created');
+  assert.equal(refund.type, 'full_refund');
+  assert.equal(dispute.type, 'dispute_opened');
 });
 
 test('C40 scenario 7/7: cancellation and pause/unpaid are non-granting and tenant-bound', () => {
