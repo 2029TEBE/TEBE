@@ -11,6 +11,7 @@ import { resolve, join, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { assertSyntheticRecoveryRuntime, isolatedDockerCommand, isolatedAwsEnvironment } from './staging-recovery-runtime-boundary.mjs';
+import { verifySyntheticBucket } from './staging-offhost-bucket-guard.mjs';
 
 const MAGIC = Buffer.from('EPMOS34\0');
 const AAD = Buffer.from('epmo:synthetic:postgres:recovery:v1');
@@ -82,7 +83,7 @@ function makeIsolatedClients(env) {
     return execSafe('docker', command.args, { ...opts, env: command.env });
   };
   const aws = args => execSafe('aws', args, { env: awsEnv });
-  return { docker, aws };
+  return { docker, aws, region: awsEnv.AWS_DEFAULT_REGION };
 }
 const sql = "CREATE TABLE epmo_synthetic_recovery (id integer PRIMARY KEY, marker text NOT NULL);\n" +
   "INSERT INTO epmo_synthetic_recovery VALUES (1,'S34_SYNTHETIC_A'),(2,'S34_SYNTHETIC_B');\n";
@@ -116,7 +117,7 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
   const { key, image, remote } = validateDrillEnvironment(env);
   // Dependency injection is for non-networked regression fixtures; CLI never passes deps.
   assertSyntheticRecoveryRuntime(env, deps.socketCheck);
-  const { docker, aws } = makeIsolatedClients(env);
+  const { docker, aws, region } = makeIsolatedClients(env);
   const id = randomBytes(12).toString('hex');
   const objectKey = remote.prefix + '/' + id + '.pgdump.aes256gcm';
   const url = 's3://' + remote.bucket + '/' + objectKey;
@@ -125,6 +126,9 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
   const downloaded = join(dir, 'remote.pg.enc');
   const active = [];
   try {
+    // Refuse public, wrong-region or unencrypted TEST buckets before any remote write
+    // or disposable container startup. Requires only read-only S3 API permissions.
+    verifySyntheticBucket(aws, { bucket: remote.bucket, region });
     // Never pull from a registry during a synthetic drill: approved digest must already exist.
     docker(['image', 'inspect', image]);
     const source = container(); active.push(source);
