@@ -74,8 +74,8 @@ test('C39: webhook wiring is signature-first, tenant-locked, replay-safe, non-gr
     webhook.indexOf('parseRecurringCancellation(rawBody, config.liveMode)'));
   const method = src.slice(src.indexOf('private async recordRecurringSuspension('),
     src.indexOf('private async recordRecurringCancellation('));
-  assert.match(method, /config\\.liveMode \\|\\| process\\.env\\.DEPLOYMENT_ENV === 'production'/);
-  assert.match(method, /withTenant\\(tenantId, async tx =>/);
+  assert.match(method, /config\.liveMode \|\| process\.env\.DEPLOYMENT_ENV === 'production'/);
+  assert.match(method, /withTenant\(tenantId, async tx =>/);
   assert.match(method, /pg_advisory_xact_lock/);
   assert.match(method, /FOR UPDATE OF b, s/);
   assert.match(method, /assertRecurringSuspensionProvider/);
