@@ -23,6 +23,7 @@ const known = new Set([
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed', 'invitation_false_success',
   'recovery_request_replayed', 'recovery_rate_limit_not_explained',
+  'billing_return_false_confirmation',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
 let browser;
@@ -55,7 +56,7 @@ try {
           'expired_login_bilingual', 'recovery_503_no_success',
           'recovery_429_singleflight_no_success',
           'invitation_403_no_acceptance', 'invitation_html_200_rejected', 'admin_login_and_onboarding',
-          'admin_subscription_read', 'admin_workspace_switch_round_trip',
+          'admin_subscription_read', 'billing_return_not_proof', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
           'restricted_billing_redirect',
         ]);
@@ -182,6 +183,16 @@ try {
         // A generic Loaded error/401/403 is not a successful billing journey.
         await page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]').waitFor({ timeout: 15000 });
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
+        await layout();
+      });
+      await step('billing_return_not_proof', async () => {
+        // Forgeable query flags must never claim an invoice, payment, or cancellation succeeded.
+        await page.goto(cfg.origin + '/billing?success=1&updated=1', { waitUntil: 'domcontentloaded' });
+        const notices = await page.getByRole('status').allTextContents();
+        const marker = variant.lang === 'ar' ? 'لا يؤكد' : 'does not confirm';
+        if (notices.filter(message => message.includes(marker)).length < 2 ||
+            notices.some(message => /Renewal invoice created or found|Subscription preference updated|تم إنشاء فاتورة التجديد|تم تحديث إعداد الاشتراك/.test(message)))
+          throw new Error('billing_return_false_confirmation');
         await layout();
       });
       await step('admin_workspace_switch_round_trip', async () => {

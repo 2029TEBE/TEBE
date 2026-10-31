@@ -34,8 +34,13 @@ export default async function BillingPage({ searchParams }: {
     sub={tx('Review your plan, trial, renewal invoices, and billing options.',
       'راجع خطتك والفترة التجريبية وفواتير التجديد وخيارات الفوترة.')}>
     {error && <p role="alert" className="err">{billingFailureText(error, lang)}</p>}
-    {success && <p role="status" className="okmsg">{tx('Renewal invoice created or found.', 'تم إنشاء فاتورة التجديد أو العثور عليها.')}</p>}
-    {updated && <p role="status" className="okmsg">{tx('Subscription preference updated.', 'تم تحديث إعداد الاشتراك.')}</p>}
+    {/* Query strings are forgeable: a return marker is never proof of an invoice or preference change. */}
+    {success === '1' && <p role="status" className="dim">{tx(
+      'Invoice request returned. Check the current invoices below; this URL does not confirm an invoice or payment.',
+      'تمت العودة من طلب الفاتورة. راجع الفواتير الحالية أدناه؛ هذا الرابط لا يؤكد إنشاء فاتورة أو إتمام الدفع.')}</p>}
+    {updated === '1' && <p role="status" className="dim">{tx(
+      'Subscription request returned. Check the current subscription below; this URL does not confirm cancellation or resumption.',
+      'تمت العودة من طلب الاشتراك. راجع الاشتراك الحالي أدناه؛ هذا الرابط لا يؤكد الإلغاء أو استئناف الاشتراك.')}</p>}
     {checkoutReturn === 'awaiting-webhook' && <p role="status" className="dim">{tx(
       'You returned from Stripe Checkout. Your license renews only after our server verifies Stripe’s payment webhook.',
       'عدت من بوابة Stripe. لا يتجدد الترخيص إلا بعد تحقق الخادم من إشعار الدفع الموقّع.')}</p>}

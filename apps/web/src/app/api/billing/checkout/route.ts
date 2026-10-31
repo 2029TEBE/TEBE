@@ -5,6 +5,7 @@ import { stripeCheckoutRedirect } from '@/lib/billing-checkout-redirect';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { billingFailurePath } from '@/lib/billing-mutation-feedback.mjs';
+import { readBillingMutationJson, isRenewalInvoiceAcknowledged } from '@/lib/billing-mutation-ack.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const COOKIE = 'pmo_session';
@@ -44,11 +45,15 @@ export async function POST(req: NextRequest) {
   if (!response?.ok || response.redirected) {
     return NextResponse.redirect(publicUrl(req, billingFailurePath(response?.status)), 303);
   }
+  // A 200 HTML sign-in page, malformed JSON, or an unbounded response is not
+  // proof that the tenant-scoped billing mutation completed.
+  const data = await readBillingMutationJson(response);
   if (action === 'issue-invoice') {
+    if (!isRenewalInvoiceAcknowledged(data))
+      return NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
     target.searchParams.set('success', '1');
     return NextResponse.redirect(target, 303);
   }
-  const data = await response.json().catch(() => null);
   const url = stripeCheckoutRedirect(data, invoiceId);
   if (!url) {
     return NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
