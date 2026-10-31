@@ -21,7 +21,7 @@ const known = new Set([
   'restricted_billing_access', 'restricted_invitation_access', 'mutation_not_rejected',
   'unsafe_mutation_redirect', 'unexpected_mutation_feedback', 'unexpected_auth_redirect',
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
-  'workspace_switch_revert_failed',
+  'workspace_switch_revert_failed', 'invitation_false_success',
   'recovery_request_replayed', 'recovery_rate_limit_not_explained',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
@@ -54,7 +54,7 @@ try {
         const capture = new Set([
           'expired_login_bilingual', 'recovery_503_no_success',
           'recovery_429_singleflight_no_success',
-          'invitation_403_no_acceptance', 'admin_login_and_onboarding',
+          'invitation_403_no_acceptance', 'invitation_html_200_rejected', 'admin_login_and_onboarding',
           'admin_subscription_read', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
           'restricted_billing_redirect',
@@ -143,6 +143,30 @@ try {
         await page.getByRole('alert').waitFor();
         await layout();
         await page.unroute('**/api/invite/accept');
+      });
+      await step('invitation_html_200_rejected', async () => {
+        // An intermediary or expired-session redirect can return HTML with 200.
+        // Never present this as a successfully consumed single-use invitation.
+        await page.route('**/api/invite/accept', route => route.fulfill({
+          status: 200, contentType: 'text/html',
+          body: '<!doctype html><html><body>Sign in</body></html>',
+        }));
+        try {
+          await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'domcontentloaded' });
+          await page.locator('button[type="submit"]').click();
+          const alert = page.getByRole('alert');
+          await alert.waitFor();
+          const message = await alert.innerText();
+          if (!(variant.lang === 'ar' ? message.includes('لم نتمكن من تأكيد') :
+            message.includes('could not be confirmed')))
+            throw new Error('invitation_false_success');
+          if (await page.getByText(variant.lang === 'ar' ?
+            'تم قبول الدعوة. يمكنك تسجيل الدخول الآن.' : 'Invitation accepted. You can now sign in.').count())
+            throw new Error('invitation_false_success');
+          await layout();
+        } finally {
+          await page.unroute('**/api/invite/accept');
+        }
       });
       await step('admin_login_and_onboarding', async () => {
         await login(cfg.admin, process.env.EPMO_JOURNEY_ADMIN_PASSWORD);
