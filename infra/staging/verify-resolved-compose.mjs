@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { safeStagingContainerRuntime } from './compose-runtime-boundary.mjs';
 
 const requiredServices = ['postgres', 'redis', 'api', 'web', 'staging-edge'];
 const expectedNetworks = {
@@ -75,6 +76,8 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     networks['staging-app']?.external !== true);
   add('Every service uses only its assigned staging networks',
     requiredServices.every(name => same(keys(services[name]?.networks), expectedNetworks[name])));
+  add('No staging container capability or namespace escape',
+    safeStagingContainerRuntime(services));
   add('No host-network or privileged service overrides', requiredServices.every(name => {
     const s = services[name];
     return isObject(s) && !s.network_mode && s.privileged !== true &&
