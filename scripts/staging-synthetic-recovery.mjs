@@ -125,6 +125,7 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
   const encrypted = join(dir, 'synthetic.pg.enc');
   const downloaded = join(dir, 'remote.pg.enc');
   const active = [];
+  let completed = false;
   try {
     // Refuse public, wrong-region or unencrypted TEST buckets before any remote write
     // or disposable container startup. Requires only read-only S3 API permissions.
@@ -157,14 +158,24 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
     const rollback = container(); active.push(rollback);
     await startContainer(rollback, image, docker);
     restore(rollback, restoredDump, docker);
-    console.log('PASS: synthetic-only encrypted S3 round-trip, isolated restore and disposable rollback rehearsal');
-    console.log('NOT ACCEPTED: real staging restore, off-host region, public HTTPS or production recovery');
+    completed = true;
     return { objectKey, result: 'synthetic-drill-only' };
   } finally {
+    // A recovery rehearsal is not successful if its disposable containers remain.
+    // Attempt every removal even when one fails; never emit PASS before cleanup.
+    let cleanupFailed = false;
     for (const name of active.reverse()) {
-      try { docker(['rm', '-f', name], { timeout: 15_000 }); } catch { /* best effort cleanup */ }
+      try { docker(['rm', '-f', name], { timeout: 15_000 }); }
+      catch { cleanupFailed = true; }
     }
-    rmSync(dir, { recursive: true, force: true });
+    try { rmSync(dir, { recursive: true, force: true }); }
+    catch { cleanupFailed = true; }
+    if (cleanupFailed)
+      throw new Error('Disposable synthetic recovery cleanup failed; no PASS accepted');
+    if (completed) {
+      console.log('PASS: synthetic-only encrypted S3 round-trip, isolated restore, rollback and cleanup');
+      console.log('NOT ACCEPTED: real staging restore, off-host region, public HTTPS or production recovery');
+    }
   }
 }
 
