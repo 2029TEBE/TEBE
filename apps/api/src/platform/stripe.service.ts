@@ -1262,12 +1262,24 @@ export class StripeBillingService {
       try {
         verified = assertRecurringProviderSettlement(
           candidate, invoice, subscription, intent, binding, plan, false);
+        // C37: recovery from C34 past_due requires an immutable failure
+        // receipt for this same tenant, subscription, Stripe invoice and
+        // provider-verified renewal end. A generic past_due row is insufficient.
+        const failedRecovery = binding.status === 'active' &&
+          record.localStatus === 'past_due' && rows(await tx.execute(sql`
+            SELECT 1 FROM subscription_events
+            WHERE tenant_id = ${tenantId}
+              AND subscription_id = ${binding.subscriptionId}
+              AND event_type = 'billing.stripe_recurring_invoice_failed'
+              AND details ->> 'stripeInvoiceId' = ${candidate.invoiceId}
+              AND details ->> 'periodEndsAt' = ${verified.periodEndsAt}
+            LIMIT 1`)).length === 1;
         assertRecurringLocalSettlement(binding, {
           id: record.localId, planId: record.localPlanId,
           status: record.localStatus, cancelAtPeriodEnd: record.localCancelAtPeriodEnd,
           periodStartsAt: record.localPeriodStartsAt,
           periodEndsAt: record.localPeriodEndsAt,
-        }, verified, latest.id);
+        }, verified, latest.id, Date.now(), failedRecovery);
       } catch { throw new ConflictException('Recurring Stripe invoice or entitlement failed verification'); }
 
       // Existing open/manual invoices cannot be silently repurposed into
