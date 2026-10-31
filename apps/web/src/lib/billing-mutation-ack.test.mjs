@@ -25,7 +25,7 @@ test('200 HTML login, invalid JSON, oversized body, redirects and non-JSON all f
   for (const response of [
     new Response('<html>Sign in</html>', { headers: { 'content-type': 'text/html' } }),
     new Response('{bad', { headers: { 'content-type': 'application/json' } }),
-    new Response(JSON.stringify({ value: 'x'.repeat(5000) }), { headers: { 'content-type': 'application/json' } }),
+    new Response(JSON.stringify({ value: 'x'.repeat(17000) }), { headers: { 'content-type': 'application/json' } }),
     new Response(JSON.stringify(invoice), { headers: { 'content-type': 'text/plain' } }),
     new Response(JSON.stringify(invoice), { status: 403, headers: { 'content-type': 'application/json' } }),
   ]) assert.equal(await readBillingMutationJson(response), null);

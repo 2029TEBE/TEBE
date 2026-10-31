@@ -7,7 +7,7 @@ export async function readBillingMutationJson(response) {
   if (!response?.ok || response.redirected ||
       !/^application\/json(?:\s*;|\s*$)/i.test(response.headers?.get('content-type') ?? '')) return null;
   try {
-    const value = await readBoundedSuccessJson(response, 4096);
+    const value = await readBoundedSuccessJson(response, 16_384);
     return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
   } catch {
     return null;
