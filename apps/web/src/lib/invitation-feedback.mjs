@@ -7,6 +7,9 @@ export function validInvitationToken(value) {
 /** Never display arbitrary upstream error bodies, tokens or internal details. */
 export function invitationErrorText(status, lang = 'en') {
   const ar = lang === 'ar';
+  if (status === 'unconfirmed') return ar
+    ? 'لم نتمكن من تأكيد قبول الدعوة. جرّب تسجيل الدخول أولاً؛ وإذا تعذّر ذلك فاطلب دعوة جديدة من مسؤول مساحة العمل.'
+    : 'Invitation acceptance could not be confirmed. Try signing in first; if that fails, ask your workspace administrator for a new invitation.';
   if ([400, 401, 403, 404, 410].includes(status)) return ar
     ? 'رابط الدعوة غير صالح أو انتهت صلاحيته، أو تنقص بيانات الحساب الجديد. تحقق من الرابط والبيانات أو اطلب دعوة جديدة.'
     : 'The invitation is invalid or expired, or new-account details are missing. Check the link and details or request another invitation.';
