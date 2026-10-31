@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   const blocked = rejectUnsafeBrowserMutation(req);
   if (blocked) return blocked;
   const token = req.cookies.get(SESSION)?.value;
-  if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
+  // A submitted workspace switch with an ended session must explain the expiry.
+  if (!token) return NextResponse.redirect(publicUrl(req, tenantSwitchFailurePath(401)), 303);
 
   const parsed = await readBoundedBrowserForm(req);
   if (!parsed.form) return NextResponse.json({

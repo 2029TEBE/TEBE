@@ -55,3 +55,16 @@ test('F44 executable browser suite checks real local 401, 403 and both customer 
   assert.ok(!source.includes('context.tracing.start('), 'Never trace authenticated cookies or credentials');
   assert.ok(source.includes('maxRedirects: 0'), 'Negative mutation must inspect actual redirect');
 });
+
+test('F46 browser journey verifies both tenant transitions and refuses 403/401', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  for (const step of [
+    'admin_workspace_switch_round_trip',
+    'unauthorized_workspace_switch_rejected',
+    'expired_workspace_switch_cookie_rejected',
+    'workspace_switch_fixture_missing',
+  ]) assert.ok(source.includes(step), 'Missing fail-closed journey: ' + step);
+  assert.match(source, /page\.waitForFunction\(expected =>/);
+  assert.match(source, /maxRedirects: 0/);
+  assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
+});

@@ -30,3 +30,8 @@ test('workspace switch route uses the safe landing policy after authenticated mu
   assert.match(route, /if \(!response\?\.ok\)/);
   assert.match(route, /fetchTenantMutation\(fetch,/);
 });
+
+test('F46 missing switch cookie is an explicit expired-session redirect', () => {
+  assert.match(route, /if \(!token\) return NextResponse\.redirect\(publicUrl\(req, tenantSwitchFailurePath\(401\)\), 303\)/);
+  assert.doesNotMatch(route, /if \(!token\) return NextResponse\.redirect\(publicUrl\(req, '\/login'\), 303\)/);
+});

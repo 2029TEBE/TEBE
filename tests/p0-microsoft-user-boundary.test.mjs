@@ -71,7 +71,7 @@ test('only the owner can disconnect a delegated connection; legacy unowned clean
 });
 
 test('Graph folder selection and storage reads cannot cross the consenting user boundary', () => {
-  assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}\s+AND status = 'connected' RETURNING id/);
+  assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}\s+AND status = 'connected'\s+AND refresh_token = \$\{locationCredential\.refresh_token\}\s+RETURNING id/);
   assert.match(connection, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}\s+AND status = 'connected'/);
 });
 
