@@ -14,7 +14,12 @@ test('E47: capture owner credential after refresh and before Graph folder writes
   const folder = method.indexOf('const root = await this.folder');
   assert.ok(snapshot > 0 && snapshot < drive && drive < folder);
   assert.match(method, /SELECT refresh_token FROM integration_connections[\s\S]*?connected_by = \$\{userId\}[\s\S]*?status = 'connected' AND refresh_token IS NOT NULL/);
-  assert.match(method, /if \(!locationCredential\?\.refresh_token\)/);
+  // A reconnect in the gap between accessToken and the DB snapshot must
+  // never bind an old Graph bearer to the new Microsoft identity.
+  assert.match(method, /const issued = this\.tokens\.get\(/);
+  assert.match(method, /issued\.accessToken !== token/);
+  assert.match(method, /issued\.credential !== locationCredential\.refresh_token/);
+  assert.ok(method.indexOf('issued.credential !== locationCredential.refresh_token') < drive);
 });
 
 test('E47: folder selection is conditional on same owner and exact encrypted credential', () => {
