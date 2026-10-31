@@ -12,6 +12,7 @@ import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from 
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
+import { parseRecurringResumption, assertRecurringResumptionProvider, type RecurringResumptionCandidate } from './stripe-recurring-resumption';
 import { assertRecurringReversalProvider, type RecurringReversalLedger } from './stripe-recurring-reversal';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
@@ -964,6 +965,147 @@ export class StripeBillingService {
         subscriptionId: binding.subscriptionId };
     });
   }
+
+  /**
+   * C36: only undo a scheduled TEST cancellation for the exact still-paid,
+   * unexpired tenant period. This never grants, extends, unpauses or activates
+   * access. A newer unpaid invoice, reversal, or changed provider period
+   * requires human reconciliation instead of automatic re-enablement.
+   */
+  private async recordRecurringResumption(
+    candidate: RecurringResumptionCandidate, digest: string,
+    config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring resumption is TEST-only and disabled');
+    let response: Response;
+    try {
+      response = await stripeApiFetch(
+        `https://api.stripe.com/v1/subscriptions/${candidate.stripeSubscriptionId}`, {
+          headers: { Authorization: `Bearer ${config.key}` },
+          signal: AbortSignal.timeout(12_000),
+        });
+    } catch { throw new BadGatewayException('Recurring resumption provider lookup unavailable'); }
+    if (!response.ok)
+      throw new BadGatewayException('Recurring resumption provider lookup rejected');
+    let remote: any;
+    try { remote = await readStripeApiJson(response); }
+    catch { throw new BadGatewayException('Invalid recurring resumption provider response'); }
+    const tenantId = remote?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        tenantId !== candidate.tenantId ||
+        remote?.id !== candidate.stripeSubscriptionId ||
+        remote?.metadata?.planId !== candidate.planId)
+      throw new ConflictException('Recurring resumption provider tenant routing mismatch');
+
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId",
+               b.status AS "bindingStatus",
+               b.cancel_at_period_end AS "bindingCancelAtPeriodEnd",
+               b.last_period_ends_at AS "bindingLastPeriodEndsAt",
+               s.status AS "localStatus",
+               s.cancel_at_period_end AS "localCancelAtPeriodEnd",
+               s.period_ends_at AS "localPeriodEndsAt"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND b.stripe_customer_id = ${candidate.customerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!record) throw new ConflictException('Recurring resumption tenant binding missing');
+      const previous = rows(await tx.execute(sql`
+        SELECT details ->> 'payloadSha256' AS "payloadSha256",
+               details ->> 'stripeSubscriptionId' AS "stripeSubscriptionId"
+        FROM subscription_events
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${record.subscriptionId}
+          AND event_type = 'billing.stripe_recurring_cancellation_resumed'
+          AND details ->> 'eventId' = ${candidate.eventId}
+        ORDER BY created_at DESC LIMIT 1`))[0];
+      if (previous) {
+        if (previous.payloadSha256 !== digest ||
+            previous.stripeSubscriptionId !== candidate.stripeSubscriptionId)
+          throw new ConflictException('Recurring resumption event identity was reused');
+        return { received: true, applied: false, duplicate: true };
+      }
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      const settled = rows(await tx.execute(sql`
+        SELECT e.details ->> 'stripeInvoiceId' AS "stripeInvoiceId",
+               i.id AS "invoiceId", i.status AS "invoiceStatus",
+               i.period_ends_at AS "periodEndsAt"
+        FROM subscription_events e
+        JOIN billing_invoices i ON i.tenant_id = e.tenant_id
+          AND i.id::text = e.details ->> 'invoiceId'
+          AND i.subscription_id = e.subscription_id
+        WHERE e.tenant_id = ${tenantId}
+          AND e.subscription_id = ${record.subscriptionId}
+          AND e.event_type = 'billing.stripe_recurring_invoice_settled'
+        ORDER BY i.period_ends_at DESC, e.created_at DESC LIMIT 1`))[0];
+      if (!settled)
+        throw new ConflictException('Recurring resumption lacks a settled paid period');
+      const reversal = rows(await tx.execute(sql`
+        SELECT EXISTS (
+          SELECT 1 FROM billing_payment_exceptions
+          WHERE tenant_id = ${tenantId} AND invoice_id = ${settled.invoiceId}
+            AND provider = ${STRIPE_PROVIDER}
+            AND (subscription_paused = true OR
+                 exception_type IN ('full_refund', 'dispute_opened'))
+        ) AS "hasBlockingReversal"`))[0];
+      try {
+        assertRecurringResumptionProvider(candidate, remote, {
+          ...record,
+          settledStripeInvoiceId: settled.stripeInvoiceId,
+          settledInvoiceStatus: settled.invoiceStatus,
+          settledPeriodEndsAt: settled.periodEndsAt,
+          hasBlockingReversal: reversal?.hasBlockingReversal,
+        }, latest?.id ?? '', false);
+      } catch { throw new ConflictException('Recurring resumption provider or paid tenant ledger mismatch'); }
+      const binding = rows(await tx.execute(sql`
+        UPDATE billing_stripe_recurring_bindings
+        SET cancel_at_period_end = false, updated_at = now()
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${record.subscriptionId}
+          AND stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND status = 'active' AND cancel_at_period_end = true
+          AND last_period_ends_at = ${record.bindingLastPeriodEndsAt}::timestamptz
+        RETURNING id`));
+      if (binding.length !== 1)
+        throw new ConflictException('Recurring resumption binding changed');
+      const local = rows(await tx.execute(sql`
+        UPDATE tenant_subscriptions
+        SET cancel_at_period_end = false, updated_at = now()
+        WHERE tenant_id = ${tenantId} AND id = ${record.subscriptionId}
+          AND status = 'active' AND cancel_at_period_end = true
+          AND period_ends_at = ${record.localPeriodEndsAt}::timestamptz
+          AND period_ends_at > now()
+        RETURNING id`));
+      if (local.length !== 1)
+        throw new ConflictException('Recurring resumption entitlement changed');
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${record.subscriptionId},
+          'billing.stripe_recurring_cancellation_resumed',
+          ${JSON.stringify({
+            eventId: candidate.eventId,
+            stripeSubscriptionId: candidate.stripeSubscriptionId,
+            payloadSha256: digest,
+            settledStripeInvoiceId: settled.stripeInvoiceId,
+            periodEndsAt: new Date(record.localPeriodEndsAt).toISOString(),
+          })}::jsonb)`);
+      return { received: true, applied: true, resumed: true,
+        subscriptionId: record.subscriptionId };
+    });
+  }
+
   /**
    * C32: TEST-only, signed recurring invoice settlement. The provider's
    * subscription metadata is a routing hint only. The immutable Checkout
@@ -1221,6 +1363,11 @@ export class StripeBillingService {
     catch { throw new BadRequestException('Invalid recurring Stripe cancellation event'); }
     if (cancellation)
       return this.recordRecurringCancellation(cancellation, sha256(rawBody), config);
+    let resumption: ReturnType<typeof parseRecurringResumption>;
+    try { resumption = parseRecurringResumption(rawBody, config.liveMode); }
+    catch { throw new BadRequestException('Invalid recurring Stripe resumption event'); }
+    if (resumption)
+      return this.recordRecurringResumption(resumption, sha256(rawBody), config);
     // C31 safety boundary: never acknowledge a paid recurring invoice while
     // transactional invoice/entitlement settlement is not yet connected.
     // A 2xx would cause Stripe to stop retrying a collected subscription
