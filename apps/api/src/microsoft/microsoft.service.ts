@@ -483,7 +483,13 @@ export class MicrosoftService {
       SELECT refresh_token FROM integration_connections
       WHERE provider = ${PROVIDER} AND connected_by = ${userId}
         AND status = 'connected' AND refresh_token IS NOT NULL`)));
-    if (!locationCredential?.refresh_token) {
+    // If OAuth reconnected between accessToken() and the snapshot, the
+    // encrypted credential may already belong to a *different* Microsoft
+    // account. Never use the old Graph bearer to select a folder for it.
+    const issued = this.tokens.get(`${tenantId}:${userId}:graph`);
+    if (!locationCredential?.refresh_token ||
+        !issued || issued.accessToken !== token ||
+        issued.credential !== locationCredential.refresh_token) {
       throw new ConflictException('Microsoft connection changed before folder selection. Reconnect and retry.');
     }
 
