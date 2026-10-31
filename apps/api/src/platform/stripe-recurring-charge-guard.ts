@@ -35,7 +35,7 @@ export function assertUnreversedRecurringCharge(
       verified.planId !== binding.planId ||
       verified.stripeSubscriptionId !== binding.stripeSubscriptionId ||
       !Number.isSafeInteger(verified.amountMinor) || verified.amountMinor <= 0 ||
-      !['SAR', 'USD'].includes(verified.currency) ||
+      !/^[A-Z]{3}$/.test(verified.currency) ||
       !intent || intent.object !== 'payment_intent' ||
       intent.livemode !== false || intent.status !== 'succeeded' ||
       intent.id !== verified.paymentIntentId ||
