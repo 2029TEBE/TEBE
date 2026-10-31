@@ -1,5 +1,6 @@
 import { billingChangeGuidance } from '@/lib/billing-self-service.mjs';
 import { checkoutReturnStatus } from '@/lib/billing-return-status.mjs';
+import { billingFailureText } from '@/lib/billing-mutation-feedback.mjs';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Page, Loaded } from '@/components/Page';
@@ -32,9 +33,7 @@ export default async function BillingPage({ searchParams }: {
   return <Page title={tx('Subscription and billing', 'الاشتراك والفوترة')}
     sub={tx('Review your plan, trial, renewal invoices, and billing options.',
       'راجع خطتك والفترة التجريبية وفواتير التجديد وخيارات الفوترة.')}>
-    {error && <p role="alert" className="err">{tx(
-      'The billing request could not be completed. Please check your subscription status or contact your administrator.',
-      'تعذّر إكمال طلب الفوترة. تحقق من حالة الاشتراك أو تواصل مع المسؤول.')}</p>}
+    {error && <p role="alert" className="err">{billingFailureText(error, lang)}</p>}
     {success && <p role="status" className="okmsg">{tx('Renewal invoice created or found.', 'تم إنشاء فاتورة التجديد أو العثور عليها.')}</p>}
     {updated && <p role="status" className="okmsg">{tx('Subscription preference updated.', 'تم تحديث إعداد الاشتراك.')}</p>}
     {checkoutReturn === 'awaiting-webhook' && <p role="status" className="dim">{tx(

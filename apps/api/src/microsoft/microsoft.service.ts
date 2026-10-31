@@ -241,14 +241,62 @@ export class MicrosoftService {
           account_name = EXCLUDED.account_name,
           -- Consent accumulates, so the scope string grows rather than being
           -- replaced: connecting Power BI must not look like losing Files.
-          scopes = (
+          -- A different Microsoft identity must never inherit the previous
+          -- account's accumulated delegated scope claims or connection date.
+          scopes = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email) THEN (
             SELECT string_agg(DISTINCT s, ' ')
             FROM unnest(string_to_array(
-              coalesce(integration_connections.scopes, '') || ' ' || EXCLUDED.scopes, ' ')) AS s
-            WHERE s <> ''),
+              coalesce(integration_connections.scopes, '') || ' ' || coalesce(EXCLUDED.scopes, ''), ' ')) AS s
+            WHERE s <> '') ELSE EXCLUDED.scopes END,
           refresh_token = EXCLUDED.refresh_token,
           connected_by = EXCLUDED.connected_by,
-          connected_at = coalesce(integration_connections.connected_at, EXCLUDED.connected_at),
+          connected_at = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                         THEN coalesce(integration_connections.connected_at, EXCLUDED.connected_at)
+                         ELSE EXCLUDED.connected_at END,
+          -- Never reuse a SharePoint/OneDrive destination after the consenting
+          -- owner selects another Microsoft account. Unknown identity also
+          -- resets the destination, rather than risking a stale Graph upload.
+          site_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_id ELSE NULL END,
+          site_name = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_name ELSE NULL END,
+          site_url = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.site_url ELSE NULL END,
+          drive_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.drive_id ELSE NULL END,
+          drive_name = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.drive_name ELSE NULL END,
+          root_item_id = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.root_item_id ELSE NULL END,
+          root_path = CASE WHEN EXCLUDED.external_tenant_id IS NOT NULL
+                 AND EXCLUDED.account_email IS NOT NULL
+                 AND integration_connections.external_tenant_id = EXCLUDED.external_tenant_id
+                 AND lower(integration_connections.account_email) = lower(EXCLUDED.account_email)
+                     THEN integration_connections.root_path ELSE NULL END,
           last_error = NULL,
           updated_at = now()
         WHERE integration_connections.connected_by = EXCLUDED.connected_by

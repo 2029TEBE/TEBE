@@ -46,7 +46,9 @@ test('rejects lookalike hosts, credential URLs, alternate ports, non-HTTPS and m
 test('billing proxy forbids credentialed upstream redirects and never reflects backend diagnostics', () => {
   const source = readFileSync(new URL('../app/api/billing/checkout/route.ts', import.meta.url), 'utf8');
   assert.match(source, /rejectUnsafeBrowserMutation\(req\)/);
-  assert.match(source, /redirect: 'error'/);
+  assert.match(source, /fetchTenantMutation\(fetch,/);
+  const shared = readFileSync(new URL('./tenant-mutation-fetch.mjs', import.meta.url), 'utf8');
+  assert.match(shared, /redirect: 'error'/);
   assert.match(source, /response\.redirected/);
   assert.match(source, /stripeCheckoutRedirect\(data, invoiceId\)/);
   assert.doesNotMatch(source, /error\?\.message/);
@@ -56,8 +58,9 @@ test('billing proxy forbids credentialed upstream redirects and never reflects b
 test('subscription cancellation proxy also forbids session-cookie redirects', () => {
   const source = readFileSync(new URL('../app/api/billing/subscription/route.ts', import.meta.url), 'utf8');
   assert.match(source, /rejectUnsafeBrowserMutation\(req\)/);
-  assert.match(source, /redirect: 'error'/);
+  assert.match(source, /fetchTenantMutation\(fetch,/);
+  const shared = readFileSync(new URL('./tenant-mutation-fetch.mjs', import.meta.url), 'utf8');
+  assert.match(shared, /redirect: 'error'/);
   assert.match(source, /response\.redirected/);
-  assert.match(source, /response\.status >= 300/);
-  assert.match(source, /subscription-action-failed/);
+  assert.match(source, /billingFailurePath\(response\?\.status\)/);
 });
