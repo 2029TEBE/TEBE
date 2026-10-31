@@ -28,3 +28,13 @@ test('OAuth owner lock, credential replacement and conflict guard remain in plac
   assert.match(upsert, /refresh_token = EXCLUDED\.refresh_token/);
   assert.match(callback, /ON CONFLICT \(tenant_id, provider\) DO UPDATE SET/);
 });
+
+test('OAuth account switch also discards inherited scope grants and connection date', () => {
+  const scope = upsert.match(/scopes = CASE WHEN ([\s\S]*?) THEN \([\s\S]*?\) ELSE EXCLUDED\.scopes END,/);
+  assert.ok(scope, 'scope accumulation must be conditional on same Microsoft identity');
+  assert.match(scope[1], /EXCLUDED\.external_tenant_id IS NOT NULL/);
+  assert.match(scope[1], /EXCLUDED\.account_email IS NOT NULL/);
+  assert.match(scope[1], /integration_connections\.external_tenant_id = EXCLUDED\.external_tenant_id/);
+  assert.match(scope[1], /lower\(integration_connections\.account_email\) = lower\(EXCLUDED\.account_email\)/);
+  assert.match(upsert, /connected_at = CASE WHEN [\s\S]*?ELSE EXCLUDED\.connected_at END,/);
+});
