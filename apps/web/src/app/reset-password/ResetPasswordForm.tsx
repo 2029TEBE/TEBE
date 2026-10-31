@@ -2,10 +2,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { consumeSecretFragmentOnce } from '@/lib/secret-fragment.mjs';
+import { recoveryResetErrorText, createRecoverySubmissionGate } from '@/lib/recovery-reset-feedback.mjs';
 export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
   const ar = lang === 'ar';
   const [ready, setReady] = useState(false);
   const fragmentConsumed = useRef(false);
+  const submissionGate = useRef(createRecoverySubmissionGate());
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -18,16 +20,25 @@ export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
     if (value !== undefined) { setToken(value); setReady(true); }
   }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setError('');
+    e.preventDefault();
     if (password !== confirm) { setError(ar ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.'); return; }
-    setBusy(true);
+    // React's busy state is asynchronous: block double clicks synchronously.
+    if (!submissionGate.current.begin()) return;
+    setError(''); setBusy(true);
+    let succeeded = false;
     try {
       const res = await fetch('/api/password-recovery/reset', { method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token, password }), cache: 'no-store' });
-      if (!res.ok) throw new Error(ar ? 'الرابط غير صالح أو انتهت صلاحيته. اطلب رابطًا جديدًا.' : 'This link is invalid or expired. Request another one.');
+      if (!res.ok) { setError(recoveryResetErrorText(res.status, lang)); return; }
+      succeeded = true;
       setDone(true); setToken(''); setPassword(''); setConfirm('');
-    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    } catch {
+      setError(recoveryResetErrorText(0, lang));
+    } finally {
+      submissionGate.current.settle(succeeded);
+      setBusy(false);
+    }
   }
   if (!ready) return <p>{ar ? 'جارٍ التحقق من الرابط...' : 'Checking link…'}</p>;
   if (done) return <div role="status"><p>{ar ? 'تم تغيير كلمة المرور وإلغاء الجلسات القديمة.' : 'Password updated. All previous sessions were revoked.'}</p>
@@ -37,10 +48,10 @@ export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
   return <form className="authform" onSubmit={submit}>
     <label>{ar ? 'كلمة المرور الجديدة (12 حرفًا على الأقل)' : 'New password (at least 12 characters)'}
       <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-        minLength={12} maxLength={200} autoComplete="new-password" required /></label>
+        minLength={12} maxLength={200} autoComplete="new-password" required disabled={busy} /></label>
     <label>{ar ? 'تأكيد كلمة المرور' : 'Confirm password'}
       <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-        minLength={12} maxLength={200} autoComplete="new-password" required /></label>
+        minLength={12} maxLength={200} autoComplete="new-password" required disabled={busy} /></label>
     {error && <p role="alert" className="formerr">{error}</p>}
     <button type="submit" className="btn wide" disabled={busy}>{busy ? '…' : (ar ? 'تغيير كلمة المرور' : 'Reset password')}</button>
   </form>;

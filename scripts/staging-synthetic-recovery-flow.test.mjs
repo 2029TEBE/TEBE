@@ -10,14 +10,14 @@ const fs=require('node:fs');const path=require('node:path');
 const raw=process.argv.slice(2), bin=path.basename(process.argv[1]);
 if(bin==='docker' && (raw[0]!=='--host'||raw[1]!=='unix:///var/run/docker.sock'))process.exit(9);
 const args=bin==='docker'?raw.slice(2):raw;
-const dir=__DIR__;const log=__LOG__;const corrupt=__CORRUPT__;const unsafe=__UNSAFE__;
+const dir=__DIR__;const log=__LOG__;const corrupt=__CORRUPT__;const unsafe=__UNSAFE__;const failCleanup=__FAIL_CLEANUP__;
 const write=(s)=>fs.appendFileSync(log,s+'\n');
 const state=n=>path.join(dir,n+'.state');
 if(bin==='docker'){
  const op=args[0];
  if(op==='image'&&args[1]==='inspect'){write('image-inspect');}
  else if(op==='run') {const n=args[args.indexOf('--name')+1];fs.writeFileSync(state(n),'new');write('run '+n);process.stdout.write(n);}
- else if(op==='rm') {const n=args.at(-1);fs.rmSync(state(n),{force:true});write('rm '+n);}
+ else if(op==='rm') {const n=args.at(-1);if(failCleanup&&!fs.existsSync(path.join(dir,'failed-once'))){fs.writeFileSync(path.join(dir,'failed-once'),'1');write('rm-failed '+n);process.exit(9);}fs.rmSync(state(n),{force:true});write('rm '+n);}
  else if(op==='exec') {
    const n=args[args[1]==='-i'?2:1],cmd=args.find(x=>['psql','pg_dump','pg_restore','pg_isready'].includes(x));
    if(cmd==='pg_isready')process.stdout.write('ready');
@@ -60,13 +60,14 @@ if(bin==='docker'){
  }else process.exit(9);
 }else process.exit(9);
 `;
-function fixture(corrupt=false, unsafe=false) {
+function fixture(corrupt=false, unsafe=false, failCleanup=false) {
  const dir=mkdtempSync(join(tmpdir(),'epmo-s34-flow-'));
  const bin=join(dir,'bin');mkdirSync(bin);
  const fakeCode=fake.replaceAll('__DIR__',JSON.stringify(dir))
    .replaceAll('__LOG__',JSON.stringify(join(dir,'calls.log')))
    .replaceAll('__CORRUPT__',JSON.stringify(corrupt))
-   .replaceAll('__UNSAFE__',JSON.stringify(unsafe));
+   .replaceAll('__UNSAFE__',JSON.stringify(unsafe))
+   .replaceAll('__FAIL_CLEANUP__',JSON.stringify(failCleanup));
  for(const name of ['docker','aws']){const p=join(bin,name);writeFileSync(p,fakeCode);chmodSync(p,0o700);}
  const key=join(dir,'key');writeFileSync(key,randomBytes(32));chmodSync(key,0o600);
  const env={PATH:bin+':'+process.env.PATH,
@@ -111,4 +112,29 @@ test('S40 rejects unsafe TEST bucket before Docker inspect, containers or S3 wri
   assert.deepEqual(lines,['bucket-public-access','bucket-location','bucket-encryption']);
   assert.ok(!lines.some(x=>x==='image-inspect'||x.startsWith('run ')||x==='remote-upload'));
  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+
+test('S41 fails closed if a disposable container cannot be removed after successful restore', async () => {
+ const {dir,env}=fixture(false,false,true);
+ try {
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/cleanup failed; no PASS accepted/);
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
+  assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
+  assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
+  assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
+  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,2);
+  assert.equal(lines.filter(x=>x.startsWith('rm')).length,3,
+    'all three removals must be attempted despite the first failure');
+ } finally {rmSync(dir,{recursive:true,force:true});}
+});
+
+test('S41 attempts cleanup and rejects success after corruption plus failed removal', async () => {
+ const {dir,env}=fixture(true,false,true);
+ try {
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/cleanup failed; no PASS accepted/);
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
+  assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
+  assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
+ } finally {rmSync(dir,{recursive:true,force:true});}
 });
