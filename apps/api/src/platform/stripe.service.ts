@@ -10,6 +10,7 @@ import { parsePaidRecurringInvoice } from './stripe-recurring-invoice';
 import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
 import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from './stripe-recurring-reconciliation';
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
+import { recurringPaidChargeId, assertUnreversedRecurringCharge } from './stripe-recurring-charge-guard';
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseRecurringResumption, assertRecurringResumptionProvider, type RecurringResumptionCandidate } from './stripe-recurring-resumption';
@@ -1139,6 +1140,12 @@ export class StripeBillingService {
     try { paymentIntentId = recurringInvoicePaymentIntentId(invoice); }
     catch { throw new ConflictException('Recurring Stripe invoice payment reference is ambiguous'); }
     const intent = await getStripe(`payment_intents/${paymentIntentId}`);
+    // Invoice.paid can remain true after a refund or dispute. Independently
+    // retrieve the Charge; only a NEW settlement may grant an entitlement.
+    let chargeId: string;
+    try { chargeId = recurringPaidChargeId(intent); }
+    catch { throw new ConflictException('Recurring Stripe paid invoice has no verified Charge'); }
+    const charge = await getStripe(`charges/${chargeId}`);
     const tenantId = subscription?.metadata?.tenantId;
     if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
         subscription?.id !== candidate.subscriptionId ||
@@ -1262,6 +1269,9 @@ export class StripeBillingService {
       try {
         verified = assertRecurringProviderSettlement(
           candidate, invoice, subscription, intent, binding, plan, false);
+        // C38: no new paid period may be activated from a Charge already
+        // refunded, partially refunded, disputed, or not fully captured.
+        assertUnreversedRecurringCharge(intent, charge, binding, verified, false);
         // C37: recovery from C34 past_due requires an immutable failure
         // receipt for this same tenant, subscription, Stripe invoice and
         // provider-verified renewal end. A generic past_due row is insufficient.
