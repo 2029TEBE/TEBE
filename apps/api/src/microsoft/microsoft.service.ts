@@ -445,8 +445,7 @@ export class MicrosoftService {
         // rest. CAS on the exact consenting owner, connected status and sealed
         // token: a concurrent reconnect must never be erased by a stale error.
         await tx.execute(sql`
-          UPDATE integration_connections
-          SET status = 'error', refresh_token = NULL,
+          UPDATE integration_connections SET status = 'error', refresh_token = NULL,
               last_error = ${msg}, updated_at = now()
           WHERE provider = ${PROVIDER} AND connected_by = ${userId}
             AND status = 'connected' AND refresh_token = ${row.refresh_token}`);
