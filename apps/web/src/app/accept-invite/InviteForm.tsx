@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { validInvitationToken, invitationErrorText } from '@/lib/invitation-feedback.mjs';
+import { invitationAcceptedResponse } from '@/lib/invitation-acceptance.mjs';
 import { consumeSecretFragmentOnce } from '@/lib/secret-fragment.mjs';
 
 export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
@@ -30,7 +31,8 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
     setBusy(true); setError('');
     try {
       const response = await fetch('/api/invite/accept', {
-        method: 'POST', cache: 'no-store',
+        method: 'POST', cache: 'no-store', redirect: 'error',
+        signal: AbortSignal.timeout(20_000),
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token, displayName: name, password }),
       });
@@ -38,9 +40,22 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
         setError(invitationErrorText(response.status, lang));
         return;
       }
+      // A 200 HTML sign-in page or malformed proxy reply is not acceptance.
+      // A single-use token may have committed upstream: do not claim success.
+      let payload: unknown;
+      try { payload = await response.json(); }
+      catch { setError(invitationErrorText('unconfirmed', lang)); return; }
+      if (!invitationAcceptedResponse({
+        status: response.status, redirected: response.redirected,
+        contentType: response.headers.get('content-type'),
+      }, payload)) {
+        setError(invitationErrorText('unconfirmed', lang));
+        return;
+      }
       setDone(true); setToken(''); setPassword('');
     } catch {
-      setError(invitationErrorText(0, lang));
+      // A timeout or redirect cannot prove whether the upstream mutation committed.
+      setError(invitationErrorText('unconfirmed', lang));
     } finally {
       busyGuard.current = false;
       setBusy(false);

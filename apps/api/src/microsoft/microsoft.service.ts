@@ -382,6 +382,21 @@ export class MicrosoftService {
     const { tenantId, userId } = this.ctx();
     const cacheKey = `${tenantId}:${userId}:${resource}`;
 
+    // A valid session or previously cached Graph token does not survive a
+    // disabled EPMO user, suspended membership or administrator downgrade.
+    // Check the *current* tenant membership on every delegated token request,
+    // including cache hits. Never use the Microsoft credential of a former admin.
+    const [activeDelegate] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+      SELECT m.id FROM memberships AS m
+      JOIN users AS u ON u.id = m.user_id
+      WHERE m.tenant_id = ${tenantId} AND m.user_id = ${userId}
+        AND m.is_active = true AND u.is_active = true
+        AND m.role IN ('owner', 'admin', 'client_admin')`)));
+    if (!activeDelegate) {
+      this.tokens.delete(cacheKey);
+      throw new ForbiddenException('Workspace administrator access changed. Reconnect after access is restored.');
+    }
+
     // Check the database owner BEFORE any cached token can be returned.
     // The legacy schema stores one delegated connection per workspace; that
     // does not authorize a different workspace administrator to impersonate
@@ -441,13 +456,26 @@ export class MicrosoftService {
     // rotation. Require the original consenting user and exact credential to
     // still exist before caching or returning the refreshed access token.
     const credential = tok.refreshToken ? seal(tok.refreshToken) : row.refresh_token;
-    const updated = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+    const updated = await withTenant(tenantId, async (tx) => {
+      // Refresh can take seconds. Hold the active user/membership locks through
+      // the credential CAS so a concurrent downgrade cannot authorize a new
+      // cached bearer after administrator access has been revoked.
+      const [stillActive] = rows(await tx.execute(sql`
+        SELECT m.id FROM memberships AS m
+        JOIN users AS u ON u.id = m.user_id
+        WHERE m.tenant_id = ${tenantId} AND m.user_id = ${userId}
+          AND m.is_active = true AND u.is_active = true
+          AND m.role IN ('owner', 'admin', 'client_admin')
+        FOR SHARE OF m, u`));
+      if (!stillActive) return [];
+      return rows(await tx.execute(sql`
         UPDATE integration_connections
         SET refresh_token = ${credential}, status = 'connected',
             last_error = NULL, last_used_at = now(), updated_at = now()
         WHERE provider = ${PROVIDER} AND connected_by = ${userId}
           AND status = 'connected' AND refresh_token = ${row.refresh_token}
-        RETURNING id`)));
+        RETURNING id`));
+    });
     if (!updated.length) {
       this.tokens.delete(cacheKey);
       throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');

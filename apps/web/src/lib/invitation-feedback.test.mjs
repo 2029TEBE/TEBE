@@ -26,4 +26,6 @@ test('upstream failure status maps only to safe bilingual user guidance', () => 
   }
   assert.match(invitationErrorText(429, 'en'), /Too many attempts/);
   assert.match(invitationErrorText(503, 'ar'), /الخدمة/);
+  assert.match(invitationErrorText('unconfirmed', 'en'), /could not be confirmed/);
+  assert.match(invitationErrorText('unconfirmed', 'ar'), /تأكيد قبول الدعوة/);
 });

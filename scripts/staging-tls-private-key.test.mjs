@@ -72,3 +72,40 @@ test('S18 staging edge rejects restricted Stripe live keys', () => {
  const result = stagingEdgeChecks({ STRIPE_SECRET_KEY: 'rk_live_forbidden' });
  assert.equal(result.find(check => check.name === 'No live Stripe credentials')?.passed, false);
 });
+
+test('S43 offline readiness rejects extra production, wildcard, IP and duplicate SAN entries', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'epmo-s43-san-'));
+  const cert = join(dir, 'tls.crt');
+  const key = join(dir, 'tls.key');
+  const required = 'DNS:staging.theepmo.com,DNS:api-staging.theepmo.com';
+  try {
+    for (const extra of [
+      'DNS:app.theepmo.com',
+      'DNS:*.theepmo.com',
+      'IP:127.0.0.1',
+      'DNS:staging.theepmo.com',
+    ]) {
+      openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+        '-keyout', key, '-out', cert, '-days', '3',
+        '-subj', '/CN=staging.theepmo.com',
+        '-addext', 'subjectAltName=' + required + ',' + extra);
+      chmodSync(key, 0o600);
+      const checks = tlsMaterialChecks({
+        STAGING_TLS_CERT_PATH: cert, STAGING_TLS_KEY_PATH: key,
+      }, root);
+      assert.equal(checks.find(check => check.name === 'TLS certificate matches both staging hostnames')?.passed,
+        false, 'Unapproved certificate SAN must fail offline readiness: ' + extra);
+      assert.equal(checks.find(check => check.name === 'TLS private key matches the certificate')?.passed,
+        true, 'Rejection must be attributable to SAN policy, not a bad key');
+    }
+    openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+      '-keyout', key, '-out', cert, '-days', '3',
+      '-subj', '/CN=staging.theepmo.com', '-addext', 'subjectAltName=' + required);
+    chmodSync(key, 0o600);
+    assert.ok(tlsMaterialChecks({
+      STAGING_TLS_CERT_PATH: cert, STAGING_TLS_KEY_PATH: key,
+    }, root).every(check => check.passed), 'Exact two staging SANs remain valid');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
