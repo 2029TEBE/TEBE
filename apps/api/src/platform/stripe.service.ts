@@ -12,6 +12,7 @@ import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from 
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
 import { recurringPaidChargeId, assertUnreversedRecurringCharge } from './stripe-recurring-charge-guard';
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
+import { parseRecurringSuspension, assertRecurringSuspensionProvider, recurringSuspensionTransition, type RecurringSuspensionCandidate } from './stripe-recurring-suspension';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseRecurringResumption, assertRecurringResumptionProvider, type RecurringResumptionCandidate } from './stripe-recurring-resumption';
 import { assertRecurringReversalProvider, type RecurringReversalLedger } from './stripe-recurring-reversal';
@@ -728,6 +729,109 @@ export class StripeBillingService {
    * Scheduled cancellation preserves the already-paid period; terminal
    * deletion revokes access. Replays are serialized by the tenant lock.
    */
+  /**
+   * C39: signed TEST paused/unpaid subscription status. Stripe can pause or
+   * mark a subscription unpaid without a new invoice.paid event. Never
+   * acknowledge the downgrade while retaining an ineligible entitlement.
+   * A resumed/active event cannot reactivate access: only a verified paid
+   * invoice settlement (or separate audited manual recovery) may do that.
+   */
+  private async recordRecurringSuspension(
+    candidate: RecurringSuspensionCandidate, digest: string,
+    config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring suspension is TEST-only and disabled');
+    let response: Response;
+    try {
+      response = await stripeApiFetch(
+        `https://api.stripe.com/v1/subscriptions/${candidate.stripeSubscriptionId}`, {
+          headers: { Authorization: `Bearer ${config.key}` },
+          signal: AbortSignal.timeout(12_000),
+        });
+    } catch { throw new BadGatewayException('Recurring suspension provider lookup unavailable'); }
+    if (!response.ok)
+      throw new BadGatewayException('Recurring suspension provider lookup rejected');
+    let remote: unknown;
+    try { remote = await readStripeApiJson(response); }
+    catch { throw new BadGatewayException('Invalid recurring suspension provider response'); }
+    const tenantId = (remote as any)?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        tenantId !== candidate.tenantId ||
+        (remote as any)?.metadata?.planId !== candidate.planId ||
+        (remote as any)?.id !== candidate.stripeSubscriptionId)
+      throw new ConflictException('Recurring suspension provider tenant routing mismatch');
+
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId",
+               b.status AS "bindingStatus",
+               s.status AS "localStatus",
+               s.period_ends_at AS "localPeriodEndsAt"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND b.stripe_customer_id = ${candidate.stripeCustomerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!record) throw new ConflictException('Recurring suspension tenant binding missing');
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      try {
+        assertRecurringSuspensionProvider(candidate, remote, record, latest?.id ?? '', false);
+      } catch { throw new ConflictException('Recurring suspension provider or ledger mismatch'); }
+
+      const previous = rows(await tx.execute(sql`
+        SELECT details ->> 'payloadSha256' AS "payloadSha256",
+               details ->> 'providerStatus' AS "providerStatus",
+               details ->> 'stripeSubscriptionId' AS "stripeSubscriptionId"
+        FROM subscription_events
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${record.subscriptionId}
+          AND event_type = 'billing.stripe_recurring_subscription_suspended'
+          AND details ->> 'eventId' = ${candidate.eventId}
+        ORDER BY created_at DESC LIMIT 1`))[0];
+      if (previous) {
+        if (previous.payloadSha256 !== digest ||
+            previous.providerStatus !== candidate.providerStatus ||
+            previous.stripeSubscriptionId !== candidate.stripeSubscriptionId)
+          throw new ConflictException('Recurring suspension event identity was reused');
+        return { received: true, applied: false, duplicate: true };
+      }
+      let transition: ReturnType<typeof recurringSuspensionTransition>;
+      try { transition = recurringSuspensionTransition(candidate, record); }
+      catch { throw new ConflictException('Recurring suspension transition is invalid'); }
+      if (transition) {
+        const changed = rows(await tx.execute(sql`
+          UPDATE tenant_subscriptions
+          SET status = ${transition}, updated_at = now()
+          WHERE tenant_id = ${tenantId} AND id = ${record.subscriptionId}
+            AND status = ${record.localStatus}
+            AND period_ends_at = ${record.localPeriodEndsAt}::timestamptz
+          RETURNING id`));
+        if (changed.length !== 1)
+          throw new ConflictException('Recurring suspension entitlement changed during reconciliation');
+      }
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${record.subscriptionId},
+          'billing.stripe_recurring_subscription_suspended',
+          ${JSON.stringify({ eventId: candidate.eventId,
+            stripeSubscriptionId: candidate.stripeSubscriptionId,
+            providerStatus: candidate.providerStatus, payloadSha256: digest,
+            accessChanged: !!transition })}::jsonb)`);
+      return { received: true, applied: true, accessChanged: !!transition,
+        subscriptionId: record.subscriptionId };
+    });
+  }
+
   private async recordRecurringCancellation(
     candidate: RecurringCancellationCandidate, digest: string,
     config: ReturnType<typeof stripeConfig>) {
@@ -1380,6 +1484,11 @@ export class StripeBillingService {
     try { recurringCheckout = parseSignedRecurringCheckout(rawBody, config.liveMode); }
     catch { throw new BadRequestException('Invalid recurring Stripe Checkout event'); }
     if (recurringCheckout) return this.bindRecurringCheckout(recurringCheckout, config);
+    let suspension: ReturnType<typeof parseRecurringSuspension>;
+    try { suspension = parseRecurringSuspension(rawBody, config.liveMode); }
+    catch { throw new BadRequestException('Invalid recurring Stripe suspension event'); }
+    if (suspension)
+      return this.recordRecurringSuspension(suspension, sha256(rawBody), config);
     let cancellation: ReturnType<typeof parseRecurringCancellation>;
     try { cancellation = parseRecurringCancellation(rawBody, config.liveMode); }
     catch { throw new BadRequestException('Invalid recurring Stripe cancellation event'); }

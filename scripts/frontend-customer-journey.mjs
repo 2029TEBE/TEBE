@@ -22,6 +22,7 @@ const known = new Set([
   'unsafe_mutation_redirect', 'unexpected_mutation_feedback', 'unexpected_auth_redirect',
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed',
+  'recovery_request_replayed', 'recovery_rate_limit_not_explained',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
 let browser;
@@ -52,6 +53,7 @@ try {
         // Fixed-name screenshots only; never record authenticated traces or secrets.
         const capture = new Set([
           'expired_login_bilingual', 'recovery_503_no_success',
+          'recovery_429_singleflight_no_success',
           'invitation_403_no_acceptance', 'admin_login_and_onboarding',
           'admin_subscription_read', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
@@ -105,6 +107,30 @@ try {
         await page.locator('button[type="submit"]').click();
         await page.getByRole('alert').waitFor();
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
+        await layout();
+        await page.unroute('**/api/password-recovery/request');
+      });
+      await step('recovery_429_singleflight_no_success', async () => {
+        // Synthetic rate limit: rapid repeated submits must create one request,
+        // show localized guidance, and never claim a recovery email was sent.
+        let requests = 0;
+        await page.route('**/api/password-recovery/request', async route => {
+          requests++;
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+        });
+        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
+        await page.locator('input[type="email"]').fill('journey-recovery@example.test');
+        await page.locator('form.authform').evaluate(form => {
+          form.requestSubmit();
+          form.requestSubmit();
+        });
+        await page.getByRole('alert').waitFor();
+        if (requests !== 1) throw new Error('recovery_request_replayed');
+        if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
+        const message = await page.getByRole('alert').innerText();
+        if (!(variant.lang === 'ar' ? message.includes('محاولات كثيرة') : message.includes('Too many recovery requests')))
+          throw new Error('recovery_rate_limit_not_explained');
         await layout();
         await page.unroute('**/api/password-recovery/request');
       });

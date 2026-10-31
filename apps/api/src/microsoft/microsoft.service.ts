@@ -195,7 +195,28 @@ export class MicrosoftService {
       throw new BadRequestException(
         'That sign-in link has expired or has already been used. Start the connection again.');
     }
-    const resource: Resource = st.provider.endsWith(':powerbi') ? 'powerbi' : 'graph';
+    // A callback has no browser session. Never infer a resource or actor from
+    // malformed/cross-tenant state data, even if its random suffix is valid.
+    if (st.tenant_id !== tenantId ||
+        (st.provider !== 'microsoft:graph' && st.provider !== 'microsoft:powerbi') ||
+        typeof st.user_id !== 'string') {
+      throw new BadRequestException(
+        'That sign-in link has expired or has already been used. Start the connection again.');
+    }
+    const resource: Resource = st.provider === 'microsoft:powerbi' ? 'powerbi' : 'graph';
+
+    // Do not exchange an authorization code for a disabled EPMO user or a
+    // revoked/downgraded administrator. Recheck with locks at the actual write.
+    const [eligible] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+      SELECT m.id FROM memberships AS m
+      JOIN users AS u ON u.id = m.user_id
+      WHERE m.tenant_id = ${tenantId} AND m.user_id = ${st.user_id}
+        AND m.is_active = true AND u.is_active = true
+        AND m.role IN ('owner', 'admin', 'client_admin')`)));
+    if (!eligible) {
+      throw new ForbiddenException(
+        'Your workspace administrator access changed during Microsoft sign-in. Start again after access is restored.');
+    }
 
     let tok;
     try {
@@ -219,11 +240,12 @@ export class MicrosoftService {
       // a concurrent role change cannot race the connection commit.
       const [authorized] = rows(await tx.execute(sql`
         SELECT m.id FROM memberships AS m
+        JOIN users AS u ON u.id = m.user_id
         WHERE m.tenant_id = ${tenantId}
           AND m.user_id = ${st.user_id}
-          AND m.is_active = true
+          AND m.is_active = true AND u.is_active = true
           AND m.role IN ('owner', 'admin', 'client_admin')
-        FOR SHARE OF m`));
+        FOR SHARE OF m, u`));
       if (!authorized) {
         throw new ForbiddenException(
           'Your workspace administrator access changed during Microsoft sign-in. Start again after access is restored.');

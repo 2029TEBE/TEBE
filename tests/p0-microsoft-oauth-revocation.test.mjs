@@ -29,7 +29,9 @@ test('OAuth completion rechecks active administrator membership before storing t
 
 test('membership validation and token upsert share one tenant-scoped transaction', () => {
   const transaction = callback.indexOf('await withTenant(tenantId, async (tx) => {', callback.indexOf('const who = readIdToken('));
-  const guard = callback.indexOf('FROM memberships AS m');
+  // The pre-exchange read-only eligibility check is intentionally outside this
+  // transaction; inspect the second, locked check at credential persistence.
+  const guard = callback.indexOf('FROM memberships AS m', transaction);
   const upsert = callback.indexOf('INSERT INTO integration_connections');
   const audit = callback.indexOf("action: 'microsoft.connected'");
   assert.ok(transaction >= 0 && guard > transaction && upsert > guard && audit > upsert);
