@@ -113,16 +113,23 @@ export async function runLocalSyntheticRecovery(env = process.env, deps = {}) {
     if (query(target) === expected) throw new Error('Failure injection did not alter data');
     const rollback = await start();
     restore(rollback, recovered);
-    console.log('PASS: LOCAL-ONLY synthetic encrypted backup, disposable restore, failure and rollback');
-    console.log('NOT ACCEPTED: off-host storage, public staging, real tenant isolation or production recovery');
-    return { result: 'local-synthetic-only' };
   } finally {
+    // No PASS until *every* disposable container has been removed and scratch
+    // data erased. A failed removal is a failed drill, even after valid restore.
+    let cleanupFailed = false;
     for (const id of active.reverse()) {
-      try { docker(['rm', '-f', id], undefined, 15_000); } catch { /* cleanup best effort */ }
+      try { docker(['rm', '-f', id], undefined, 15_000); }
+      catch { cleanupFailed = true; }
     }
     if (plain) plain.fill(0);
-    rmSync(dir, { recursive: true, force: true });
+    try { rmSync(dir, { recursive: true, force: true }); }
+    catch { cleanupFailed = true; }
+    if (cleanupFailed)
+      throw new Error('Local synthetic recovery cleanup failed; no PASS accepted');
   }
+  console.log('PASS: LOCAL-ONLY synthetic encrypted backup, disposable restore, failure, rollback and cleanup');
+  console.log('NOT ACCEPTED: off-host storage, public staging, real tenant isolation or production recovery');
+  return { result: 'local-synthetic-only' };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
