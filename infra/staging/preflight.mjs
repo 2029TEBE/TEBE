@@ -72,12 +72,17 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
   }
   // Modern TLS clients require SANs. checkHost() alone may fall back to a
   // legacy CN wildcard when SAN is missing, giving false deployment readiness.
-  const sanNames = new Set((cert.subjectAltName || '').split(/,\s*/));
+  // S43: the offline readiness gate must enforce the same exact SAN policy
+  // as the live loopback TLS probe. An extra production, wildcard or IP SAN
+  // must not be silently accepted as a staging-only certificate.
+  const sanNames = (cert.subjectAltName || '').split(/,\s*/).filter(Boolean);
+  const requiredSans = ['DNS:staging.theepmo.com', 'DNS:api-staging.theepmo.com'];
+  const exactStagingSans = sanNames.length === requiredSans.length &&
+    requiredSans.every(name => sanNames.includes(name));
   checks.push({ name: 'TLS certificate matches both staging hostnames',
-    passed: sanNames.has('DNS:staging.theepmo.com') &&
-      sanNames.has('DNS:api-staging.theepmo.com') &&
-      Boolean(cert.checkHost('staging.theepmo.com')) &&
-      Boolean(cert.checkHost('api-staging.theepmo.com')) });
+    passed: exactStagingSans &&
+      cert.checkHost('staging.theepmo.com') === 'staging.theepmo.com' &&
+      cert.checkHost('api-staging.theepmo.com') === 'api-staging.theepmo.com' });
   checks.push({ name: 'TLS certificate is valid for at least 24 hours',
     passed: Date.parse(cert.validFrom) <= now &&
       Date.parse(cert.validTo) > now + 24 * 60 * 60 * 1000 });
