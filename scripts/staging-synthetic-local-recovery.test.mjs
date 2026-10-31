@@ -16,8 +16,9 @@ function fixture() {
     EPMO_LOCAL_DRILL_KEY_FILE: keyFile };
   return { dir, keyFile, env, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
-function fakeDocker({ failRestore = false } = {}) {
+function fakeDocker({ failRestore = false, failCleanup = false } = {}) {
   const calls = [], states = new Map();
+  let removalFailed = false;
   const runner = (bin, args, opts) => {
     assert.equal(bin, 'docker');
     assert.deepEqual(args.slice(0, 2), ['--host', 'unix:///var/run/docker.sock']);
@@ -30,7 +31,14 @@ function fakeDocker({ failRestore = false } = {}) {
       states.set(id, 'new');
       return { status: 0, stdout: Buffer.from(id) };
     }
-    if (op === 'rm') { states.delete(cmd.at(-1)); return { status: 0, stdout: Buffer.alloc(0) }; }
+    if (op === 'rm') {
+      if (failCleanup && !removalFailed) {
+        removalFailed = true;
+        return { status: 1, stdout: Buffer.alloc(0) };
+      }
+      states.delete(cmd.at(-1));
+      return { status: 0, stdout: Buffer.alloc(0) };
+    }
     if (op === 'exec') {
       const id = cmd[1] === '-i' ? cmd[2] : cmd[1];
       const action = cmd.find(x => ['pg_isready', 'psql', 'pg_dump', 'pg_restore'].includes(x));
@@ -126,4 +134,43 @@ test('S36 saved backup is owner-only encrypted and tampering blocks restore', as
     assert.equal(d.calls.filter(x => x.includes('pg_restore')).length, 0);
     assert.equal(d.states.size, 0);
   } finally { f.cleanup(); }
+});
+
+test('S42 fails closed after a successful rollback if one container removal fails', async () => {
+  const f = fixture(), d = fakeDocker({ failCleanup: true });
+  const originalLog = console.log, messages = [];
+  console.log = (...args) => messages.push(args.join(' '));
+  try {
+    await assert.rejects(
+      runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
+      /Local synthetic recovery cleanup failed; no PASS accepted/
+    );
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 3);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 3,
+      'attempt all removals even when the first one fails');
+    assert.equal(d.states.size, 1, 'simulated failed removal leaves a container');
+    assert.equal(messages.some(x => x.startsWith('PASS:')), false);
+  } finally {
+    console.log = originalLog;
+    f.cleanup();
+  }
+});
+
+test('S42 reports cleanup failure even when an earlier restore already failed', async () => {
+  const f = fixture(), d = fakeDocker({ failRestore: true, failCleanup: true });
+  const originalLog = console.log, messages = [];
+  console.log = (...args) => messages.push(args.join(' '));
+  try {
+    await assert.rejects(
+      runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
+      /Local synthetic recovery cleanup failed; no PASS accepted/
+    );
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 2);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 2);
+    assert.equal(d.states.size, 1);
+    assert.equal(messages.some(x => x.startsWith('PASS:')), false);
+  } finally {
+    console.log = originalLog;
+    f.cleanup();
+  }
 });
