@@ -119,7 +119,7 @@ test('S41 fails closed if a disposable container cannot be removed after success
  const {dir,env}=fixture(false,false,true);
  try {
   await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/cleanup failed; no PASS accepted/);
-  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\\n');
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
@@ -133,7 +133,7 @@ test('S41 attempts cleanup and rejects success after corruption plus failed remo
  const {dir,env}=fixture(true,false,true);
  try {
   await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/cleanup failed; no PASS accepted/);
-  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\\n');
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
   assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
  } finally {rmSync(dir,{recursive:true,force:true});}
