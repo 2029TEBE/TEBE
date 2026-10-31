@@ -116,7 +116,7 @@ test('webhook wiring is signature-first, TEST-only, tenant locked and idempotent
   const src = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
   const webhook = src.slice(src.indexOf('async webhook('));
   const method = src.slice(src.indexOf('private async recordRecurringFailedInvoice('),
-    src.indexOf('private async settleRecurringInvoice('));
+    src.indexOf('private async recordRecurringResumption('));
   assert.ok(webhook.indexOf('verifyStripeSignature(rawBody, header') <
     webhook.indexOf('parseFailedRecurringInvoice(rawBody, config.liveMode)'));
   assert.match(webhook, /return this\.recordRecurringFailedInvoice\(failedCandidate, sha256\(rawBody\), config\)/);
