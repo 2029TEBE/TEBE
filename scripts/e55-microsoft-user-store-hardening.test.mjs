@@ -12,8 +12,8 @@ test('E55 owner-scoped DAO stays gated and never silently migrates legacy connec
   assert.match(store, /if \(!microsoftUserStorePreviewEnabled\(\)\)/);
   // E56 wires the store only behind the explicit opt-in gate. Default installs
   // still use the original workspace runtime; the DAO never migrates its rows.
-  assert.match(service, /from '\\.\\/user-connection-store'/);
-  assert.match(service, /if \\(microsoftUserStorePreviewEnabled\\(\\)\\) return this\\.previewAccessToken\\(resource\\)/);
+  assert.match(service, /from '\.\/user-connection-store'/);
+  assert.match(service, /if \(microsoftUserStorePreviewEnabled\(\)\) return this\.previewAccessToken\(resource\)/);
   assert.doesNotMatch(store, /(?:INSERT INTO|UPDATE|DELETE FROM)\s+integration_connections/);
   assert.match(store, /set_config\('app\.user_id', \$\{userId\}, true\)/);
 });
