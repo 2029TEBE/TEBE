@@ -16,7 +16,7 @@ function fixture() {
     EPMO_LOCAL_DRILL_KEY_FILE: keyFile };
   return { dir, keyFile, env, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
-function fakeDocker({ failRestore = false, failCleanup = false } = {}) {
+function fakeDocker({ failRestore = false, failCleanup = false, invalidDump = false, rejectToc = false } = {}) {
   const calls = [], states = new Map();
   let removalFailed = false;
   const runner = (bin, args, opts) => {
@@ -43,9 +43,11 @@ function fakeDocker({ failRestore = false, failCleanup = false } = {}) {
       const id = cmd[1] === '-i' ? cmd[2] : cmd[1];
       const action = cmd.find(x => ['pg_isready', 'psql', 'pg_dump', 'pg_restore'].includes(x));
       if (action === 'pg_isready') return { status: 0, stdout: Buffer.alloc(0) };
-      if (action === 'pg_dump') return { status: 0, stdout: Buffer.from('PGDMP' + 'synthetic-data'.repeat(20)) };
+      if (action === 'pg_dump') return { status: 0, stdout: Buffer.from((invalidDump ? 'BROKEN' : 'PGDMP') + 'synthetic-data'.repeat(20)) };
       if (action === 'pg_restore') {
         assert.ok(Buffer.isBuffer(opts.input));
+        if (cmd.includes('--list'))
+          return { status: rejectToc ? 1 : 0, stdout: Buffer.from('synthetic TOC') };
         if (failRestore) return { status: 1, stdout: Buffer.alloc(0) };
         states.set(id, 'restored'); return { status: 0, stdout: Buffer.alloc(0) };
       }
@@ -73,7 +75,10 @@ test('S36 local-only encrypted synthetic drill executes backup, restore, injecte
     assert.deepEqual(await runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
       { result: 'local-synthetic-only' });
     assert.equal(d.calls.filter(x => x[0] === 'run').length, 3);
-    assert.equal(d.calls.filter(x => x.includes('pg_restore')).length, 2);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && x.includes('--list')).length, 1);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list')).length, 2);
+    assert.ok(d.calls.findIndex(x => x.includes('pg_restore') && x.includes('--list')) <
+      d.calls.findIndex(x => x.includes('pg_restore') && !x.includes('--list')));
     assert.equal(d.calls.filter(x => x[0] === 'rm').length, 3);
     assert.equal(d.states.size, 0);
     assert.ok(d.calls.filter(x => x[0] === 'run').every(x => !x.includes('--mount') && !x.includes('-v') && !x.includes('--network=host')));
@@ -131,7 +136,8 @@ test('S36 saved backup is owner-only encrypted and tampering blocks restore', as
         writeFileSync(path, sealed);
       },
     }));
-    assert.equal(d.calls.filter(x => x.includes('pg_restore')).length, 0);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && x.includes('--list')).length, 1);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list')).length, 0);
     assert.equal(d.states.size, 0);
   } finally { f.cleanup(); }
 });
@@ -173,4 +179,35 @@ test('S42 reports cleanup failure even when an earlier restore already failed', 
     console.log = originalLog;
     f.cleanup();
   }
+});
+
+test('S52 rejects malformed local PGDMP before encryption, restore or rollback', async () => {
+  const f = fixture(), d = fakeDocker({ invalidDump: true });
+  let saved = 0;
+  try {
+    await assert.rejects(runLocalSyntheticRecovery(f.env, {
+      socketCheck: () => true, runner: d.runner, inspectSealed: () => saved++,
+    }), /Missing valid PostgreSQL custom archive/);
+    assert.equal(saved, 0);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore')).length, 0);
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 1);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 1);
+    assert.equal(d.states.size, 0);
+  } finally { f.cleanup(); }
+});
+
+test('S52 rejects PostgreSQL parser TOC failure before encrypted persistence', async () => {
+  const f = fixture(), d = fakeDocker({ rejectToc: true });
+  let saved = 0;
+  try {
+    await assert.rejects(runLocalSyntheticRecovery(f.env, {
+      socketCheck: () => true, runner: d.runner, inspectSealed: () => saved++,
+    }), /Local Docker operation failed/);
+    assert.equal(saved, 0);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && x.includes('--list')).length, 1);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list')).length, 0);
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 1);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 1);
+    assert.equal(d.states.size, 0);
+  } finally { f.cleanup(); }
 });

@@ -82,7 +82,10 @@ test('dispute open and close are independently verified and never auto-reactivat
   const event = parseStripePaymentException(signed('charge.dispute.closed', closed), false);
   assert.deepEqual(check(event, intent, invoice, subscription, charge, closed),
     { type: 'dispute_closed', amountMinor: 12000 });
-  assert.throws(() => check(opened, intent, invoice, subscription, charge, closed));
+  // Delayed signed dispute.created resolves to provider-confirmed WON, not an
+  // outstanding open dispute that would incorrectly block later resumption.
+  assert.deepEqual(check(opened, intent, invoice, subscription, charge, closed),
+    { type: 'dispute_closed', amountMinor: 12000 });
   assert.throws(() => check(opened, intent, invoice, subscription, charge,
     { ...dispute, charge: 'ch_OTHER' }));
 });
