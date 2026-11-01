@@ -46,6 +46,7 @@ test('F61 exact-SHA CI runs local authenticated journeys and publishes masked ar
   assert.ok(ci.includes("EPMO_JOURNEY_RESTRICTED_USER: 'engineer@al-nakheel.test'"));
   assert.ok(ci.includes('epmo-local-authenticated-journey-'));
   assert.ok(runner.includes('node scripts/frontend-customer-journey.mjs'));
+  assert.ok(runner.includes('WEB_ORIGIN=http://127.0.0.1:3000 HOSTNAME=127.0.0.1'));
   const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
   assert.ok(journey.includes('keyboard_navigation_focus_and_escape'));
   assert.ok(journey.includes('logout_revokes_session'));
