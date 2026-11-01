@@ -6,7 +6,12 @@ const source = readFileSync(new URL('../apps/api/src/microsoft/microsoft.service
 const start = source.indexOf('async chooseLocation(');
 const end = source.indexOf('/** Get a child folder', start);
 assert.ok(start >= 0 && end > start, 'Microsoft location handler must exist');
-const method = source.slice(start, end);
+// E57 adds a feature-flagged owner-scoped branch before the unchanged legacy
+// implementation. Keep E47's ordering checks scoped to the legacy branch.
+const wholeMethod = source.slice(start, end);
+const legacyStart = wholeMethod.indexOf('const { tenantId, userId } = this.ctx();');
+assert.ok(legacyStart > 0, 'legacy Microsoft destination path must remain available');
+const method = wholeMethod.slice(legacyStart);
 
 test('E47: capture owner credential after refresh and before Graph folder writes', () => {
   const snapshot = method.indexOf('const [locationCredential]');
