@@ -14,6 +14,10 @@ import { redactMicrosoftConnection } from './connection-policy';
 import { canUseDelegatedMicrosoftConnection, isActiveDelegatedMicrosoftConnection } from './delegated-user-policy';
 import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
+import { microsoftUserStorePreviewEnabled } from './user-connection-policy';
+import { readUserMicrosoftConnection, saveUserMicrosoftConsent,
+         rotateUserMicrosoftCredential, markUserMicrosoftCredentialRevoked,
+         deleteUserMicrosoftConnection } from './user-connection-store';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
 
@@ -101,6 +105,20 @@ export class MicrosoftService {
   async status(): Promise<{ configured: boolean; connection: Connection | null }> {
     const { tenantId } = this.ctx();
     const configured = Boolean(msConfig()) && canSealTokens();
+    if (microsoftUserStorePreviewEnabled()) {
+      // Only the authenticated consenting administrator's row is visible.
+      // Never return sealedRefreshToken or fall back to the workspace credential.
+      const own = await readUserMicrosoftConnection(tenantId, this.ctx().userId);
+      return { configured, connection: own ? {
+        id: own.id, status: own.status,
+        accountEmail: own.accountEmail, accountName: own.accountName,
+        externalTenantId: own.externalTenantId, scopes: own.scopes,
+        siteId: own.siteId, siteName: null, siteUrl: null,
+        driveId: own.driveId, driveName: null,
+        rootItemId: own.rootItemId, rootPath: null,
+        connectedAt: null, lastError: null,
+      } : null };
+    }
     const row = await withTenant(tenantId, async (tx) => (rows(await tx.execute(sql`
       SELECT id, status, connected_by, account_email, account_name, external_tenant_id, scopes,
              site_id, site_name, site_url, drive_id, drive_name, root_item_id, root_path,
@@ -239,6 +257,18 @@ export class MicrosoftService {
     }
 
     const who = readIdToken(tok.idToken);
+    if (microsoftUserStorePreviewEnabled()) {
+      // The OAuth state supplies the consenting user. A public callback must
+      // never use request body, cookie, or another workspace admin's identity.
+      await saveUserMicrosoftConsent(tenantId, st.user_id, {
+        refreshToken: tok.refreshToken, accountEmail: who.email,
+        accountName: who.name, externalTenantId: who.tid, scopes: tok.scope,
+      });
+      this.tokens.delete(`${tenantId}:${st.user_id}:graph`);
+      this.tokens.delete(`${tenantId}:${st.user_id}:powerbi`);
+      this.log.log(`Microsoft ${resource} owner-scoped connection completed`);
+      return { returnTo: st.return_to ?? '/integrations' };
+    }
     await withTenant(tenantId, async (tx) => {
       // Consent was initiated while the user was an administrator, but the
       // membership may have been suspended or downgraded during the redirect.
@@ -360,6 +390,16 @@ export class MicrosoftService {
   async disconnect(): Promise<{ ok: true; documentsStillLinked: number }> {
     requireCapability('pmoa_admin');
     const { tenantId, userId } = this.ctx();
+    if (microsoftUserStorePreviewEnabled()) {
+      // Owner-only revocation; never remove another administrator's consent.
+      const gone = await deleteUserMicrosoftConnection(tenantId, userId);
+      if (!gone) throw new NotFoundException('Your Microsoft account is not connected.');
+      this.tokens.delete(`${tenantId}:${userId}:graph`);
+      this.tokens.delete(`${tenantId}:${userId}:powerbi`);
+      const [n] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+        SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`)));
+      return { ok: true as const, documentsStillLinked: n?.n ?? 0 };
+    }
     return withTenant(tenantId, async (tx) => {
       const [n] = rows(await tx.execute(sql`
         SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`));
@@ -387,6 +427,43 @@ export class MicrosoftService {
     const cfg = this.config();
     const { tenantId, userId } = this.ctx();
     const cacheKey = `${tenantId}:${userId}:${resource}`;
+
+    if (microsoftUserStorePreviewEnabled()) {
+      // The store enforces active user + admin membership under locks and
+      // transaction-local tenant/user RLS, including for cached bearer reads.
+      const own = await readUserMicrosoftConnection(tenantId, userId);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken) {
+        this.tokens.delete(cacheKey);
+        throw new ConflictException('Your Microsoft account is not connected. Reconnect.');
+      }
+      const hit = this.tokens.get(cacheKey);
+      if (hit && hit.credential === own.sealedRefreshToken &&
+          hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
+      let tok;
+      try {
+        tok = await refresh(cfg, open(own.sealedRefreshToken), resource);
+      } catch (e) {
+        this.tokens.delete(cacheKey);
+        if (e instanceof MsAuthError && e.needsConsent) {
+          throw new ConflictException('Microsoft needs additional delegated permission. Reconnect.');
+        }
+        if (e instanceof MsAuthError && e.needsReconnect) {
+          await markUserMicrosoftCredentialRevoked(tenantId, userId, own.sealedRefreshToken);
+          throw new ConflictException('Your Microsoft credential was revoked. Reconnect.');
+        }
+        throw new ServiceUnavailableException('Microsoft token refresh is temporarily unavailable.');
+      }
+      const credential = await rotateUserMicrosoftCredential(
+        tenantId, userId, own.sealedRefreshToken, tok.refreshToken ?? null);
+      if (!credential) {
+        this.tokens.delete(cacheKey);
+        throw new ConflictException('Your Microsoft connection changed during refresh. Retry.');
+      }
+      this.tokens.set(cacheKey, {
+        accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential,
+      });
+      return tok.accessToken;
+    }
 
     // A valid session or previously cached Graph token does not survive a
     // disabled EPMO user, suspended membership or administrator downgrade.
@@ -532,6 +609,13 @@ export class MicrosoftService {
    */
   async chooseLocation(b: { siteId?: string; driveId: string; folderName?: string }) {
     requireCapability('pmoa_admin');
+    if (microsoftUserStorePreviewEnabled()) {
+      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
+      // Graph reads. Never route preview writes through legacy workspace SQL.
+      throw new ServiceUnavailableException(
+        'Per-user Microsoft destination and document operations are not enabled yet.');
+    }
+
     const { tenantId, userId } = this.ctx();
     const token = await this.accessToken('graph');
 
@@ -669,6 +753,13 @@ export class MicrosoftService {
   async upload(b: { projectId?: string; name: string; kind?: string; criterionId?: string },
                 file: { buffer: Buffer; originalname: string; mimetype?: string }) {
     requireCapability('pmoa_manage_projects');
+    if (microsoftUserStorePreviewEnabled()) {
+      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
+      // Graph reads. Never route preview writes through legacy workspace SQL.
+      throw new ServiceUnavailableException(
+        'Per-user Microsoft destination and document operations are not enabled yet.');
+    }
+
     const { tenantId, userId } = this.ctx();
 
     // Foreign-key existence alone does not enforce the tenant or project of
@@ -886,6 +977,13 @@ export class MicrosoftService {
 
   /** What is in the workspace folder right now, straight from their storage. */
   async browse(projectId?: string) {
+    if (microsoftUserStorePreviewEnabled()) {
+      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
+      // Graph reads. Never route preview writes through legacy workspace SQL.
+      throw new ServiceUnavailableException(
+        'Per-user Microsoft destination and document operations are not enabled yet.');
+    }
+
     const { tenantId } = this.ctx();
     const token = await this.accessToken('graph');
     const c = await withTenant(tenantId, (tx) => this.connection(tx));
@@ -920,6 +1018,13 @@ export class MicrosoftService {
 
   /** Their workspaces and the reports in each, as that account can see them. */
   async reports() {
+    if (microsoftUserStorePreviewEnabled()) {
+      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
+      // Graph reads. Never route preview writes through legacy workspace SQL.
+      throw new ServiceUnavailableException(
+        'Per-user Microsoft destination and document operations are not enabled yet.');
+    }
+
     // This is a workspace-level delegated Microsoft account, not a separate
     // identity for the current EPMO member. Listing reports can disclose its
     // entire accessible Power BI catalogue. Restrict it to workspace admins.
@@ -960,6 +1065,13 @@ export class MicrosoftService {
    * functionality is restricted to workspace administrators.
    */
   async embed(reportId: string, groupId?: string) {
+    if (microsoftUserStorePreviewEnabled()) {
+      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
+      // Graph reads. Never route preview writes through legacy workspace SQL.
+      throw new ServiceUnavailableException(
+        'Per-user Microsoft destination and document operations are not enabled yet.');
+    }
+
     // This endpoint returns a transferable Microsoft bearer access token.
     requireCapability('pmoa_admin');
     // A workspace-wide delegated token is NOT per-user Microsoft authorization.
