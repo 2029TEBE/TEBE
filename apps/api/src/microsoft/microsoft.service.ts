@@ -14,7 +14,7 @@ import { redactMicrosoftConnection } from './connection-policy';
 import { canUseDelegatedMicrosoftConnection, isActiveDelegatedMicrosoftConnection } from './delegated-user-policy';
 import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
-import { microsoftUserStorePreviewEnabled } from './user-connection-policy';
+import { isCurrentMicrosoftGraphRead, microsoftUserStorePreviewEnabled } from './user-connection-policy';
 import { powerBiGroupSummary, powerBiReportSummary } from './powerbi-report-policy';
 import { readUserMicrosoftConnection, saveUserMicrosoftConsent,
          rotateUserMicrosoftCredential, markUserMicrosoftCredentialRevoked,
@@ -71,6 +71,23 @@ export class MicrosoftService {
     const userId = this.ctx().userId;
     if (!userId) throw new ForbiddenException('A signed-in Microsoft connection owner is required.');
     return userId;
+  }
+
+  /**
+   * A Graph request can finish after its owner disconnects, loses admin access,
+   * reconnects as another identity, or rotates credentials. Never return the
+   * stale response (or begin the next provider request) in preview mode.
+   * The store rechecks active tenant membership under database locks.
+   */
+  private async assertCurrentPreviewGraphRead(token: string): Promise<void> {
+    if (!microsoftUserStorePreviewEnabled()) return;
+    const { tenantId } = this.ctx();
+    const ownerId = this.ownerUserId();
+    const own = await readUserMicrosoftConnection(tenantId, ownerId);
+    const issued = this.tokens.get(`${tenantId}:${ownerId}:graph`);
+    if (!isCurrentMicrosoftGraphRead(own, issued, token)) {
+      throw new ConflictException('Your Microsoft connection changed during Graph read. Retry.');
+    }
   }
 
   private invalidateTenantTokens(tenantId: string) {
@@ -557,8 +574,10 @@ export class MicrosoftService {
     // documented way of saying "everything this person can see".
     const sites = await callAll<any>(GRAPH, token,
       `/sites?search=${encodeURIComponent(search || '*')}`, 200);
+    await this.assertCurrentPreviewGraphRead(token);
 
     const me = await call<any>(GRAPH, token, '/me/drive').catch(() => null);
+    await this.assertCurrentPreviewGraphRead(token);
     return {
       oneDrive: me ? { driveId: me.id, name: me.name ?? 'OneDrive', url: me.webUrl } : null,
       sites: sites.map((s) => ({
@@ -572,6 +591,7 @@ export class MicrosoftService {
     requireCapability('pmoa_admin');
     const token = await this.accessToken('graph');
     const list = await callAll<any>(GRAPH, token, `/sites/${encodeURIComponent(siteId)}/drives`);
+    await this.assertCurrentPreviewGraphRead(token);
     return list.map((d) => ({ driveId: d.id, name: d.name, url: d.webUrl }));
   }
 
