@@ -136,7 +136,8 @@ test('S36 saved backup is owner-only encrypted and tampering blocks restore', as
         writeFileSync(path, sealed);
       },
     }));
-    assert.equal(d.calls.filter(x => x.includes('pg_restore')).length, 0);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && x.includes('--list')).length, 1);
+    assert.equal(d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list')).length, 0);
     assert.equal(d.states.size, 0);
   } finally { f.cleanup(); }
 });
