@@ -31,7 +31,7 @@ test('OAuth callback persists consent from consumed state user, never workspace 
 test('preview refresh and revocation are owner-scoped with exact credential CAS', () => {
   const legacy = between('private async accessToken(', 'async places(');
   assert.match(legacy, /if \(microsoftUserStorePreviewEnabled\(\)\) return this\.previewAccessToken\(resource\)/);
-  const s = between('private async previewAccessToken(', '\\n  }\\n}');
+  const s = between('private async previewAccessToken(', '\n  }\n}');
   assert.match(s, /hit\.credential === sealedCredential/);
   assert.match(s, /markUserMicrosoftCredentialRevoked\(tenantId, ownerId, sealedCredential\)/);
   assert.match(s, /rotateUserMicrosoftCredential\(\s*tenantId, ownerId, sealedCredential/);
