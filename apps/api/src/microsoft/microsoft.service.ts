@@ -34,6 +34,12 @@ export type Connection = {
   connectedAt: string | null; lastError: string | null;
 };
 
+/** Only metadata Graph actually validated before a document insert. */
+type GraphUploadedFile = {
+  id: string; webUrl: string; size?: number; cTag?: string; eTag?: string;
+  file?: unknown;
+};
+
 @Injectable()
 export class MicrosoftService {
   private readonly log = new Logger('Microsoft');
@@ -835,7 +841,7 @@ export class MicrosoftService {
           !('webUrl' in item) || typeof item.webUrl !== 'string') {
         throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
       }
-      return item;
+      return item as GraphUploadedFile;
     }
     throw new MsApiError(500, 'uploadFailed', 'The upload finished without returning a file.');
   }
