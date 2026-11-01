@@ -9,6 +9,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safeStagingContainerRuntime } from './compose-runtime-boundary.mjs';
 import { safeStagingSecretBoundary } from './compose-secret-boundary.mjs';
+import { safeStagingStartupBoundary } from './compose-startup-boundary.mjs';
 
 const requiredServices = ['postgres', 'redis', 'api', 'web', 'staging-edge'];
 const expectedNetworks = {
@@ -81,6 +82,8 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     safeStagingContainerRuntime(services));
   add('No unreviewed Compose secrets, configs or credential injection',
     safeStagingSecretBoundary(config));
+  add('No unreviewed staging image or startup override',
+    safeStagingStartupBoundary(services));
   add('No host-network or privileged service overrides', requiredServices.every(name => {
     const s = services[name];
     return isObject(s) && !s.network_mode && s.privileged !== true &&
