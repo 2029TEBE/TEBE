@@ -275,9 +275,12 @@ try {
           form.requestSubmit();
           form.requestSubmit();
         });
-        await page.waitForFunction(expected => Array.from(document.querySelectorAll('[role="alert"]'))
-          .some(el => el.textContent?.includes(expected)),
-        variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests', { timeout: 20000 });
+        // A real 429 alert is observable in the masked browser evidence. Use
+        // Playwright's visible text locator rather than an independent polling
+        // expression, while retaining the one-request and no-success checks.
+        await page.getByRole('alert').filter({
+          hasText: variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests',
+        }).waitFor({ state: 'visible', timeout: 20000 });
         if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
@@ -416,17 +419,18 @@ try {
         await layout();
       });
       await step('admin_subscription_read', async () => {
-        await page.goto(cfg.origin + '/billing', { waitUntil: 'domcontentloaded' });
+        // Next.js streams the authenticated subscription loader. DOMContentLoaded
+        // can precede the actual billing panel; wait for the settled navigation
+        // and prove that a real subscription card rendered (not merely a heading).
+        await page.goto(cfg.origin + '/billing', { waitUntil: 'networkidle' });
         await page.getByRole('heading', { level: 1, name: variant.lang === 'ar' ? 'الاشتراك والفوترة' : 'Subscription and billing' })
-          .waitFor({ state: 'visible', timeout: 15000 });
-        if (new URL(page.url()).pathname !== '/billing' ||
-            !(await page.getByRole('heading', { level: 1 }).count()))
-          throw new Error('missing_billing_screen');
-        // A generic Loaded error/401/403 is not a successful billing journey.
-        await page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]').waitFor({ timeout: 15000 });
-        // Wait for the read-only billing loaders to settle; a persistent API
-        // 401/403/error still fails instead of being counted as acceptance.
-        await page.waitForFunction(() => !document.querySelector('[role="alert"]'), null, { timeout: 15000 });
+          .waitFor({ state: 'visible', timeout: 30000 });
+        if (new URL(page.url()).pathname !== '/billing') throw new Error('missing_billing_screen');
+        const subscriptionPanel = page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]');
+        await subscriptionPanel.waitFor({ state: 'visible', timeout: 30000 });
+        // Do not accept a generic heading, empty/loading panel, or 401/403
+        // failure as proof of subscription visibility.
+        await subscriptionPanel.locator('.modcard strong').first().waitFor({ state: 'visible', timeout: 30000 });
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
         await layout();
       });
