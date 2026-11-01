@@ -31,7 +31,7 @@ function reviewedHealthcheck(name, service) {
   // do not accept arbitrary shell commands or substitutions.
   if (name === 'postgres') {
     const approved = [tests.postgres[1],
-      'pg_isready -U ' + '];
+      'pg_isready -U ' + String.fromCharCode(36, 36) + '{POSTGRES_USER} -d ' + String.fromCharCode(36, 36) + '{POSTGRES_DB}'];
     if (!Array.isArray(check.test) || check.test.length !== 2 ||
         check.test[0] !== 'CMD-SHELL' || !approved.includes(check.test[1])) return false;
   } else if (!exact(check.test, tests[name])) return false;
