@@ -16,7 +16,7 @@ export type UserMicrosoftConnection = {
   id: string; status: string; sealedRefreshToken: string | null;
   accountEmail: string | null; accountName: string | null;
   externalTenantId: string | null; scopes: string | null;
-  siteId: string | null; driveId: string | null; rootItemId: string | null;
+  siteId: string | null; driveId: string | null; rootItemId: string | null; rootPath: string | null;
 };
 export type UserMicrosoftConsent = {
   refreshToken: string; accountEmail: string | null; accountName: string | null;
@@ -52,7 +52,7 @@ export async function readUserMicrosoftConnection(
   return withOwner(tenantId, userId, async (tx) => {
     const [row] = rows(await tx.execute(sql`
       SELECT id, status, refresh_token, account_email, account_name,
-             external_tenant_id, scopes, site_id, drive_id, root_item_id
+             external_tenant_id, scopes, site_id, drive_id, root_item_id, root_path
       FROM microsoft_user_connections
       WHERE tenant_id = ${tenantId} AND user_id = ${userId} AND provider = 'microsoft'`));
     return row ? {
@@ -60,6 +60,7 @@ export async function readUserMicrosoftConnection(
       accountEmail: row.account_email, accountName: row.account_name,
       externalTenantId: row.external_tenant_id, scopes: row.scopes,
       siteId: row.site_id, driveId: row.drive_id, rootItemId: row.root_item_id,
+        rootPath: row.root_path,
     } : null;
   });
 }
@@ -226,6 +227,12 @@ export async function setUserMicrosoftLocation(
         AND provider = 'microsoft' AND status = 'connected'
         AND refresh_token = ${expectedSealedToken}
       RETURNING id`));
+    if (saved.length === 1) {
+      await tx.insert(auditEvents).values({
+        tenantId, actorId: userId, entity: 'integration', entityId: saved[0].id,
+        action: 'microsoft.location_set', diff: { mode: 'user-scoped' } as any,
+      });
+    }
     return saved.length === 1;
   });
 }
