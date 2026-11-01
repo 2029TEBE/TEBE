@@ -1026,7 +1026,7 @@ export class MicrosoftService {
       const cacheKey = `${tenantId}:${ownerId}:graph`;
       const issued = this.tokens.get(cacheKey);
       if (!own || own.status !== 'connected' || !own.sealedRefreshToken ||
-          own.driveId !== d.external_drive_id ||
+          !own.driveId || own.driveId !== d.external_drive_id ||
           !issued || issued.accessToken !== token ||
           issued.credential !== own.sealedRefreshToken) {
         throw new ConflictException('Your Microsoft connection changed before opening this document.');
