@@ -8,7 +8,7 @@ const upload = service.slice(service.indexOf('async upload('), service.indexOf('
 test('cross-tenant and wrong-project evidence criteria are rejected before Graph upload', () => {
   const firstCheck = upload.indexOf('SELECT gc.id FROM gate_criteria AS gc');
   const token = upload.indexOf("const token = await this.accessToken('graph')");
-  const graph = upload.indexOf('const item = file.buffer.length');
+  const graph = upload.indexOf('const item = await this.uploadLarge(');
   assert.ok(firstCheck >= 0 && firstCheck < token && token < graph);
   const preflight = upload.slice(firstCheck, token);
   assert.ok(preflight.includes('JOIN gates AS g ON g.id = gc.gate_id'));

@@ -11,9 +11,10 @@ const fixture = () => ({
     'staging-app': { name: 'pmo-staging_staging-app' } },
   volumes: { pgdata: { name: 'pmo-staging_pgdata' } },
   services: {
-    postgres: { networks: { 'staging-data': null }, volumes: [
+    postgres: { image: 'postgres:16-alpine', networks: { 'staging-data': null }, volumes: [
       { type: 'volume', source: 'pgdata', target: '/var/lib/postgresql/data' }] },
-    redis: { networks: { 'staging-data': null } },
+    redis: { image: 'redis:7-alpine', command: ['redis-server', '--requirepass', 'synthetic-only'],
+      networks: { 'staging-data': null } },
     api: { networks: { 'staging-data': null, 'staging-app': null },
       image: 'epmo-staging-api:sha-' + sha, environment: {
         NODE_ENV: 'production', DEPLOYMENT_ENV: 'staging', ALLOW_HEADER_AUTH: 'false',
@@ -25,7 +26,7 @@ const fixture = () => ({
       ports: [{ host_ip: '127.0.0.1', target: 3000, published: '3001' }],
       environment: { NODE_ENV: 'production', WEB_ORIGIN: 'https://staging.theepmo.com',
         NEXT_PUBLIC_API_URL: 'https://api-staging.theepmo.com' } },
-    'staging-edge': { networks: { 'staging-app': null },
+    'staging-edge': { image: 'nginx:1.28-alpine', networks: { 'staging-app': null },
       ports: [{ host_ip: '127.0.0.1', target: 8443, published: '8443' }] },
   },
 });

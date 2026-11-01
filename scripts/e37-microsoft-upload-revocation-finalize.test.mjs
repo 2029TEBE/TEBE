@@ -6,7 +6,7 @@ const service = readFileSync(new URL('../apps/api/src/microsoft/microsoft.servic
 const upload = service.slice(service.indexOf('async upload('), service.indexOf('private async uploadLarge('));
 
 test('document upload rechecks the active consenting identity after Graph completes', () => {
-  const graphUpload = upload.indexOf('const item = file.buffer.length');
+  const graphUpload = upload.indexOf('const item = await this.uploadLarge(');
   const finalization = upload.indexOf('const doc = await withTenant(tenantId');
   const activeCheck = upload.indexOf('SELECT id FROM integration_connections', finalization);
   const insert = upload.indexOf('INSERT INTO documents', finalization);

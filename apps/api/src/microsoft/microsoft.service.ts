@@ -34,6 +34,12 @@ export type Connection = {
   connectedAt: string | null; lastError: string | null;
 };
 
+/** Only metadata Graph actually validated before a document insert. */
+type GraphUploadedFile = {
+  id: string; webUrl: string; size?: number; cTag?: string; eTag?: string;
+  file?: unknown;
+};
+
 @Injectable()
 export class MicrosoftService {
   private readonly log = new Logger('Microsoft');
@@ -655,10 +661,10 @@ export class MicrosoftService {
   /**
    * Put a file in the customer's storage and record it as a document.
    *
-   * Small files go in one PUT; anything over 4MB has to go through an upload
-   * session, which is Graph's own limit rather than a choice. Either way the
-   * bytes pass through this process and are not kept: the file exists in their
-   * tenancy and in the request, nowhere else.
+   * All files use a create-only Graph upload session. A direct path PUT can
+   * replace an unrelated customer's existing file with the same name; the
+   * session's conflictBehavior=fail makes that collision a safe error instead.
+   * Bytes are streamed to the consenting user's drive, never stored here.
    */
   async upload(b: { projectId?: string; name: string; kind?: string; criterionId?: string },
                 file: { buffer: Buffer; originalname: string; mimetype?: string }) {
@@ -710,16 +716,9 @@ export class MicrosoftService {
     }
 
     const filename = safeName(file.originalname || b.name);
-    const item = file.buffer.length <= 4 * 1024 * 1024
-      ? await call<any>(GRAPH, token,
-          `/drives/${encodeURIComponent(c.drive_id)}/items/${encodeURIComponent(parentId)}`
-          + `:/${encodeURIComponent(filename)}:/content`
-          // Microsoft keeps the previous version rather than losing it, so
-          // re-uploading a drawing is a new version, not a second file.
-          + '?@microsoft.graph.conflictBehavior=replace',
-          { method: 'PUT', body: new Uint8Array(file.buffer),
-            headers: { 'content-type': file.mimetype || 'application/octet-stream' } })
-      : await this.uploadLarge(token, c.drive_id, parentId, filename, file.buffer);
+    // A path-based direct PUT defaults to replacing an existing Graph file.
+    // Never overwrite files that may predate this workspace's document record.
+    const item = await this.uploadLarge(token, c.drive_id, parentId, filename, file.buffer);
 
     const doc = await withTenant(tenantId, async (tx) => {
       // Graph may finish after a concurrent disconnect, revoke, or location
@@ -784,11 +783,12 @@ export class MicrosoftService {
   /** Graph's resumable upload, for anything over its 4MB single-shot limit. */
   private async uploadLarge(token: string, driveId: string, parentId: string,
                             filename: string, buf: Buffer) {
+    if (!buf.length) throw new BadRequestException('Cannot upload an empty file to Microsoft.');
     const session = await call<any>(GRAPH, token,
       `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}`
       + `:/${encodeURIComponent(filename)}:/createUploadSession`,
       { method: 'POST', body: JSON.stringify({
-          item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
+          item: { '@microsoft.graph.conflictBehavior': 'fail', name: filename } }) });
 
     // A compromised or malformed uploadUrl must not receive customer file bytes.
     // Validate before sending the first chunk, and forbid redirect replay.
@@ -841,7 +841,7 @@ export class MicrosoftService {
           !('webUrl' in item) || typeof item.webUrl !== 'string') {
         throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
       }
-      return item;
+      return item as GraphUploadedFile;
     }
     throw new MsApiError(500, 'uploadFailed', 'The upload finished without returning a file.');
   }

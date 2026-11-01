@@ -62,12 +62,15 @@ test('C41: one-time invoices and supported recurring events are not intercepted'
 });
 
 test('C41: unsupported subscription status updates never silently acknowledge', () => {
-  for (const status of ['past_due', 'incomplete', 'incomplete_expired', 'canceled']) {
+  for (const status of ['incomplete', 'incomplete_expired', 'canceled']) {
     assert.equal(requiresRecurringLifecycleReconciliation(envelope(
       'customer.subscription.updated', { object: 'subscription', status })), true, status);
   }
   assert.equal(requiresRecurringLifecycleReconciliation(envelope(
     'customer.subscription.updated', null)), true);
+  // C43 now reconciles signed past_due through the C39 tenant-locked handler.
+  assert.equal(requiresRecurringLifecycleReconciliation(envelope(
+    'customer.subscription.updated', { object: 'subscription', status: 'past_due' })), false);
 });
 
 test('C41: fail-closed gate precedes generic Stripe event ignore in webhook', () => {

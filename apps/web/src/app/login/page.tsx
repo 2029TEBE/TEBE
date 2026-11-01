@@ -1,17 +1,33 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/api';
+import { getLayoutSession } from '@/lib/api';
 import { getLang } from '@/lib/i18n';
 
 export const metadata = { title: 'Sign in · The EPMO' };
 
 export default async function LoginPage({ searchParams }:
   { searchParams: Promise<{ error?: string }> }) {
-  const s = await getSession();
+  const s = await getLayoutSession();
   if (s.authenticated) redirect('/');
 
   const { error } = await searchParams;
   const ar = (await getLang()) === 'ar';
+  // An API outage is not proof that the user's existing session expired.
+  // Never prompt for credentials or show a misleading invalid-login error
+  // until the signed-in session can be verified again.
+  if ('unavailable' in s && s.unavailable) {
+    return (
+      <div className="authwrap" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar' : 'en'}>
+        <section className="authpanel" role="alert">
+          <h1>{ar ? 'تعذّر التحقق من الجلسة' : 'Session verification unavailable'}</h1>
+          <p>{ar
+            ? 'الخدمة غير متاحة مؤقتًا. لم يتم تسجيل خروجك. أعد المحاولة بعد قليل.'
+            : 'The service is temporarily unavailable. You have not been signed out. Please retry shortly.'}</p>
+          <a className="btn" href="/login">{ar ? 'إعادة المحاولة' : 'Retry'}</a>
+        </section>
+      </div>
+    );
+  }
   // Never display arbitrary URL parameters or backend-provided error text.
   const loginErrors = {
     missing: { en: 'Enter your username and password.', ar: 'أدخل اسم المستخدم وكلمة المرور.' },

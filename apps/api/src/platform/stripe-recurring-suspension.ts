@@ -1,5 +1,5 @@
 /**
- * C39: signed Stripe TEST subscription paused/unpaid lifecycle boundary.
+ * C39: signed Stripe TEST subscription paused/unpaid/past_due lifecycle boundary.
  * The signed snapshot is only a candidate; caller independently GETs Stripe
  * Subscription and reconciles a tenant binding under advisory/row locks.
  * This module never grants or extends a paid entitlement.
@@ -14,7 +14,7 @@ const ref = (value: any): string | null =>
 export type RecurringSuspensionCandidate = Readonly<{
   eventId: string; tenantId: string; planId: string;
   stripeSubscriptionId: string; stripeCustomerId: string;
-  providerStatus: 'paused' | 'unpaid';
+  providerStatus: 'paused' | 'unpaid' | 'past_due';
 }>;
 export type RecurringSuspensionLedger = Readonly<{
   tenantId: string; subscriptionId: string; planId: string;
@@ -33,13 +33,13 @@ export function parseRecurringSuspension(rawBody: Buffer, liveMode: boolean):
       event?.type !== 'customer.subscription.updated') return null;
   const sub = event?.data?.object;
   if (event.type === 'customer.subscription.updated' &&
-      sub?.status !== 'paused' && sub?.status !== 'unpaid') return null;
+      !['paused', 'unpaid', 'past_due'].includes(sub?.status)) return null;
   if (liveMode || !id('evt_', event.id) || event.livemode !== false ||
       !sub || sub.object !== 'subscription' || sub.livemode !== false ||
       !id('sub_', sub.id) || !id('cus_', ref(sub.customer)) ||
       !UUID.test(sub.metadata?.tenantId ?? '') ||
       !UUID.test(sub.metadata?.planId ?? '') ||
-      !['paused', 'unpaid'].includes(sub.status) ||
+      !['paused', 'unpaid', 'past_due'].includes(sub.status) ||
       (event.type === 'customer.subscription.paused' && sub.status !== 'paused'))
     throw new Error('Invalid signed TEST recurring suspension identity');
   return Object.freeze({
@@ -84,7 +84,7 @@ export function assertRecurringSuspensionProvider(
     throw new Error('Invalid existing recurring entitlement period');
 }
 
-/** Stripe paused revokes now; unpaid preserves already-paid access until expiry. */
+/** Stripe paused revokes now; unpaid/past_due preserve paid access until expiry. */
 export function recurringSuspensionTransition(
   candidate: RecurringSuspensionCandidate,
   ledger: RecurringSuspensionLedger,
@@ -99,7 +99,7 @@ export function recurringSuspensionTransition(
   if (!Number.isFinite(end)) throw new Error('Invalid recurring paid-period end');
   if (candidate.providerStatus === 'paused')
     return ledger.localStatus === 'paused' ? null : 'paused';
-  if (candidate.providerStatus === 'unpaid')
+  if (candidate.providerStatus === 'unpaid' || candidate.providerStatus === 'past_due')
     return end <= now && ['trialing', 'active'].includes(ledger.localStatus) ?
       'past_due' : null;
   throw new Error('Unknown recurring suspension status');

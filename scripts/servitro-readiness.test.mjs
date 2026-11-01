@@ -24,9 +24,10 @@ const model = () => ({
   name: 'pmo-staging', networks: { 'staging-data': { internal: true }, 'staging-app': {} },
   volumes: { pgdata: { name: 'pmo-staging_pgdata' } },
   services: {
-    postgres: { networks: { 'staging-data': null }, volumes: [
+    postgres: { image: 'postgres:16-alpine', networks: { 'staging-data': null }, volumes: [
       { type: 'volume', source: 'pgdata', target: '/var/lib/postgresql/data' }] },
-    redis: { networks: { 'staging-data': null } },
+    redis: { image: 'redis:7-alpine', command: ['redis-server', '--requirepass', 'synthetic-only'],
+      networks: { 'staging-data': null } },
     api: { networks: { 'staging-data': null, 'staging-app': null },
       image: 'epmo-staging-api:sha-' + sha, environment: {
         NODE_ENV: 'production', DEPLOYMENT_ENV: 'staging', ALLOW_HEADER_AUTH: 'false',
@@ -37,7 +38,7 @@ const model = () => ({
       ports: [{ host_ip: '127.0.0.1', target: 3000, published: '3001' }],
       environment: { NODE_ENV: 'production', WEB_ORIGIN: env().WEB_ORIGIN,
         NEXT_PUBLIC_API_URL: env().PUBLIC_API_URL } },
-    'staging-edge': { networks: { 'staging-app': null },
+    'staging-edge': { image: 'nginx:1.28-alpine', networks: { 'staging-app': null },
       volumes: [
         { type: 'bind', source: resolve(root, 'infra/staging/nginx.conf'), target: '/etc/nginx/conf.d/default.conf', read_only: true },
         { type: 'bind', source: env().STAGING_TLS_CERT_PATH, target: '/run/epmo-tls/tls.crt', read_only: true },
