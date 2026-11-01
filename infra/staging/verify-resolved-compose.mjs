@@ -11,6 +11,7 @@ import { safeStagingContainerRuntime } from './compose-runtime-boundary.mjs';
 import { safeStagingSecretBoundary } from './compose-secret-boundary.mjs';
 import { safeStagingStartupBoundary } from './compose-startup-boundary.mjs';
 import { safeStagingObservabilityBoundary } from './compose-observability-boundary.mjs';
+import { safeStagingResourceBoundary } from './compose-resource-boundary.mjs';
 
 const requiredServices = ['postgres', 'redis', 'api', 'web', 'staging-edge'];
 const expectedNetworks = {
@@ -83,6 +84,8 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     safeStagingContainerRuntime(services));
   add('No unreviewed Compose secrets, configs or credential injection',
     safeStagingSecretBoundary(config));
+  add('No named-volume bind or network driver escape',
+    safeStagingResourceBoundary(config));
   add('No unreviewed staging image or startup override',
     safeStagingStartupBoundary(services));
   add('No executable healthcheck or external logging override',
