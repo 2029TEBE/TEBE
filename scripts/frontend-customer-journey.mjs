@@ -69,7 +69,10 @@ try {
     page.on('dialog', dialog => { void dialog.dismiss(); });
     const result = { variant: variant.name, checks: [] };
     report.variants.push(result);
+    // Only fixed proof-phase labels are recorded; no URLs, credentials or DOM text.
+    let proofPhase = 'none';
     async function step(name, run) {
+      proofPhase = 'none';
       recentResponses = [];
       const exceptionsBefore = clientExceptionCount;
       try {
@@ -146,6 +149,7 @@ try {
           diagnostic: { errorType: ['Error', 'TimeoutError', 'TypeError'].includes(error?.name)
             ? error.name : 'other', ui, sessionCookiePresent,
             clientExceptions: clientExceptionCount - exceptionsBefore,
+            phase: proofPhase,
             responses: recentResponses.slice(-8) },
           ...(screenshot ? { screenshot } : {}),
           ...(code === 'horizontal_overflow' && overflowEvidence
@@ -269,8 +273,11 @@ try {
             interceptionFailed = true;
           }
         });
+        proofPhase = 'recovery_navigation';
         await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
+        proofPhase = 'recovery_fill';
         await page.locator('input[type="email"]').fill('journey-recovery@example.test');
+        proofPhase = 'recovery_double_submit';
         await page.locator('form.authform').evaluate(form => {
           form.requestSubmit();
           form.requestSubmit();
@@ -278,9 +285,11 @@ try {
         // A real 429 alert is observable in the masked browser evidence. Use
         // Playwright's visible text locator rather than an independent polling
         // expression, while retaining the one-request and no-success checks.
+        proofPhase = 'recovery_alert_visible';
         await page.getByRole('alert').filter({
           hasText: variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests',
         }).waitFor({ state: 'visible', timeout: 20000 });
+        proofPhase = 'recovery_singleflight';
         if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
@@ -422,15 +431,21 @@ try {
         // Next.js streams the authenticated subscription loader. DOMContentLoaded
         // can precede the actual billing panel; wait for the settled navigation
         // and prove that a real subscription card rendered (not merely a heading).
+        proofPhase = 'billing_navigation';
         await page.goto(cfg.origin + '/billing', { waitUntil: 'networkidle' });
+        proofPhase = 'billing_heading';
         await page.getByRole('heading', { level: 1, name: variant.lang === 'ar' ? 'الاشتراك والفوترة' : 'Subscription and billing' })
           .waitFor({ state: 'visible', timeout: 30000 });
+        proofPhase = 'billing_route';
         if (new URL(page.url()).pathname !== '/billing') throw new Error('missing_billing_screen');
+        proofPhase = 'billing_panel';
         const subscriptionPanel = page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]');
         await subscriptionPanel.waitFor({ state: 'visible', timeout: 30000 });
         // Do not accept a generic heading, empty/loading panel, or 401/403
         // failure as proof of subscription visibility.
+        proofPhase = 'billing_card';
         await subscriptionPanel.locator('.modcard strong').first().waitFor({ state: 'visible', timeout: 30000 });
+        proofPhase = 'billing_no_alert';
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
         await layout();
       });
@@ -461,6 +476,7 @@ try {
         alternate, { timeout: 15000 });
         if (new URL(page.url()).pathname !== '/settings')
           throw new Error('workspace_switch_not_confirmed');
+        proofPhase = 'workspace_first_layout';
         await layout();
 
         await page.locator('button.orgchip').click();
@@ -473,6 +489,7 @@ try {
         original, { timeout: 15000 });
         if (new URL(page.url()).pathname !== '/settings')
           throw new Error('workspace_switch_revert_failed');
+        proofPhase = 'workspace_return_layout';
         await layout();
       });
       await step('unauthorized_workspace_switch_rejected', async () => {
