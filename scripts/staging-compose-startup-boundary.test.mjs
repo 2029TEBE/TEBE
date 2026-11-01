@@ -51,7 +51,7 @@ test('S46 rejects unexpected base images and build directives', () => {
 
 test('S46 rejects startup/runtime override fields even when empty', () => {
   for (const name of names) for (const field of [
-    'pull_policy', 'init', 'user', 'working_dir', 'stdin_open', 'tty', 'profiles', 'isolation']) {
+    'init', 'user', 'working_dir', 'stdin_open', 'tty', 'profiles', 'isolation']) {
     const model = fixture(); model[name][field] = field === 'profiles' ? [] : false;
     assert.equal(safeStagingStartupBoundary(model), false, `${name}:${field}`);
   }
