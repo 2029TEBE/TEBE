@@ -84,7 +84,7 @@ test('F62 failed authenticated journeys emit bounded redacted diagnostics and ma
 
 test('F62 Playwright screenshots use locator arrays, not invalid singleton mask values', async () => {
   const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
-  const masks = source.match(/mask:\\s*\\[page\\.locator\\(/g) ?? [];
-  assert.equal(masks.length, 2, 'Both public and authenticated screenshots must use Playwright Locator[]');
-  assert.ok(!/mask:\\s*page\\.locator\\(/.test(source), 'A singleton Locator causes TypeError and false journey failures');
+  const masks = source.split('mask: [page.locator(').length - 1;
+  assert.equal(masks, 2, 'Both public and authenticated screenshots must use Playwright Locator[]');
+  assert.ok(!source.includes('mask: page.locator('), 'A singleton Locator causes TypeError and false journey failures');
 });
