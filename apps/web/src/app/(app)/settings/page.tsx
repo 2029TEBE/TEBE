@@ -28,6 +28,7 @@ export default async function Settings({ searchParams }:
   const lang = await getLang();
   const switchMessage = tenantSwitchFeedback(switchStatus, lang);
   const onboardingMessage = onboardingFeedback(onboardingStatus, lang);
+  const onboardingReturned = done === 'profile' || done === 'invite' || done === 'revoke';
   const t = await tr();
   // Adding people is its own permission. Offering the form to everyone meant a
   // Team Member could fill in four fields and only then be told no.
@@ -37,7 +38,13 @@ export default async function Settings({ searchParams }:
   const mayEditProfile = can(caps, 'pmoa_admin');
   return (
     <Page title="Workspace Settings" sub="Who is in this workspace, what they can do, and how it is configured.">
-      <Flash error={error} done={done} lang={lang} />
+      <Flash error={error} lang={lang} />
+      {/* Query strings are forgeable; a return marker is not proof of a committed mutation. */}
+      {onboardingReturned && <p role="status" className="dim" style={{ marginBlockEnd: 16 }}>
+        {lang === 'ar'
+          ? 'تمت العودة من طلب إعداد مساحة العمل. راجع ملف المؤسسة وقائمة الدعوات الحالية للتحقق من النتيجة؛ لا يؤكد هذا الرابط حفظ التغييرات أو إرسال دعوة أو إلغاءها.'
+          : 'The workspace request returned. Review the current profile and invitation list to verify the result; this URL does not confirm that changes were saved or an invitation was sent or revoked.'}
+      </p>}
       {onboardingMessage && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>
         {onboardingMessage}
       </p>}
