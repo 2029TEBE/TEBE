@@ -80,7 +80,14 @@ try {
           : /net::ERR_|ERR_CONNECTION/i.test(detail) ? 'browser_network_failed'
           : /locator|selector|strict mode/i.test(detail) ? 'browser_locator_failed'
           : 'browser_journey_failed';
-        result.checks.push({ name, status: 'FAIL', code });
+        // Sanitized route path and bounded layout geometry make a failed
+        // synthetic run actionable without exposing tokens or account data.
+        let routePath = '/unknown';
+        try { routePath = new URL(page.url()).pathname; } catch { /* no URL */ }
+        result.checks.push({ name, status: 'FAIL', code, routePath,
+          ...(code === 'horizontal_overflow' && overflowEvidence
+            ? { layout: overflowEvidence } : {}) });
+        overflowEvidence = null;
         report.failed++;
       } finally {
         // A failed scenario must not leak interception into the next one.
@@ -89,12 +96,36 @@ try {
         await page.unrouteAll({ behavior: 'ignoreErrors' });
       }
     }
+    let overflowEvidence = null;
     async function layout() {
-      const state = await page.evaluate(() => ({
-        lang: document.documentElement.lang, dir: document.documentElement.dir,
-        heading: !!document.querySelector('h1'),
-        scrollWidth: document.documentElement.scrollWidth,
-      }));
+      const state = await page.evaluate(() => {
+        const viewport = document.documentElement.clientWidth;
+        // Allowlisted CSS classes only: no DOM text, identifiers, hrefs, input
+        // values, cookies, request bodies or credential-bearing traces.
+        const allowed = new Set(['shell', 'topbar', 'page', 'panel', 'modgrid',
+          'tiles', 'rail', 'drawer', 'sheet', 'scrollx', 'authwrap',
+          'authpanel', 'switcher', 'brand', 'who']);
+        const elements = Array.from(document.body.querySelectorAll('*'))
+          .map(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0 ||
+                (rect.right <= viewport + 2 && rect.left >= -2)) return null;
+            return {
+              tag: el.tagName.toLowerCase(),
+              classes: Array.from(el.classList).filter(name => allowed.has(name)).slice(0, 2),
+              excessPx: Math.ceil(Math.max(0, rect.right - viewport, -rect.left)),
+            };
+          }).filter(Boolean).sort((a, b) => b.excessPx - a.excessPx).slice(0, 6);
+        return {
+          lang: document.documentElement.lang, dir: document.documentElement.dir,
+          heading: !!document.querySelector('h1'),
+          scrollWidth: document.documentElement.scrollWidth,
+          viewport, elements,
+        };
+      });
+      overflowEvidence = state.scrollWidth > variant.width + 2
+        ? { scrollWidth: state.scrollWidth, viewport: state.viewport, elements: state.elements }
+        : null;
       assertJourneyLayout(state, variant);
     }
     async function login(user, password) {
