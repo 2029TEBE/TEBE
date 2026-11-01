@@ -123,22 +123,26 @@ export function assertRecurringReversalProvider(
     throw new Error('Provider charge does not match captured recurring funds');
   const isDispute = event.type.startsWith('dispute_');
   if (isDispute) {
+    const terminal = ['won', 'lost', 'warning_closed'].includes(dispute?.status);
+    const open = ['needs_response', 'under_review', 'warning_needs_response',
+      'warning_under_review'].includes(dispute?.status);
     if (!dispute || dispute.object !== 'dispute' || dispute.livemode !== false ||
         dispute.id !== event.providerObjectId || ref(dispute.charge) !== charge.id ||
         ref(dispute.payment_intent) !== ledger.paymentIntentId ||
         dispute.amount !== event.amountMinor ||
         dispute.currency !== ledger.currency.toLowerCase() ||
-        (event.type === 'dispute_opened' ?
-          !['needs_response', 'under_review', 'warning_needs_response',
-            'warning_under_review'].includes(dispute.status) :
-          !['won', 'lost', 'warning_closed'].includes(dispute.status)))
+        (event.type === 'dispute_closed' ? !terminal : !terminal && !open))
       throw new Error('Dispute is not independently confirmed for this charge');
-    // A terminal LOST dispute is independently confirmed loss of captured funds.
-    // The original dispute-open event can be delayed or permanently missing;
-    // preserve its actual event type while signaling the entitlement policy.
-    return event.type === 'dispute_closed' && dispute.status === 'lost'
-      ? { type: event.type, amountMinor: event.amountMinor, chargebackLost: true }
-      : { type: event.type, amountMinor: event.amountMinor };
+    // Stripe can deliver a signed dispute.created after the provider has already
+    // closed the dispute. Reconcile against the independently fetched terminal
+    // status, not the stale signed event's earlier lifecycle state.
+    // Persist the signed event type separately in the locked exception details.
+    // A WON or warning-closed snapshot must not create a blocking open dispute;
+    // a LOST snapshot must revoke current paid access even without closed event.
+    const resolvedType = terminal ? 'dispute_closed' : 'dispute_opened';
+    return terminal && dispute.status === 'lost'
+      ? { type: resolvedType, amountMinor: event.amountMinor, chargebackLost: true }
+      : { type: resolvedType, amountMinor: event.amountMinor };
   }
   if (dispute != null || event.providerObjectId !== charge.id ||
       charge.amount_refunded < event.amountMinor ||
