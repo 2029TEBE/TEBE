@@ -16,7 +16,7 @@ function fixture() {
     EPMO_LOCAL_DRILL_KEY_FILE: keyFile };
   return { dir, keyFile, env, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 }
-function fakeDocker({ failRestore = false, failCleanup = false, invalidDump = false, rejectToc = false } = {}) {
+function fakeDocker({ failRestore = false, failCleanup = false, invalidDump = false, rejectToc = false, failRollback = false } = {}) {
   const calls = [], states = new Map();
   let removalFailed = false;
   const runner = (bin, args, opts) => {
@@ -48,7 +48,8 @@ function fakeDocker({ failRestore = false, failCleanup = false, invalidDump = fa
         assert.ok(Buffer.isBuffer(opts.input));
         if (cmd.includes('--list'))
           return { status: rejectToc ? 1 : 0, stdout: Buffer.from('synthetic TOC') };
-        if (failRestore) return { status: 1, stdout: Buffer.alloc(0) };
+        if (failRestore || (failRollback && cmd.includes('--clean')))
+          return { status: 1, stdout: Buffer.alloc(0) };
         states.set(id, 'restored'); return { status: 0, stdout: Buffer.alloc(0) };
       }
       if (action === 'psql') {
@@ -74,12 +75,17 @@ test('S36 local-only encrypted synthetic drill executes backup, restore, injecte
   try {
     assert.deepEqual(await runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
       { result: 'local-synthetic-only' });
-    assert.equal(d.calls.filter(x => x[0] === 'run').length, 3);
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 2);
     assert.equal(d.calls.filter(x => x.includes('pg_restore') && x.includes('--list')).length, 1);
-    assert.equal(d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list')).length, 2);
+    const restores = d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list'));
+    assert.equal(restores.length, 2);
+    assert.equal(restores[0][2], restores[1][2], 'rollback must target the mutated database');
+    assert.equal(restores[0].includes('--clean'), false);
+    assert.equal(restores[1].includes('--clean'), true);
+    assert.equal(restores[1].includes('--if-exists'), true);
     assert.ok(d.calls.findIndex(x => x.includes('pg_restore') && x.includes('--list')) <
       d.calls.findIndex(x => x.includes('pg_restore') && !x.includes('--list')));
-    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 3);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 2);
     assert.equal(d.states.size, 0);
     assert.ok(d.calls.filter(x => x[0] === 'run').every(x => !x.includes('--mount') && !x.includes('-v') && !x.includes('--network=host')));
     assert.ok(d.calls.filter(x => x[0] === 'run').every(x => x.includes('--network') && x.includes('none') && x.includes('--pull') && x.includes('never')));
@@ -151,8 +157,8 @@ test('S42 fails closed after a successful rollback if one container removal fail
       runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
       /Local synthetic recovery cleanup failed; no PASS accepted/
     );
-    assert.equal(d.calls.filter(x => x[0] === 'run').length, 3);
-    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 3,
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 2);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 2,
       'attempt all removals even when the first one fails');
     assert.equal(d.states.size, 1, 'simulated failed removal leaves a container');
     assert.equal(messages.some(x => x.startsWith('PASS:')), false);
@@ -210,4 +216,27 @@ test('S52 rejects PostgreSQL parser TOC failure before encrypted persistence', a
     assert.equal(d.calls.filter(x => x[0] === 'rm').length, 1);
     assert.equal(d.states.size, 0);
   } finally { f.cleanup(); }
+});
+
+
+test('S53 rejects failed in-place rollback and cleans both disposable databases', async () => {
+  const f = fixture(), d = fakeDocker({ failRollback: true });
+  const originalLog = console.log, messages = [];
+  console.log = (...args) => messages.push(args.join(' '));
+  try {
+    await assert.rejects(
+      runLocalSyntheticRecovery(f.env, { socketCheck: () => true, runner: d.runner }),
+      /Local Docker operation failed/);
+    const restores = d.calls.filter(x => x.includes('pg_restore') && !x.includes('--list'));
+    assert.equal(restores.length, 2);
+    assert.equal(restores[0][2], restores[1][2]);
+    assert.ok(restores[1].includes('--clean'));
+    assert.equal(d.calls.filter(x => x[0] === 'run').length, 2);
+    assert.equal(d.calls.filter(x => x[0] === 'rm').length, 2);
+    assert.equal(d.states.size, 0);
+    assert.equal(messages.some(x => x.startsWith('PASS:')), false);
+  } finally {
+    console.log = originalLog;
+    f.cleanup();
+  }
 });
