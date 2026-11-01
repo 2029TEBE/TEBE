@@ -15,6 +15,7 @@ import { canUseDelegatedMicrosoftConnection, isActiveDelegatedMicrosoftConnectio
 import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
 import { microsoftUserStorePreviewEnabled } from './user-connection-policy';
+import { powerBiGroupSummary, powerBiReportSummary } from './powerbi-report-policy';
 import { readUserMicrosoftConnection, saveUserMicrosoftConsent,
          rotateUserMicrosoftCredential, markUserMicrosoftCredentialRevoked,
          deleteUserMicrosoftConnection, setUserMicrosoftLocation } from './user-connection-store';
@@ -1187,10 +1188,54 @@ export class MicrosoftService {
   /** Their workspaces and the reports in each, as that account can see them. */
   async reports() {
     if (microsoftUserStorePreviewEnabled()) {
-      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
-      // Graph reads. Never route preview writes through legacy workspace SQL.
-      throw new ServiceUnavailableException(
-        'Per-user Microsoft destination and document operations are not enabled yet.');
+      // E61: this catalogue is display-only. Every provider request uses the
+      // consenting administrator's own Power BI bearer, never the legacy
+      // workspace-wide Microsoft connection or another user's credential.
+      requireCapability('pmoa_admin');
+      const { tenantId } = this.ctx();
+      const ownerId = this.ownerUserId();
+      const token = await this.accessToken('powerbi');
+      const own = await readUserMicrosoftConnection(tenantId, ownerId);
+      const cacheKey = `${tenantId}:${ownerId}:powerbi`;
+      const issued = this.tokens.get(cacheKey);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken ||
+          !issued || issued.accessToken !== token ||
+          issued.credential !== own.sealedRefreshToken) {
+        throw new ConflictException('Your Power BI connection changed before listing. Retry.');
+      }
+      const assertStillOwner = async () => {
+        // Provider responses may arrive after disconnect, credential rotation
+        // or administrator downgrade. Re-check live membership via the store.
+        const latest = await readUserMicrosoftConnection(tenantId, ownerId);
+        const currentBearer = this.tokens.get(cacheKey);
+        if (!latest || latest.status !== 'connected' ||
+            latest.sealedRefreshToken !== own.sealedRefreshToken ||
+            !currentBearer || currentBearer.accessToken !== token ||
+            currentBearer.credential !== own.sealedRefreshToken) {
+          throw new ConflictException('Your Power BI connection changed during listing. Retry.');
+        }
+      };
+
+      // A fixed upper bound also limits provider API work: at most 20 groups,
+      // 200 report summaries, and 21 paginated collection calls. No raw
+      // provider objects, embed URLs, or transferable tokens leave the API.
+      const personal = await callAll<any>(POWERBI, token, '/reports', 100);
+      const groups = await callAll<any>(POWERBI, token, '/groups', 20);
+      const out: ReturnType<typeof powerBiReportSummary>[] = [];
+      for (const report of personal) {
+        out.push(powerBiReportSummary(report, null, 'My workspace'));
+      }
+      for (const rawGroup of groups) {
+        if (out.length >= 200) break;
+        const group = powerBiGroupSummary(rawGroup);
+        const reports = await callAll<any>(POWERBI, token,
+          `/groups/${encodeURIComponent(group.id)}/reports`, Math.min(100, 200 - out.length));
+        for (const report of reports) {
+          out.push(powerBiReportSummary(report, group.id, group.name));
+        }
+      }
+      await assertStillOwner();
+      return { reports: out };
     }
 
     // This is a workspace-level delegated Microsoft account, not a separate
