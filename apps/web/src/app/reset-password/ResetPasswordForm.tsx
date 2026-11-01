@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { consumeSecretFragmentOnce } from '@/lib/secret-fragment.mjs';
 import { recoveryResetErrorText, createRecoverySubmissionGate } from '@/lib/recovery-reset-feedback.mjs';
+import { recoveryAcknowledged } from '@/lib/recovery-response-ack.mjs';
 export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
   const ar = lang === 'ar';
   const [ready, setReady] = useState(false);
@@ -31,6 +32,14 @@ export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ token, password }), cache: 'no-store' });
       if (!res.ok) { setError(recoveryResetErrorText(res.status, lang)); return; }
+      // A followed login page or an unexpected 2xx payload cannot prove that
+      // the single-use token was consumed or the password changed.
+      let payload: unknown;
+      try { payload = await res.json(); }
+      catch { setError(recoveryResetErrorText('unconfirmed', lang)); return; }
+      if (!recoveryAcknowledged(res, payload)) {
+        setError(recoveryResetErrorText('unconfirmed', lang)); return;
+      }
       succeeded = true;
       setDone(true); setToken(''); setPassword(''); setConfirm('');
     } catch {
