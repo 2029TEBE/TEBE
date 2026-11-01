@@ -5,7 +5,7 @@
  * Legacy workspace connections are never copied or modified here.
  */
 import { sql } from 'drizzle-orm';
-import { withTenant } from '@pmo/db';
+import { withTenant, auditEvents } from '@pmo/db';
 import { seal } from './crypto';
 import { assertMicrosoftUserIdentity, microsoftUserStorePreviewEnabled } from './user-connection-policy';
 
@@ -146,6 +146,10 @@ export async function saveUserMicrosoftConsent(
         last_used_at = NULL, last_error = NULL, updated_at = now()
       RETURNING id`));
     if (!saved) throw new Error('Microsoft consent could not be stored for this user.');
+    await tx.insert(auditEvents).values({
+      tenantId, actorId: userId, entity: 'integration', entityId: saved.id,
+      action: 'microsoft.connected', diff: { mode: 'user-scoped' } as any,
+    });
     return saved.id as string;
   });
 }
@@ -196,6 +200,12 @@ export async function deleteUserMicrosoftConnection(
       WHERE tenant_id = ${tenantId} AND user_id = ${userId}
         AND provider = 'microsoft'
       RETURNING id`));
+    if (gone.length === 1) {
+      await tx.insert(auditEvents).values({
+        tenantId, actorId: userId, entity: 'integration', entityId: gone[0].id,
+        action: 'microsoft.disconnected', diff: { mode: 'user-scoped' } as any,
+      });
+    }
     return gone.length === 1;
   });
 }
