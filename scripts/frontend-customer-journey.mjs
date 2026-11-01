@@ -373,7 +373,12 @@ try {
       await step('admin_login_and_onboarding', async () => {
         await login(cfg.admin, process.env.EPMO_JOURNEY_ADMIN_PASSWORD);
         await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
-        await page.locator('form[action="/api/onboarding"] input[name="action"][value="invite"]').waitFor();
+        // The invitation action is a type="hidden" input. Playwright's default
+        // visible wait always times out even when the real admin form exists.
+        await page.locator('form[action="/api/onboarding"] input[name="action"][value="invite"]')
+          .waitFor({ state: 'attached', timeout: 15000 });
+        await page.locator('form[action="/api/onboarding"] button[type="submit"]').first()
+          .waitFor({ state: 'visible', timeout: 15000 });
         await layout();
       });
       await step('keyboard_navigation_focus_and_escape', async () => {
