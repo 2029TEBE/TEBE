@@ -66,6 +66,10 @@ test('S29: resolved Compose isolates private services without published data por
       return [name, { logging: s.logging !== undefined, labelFile: s.label_file !== undefined,
         keys: Object.keys(h || {}).sort(), testMode: h?.test?.[0],
         testLength: h?.test?.length, interval: h?.interval, timeout: h?.timeout,
+        probeMatchesExpected: name === 'postgres' ? h?.test?.[1] === 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}' :
+          name === 'staging-edge' ? h?.test?.[1] === 'wget -q -O /dev/null http://127.0.0.1:8080/edge-health' :
+          name === 'redis' ? (h?.test?.[1] === 'redis-cli' && h?.test?.[2] === '--pass' &&
+            h?.test?.[3] === s.command?.[2] && h?.test?.[4] === 'ping') : null,
         startPeriod: h?.start_period, retries: h?.retries }];
     }));
   assert.deepEqual(failures, [], JSON.stringify(safeHealthcheckShape));
