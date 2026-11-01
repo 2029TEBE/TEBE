@@ -18,7 +18,7 @@ const known = new Set([
   'locale_direction_failed', 'missing_heading', 'horizontal_overflow',
   'missing_invitation_error', 'missing_recovery_error', 'fragment_not_scrubbed',
   'authentication_failed', 'missing_admin_invitation_form', 'missing_billing_screen',
-  'restricted_billing_access', 'restricted_invitation_access', 'mutation_not_rejected',
+  'restricted_billing_access', 'restricted_invitation_access', 'keyboard_focus_failed', 'logout_session_still_valid', 'mutation_not_rejected',
   'unsafe_mutation_redirect', 'unexpected_mutation_feedback', 'unexpected_auth_redirect',
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed', 'invitation_false_success',
@@ -58,10 +58,16 @@ try {
           'invitation_403_no_acceptance', 'invitation_html_200_rejected', 'admin_login_and_onboarding',
           'admin_subscription_read', 'billing_return_not_proof', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
-          'restricted_billing_redirect', 'onboarding_return_not_proof',
+          'restricted_billing_redirect', 'onboarding_return_not_proof', 'logout_revokes_session',
         ]);
         const screenshot = capture.has(name) ? variant.name + '-' + name + '.png' : undefined;
-        if (screenshot) await page.screenshot({ path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled' });
+        if (screenshot) await page.screenshot({
+          path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled',
+          // The accounts are disposable .test fixtures, but still mask visible
+          // identifiers and any form values. Never record storage state/traces.
+          mask: page.locator('input[type="email"], input[type="password"], td:has-text("@"), .sheet header, .who em'),
+          maskColor: '#808080',
+        });
         result.checks.push({ name, status: 'PASS', ...(screenshot ? { screenshot } : {}) });
         report.passed++;
       } catch (error) {
@@ -249,6 +255,27 @@ try {
         await page.locator('form[action="/api/onboarding"] input[name="action"][value="invite"]').waitFor();
         await layout();
       });
+      await step('keyboard_navigation_focus_and_escape', async () => {
+        // Verify real keyboard focus management in both responsive layouts.
+        // No mutations, no credentials, and no synthetic provider shortcuts.
+        const mobile = variant.width === 375;
+        const trigger = page.locator(mobile ? 'button.burger' : 'button.orgchip');
+        await trigger.focus();
+        await page.keyboard.press('Enter');
+        const dialog = page.locator(mobile ? '#mobile-navigation' : '.sheet[role="dialog"]');
+        await dialog.waitFor({ state: 'visible' });
+        await page.keyboard.press('Tab');
+        const trapped = await page.evaluate(mobile => {
+          const active = document.activeElement;
+          return !!active?.closest(mobile ? '#mobile-navigation' : '.sheet[role="dialog"]');
+        }, mobile);
+        if (!trapped) throw new Error('keyboard_focus_failed');
+        await page.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'hidden' });
+        if (!(await trigger.evaluate(el => document.activeElement === el)))
+          throw new Error('keyboard_focus_failed');
+        await layout();
+      });
       await step('onboarding_return_not_proof', async () => {
         // A forged ?done=invite URL must never claim that an email was sent.
         // This check is read-only and cannot create or revoke an invitation.
@@ -373,6 +400,19 @@ try {
       await step('restricted_billing_redirect', async () => {
         await page.goto(cfg.origin + '/billing', { waitUntil: 'domcontentloaded' });
         if (new URL(page.url()).pathname !== '/') throw new Error('restricted_billing_access');
+        await layout();
+      });
+      await step('logout_revokes_session', async () => {
+        // Use the real logout POST and then revisit a private route. A local
+        // redirect alone is not proof that the authenticated cookie was revoked.
+        await page.locator('button.orgchip').click();
+        await page.locator('form[action="/api/session/logout"] button').click();
+        await page.waitForURL(url => url.origin === cfg.origin && url.pathname === '/login', { timeout: 15000 });
+        await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
+        if (new URL(page.url()).pathname !== '/login' ||
+            !(await page.locator('form[action="/api/session"] input[name="password"]').count()) ||
+            await page.locator('button.orgchip').count())
+          throw new Error('logout_session_still_valid');
         await layout();
       });
     } finally {
