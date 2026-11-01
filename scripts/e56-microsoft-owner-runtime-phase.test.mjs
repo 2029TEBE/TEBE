@@ -30,7 +30,7 @@ test('OAuth callback persists consent from consumed state user, never workspace 
 
 test('preview refresh and revocation are owner-scoped with exact credential CAS', () => {
   const s = between('private async accessToken(', 'async places(');
-  assert.match(s, /readUserMicrosoftConnection\(tenantId, userId\)/);
+  assert.match(s, /readUserMicrosoftConnection\(tenantId, ownerId\)/);
   assert.match(s, /hit\.credential === sealedCredential/);
   assert.match(s, /markUserMicrosoftCredentialRevoked\(tenantId, ownerId, sealedCredential\)/);
   assert.match(s, /rotateUserMicrosoftCredential\(\s*tenantId, ownerId, sealedCredential/);
@@ -40,7 +40,7 @@ test('preview refresh and revocation are owner-scoped with exact credential CAS'
 
 test('preview disconnect removes only owner row, and audit is transactional', () => {
   const s = between('async disconnect(', 'private async accessToken(');
-  assert.match(s, /deleteUserMicrosoftConnection\(tenantId, userId\)/);
+  assert.match(s, /deleteUserMicrosoftConnection\(tenantId, ownerId\)/);
   assert.ok(s.indexOf('deleteUserMicrosoftConnection(') < s.indexOf('DELETE FROM integration_connections'));
   assert.match(store, /action: 'microsoft.connected'/);
   assert.match(store, /action: 'microsoft.disconnected'/);
