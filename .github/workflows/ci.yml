@@ -318,7 +318,8 @@ jobs:
       - run: pnpm audit --audit-level high
       - name: Inventory audit advisories for independent P0 security disposition
         run: |
-          pnpm audit --json --audit-level high > "$RUNNER_TEMP/epmo-audit.json"
+          pnpm audit --json --audit-level high > "$RUNNER_TEMP/epmo-audit.json" || true
+          test -s "$RUNNER_TEMP/epmo-audit.json"
           node -e 'const fs=require("node:fs");const j=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/epmo-audit.json","utf8"));const advisories=Object.values(j.advisories||{});const moderate=Number(j.metadata?.vulnerabilities?.moderate||0);if(moderate>0&&!advisories.length)throw new Error("audit_advisory_inventory_missing");const clean=x=>String(x??"").replace(/[^a-zA-Z0-9@/_.^~<>=|* -]/g,"");const entries=advisories.map(a=>({id:clean(a.id),package:clean(a.module_name),severity:clean(a.severity),advisoryUrl:String(a.url||"").startsWith("https://github.com/advisories/")?a.url:null,vulnerableVersions:clean(a.vulnerable_versions),patchedVersions:clean(a.patched_versions)}));const out={exactHeadSha:process.env.EPMO_CANDIDATE_SHA,source:"pnpm audit --json --audit-level high",moderateCount:moderate,advisories:entries,securityGateAccepted:false};fs.writeFileSync(process.env.RUNNER_TEMP+"/epmo-audit-inventory.json",JSON.stringify(out,null,2));console.log("AUDIT_INVENTORY "+JSON.stringify(out))'
       - name: Publish sanitized advisory inventory (not security acceptance)
         if: always()
