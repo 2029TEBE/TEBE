@@ -101,6 +101,28 @@ try {
         await page.getByRole('alert').waitFor();
         await layout();
       });
+      await step('login_invalid_credentials_401_rejected', async () => {
+        // Disposable, deliberately nonexistent identity; no customer or provider account.
+        // A 401 must produce a local invalid-credentials redirect, never an authenticated session.
+        const res = await page.request.post(cfg.origin + '/api/session', {
+          data: new URLSearchParams({
+            identifier: 'nonexistent-f52-login@example.test',
+            password: 'F52SyntheticInvalidOnly!',
+          }).toString(),
+          headers: { origin: cfg.origin, 'content-type': 'application/x-www-form-urlencoded' },
+          maxRedirects: 0, timeout: 15000,
+        });
+        assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
+          { path: '/login', key: 'error', value: 'invalid' });
+        await page.goto(cfg.origin + '/login?error=invalid', { waitUntil: 'domcontentloaded' });
+        const alert = page.getByRole('alert');
+        await alert.waitFor();
+        const message = await alert.innerText();
+        if (!(variant.lang === 'ar' ? message.includes('غير صحيح') :
+          message.includes('not recognised'))) throw new Error('authentication_failed');
+        if (await page.locator('button.orgchip').count()) throw new Error('authentication_failed');
+        await layout();
+      });
       await step('recovery_503_no_success', async () => {
         await page.route('**/api/password-recovery/request', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
         await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
