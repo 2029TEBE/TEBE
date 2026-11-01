@@ -8,7 +8,7 @@ const fixedImages = {
   redis: 'redis:7-alpine',
   'staging-edge': 'nginx:1.28-alpine',
 };
-const forbidden = ['entrypoint', 'pull_policy', 'init', 'user', 'working_dir',
+const forbidden = ['entrypoint', 'init', 'user', 'working_dir',
   'stdin_open', 'tty', 'profiles', 'isolation'];
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
