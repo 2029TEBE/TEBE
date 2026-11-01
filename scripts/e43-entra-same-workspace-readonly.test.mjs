@@ -47,12 +47,13 @@ function fakeFetch(phase = 'active', overrides = {}) {
       return reply(200, { authenticated: true, tenantId: i === 2 ? tc : ta,
         userId: users[i], capabilities: ['pmoa_admin'] });
     if (parsed.pathname === '/api/v1/microsoft/status')
-      return reply(200, { configured: true, connection: {
-        id: conns[i], status: phase === 'revoked' && who === 'A' ? 'error' : 'connected',
-        accountEmail: who.toLowerCase() + '@example.test',
-      } });
+      return reply(200, { configured: true, connection:
+        phase === 'disconnected' && who === 'A' ? null : {
+          id: conns[i], status: phase === 'revoked' && who === 'A' ? 'error' : 'connected',
+          accountEmail: who.toLowerCase() + '@example.test',
+        } });
     if (parsed.pathname === '/api/v1/microsoft/places')
-      return phase === 'revoked' && who === 'A'
+      return phase !== 'active' && who === 'A'
         ? reply(409, { error: 'Reconnect' })
         : reply(200, { sites: [], oneDrive: { driveId: 'drive-' + who + '-unique' } });
     return reply(404, {});
@@ -63,6 +64,7 @@ function fakeFetch(phase = 'active', overrides = {}) {
 test('fail-closed configuration requires two owners in one workspace and foreign tenant C', () => {
   assert.equal(cfg('active').owners[0].tenantId, cfg('active').owners[1].tenantId);
   assert.equal(cfg('revoked').phase, 'revoked');
+  assert.equal(cfg('disconnected').phase, 'disconnected');
   for (const patch of [
     { DEPLOYMENT_ENV: 'production' }, { NODE_ENV: 'production' },
     { EPMO_ENTRA_SAME_WORKSPACE_ACCEPTANCE: '' },
@@ -100,6 +102,34 @@ test('revoked phase denies A cached Graph token but preserves B and C', async ()
   assert.equal(result.checks.at(-1), 'revoked A denied while B and C remain usable');
   assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
     c.who === 'A').length, 2);
+});
+
+test('disconnected A has no credential while B and C retain independent Graph access', async () => {
+  const { fetcher, calls } = fakeFetch('disconnected');
+  const result = await runSameWorkspaceReadOnly(cfg('disconnected'), fetcher);
+  assert.equal(result.passed, true);
+  assert.equal(result.checks.at(-1), 'disconnected A denied while B and C remain usable');
+  assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
+    c.who === 'A').length, 2);
+  assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
+    c.who === 'B').length, 2);
+});
+
+test('disconnected A rejects stale status, borrowed connection and cached Graph access', async () => {
+  for (const overrides of [
+    { '/api/v1/microsoft/status:A': () => reply(200, { configured: true,
+      connection: { id: conns[0], status: 'connected', accountEmail: 'a@example.test' } }) },
+    { ['/api/v1/microsoft/status?userId=' + users[1] + ':A']:
+      () => reply(200, { configured: true, connection: {
+        id: conns[1], status: 'connected', accountEmail: 'b@example.test' } }) },
+    { '/api/v1/microsoft/places:A': () => reply(200, {
+      sites: [], oneDrive: { driveId: 'drive-A-unique' } }) },
+    { '/api/v1/microsoft/status:B': () => reply(200, { configured: true,
+      connection: null }) },
+  ]) {
+    const { fetcher } = fakeFetch('disconnected', overrides);
+    await assert.rejects(runSameWorkspaceReadOnly(cfg('disconnected'), fetcher));
+  }
 });
 
 test('rejects same-workspace account alias, wrong principal and cross-tenant borrowing', async () => {
