@@ -88,3 +88,18 @@ test('F62 Playwright screenshots use locator arrays, not invalid singleton mask 
   assert.equal(masks, 2, 'Both public and authenticated screenshots must use Playwright Locator[]');
   assert.ok(!source.includes('mask: page.locator('), 'A singleton Locator causes TypeError and false journey failures');
 });
+
+
+test('F62 admin onboarding checks hidden invitation action attachment, not visibility', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("await step('admin_login_and_onboarding'");
+  const end = source.indexOf("await step('onboarding_return_not_proof'", start);
+  assert.ok(start >= 0 && end > start, 'admin onboarding scenario must exist');
+  const scenario = source.slice(start, end);
+  assert.match(scenario, /input\\[name="action"\\]\\[value="invite"\\]/);
+  assert.match(scenario, /waitFor\\(\\{ state: 'attached', timeout: 15000 \\}\\)/);
+  assert.match(scenario, /button\\[type="submit"\\]/);
+  assert.match(scenario, /waitFor\\(\\{ state: 'visible', timeout: 15000 \\}\\)/);
+  assert.ok(!scenario.includes('input[name="action"][value="invite"]\').waitFor()'),
+    'hidden inputs must not use Playwright visible-state default');
+});
