@@ -35,7 +35,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000 NEXT_DIST_DIR=.next-prod \
+# The compiled browser origin must match the allowlist used for CSRF and
+# canonical redirects. CI API uses localhost:3000 for backend tests, but this
+# isolated compiled web process is intentionally bound to 127.0.0.1.
+NODE_ENV=production WEB_ORIGIN=http://127.0.0.1:3000 HOSTNAME=127.0.0.1 PORT=3000 NEXT_DIST_DIR=.next-prod \
   node "$ARTIFACT" >"$LOG" 2>&1 &
 WEB_PID=$!
 ready=0
