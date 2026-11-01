@@ -4,6 +4,9 @@
  */
 export function recoveryResetErrorText(status, lang = 'en') {
   const ar = lang === 'ar';
+  if (status === 'unconfirmed') return ar
+    ? 'لم نتمكن من تأكيد تغيير كلمة المرور. جرّب تسجيل الدخول أولًا؛ وإذا لم تنجح فاطلب رابط استعادة جديدًا.'
+    : 'The password change could not be confirmed. Try signing in first; if that fails, request a new recovery link.';
   if (status === 429) return ar
     ? 'محاولات كثيرة. انتظر قليلًا قبل إعادة المحاولة. احتفظ برابط الاستعادة.'
     : 'Too many attempts. Wait before retrying. Keep your recovery link.';

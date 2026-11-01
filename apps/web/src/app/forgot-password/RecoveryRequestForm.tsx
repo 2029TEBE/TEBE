@@ -2,6 +2,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { createRecoverySubmissionGate } from '@/lib/recovery-reset-feedback.mjs';
 import { recoveryRequestErrorText } from '@/lib/recovery-request-feedback.mjs';
+import { recoveryAcknowledged } from '@/lib/recovery-response-ack.mjs';
 
 export function RecoveryRequestForm({ lang }: { lang: 'en' | 'ar' }) {
   const ar = lang === 'ar';
@@ -23,6 +24,14 @@ export function RecoveryRequestForm({ lang }: { lang: 'en' | 'ar' }) {
       if (!res.ok) {
         setError(recoveryRequestErrorText(res.status, lang));
         return;
+      }
+      // Only our JSON acknowledgement confirms the request was accepted.
+      // Never show an email-sent message for an HTML sign-in page or 2xx error.
+      let payload: unknown;
+      try { payload = await res.json(); }
+      catch { setError(recoveryRequestErrorText('unconfirmed', lang)); return; }
+      if (!recoveryAcknowledged(res, payload)) {
+        setError(recoveryRequestErrorText('unconfirmed', lang)); return;
       }
       succeeded = true;
       setComplete(true); setEmail('');

@@ -23,7 +23,7 @@ const known = new Set([
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed', 'invitation_false_success',
   'recovery_request_replayed', 'recovery_rate_limit_not_explained',
-  'billing_return_false_confirmation',
+  'billing_return_false_confirmation', 'recovery_false_success', 'reset_false_success',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
 let browser;
@@ -134,6 +134,58 @@ try {
           throw new Error('recovery_rate_limit_not_explained');
         await layout();
         await page.unroute('**/api/password-recovery/request');
+      });
+      await step('recovery_200_html_not_confirmed', async () => {
+        // Intermediary HTML with 200 must not claim an email was sent.
+        await page.route('**/api/password-recovery/request', route => route.fulfill({
+          status: 200, contentType: 'text/html', body: '<html><body>Sign in</body></html>',
+        }));
+        try {
+          await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
+          await page.locator('input[type="email"]').fill('journey-recovery@example.test');
+          await page.locator('button[type="submit"]').click();
+          const alert = page.getByRole('alert');
+          await alert.waitFor();
+          const message = await alert.innerText();
+          if (!(variant.lang === 'ar' ? message.includes('تعذّر تأكيد طلب الاستعادة') :
+            message.includes('could not be confirmed')) ||
+            await page.getByRole('status').count()) throw new Error('recovery_false_success');
+          await layout();
+        } finally { await page.unroute('**/api/password-recovery/request'); }
+      });
+      await step('reset_200_false_ack_not_confirmed', async () => {
+        // A reset bearer is disposable; no actual password-recovery endpoint is called.
+        await page.route('**/api/password-recovery/reset', route => route.fulfill({
+          status: 200, contentType: 'application/json', body: '{"ok":false}',
+        }));
+        try {
+          await page.goto(cfg.origin + '/reset-password#token=' + 'A'.repeat(43), { waitUntil: 'domcontentloaded' });
+          await page.locator('input[type="password"]').first().fill('SyntheticOnly123!');
+          await page.locator('input[type="password"]').nth(1).fill('SyntheticOnly123!');
+          if (new URL(page.url()).hash) throw new Error('fragment_not_scrubbed');
+          await page.locator('button[type="submit"]').click();
+          const alert = page.getByRole('alert');
+          await alert.waitFor();
+          const message = await alert.innerText();
+          if (!(variant.lang === 'ar' ? message.includes('لم نتمكن من تأكيد') :
+            message.includes('could not be confirmed')) ||
+            await page.getByRole('status').count()) throw new Error('reset_false_success');
+          await layout();
+        } finally { await page.unroute('**/api/password-recovery/reset'); }
+      });
+      await step('reset_401_no_success', async () => {
+        await page.route('**/api/password-recovery/reset', route => route.fulfill({
+          status: 401, contentType: 'application/json', body: '{"ok":false}',
+        }));
+        try {
+          await page.goto(cfg.origin + '/reset-password#token=' + 'B'.repeat(43), { waitUntil: 'domcontentloaded' });
+          await page.locator('input[type="password"]').first().fill('SyntheticOnly123!');
+          await page.locator('input[type="password"]').nth(1).fill('SyntheticOnly123!');
+          await page.locator('button[type="submit"]').click();
+          await page.getByRole('alert').waitFor();
+          if (await page.getByRole('status').count()) throw new Error('reset_false_success');
+          await layout();
+        } finally { await page.unroute('**/api/password-recovery/reset'); }
       });
       await step('invitation_403_no_acceptance', async () => {
         await page.route('**/api/invite/accept', route => route.fulfill({ status: 403, contentType: 'application/json', body: '{}' }));

@@ -14,6 +14,7 @@ import { recurringPaidChargeId, assertUnreversedRecurringCharge } from './stripe
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringSuspension, assertRecurringSuspensionProvider, recurringSuspensionTransition, type RecurringSuspensionCandidate } from './stripe-recurring-suspension';
 import { requiresRecurringLifecycleReconciliation } from './stripe-recurring-unhandled-lifecycle';
+import { parseTerminalRecurringInvoice, assertTerminalRecurringProvider, type TerminalRecurringCandidate } from './stripe-recurring-terminal-invoice';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseRecurringResumption, assertRecurringResumptionProvider, type RecurringResumptionCandidate } from './stripe-recurring-resumption';
 import { assertRecurringReversalProvider, type RecurringReversalLedger } from './stripe-recurring-reversal';
@@ -1072,6 +1073,161 @@ export class StripeBillingService {
     });
   }
 
+
+  /**
+   * C42: reconcile signed TEST-only voided/uncollectible recurring invoices.
+   * Independently GET the invoice, subscription, price and any PaymentIntent;
+   * lock the tenant binding and ledger; never grant or extend paid access.
+   * Provider disagreement or stale event ordering remains non-2xx.
+   */
+  private async recordRecurringTerminalInvoice(
+    candidate: TerminalRecurringCandidate, digest: string,
+    config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring terminal invoice is TEST-only and disabled');
+    const getStripe = async (path: string): Promise<any> => {
+      let response: Response;
+      try {
+        response = await stripeApiFetch('https://api.stripe.com/v1/' + path, {
+          headers: { Authorization: 'Bearer ' + config.key },
+          signal: AbortSignal.timeout(12_000),
+        });
+      } catch { throw new BadGatewayException('Terminal invoice provider lookup unavailable'); }
+      if (!response.ok)
+        throw new BadGatewayException('Terminal invoice provider lookup rejected');
+      try { return await readStripeApiJson(response); }
+      catch { throw new BadGatewayException('Invalid terminal invoice provider response'); }
+    };
+    const invoice = await getStripe('invoices/' + candidate.invoiceId);
+    const subscription = await getStripe('subscriptions/' + candidate.stripeSubscriptionId);
+    let intentId: string | null;
+    try { intentId = failedInvoicePaymentIntentId(invoice); }
+    catch { throw new ConflictException('Terminal invoice payment references are ambiguous'); }
+    const intent = intentId ? await getStripe('payment_intents/' + intentId) : null;
+    const tenantId = subscription?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        subscription?.id !== candidate.stripeSubscriptionId ||
+        !UUID.test(subscription?.metadata?.planId ?? ''))
+      throw new ConflictException('Terminal invoice tenant routing is invalid');
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId", b.status,
+               b.last_period_ends_at AS "lastPeriodEndsAt",
+               b.cancel_at_period_end AS "cancelAtPeriodEnd",
+               s.id AS "localId", s.plan_id AS "localPlanId",
+               s.status AS "localStatus",
+               s.period_starts_at AS "localPeriodStartsAt",
+               s.period_ends_at AS "localPeriodEndsAt",
+               s.cancel_at_period_end AS "localCancelAtPeriodEnd",
+               p.code, p.price_minor AS "priceMinor", p.currency,
+               p.billing_interval AS "billingInterval",
+               p.trial_days AS "trialDays", p.is_active AS "isActive"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        JOIN subscription_plans p ON p.id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND b.stripe_customer_id = ${candidate.stripeCustomerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!record) throw new ConflictException('Terminal invoice tenant binding missing');
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      const binding: TrustedRecurringBinding = {
+        tenantId: record.tenantId, subscriptionId: record.subscriptionId,
+        planId: record.planId, stripeSubscriptionId: record.stripeSubscriptionId,
+        stripeCustomerId: record.stripeCustomerId, stripePriceId: record.stripePriceId,
+        status: record.status,
+        lastPeriodEndsAt: record.lastPeriodEndsAt == null ? null :
+          new Date(record.lastPeriodEndsAt).toISOString(),
+        cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+      };
+      const plan: RecurringPlan = {
+        id: record.planId, code: record.code, priceMinor: record.priceMinor,
+        currency: record.currency, billingInterval: record.billingInterval,
+        trialDays: record.trialDays, isActive: record.isActive,
+      };
+      const price = await getStripe('prices/' + binding.stripePriceId);
+      try { assertRecurringStripePrice(price, plan, binding.stripePriceId, false); }
+      catch { throw new ConflictException('Terminal recurring invoice Price mismatch'); }
+      let verified: ReturnType<typeof assertTerminalRecurringProvider>;
+      try {
+        verified = assertTerminalRecurringProvider(candidate, invoice, subscription, intent,
+          binding, plan, {
+            id: record.localId, planId: record.localPlanId,
+            status: record.localStatus, cancelAtPeriodEnd: record.localCancelAtPeriodEnd,
+            periodStartsAt: record.localPeriodStartsAt,
+            periodEndsAt: record.localPeriodEndsAt,
+          }, latest?.id ?? '', false);
+      } catch { throw new ConflictException('Terminal invoice provider or tenant ledger mismatch'); }
+      const paid = rows(await tx.execute(sql`
+        SELECT 1 FROM subscription_events
+        WHERE tenant_id = ${tenantId} AND subscription_id = ${binding.subscriptionId}
+          AND event_type = 'billing.stripe_recurring_invoice_settled'
+          AND details ->> 'stripeInvoiceId' = ${candidate.invoiceId}
+        LIMIT 1`))[0];
+      if (paid) throw new ConflictException('Terminal recurring invoice was already settled');
+      const paidPeriod = rows(await tx.execute(sql`
+        SELECT 1 FROM billing_invoices
+        WHERE tenant_id = ${tenantId} AND subscription_id = ${binding.subscriptionId}
+          AND period_starts_at = ${verified.periodStartsAt}::timestamptz
+          AND status = 'paid'
+        LIMIT 1`))[0];
+      if (paidPeriod) throw new ConflictException('Terminal invoice period already has paid funds');
+      const previous = rows(await tx.execute(sql`
+        SELECT subscription_id AS "subscriptionId",
+               details ->> 'payloadSha256' AS "payloadSha256",
+               details ->> 'stripeInvoiceId' AS "stripeInvoiceId",
+               details ->> 'providerStatus' AS "providerStatus"
+        FROM subscription_events
+        WHERE tenant_id = ${tenantId}
+          AND event_type = 'billing.stripe_recurring_invoice_terminal'
+          AND details ->> 'eventId' = ${candidate.eventId}
+        ORDER BY created_at DESC LIMIT 1`))[0];
+      if (previous) {
+        if (previous.subscriptionId !== binding.subscriptionId ||
+            previous.payloadSha256 !== digest ||
+            previous.stripeInvoiceId !== candidate.invoiceId ||
+            previous.providerStatus !== candidate.providerStatus)
+          throw new ConflictException('Terminal recurring event identity was reused');
+        return { received: true, applied: false, duplicate: true };
+      }
+      let accessChanged = false;
+      if (verified.shouldPause) {
+        const changed = rows(await tx.execute(sql`
+          UPDATE tenant_subscriptions
+          SET status = 'past_due', updated_at = now()
+          WHERE tenant_id = ${tenantId} AND id = ${binding.subscriptionId}
+            AND status = ${record.localStatus}
+            AND cancel_at_period_end = false
+            AND period_ends_at = ${record.localPeriodEndsAt}::timestamptz
+            AND period_ends_at <= now()
+          RETURNING id`));
+        if (changed.length !== 1)
+          throw new ConflictException('Terminal invoice entitlement changed during reconciliation');
+        accessChanged = true;
+      }
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${binding.subscriptionId},
+          'billing.stripe_recurring_invoice_terminal',
+          ${JSON.stringify({ eventId: candidate.eventId,
+            stripeInvoiceId: candidate.invoiceId,
+            stripeSubscriptionId: candidate.stripeSubscriptionId,
+            providerStatus: candidate.providerStatus, payloadSha256: digest,
+            periodEndsAt: verified.periodEndsAt, accessChanged })}::jsonb)`);
+      return { received: true, applied: true, accessChanged,
+        subscriptionId: binding.subscriptionId };
+    });
+  }
+
   /**
    * C36: only undo a scheduled TEST cancellation for the exact still-paid,
    * unexpired tenant period. This never grants, extends, unpauses or activates
@@ -1544,6 +1700,25 @@ export class StripeBillingService {
           catch { throw new BadRequestException('Ambiguous recurring invoice payment reference'); }
         }
         return this.settleRecurringInvoice(candidate, sha256(rawBody), config);
+      }
+    }
+
+    // C42: terminal recurring invoices require independently verified
+    // provider/tenant reconciliation; one-time invoices remain unchanged.
+    if (signedEnvelope?.type === 'invoice.voided' ||
+        signedEnvelope?.type === 'invoice.marked_uncollectible') {
+      const terminal = signedEnvelope.data?.object;
+      const recurring = !!(terminal?.subscription ||
+        terminal?.parent?.subscription_details?.subscription ||
+        (typeof terminal?.billing_reason === 'string' &&
+         terminal.billing_reason.startsWith('subscription_')));
+      if (recurring) {
+        let candidate: ReturnType<typeof parseTerminalRecurringInvoice>;
+        try { candidate = parseTerminalRecurringInvoice(rawBody, config.liveMode); }
+        catch { throw new BadRequestException('Invalid recurring terminal invoice event'); }
+        if (!candidate)
+          throw new ServiceUnavailableException('Unsupported terminal recurring invoice');
+        return this.recordRecurringTerminalInvoice(candidate, sha256(rawBody), config);
       }
     }
 
