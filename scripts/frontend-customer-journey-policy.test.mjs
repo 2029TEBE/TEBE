@@ -103,3 +103,23 @@ test('F62 admin onboarding checks hidden invitation action attachment, not visib
   assert.ok(scenario.includes(".waitFor({ state: 'visible', timeout: 15000 })"),
     'admin must see a visible submit control');
 });
+
+test('F62 recovery and billing proof waits for visible 429 and a real loaded subscription card', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const recoveryStart = source.indexOf("await step('recovery_429_singleflight_no_success'");
+  const recoveryEnd = source.indexOf("await step('recovery_200_html_not_confirmed'", recoveryStart);
+  const recovery = source.slice(recoveryStart, recoveryEnd);
+  assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart);
+  assert.match(recovery, /getByRole\\('alert'\\)\\.filter\\(/);
+  assert.match(recovery, /state: 'visible', timeout: 20000/);
+  assert.match(recovery, /requests !== 1 \\|\\| interceptionFailed/);
+  assert.match(recovery, /getByRole\\('status'\\)\\.count\\(\\)/);
+  const billingStart = source.indexOf("await step('admin_subscription_read'");
+  const billingEnd = source.indexOf("await step('billing_return_not_proof'", billingStart);
+  const billing = source.slice(billingStart, billingEnd);
+  assert.ok(billingStart >= 0 && billingEnd > billingStart);
+  assert.match(billing, /waitUntil: 'networkidle'/);
+  assert.match(billing, /subscriptionPanel\\.locator\\('\\.modcard strong'\\)/);
+  assert.match(billing, /getByRole\\('alert'\\)\\.count\\(\\)/);
+  assert.match(billing, /pathname !== '\/billing'/);
+});
