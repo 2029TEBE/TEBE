@@ -12,7 +12,8 @@ const method = source.slice(start, end)
   .replace(/private async uploadLarge\(token: string, driveId: string, parentId: string,\s*filename: string, buf: Buffer\)/,
     'async function uploadLarge(token, driveId, parentId, filename, buf)')
   .replaceAll('call<any>', 'call')
-  .replace('let item: unknown;', 'let item;');
+  .replace('let item: unknown;', 'let item;')
+  .replace('return item as GraphUploadedFile;', 'return item;');
 
 class MsApiError extends Error {
   constructor(status, code, message) { super(message ?? 'Graph rejected upload'); this.status = status; this.code = code; }
