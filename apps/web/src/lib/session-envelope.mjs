@@ -5,6 +5,12 @@
  */
 const nonEmptyText = (value) => typeof value === 'string' && value.trim().length > 0;
 
+/** UUID workspace identities are case-insensitive throughout session and UI. */
+export function sameWorkspaceIdentity(candidate, active) {
+  return nonEmptyText(candidate) && nonEmptyText(active) &&
+    candidate.toLowerCase() === active.toLowerCase();
+}
+
 export function validSessionEnvelope(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   if (value.authenticated === false) return true;
@@ -35,5 +41,5 @@ export function validSessionEnvelope(value) {
 
   // A malformed active-tenant mapping must not render a workspace switcher.
   return value.tenants.some((tenant) =>
-    tenant.tenantId.toLowerCase() === value.tenantId.toLowerCase() && tenant.role === value.role);
+    sameWorkspaceIdentity(tenant.tenantId, value.tenantId) && tenant.role === value.role);
 }
