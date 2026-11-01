@@ -13,6 +13,7 @@ import { safeStagingStartupBoundary } from './compose-startup-boundary.mjs';
 import { safeStagingObservabilityBoundary } from './compose-observability-boundary.mjs';
 import { safeStagingResourceBoundary } from './compose-resource-boundary.mjs';
 import { safeStagingBuildBoundary } from './compose-build-boundary.mjs';
+import { safeStagingEnvironmentBoundary } from './compose-environment-boundary.mjs';
 
 const requiredServices = ['postgres', 'redis', 'api', 'web', 'staging-edge'];
 const expectedNetworks = {
@@ -89,6 +90,8 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     safeStagingResourceBoundary(config));
   add('Only approved staging build contexts and image pull policies',
     safeStagingBuildBoundary(services));
+  add('No unreviewed container environment or internal endpoint override',
+    safeStagingEnvironmentBoundary(services));
   add('No unreviewed staging image or startup override',
     safeStagingStartupBoundary(services));
   add('No executable healthcheck or external logging override',

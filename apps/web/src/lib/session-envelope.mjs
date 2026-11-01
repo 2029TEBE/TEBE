@@ -21,6 +21,7 @@ export function validSessionEnvelope(value) {
       !Array.isArray(value.tenants) ||
       value.tenants.length === 0) return false;
 
+  // UUID workspace identities must be unique even when their letter casing differs.
   const ids = new Set();
   for (const tenant of value.tenants) {
     if (!tenant || typeof tenant !== 'object' || Array.isArray(tenant) ||
@@ -28,11 +29,11 @@ export function validSessionEnvelope(value) {
         !nonEmptyText(tenant.name) ||
         !nonEmptyText(tenant.slug) ||
         !nonEmptyText(tenant.role) ||
-        ids.has(tenant.tenantId)) return false;
-    ids.add(tenant.tenantId);
+        ids.has(tenant.tenantId.toLowerCase())) return false;
+    ids.add(tenant.tenantId.toLowerCase());
   }
 
   // A malformed active-tenant mapping must not render a workspace switcher.
   return value.tenants.some((tenant) =>
-    tenant.tenantId === value.tenantId && tenant.role === value.role);
+    tenant.tenantId.toLowerCase() === value.tenantId.toLowerCase() && tenant.role === value.role);
 }

@@ -19,6 +19,21 @@ test('only the exact API acknowledgement and a single 43-character token can sig
   assert.equal(await verifiedLoginSessionToken(reply(200, { ok: true, tenants: [{ ...tenant, tenantId: 'foreign' }] })), null);
 });
 
+test('case-variant duplicate tenant IDs and blank membership fields cannot create a login session', async () => {
+  const first = { ...tenant, tenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+  const second = { ...first, tenantId: first.tenantId.toUpperCase(), role: 'restricted_viewer' };
+  assert.equal(await verifiedLoginSessionToken(reply(200, { ok: true, tenants: [first, second] })), null);
+  assert.equal(await verifiedLoginSessionToken(reply(200, { ok: true, tenants: [first, first] })), null);
+  for (const field of ['name', 'slug', 'role']) {
+    assert.equal(await verifiedLoginSessionToken(reply(200, {
+      ok: true, tenants: [{ ...first, [field]: '   ' }],
+    })), null);
+  }
+  assert.equal(await verifiedLoginSessionToken(reply(200, {
+    ok: true, tenants: [first, { ...tenant, role: 'restricted_viewer' }],
+  })), token);
+});
+
 test('HTML, malformed, oversized and false-success HTTP 200 responses cannot install a session', async () => {
   for (const res of [
     reply(200, '<html>Sign in</html>', 'text/html'), reply(200, '{bad-json'),

@@ -17,7 +17,7 @@ import { seal, open, canSealTokens } from './crypto';
 import { microsoftUserStorePreviewEnabled } from './user-connection-policy';
 import { readUserMicrosoftConnection, saveUserMicrosoftConsent,
          rotateUserMicrosoftCredential, markUserMicrosoftCredentialRevoked,
-         deleteUserMicrosoftConnection } from './user-connection-store';
+         deleteUserMicrosoftConnection, setUserMicrosoftLocation } from './user-connection-store';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
 
@@ -123,7 +123,7 @@ export class MicrosoftService {
         externalTenantId: own.externalTenantId, scopes: own.scopes,
         siteId: own.siteId, siteName: null, siteUrl: null,
         driveId: own.driveId, driveName: null,
-        rootItemId: own.rootItemId, rootPath: null,
+        rootItemId: own.rootItemId, rootPath: own.rootPath,
         connectedAt: null, lastError: null,
       } : null };
     }
@@ -584,10 +584,45 @@ export class MicrosoftService {
   async chooseLocation(b: { siteId?: string; driveId: string; folderName?: string }) {
     requireCapability('pmoa_admin');
     if (microsoftUserStorePreviewEnabled()) {
-      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
-      // Graph reads. Never route preview writes through legacy workspace SQL.
-      throw new ServiceUnavailableException(
-        'Per-user Microsoft destination and document operations are not enabled yet.');
+      // Preview writes are bound to the authenticated consenting owner, not
+      // the workspace-wide legacy connection. The feature flag defaults off.
+      const { tenantId } = this.ctx();
+      const ownerId = this.ownerUserId();
+      if (typeof b.driveId !== 'string' || !b.driveId.trim())
+        throw new BadRequestException('A Microsoft drive is required.');
+      const token = await this.accessToken('graph');
+      // A reconnect or refresh may race accessToken. Bind this Graph bearer
+      // to the exact ciphertext still owned by this administrator.
+      const own = await readUserMicrosoftConnection(tenantId, ownerId);
+      const issued = this.tokens.get(`${tenantId}:${ownerId}:graph`);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken ||
+          !issued || issued.accessToken !== token ||
+          issued.credential !== own.sealedRefreshToken)
+        throw new ConflictException('Your Microsoft connection changed before folder selection. Retry.');
+
+      const [tenant] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+        SELECT name FROM tenants WHERE id = ${tenantId}`)));
+      const drive = await call<any>(GRAPH, token, `/drives/${encodeURIComponent(b.driveId)}`);
+      if (!drive || drive.id !== b.driveId)
+        throw new ConflictException('Microsoft returned a different document library.');
+      const site = b.siteId
+        ? await call<any>(GRAPH, token, `/sites/${encodeURIComponent(b.siteId)}`)
+        : null;
+      if (b.siteId && site?.id !== b.siteId)
+        throw new ConflictException('Microsoft returned a different SharePoint site.');
+      const folder = safeName(b.folderName || `The EPMO — ${tenant?.name ?? 'Workspace'}`);
+      const root = await this.folder(token, b.driveId, 'root', folder);
+      // The DAO rechecks active administrator membership under row locks and
+      // performs a tenant+user+credential compare-and-swap in one transaction.
+      // A disconnect, reconnect or credential rotation must fail closed.
+      const saved = await setUserMicrosoftLocation(
+        tenantId, ownerId, own.sealedRefreshToken, {
+          siteId: b.siteId ?? null, driveId: b.driveId,
+          rootItemId: root.id, rootPath: folder,
+        });
+      if (!saved)
+        throw new ConflictException('Your Microsoft connection changed during folder selection. Retry.');
+      return { driveId: b.driveId, rootItemId: root.id, folder, webUrl: root.webUrl };
     }
 
     const { tenantId, userId } = this.ctx();
