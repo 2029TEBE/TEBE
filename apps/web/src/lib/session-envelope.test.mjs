@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validSessionEnvelope } from './session-envelope.mjs';
+import { validSessionEnvelope, sameWorkspaceIdentity } from './session-envelope.mjs';
 import { readBoundedUpstreamJson } from './bounded-upstream-body.mjs';
 
 const signedIn = {
@@ -65,6 +65,24 @@ test('session rejects duplicate workspace UUIDs despite case changes', () => {
     ...value, tenants: [member, { ...member, tenantId: id.toUpperCase(), role: 'restricted_viewer' }],
   }), false);
   assert.equal(validSessionEnvelope({ ...value, tenants: [member, { ...member }] }), false);
+});
+
+test('active workspace stays current across UUID casing in the authenticated switcher', () => {
+  const id = 'abcdefab-1234-4abc-8abc-1234567890ab';
+  assert.equal(sameWorkspaceIdentity(id, id.toUpperCase()), true);
+  assert.equal(sameWorkspaceIdentity(id.toUpperCase(), id), true);
+  assert.equal(sameWorkspaceIdentity(id, 'ffffffff-ffff-4fff-8fff-ffffffffffff'), false);
+  for (const bad of ['', '  ', null, undefined, 123]) {
+    assert.equal(sameWorkspaceIdentity(bad, id), false);
+    assert.equal(sameWorkspaceIdentity(id, bad), false);
+  }
+  const member = { tenantId: id, name: 'Synthetic workspace', slug: 'synthetic', role: 'owner' };
+  assert.equal(validSessionEnvelope({
+    ...signedIn, tenantId: id.toUpperCase(), tenantName: member.name, tenants: [member],
+  }), true);
+  const switcher = readFileSync(new URL('../components/TenantSwitcher.tsx', import.meta.url), 'utf8');
+  assert.match(switcher, /const current = sameWorkspaceIdentity\(t\.tenantId, session\.tenantId\)/);
+  assert.doesNotMatch(switcher, /const current = t\.tenantId === session\.tenantId/);
 });
 
 test('session validator guards the fields dereferenced by TenantSwitcher', () => {
