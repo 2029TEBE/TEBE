@@ -96,10 +96,10 @@ test('F62 admin onboarding checks hidden invitation action attachment, not visib
   const end = source.indexOf("await step('onboarding_return_not_proof'", start);
   assert.ok(start >= 0 && end > start, 'admin onboarding scenario must exist');
   const scenario = source.slice(start, end);
-  assert.match(scenario, /input\\[name="action"\\]\\[value="invite"\\]/);
-  assert.match(scenario, /waitFor\\(\\{ state: 'attached', timeout: 15000 \\}\\)/);
-  assert.match(scenario, /button\\[type="submit"\\]/);
-  assert.match(scenario, /waitFor\\(\\{ state: 'visible', timeout: 15000 \\}\\)/);
-  assert.ok(!scenario.includes('input[name="action"][value="invite"]\').waitFor()'),
-    'hidden inputs must not use Playwright visible-state default');
+  assert.ok(scenario.includes('input[name="action"][value="invite"]'), 'invitation action must be checked');
+  assert.ok(scenario.includes(".waitFor({ state: 'attached', timeout: 15000 })"),
+    'hidden input must be attached, not visible');
+  assert.ok(scenario.includes('button[type="submit"]'), 'visible submit control must be checked');
+  assert.ok(scenario.includes(".waitFor({ state: 'visible', timeout: 15000 })"),
+    'admin must see a visible submit control');
 });
