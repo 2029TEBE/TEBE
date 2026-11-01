@@ -104,6 +104,7 @@ export default async function Settings({ searchParams }:
             </div>
 
             <h2 className="sec">{t('Workspace')}</h2>
+            <div className="scrollx" role="region" aria-label={t('Workspace')} tabIndex={0}>
             <table>
               <tbody>
                 <tr><td style={{ width: 200 }}><strong>Name</strong></td><td>{d.tenant.name}</td></tr>
@@ -114,8 +115,10 @@ export default async function Settings({ searchParams }:
                       <div className="dim">{t('No query from this workspace can return another workspace’s rows.')}</div></td></tr>
               </tbody>
             </table>
+            </div>
 
             <h2 className="sec">{t('Members')}</h2>
+            <div className="scrollx" role="region" aria-label={t('Members')} tabIndex={0}>
             <table>
               <thead><tr><th>{t('Name')}</th><th>{t('Email')}</th><th>{t('Role')}</th></tr></thead>
               <tbody>{d.members.map((m: any) => (
@@ -129,12 +132,14 @@ export default async function Settings({ searchParams }:
                       ?? m.role.replace(/_/g, ' ')}</span></td>
                 </tr>))}</tbody>
             </table>
+            </div>
 
             <h2 className="sec">{t('What your role can do')}</h2>
             <p className="dim" style={{ marginTop: '-8px' }}>
               {t('You are signed in as')} <strong>{d.yourRole.replace(/_/g, ' ')}</strong>. Permissions are checked
               per capability, never per role — which is why adding a role never means rewriting a permission check.
             </p>
+            <div className="scrollx" role="region" aria-label={t('What your role can do')} tabIndex={0}>
             <table>
               <thead><tr><th>{t('Capability')}</th><th>{t('What it allows')}</th><th>{t('You')}</th></tr></thead>
               <tbody>{Object.entries(CAP_MEANING).map(([cap, meaning]) => {
@@ -148,6 +153,7 @@ export default async function Settings({ searchParams }:
                   </tr>);
               })}</tbody>
             </table>
+            </div>
           </>
         )}
       </Loaded>
