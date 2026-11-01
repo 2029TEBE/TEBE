@@ -10,7 +10,7 @@ const fs=require('node:fs');const path=require('node:path');
 const raw=process.argv.slice(2), bin=path.basename(process.argv[1]);
 if(bin==='docker' && (raw[0]!=='--host'||raw[1]!=='unix:///var/run/docker.sock'))process.exit(9);
 const args=bin==='docker'?raw.slice(2):raw;
-const dir=__DIR__;const log=__LOG__;const corrupt=__CORRUPT__;const unsafe=__UNSAFE__;const failCleanup=__FAIL_CLEANUP__;
+const dir=__DIR__;const log=__LOG__;const corrupt=__CORRUPT__;const unsafe=__UNSAFE__;const failCleanup=__FAIL_CLEANUP__;const invalidDump=__INVALID_DUMP__;const rejectToc=__REJECT_TOC__;
 const write=(s)=>fs.appendFileSync(log,s+'\n');
 const state=n=>path.join(dir,n+'.state');
 if(bin==='docker'){
@@ -21,8 +21,8 @@ if(bin==='docker'){
  else if(op==='exec') {
    const n=args[args[1]==='-i'?2:1],cmd=args.find(x=>['psql','pg_dump','pg_restore','pg_isready'].includes(x));
    if(cmd==='pg_isready')process.stdout.write('ready');
-   else if(cmd==='pg_dump'){write('dump');process.stdout.write('PGDMP'+('synthetic'.repeat(35)));}
-   else if(cmd==='pg_restore'){fs.readFileSync(0);fs.writeFileSync(state(n),'restored');write('restore '+n);}
+   else if(cmd==='pg_dump'){write('dump');process.stdout.write((invalidDump?'BROKEN':'PGDMP')+('synthetic'.repeat(35)));}
+   else if(cmd==='pg_restore'){fs.readFileSync(0);if(args.includes('--list')){write('archive-list');if(rejectToc)process.exit(9);}else{fs.writeFileSync(state(n),'restored');write('restore '+n);}}
    else if(cmd==='psql'){
      const query=args[args.indexOf('-c')+1]||'';
      if(query.includes('SELECT id,marker')){
@@ -60,14 +60,16 @@ if(bin==='docker'){
  }else process.exit(9);
 }else process.exit(9);
 `;
-function fixture(corrupt=false, unsafe=false, failCleanup=false) {
+function fixture(corrupt=false, unsafe=false, failCleanup=false, invalidDump=false, rejectToc=false) {
  const dir=mkdtempSync(join(tmpdir(),'epmo-s34-flow-'));
  const bin=join(dir,'bin');mkdirSync(bin);
  const fakeCode=fake.replaceAll('__DIR__',JSON.stringify(dir))
    .replaceAll('__LOG__',JSON.stringify(join(dir,'calls.log')))
    .replaceAll('__CORRUPT__',JSON.stringify(corrupt))
    .replaceAll('__UNSAFE__',JSON.stringify(unsafe))
-   .replaceAll('__FAIL_CLEANUP__',JSON.stringify(failCleanup));
+   .replaceAll('__FAIL_CLEANUP__',JSON.stringify(failCleanup))
+   .replaceAll('__INVALID_DUMP__',JSON.stringify(invalidDump))
+   .replaceAll('__REJECT_TOC__',JSON.stringify(rejectToc));
  for(const name of ['docker','aws']){const p=join(bin,name);writeFileSync(p,fakeCode);chmodSync(p,0o700);}
  const key=join(dir,'key');writeFileSync(key,randomBytes(32));chmodSync(key,0o600);
  const env={PATH:bin+':'+process.env.PATH,
@@ -90,6 +92,8 @@ test('S34 executes synthetic remote roundtrip, injected failure and clean rollba
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,3);
   assert.equal(lines.filter(x=>x.startsWith('mutate ')).length,1);
+  assert.ok(lines.indexOf('archive-list')>lines.indexOf('dump'));
+  assert.ok(lines.indexOf('archive-list')<lines.indexOf('remote-upload'));
   assert.ok(lines.indexOf('remote-upload')<lines.indexOf('remote-download'));
   assert.ok(lines.indexOf('remote-download')<lines.findIndex(x=>x.startsWith('restore ')));
  }finally{rmSync(dir,{recursive:true,force:true});}
@@ -137,4 +141,29 @@ test('S41 attempts cleanup and rejects success after corruption plus failed remo
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
   assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
  } finally {rmSync(dir,{recursive:true,force:true});}
+});
+
+test('S51 rejects non-PGDMP output before off-host write and cleans source', async () => {
+ const {dir,env}=fixture(false,false,false,true);
+ try {
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/custom archive is invalid/);
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
+  assert.equal(lines.filter(x=>x==='dump').length,1);
+  assert.equal(lines.filter(x=>x==='archive-list').length,0);
+  assert.equal(lines.filter(x=>x==='remote-upload').length,0);
+  assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
+  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('S51 rejects invalid PostgreSQL archive TOC before remote upload', async () => {
+ const {dir,env}=fixture(false,false,false,false,true);
+ try {
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/Docker operation failed/);
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
+  assert.equal(lines.filter(x=>x==='archive-list').length,1);
+  assert.equal(lines.filter(x=>x==='remote-upload').length,0);
+  assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
+  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
+ }finally{rmSync(dir,{recursive:true,force:true});}
 });
