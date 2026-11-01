@@ -18,7 +18,7 @@ const known = new Set([
   'locale_direction_failed', 'missing_heading', 'horizontal_overflow',
   'missing_invitation_error', 'missing_recovery_error', 'fragment_not_scrubbed',
   'authentication_failed', 'missing_admin_invitation_form', 'missing_billing_screen',
-  'restricted_billing_access', 'restricted_invitation_access', 'mutation_not_rejected',
+  'restricted_billing_access', 'restricted_invitation_access', 'keyboard_focus_failed', 'logout_session_still_valid', 'mutation_not_rejected',
   'unsafe_mutation_redirect', 'unexpected_mutation_feedback', 'unexpected_auth_redirect',
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed', 'invitation_false_success',
@@ -58,15 +58,35 @@ try {
           'invitation_403_no_acceptance', 'invitation_html_200_rejected', 'admin_login_and_onboarding',
           'admin_subscription_read', 'billing_return_not_proof', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
-          'restricted_billing_redirect', 'onboarding_return_not_proof',
+          'restricted_billing_redirect', 'onboarding_return_not_proof', 'logout_revokes_session',
         ]);
         const screenshot = capture.has(name) ? variant.name + '-' + name + '.png' : undefined;
-        if (screenshot) await page.screenshot({ path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled' });
+        if (screenshot) await page.screenshot({
+          path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled',
+          // The accounts are disposable .test fixtures, but still mask visible
+          // identifiers and any form values. Never record storage state/traces.
+          mask: page.locator('input[type="email"], input[type="password"], td:has-text("@"), .sheet header, .who em'),
+          maskColor: '#808080',
+        });
         result.checks.push({ name, status: 'PASS', ...(screenshot ? { screenshot } : {}) });
         report.passed++;
       } catch (error) {
-        result.checks.push({ name, status: 'FAIL', code: known.has(error?.message) ? error.message : 'browser_journey_failed' });
+        // Sanitize Playwright errors: raw messages can contain URLs, selectors,
+        // tokens or request payloads. Record only a fixed diagnostic category.
+        const detail = typeof error?.message === 'string' ? error.message : '';
+        const code = known.has(detail) ? detail
+          : /screenshot/i.test(detail) ? 'screenshot_failed'
+          : /Timeout|waiting for/i.test(detail) ? 'browser_timeout'
+          : /net::ERR_|ERR_CONNECTION/i.test(detail) ? 'browser_network_failed'
+          : /locator|selector|strict mode/i.test(detail) ? 'browser_locator_failed'
+          : 'browser_journey_failed';
+        result.checks.push({ name, status: 'FAIL', code });
         report.failed++;
+      } finally {
+        // A failed scenario must not leak interception into the next one.
+        // Wait for outstanding handlers and suppress their late abort errors;
+        // the scenario itself still records FAIL if its response was missing.
+        await page.unrouteAll({ behavior: 'ignoreErrors' });
       }
     }
     async function layout() {
@@ -125,7 +145,7 @@ try {
       });
       await step('recovery_503_no_success', async () => {
         await page.route('**/api/password-recovery/request', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
-        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
+        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
         await page.locator('input[type="email"]').fill('journey-recovery@example.test');
         await page.locator('button[type="submit"]').click();
         await page.getByRole('alert').waitFor();
@@ -137,19 +157,26 @@ try {
         // Synthetic rate limit: rapid repeated submits must create one request,
         // show localized guidance, and never claim a recovery email was sent.
         let requests = 0;
+        let interceptionFailed = false;
         await page.route('**/api/password-recovery/request', async route => {
           requests++;
           await new Promise(resolve => setTimeout(resolve, 200));
-          await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+          try {
+            await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+          } catch {
+            // Navigations may cancel a pending route. Do not crash Node with
+            // an unhandled Playwright rejection or count a canceled 429 as PASS.
+            interceptionFailed = true;
+          }
         });
-        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
+        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
         await page.locator('input[type="email"]').fill('journey-recovery@example.test');
         await page.locator('form.authform').evaluate(form => {
           form.requestSubmit();
           form.requestSubmit();
         });
         await page.getByRole('alert').waitFor();
-        if (requests !== 1) throw new Error('recovery_request_replayed');
+        if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
         if (!(variant.lang === 'ar' ? message.includes('محاولات كثيرة') : message.includes('Too many recovery requests')))
@@ -163,7 +190,7 @@ try {
           status: 200, contentType: 'text/html', body: '<html><body>Sign in</body></html>',
         }));
         try {
-          await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
+          await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
           await page.locator('input[type="email"]').fill('journey-recovery@example.test');
           await page.locator('button[type="submit"]').click();
           const alert = page.getByRole('alert');
@@ -181,7 +208,7 @@ try {
           status: 200, contentType: 'application/json', body: '{"ok":false}',
         }));
         try {
-          await page.goto(cfg.origin + '/reset-password#token=' + 'A'.repeat(43), { waitUntil: 'domcontentloaded' });
+          await page.goto(cfg.origin + '/reset-password#token=' + 'A'.repeat(43), { waitUntil: 'networkidle' });
           await page.locator('input[type="password"]').first().fill('SyntheticOnly123!');
           await page.locator('input[type="password"]').nth(1).fill('SyntheticOnly123!');
           if (new URL(page.url()).hash) throw new Error('fragment_not_scrubbed');
@@ -200,7 +227,7 @@ try {
           status: 401, contentType: 'application/json', body: '{"ok":false}',
         }));
         try {
-          await page.goto(cfg.origin + '/reset-password#token=' + 'B'.repeat(43), { waitUntil: 'domcontentloaded' });
+          await page.goto(cfg.origin + '/reset-password#token=' + 'B'.repeat(43), { waitUntil: 'networkidle' });
           await page.locator('input[type="password"]').first().fill('SyntheticOnly123!');
           await page.locator('input[type="password"]').nth(1).fill('SyntheticOnly123!');
           await page.locator('button[type="submit"]').click();
@@ -211,7 +238,7 @@ try {
       });
       await step('invitation_403_no_acceptance', async () => {
         await page.route('**/api/invite/accept', route => route.fulfill({ status: 403, contentType: 'application/json', body: '{}' }));
-        await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'domcontentloaded' });
+        await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'networkidle' });
         await page.locator('button[type="submit"]').waitFor();
         if (new URL(page.url()).hash) throw new Error('fragment_not_scrubbed');
         await page.locator('button[type="submit"]').click();
@@ -227,7 +254,7 @@ try {
           body: '<!doctype html><html><body>Sign in</body></html>',
         }));
         try {
-          await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'domcontentloaded' });
+          await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'networkidle' });
           await page.locator('button[type="submit"]').click();
           const alert = page.getByRole('alert');
           await alert.waitFor();
@@ -247,6 +274,27 @@ try {
         await login(cfg.admin, process.env.EPMO_JOURNEY_ADMIN_PASSWORD);
         await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
         await page.locator('form[action="/api/onboarding"] input[name="action"][value="invite"]').waitFor();
+        await layout();
+      });
+      await step('keyboard_navigation_focus_and_escape', async () => {
+        // Verify real keyboard focus management in both responsive layouts.
+        // No mutations, no credentials, and no synthetic provider shortcuts.
+        const mobile = variant.width === 375;
+        const trigger = page.locator(mobile ? 'button.burger' : 'button.orgchip');
+        await trigger.focus();
+        await page.keyboard.press('Enter');
+        const dialog = page.locator(mobile ? '#mobile-navigation' : '.sheet[role="dialog"]');
+        await dialog.waitFor({ state: 'visible' });
+        await page.keyboard.press('Tab');
+        const trapped = await page.evaluate(mobile => {
+          const active = document.activeElement;
+          return !!active?.closest(mobile ? '#mobile-navigation' : '.sheet[role="dialog"]');
+        }, mobile);
+        if (!trapped) throw new Error('keyboard_focus_failed');
+        await page.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'hidden' });
+        if (!(await trigger.evaluate(el => document.activeElement === el)))
+          throw new Error('keyboard_focus_failed');
         await layout();
       });
       await step('onboarding_return_not_proof', async () => {
@@ -373,6 +421,19 @@ try {
       await step('restricted_billing_redirect', async () => {
         await page.goto(cfg.origin + '/billing', { waitUntil: 'domcontentloaded' });
         if (new URL(page.url()).pathname !== '/') throw new Error('restricted_billing_access');
+        await layout();
+      });
+      await step('logout_revokes_session', async () => {
+        // Use the real logout POST and then revisit a private route. A local
+        // redirect alone is not proof that the authenticated cookie was revoked.
+        await page.locator('button.orgchip').click();
+        await page.locator('form[action="/api/session/logout"] button').click();
+        await page.waitForURL(url => url.origin === cfg.origin && url.pathname === '/login', { timeout: 15000 });
+        await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
+        if (new URL(page.url()).pathname !== '/login' ||
+            !(await page.locator('form[action="/api/session"] input[name="password"]').count()) ||
+            await page.locator('button.orgchip').count())
+          throw new Error('logout_session_still_valid');
         await layout();
       });
     } finally {
