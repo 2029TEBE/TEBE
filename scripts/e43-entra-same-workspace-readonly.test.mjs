@@ -112,7 +112,9 @@ test('disconnected A has no credential while B and C retain independent Graph ac
   assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
     c.who === 'A').length, 2);
   assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
-    c.who === 'B').length, 2);
+    c.who === 'B').length, 1);
+  assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places') &&
+    c.who === 'C').length, 2);
 });
 
 test('disconnected A rejects stale status, borrowed connection and cached Graph access', async () => {
