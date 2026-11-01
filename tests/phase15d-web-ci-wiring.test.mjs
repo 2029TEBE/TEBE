@@ -88,3 +88,11 @@ test('F61 mobile app shell cannot expand to wide billing/settings table min-cont
   assert.match(css, /\.shell\s*>\s*div\s*\{\s*min-inline-size:\s*0/);
   assert.match(css, /@media \(max-width: 940px\) \{ \.shell \{ grid-template-columns: minmax\(0, 1fr\); \} \}/);
 });
+
+test('F62 settings tables remain semantic and keyboard-scrollable at 375px RTL', () => {
+  const settings = readFileSync(resolve(root, 'apps/web/src/app/(app)/settings/page.tsx'), 'utf8');
+  assert.equal((settings.match(/className="scrollx" role="region"/g) ?? []).length, 3);
+  for (const section of ['Workspace', 'Members', 'What your role can do']) {
+    assert.ok(settings.includes(`aria-label={t('${section}')} tabIndex={0}`));
+  }
+});
