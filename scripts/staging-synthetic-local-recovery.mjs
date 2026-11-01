@@ -98,6 +98,11 @@ export async function runLocalSyntheticRecovery(env = process.env, deps = {}) {
     plain = docker(['exec', source, 'pg_dump', '-Fc', '-U', 'postgres', '-d', 'postgres']);
     if (plain.length < 100 || !plain.subarray(0, 5).equals(Buffer.from('PGDMP')))
       throw new Error('Missing valid PostgreSQL custom archive');
+    // S52: validate the full PostgreSQL archive table of contents before
+    // persisting even an encrypted copy. A PGDMP header alone is insufficient.
+    // This is an actual pg_restore parser invocation in the disposable source,
+    // not an assertion that a mock dump is recoverable.
+    docker(['exec', '-i', source, 'pg_restore', '--list'], plain);
     const sealedPath = join(dir, 'local-synthetic.pgdump.aes256gcm');
     writeFileSync(sealedPath, encryptArchive(plain, key), { flag: 'wx', mode: 0o600 });
     if (deps.inspectSealed) deps.inspectSealed(sealedPath); // test-only fault injection
