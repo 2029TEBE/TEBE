@@ -34,7 +34,10 @@ export function stagingReplayConfiguration(env) {
 export function assertStagingBrowserRequest(input) {
   let url;
   try { url = new URL(input); } catch { return false; }
-  return [STAGING_WEB, STAGING_API].includes(url.origin) || ['data:', 'blob:'].includes(url.protocol);
+  // blob: inherits its creator origin. Never permit blob:https://other-host.
+  if (url.protocol === 'blob:') return url.origin === STAGING_WEB || url.origin === STAGING_API;
+  if (url.protocol === 'data:') return true;
+  return [STAGING_WEB, STAGING_API].includes(url.origin) && url.protocol === 'https:';
 }
 
 export function sanitizedStagingCheck(name, passed, code = 'assertion_failed') {
