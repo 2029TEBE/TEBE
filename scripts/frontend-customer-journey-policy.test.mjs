@@ -120,6 +120,19 @@ test('F62 recovery and billing proof waits for visible 429 and a real loaded sub
   assert.ok(billingStart >= 0 && billingEnd > billingStart);
   for (const check of [
     "waitUntil: 'networkidle'", "subscriptionPanel.locator('.modcard strong')",
-    "getByRole('alert').count()", "pathname !== '/billing'",
+    "billing_panels_complete", "sections.length === 3", "section.querySelector('.modcard, .panel')",
+    "!section.querySelector('[role=\"alert\"], .locked')", "pathname !== '/billing'",
   ]) assert.ok(billing.includes(check), 'Missing fail-closed billing proof: ' + check);
+});
+
+test('F62 recovery 503 requires the actual intercepted response and exact localized error', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("await step('recovery_503_no_success'");
+  const end = source.indexOf("await step('recovery_429_singleflight_no_success'", start);
+  const scenario = source.slice(start, end);
+  for (const expected of ["page.waitForResponse(", "response.status() === 503",
+    "getByRole('alert').filter(", "state: 'visible', timeout: 20000",
+    "getByRole('status').count()", "finally { await page.unroute("]) {
+    assert.ok(scenario.includes(expected), '503 proof must fail closed: ' + expected);
+  }
 });

@@ -248,14 +248,34 @@ try {
         await layout();
       });
       await step('recovery_503_no_success', async () => {
-        await page.route('**/api/password-recovery/request', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
-        await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
-        await page.locator('input[type="email"]').fill('journey-recovery@example.test');
-        await page.locator('button[type="submit"]').click();
-        await page.getByRole('alert').waitFor();
-        if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
-        await layout();
-        await page.unroute('**/api/password-recovery/request');
+        // Prove the intercepted 503 and its exact localized failure feedback.
+        // A generic unrelated alert or a late screenshot is not acceptance.
+        await page.route('**/api/password-recovery/request', route => route.fulfill({
+          status: 503, contentType: 'application/json', body: '{}',
+        }));
+        try {
+          proofPhase = 'recovery_503_navigation';
+          await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
+          await page.locator('input[type="email"]').fill('journey-recovery@example.test');
+          const response503 = page.waitForResponse(response => {
+            try {
+              return new URL(response.url()).pathname === '/api/password-recovery/request' &&
+                response.status() === 503;
+            } catch { return false; }
+          }, { timeout: 20000 });
+          proofPhase = 'recovery_503_submit';
+          await page.locator('button[type="submit"]').click();
+          await response503;
+          proofPhase = 'recovery_503_feedback';
+          await page.getByRole('alert').filter({
+            hasText: variant.lang === 'ar'
+              ? 'تعذّر تأكيد طلب الاستعادة بسبب عدم توفر الخدمة'
+              : 'could not be confirmed because the service is unavailable',
+          }).waitFor({ state: 'visible', timeout: 20000 });
+          if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
+          proofPhase = 'recovery_503_layout';
+          await layout();
+        } finally { await page.unroute('**/api/password-recovery/request'); }
       });
       await step('recovery_429_singleflight_no_success', async () => {
         // Synthetic rate limit: rapid repeated submits must create one request,
@@ -446,11 +466,27 @@ try {
         // failure as proof of subscription visibility.
         proofPhase = 'billing_card';
         await subscriptionPanel.locator('.modcard strong').first().waitFor({ state: 'visible', timeout: 30000 });
-        proofPhase = 'billing_no_alert';
-        // Other streamed read-only panels may briefly replace a loading
-        // placeholder. A persistent permission/401/service error still fails.
-        await page.locator('[role="alert"]').first().waitFor({ state: 'hidden', timeout: 15000 });
-        if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
+        proofPhase = 'billing_panels_complete';
+        // The billing screen has four independent server-loaded sections.
+        // Prove plans, invoices and exceptions have *settled successfully*,
+        // not merely that the subscription card rendered. A persistent 401,
+        // 403, service error or missing section must fail the journey.
+        // A global notification unrelated to these panels is not a billing
+        // loader failure; scope checks to the actual billing data surfaces.
+        await page.waitForFunction(() => {
+          const names = new Set([
+            'Available plans', 'الخطط المتاحة',
+            'Renewal invoices', 'فواتير التجديد',
+            'Payment exceptions', 'استثناءات المدفوعات',
+          ]);
+          const sections = Array.from(document.querySelectorAll('section[aria-label]'))
+            .filter(section => names.has(section.getAttribute('aria-label')));
+          return sections.length === 3 && sections.every(section =>
+            !section.querySelector('[role="alert"], .locked') &&
+            !!section.querySelector('.modcard, .panel'));
+        }, undefined, { timeout: 30000 });
+        if (await page.locator('p.err[role="alert"]').count())
+          throw new Error('missing_billing_screen');
         proofPhase = 'billing_layout';
         await layout();
       });
