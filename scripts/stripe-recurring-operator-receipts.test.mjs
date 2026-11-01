@@ -23,7 +23,7 @@ function fixture() {
     proof:structuredClone(proof[name]),
   }; });
   return { candidateSha:sha,environment:'staging',stripeMode:'test',providerReceipts:'real-test-only',
-    reviewer:'Independent QA',tenants,scenarios };
+    reviewer:'Independent QA',tenants:structuredClone(tenants),scenarios };
 }
 const validate = bundle => validateStripeOperatorReceipts(bundle,time);
 test('synthetic schema fixture is review-only, NEVER real provider acceptance',()=>{
