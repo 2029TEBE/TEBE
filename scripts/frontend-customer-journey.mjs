@@ -23,7 +23,7 @@ const known = new Set([
   'workspace_switch_fixture_missing', 'workspace_switch_not_confirmed',
   'workspace_switch_revert_failed', 'invitation_false_success',
   'recovery_request_replayed', 'recovery_rate_limit_not_explained',
-  'billing_return_false_confirmation', 'recovery_false_success', 'reset_false_success',
+  'billing_return_false_confirmation', 'onboarding_return_false_confirmation', 'recovery_false_success', 'reset_false_success',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
 let browser;
@@ -58,7 +58,7 @@ try {
           'invitation_403_no_acceptance', 'invitation_html_200_rejected', 'admin_login_and_onboarding',
           'admin_subscription_read', 'billing_return_not_proof', 'admin_workspace_switch_round_trip',
           'restricted_login_and_no_invitation_form',
-          'restricted_billing_redirect',
+          'restricted_billing_redirect', 'onboarding_return_not_proof',
         ]);
         const screenshot = capture.has(name) ? variant.name + '-' + name + '.png' : undefined;
         if (screenshot) await page.screenshot({ path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled' });
@@ -247,6 +247,17 @@ try {
         await login(cfg.admin, process.env.EPMO_JOURNEY_ADMIN_PASSWORD);
         await page.goto(cfg.origin + '/settings', { waitUntil: 'domcontentloaded' });
         await page.locator('form[action="/api/onboarding"] input[name="action"][value="invite"]').waitFor();
+        await layout();
+      });
+      await step('onboarding_return_not_proof', async () => {
+        // A forged ?done=invite URL must never claim that an email was sent.
+        // This check is read-only and cannot create or revoke an invitation.
+        await page.goto(cfg.origin + '/settings?done=invite', { waitUntil: 'domcontentloaded' });
+        const notices = await page.getByRole('status').allTextContents();
+        if (!notices.some(message => message.includes(variant.lang === 'ar' ?
+          'لا يؤكد هذا الرابط' : 'this URL does not confirm')) ||
+          notices.some(message => /Created:|تم الإنشاء/.test(message)))
+          throw new Error('onboarding_return_false_confirmation');
         await layout();
       });
       await step('admin_subscription_read', async () => {

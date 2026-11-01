@@ -1,5 +1,5 @@
 /**
- * C42: signed TEST-only terminal recurring invoice reconciliation.
+ * C42/C45: signed TEST-only terminal and finalization-failure reconciliation.
  * A signed snapshot is never tenant authority. Caller GETs Invoice,
  * Subscription, Price and any PaymentIntent, then locks the immutable ledger.
  * No paid receipt, entitlement grant or new billing period is created here.
@@ -16,9 +16,9 @@ const ref = (value: any): string | null =>
   value && typeof value === 'object' && typeof value.id === 'string' ? value.id : null;
 
 export type TerminalRecurringCandidate = Readonly<{
-  eventId: string; eventType: 'invoice.voided' | 'invoice.marked_uncollectible';
+  eventId: string; eventType: 'invoice.voided' | 'invoice.marked_uncollectible' | 'invoice.finalization_failed';
   invoiceId: string; stripeSubscriptionId: string; stripeCustomerId: string;
-  providerStatus: 'void' | 'uncollectible';
+  providerStatus: 'void' | 'uncollectible' | 'draft';
   billingReason: 'subscription_create' | 'subscription_cycle';
 }>;
 export type TerminalRecurringLocal = Readonly<{
@@ -32,7 +32,7 @@ export function parseTerminalRecurringInvoice(raw: Buffer, liveMode: boolean):
   let event: any;
   try { event = JSON.parse(raw.toString('utf8')); }
   catch { throw new Error('Invalid signed terminal invoice JSON'); }
-  if (!['invoice.voided', 'invoice.marked_uncollectible'].includes(event?.type))
+  if (!['invoice.voided', 'invoice.marked_uncollectible', 'invoice.finalization_failed'].includes(event?.type))
     return null;
   const invoice = event?.data?.object;
   const oldSub = ref(invoice?.subscription);
@@ -47,14 +47,20 @@ export function parseTerminalRecurringInvoice(raw: Buffer, liveMode: boolean):
       throw new Error('Ambiguous terminal invoice cannot be acknowledged');
     return null;
   }
-  const status = event.type === 'invoice.voided' ? 'void' : 'uncollectible';
+  const status = event.type === 'invoice.voided' ? 'void' :
+    event.type === 'invoice.marked_uncollectible' ? 'uncollectible' : 'draft';
   if (liveMode || event.livemode !== false || !id('evt_', event.id) ||
       invoice?.object !== 'invoice' || invoice.livemode !== false ||
       !id('in_', invoice.id) || !id('sub_', oldSub ?? parentSub) ||
       !id('cus_', ref(invoice.customer)) ||
       invoice.status !== status || invoice.paid !== false ||
-      !['subscription_create', 'subscription_cycle'].includes(invoice.billing_reason))
-    throw new Error('Invalid signed TEST recurring terminal invoice');
+      !['subscription_create', 'subscription_cycle'].includes(invoice.billing_reason) ||
+      (event.type === 'invoice.finalization_failed' &&
+       (invoice.amount_paid !== 0 || invoice.payment_intent != null ||
+        (invoice.payments != null &&
+         (!Array.isArray(invoice.payments.data) || invoice.payments.data.length !== 0 ||
+          invoice.payments.has_more === true)))))
+    throw new Error('Invalid signed TEST recurring terminal/finalization invoice');
   return Object.freeze({
     eventId: event.id, eventType: event.type, invoiceId: invoice.id,
     stripeSubscriptionId: oldSub ?? parentSub!,
@@ -100,7 +106,15 @@ export function assertTerminalRecurringProvider(
       (invoice.subscription != null && invoice.parent?.subscription_details?.subscription != null &&
        ref(invoice.subscription) !== ref(invoice.parent.subscription_details.subscription)) ||
       invoice.amount_due !== plan.priceMinor || invoice.total !== plan.priceMinor ||
-      invoice.amount_paid !== 0 || invoice.currency !== plan.currency.toLowerCase())
+      invoice.amount_paid !== 0 || invoice.currency !== plan.currency.toLowerCase() ||
+      (candidate.eventType === 'invoice.finalization_failed' &&
+       (!invoice.last_finalization_error ||
+        typeof invoice.last_finalization_error.type !== 'string' ||
+        !invoice.last_finalization_error.type.trim() ||
+        invoice.payment_intent != null ||
+        (invoice.payments != null &&
+         (!Array.isArray(invoice.payments.data) || invoice.payments.data.length !== 0 ||
+          invoice.payments.has_more === true)))))
     throw new Error('Provider Invoice GET is not the exact unpaid terminal invoice');
   const page = invoice.lines;
   if (!Array.isArray(page?.data) || page.data.length !== 1 ||

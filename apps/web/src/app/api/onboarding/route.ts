@@ -4,6 +4,7 @@ import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { onboardingFailurePath } from '@/lib/onboarding-failure-feedback.mjs';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
+import { onboardingMutationAcknowledged } from '@/lib/onboarding-mutation-ack.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,6 +52,11 @@ export async function POST(req: NextRequest) {
     // A 401 must return to login, a 403 must explain denied access, and an
     // ambiguous timeout must not claim that an invitation was sent.
     return NextResponse.redirect(publicUrl(req, onboardingFailurePath(result?.status)), 303);
+  }
+  // A successful HTTP status can still contain an HTML login page or an
+  // unconfirmed operation. Never report a mutation as completed on 2xx alone.
+  if (!(await onboardingMutationAcknowledged(result, action, body))) {
+    return NextResponse.redirect(publicUrl(req, onboardingFailurePath(503)), 303);
   }
   target.searchParams.set('done', action);
   return NextResponse.redirect(target, 303);
