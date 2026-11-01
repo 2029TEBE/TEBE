@@ -58,5 +58,15 @@ test('S29: resolved Compose isolates private services without published data por
   assert.equal(config.services['staging-edge'].ports[0].host_ip, '127.0.0.1');
   // Check the actual resolved Compose model, not just hand-authored fixture JSON.
   const safety = inspectResolvedStagingCompose(config, 'a'.repeat(40));
-  assert.deepEqual(safety.filter(check => !check.passed).map(check => check.name), []);
+  const failures = safety.filter(check => !check.passed).map(check => check.name);
+  // Report only healthcheck structure, never probe arguments or environment secrets.
+  const safeHealthcheckShape = Object.fromEntries(['postgres', 'redis', 'api', 'web', 'staging-edge']
+    .map(name => {
+      const s = config.services[name], h = s.healthcheck;
+      return [name, { logging: s.logging !== undefined, labelFile: s.label_file !== undefined,
+        keys: Object.keys(h || {}).sort(), testMode: h?.test?.[0],
+        testLength: h?.test?.length, interval: h?.interval, timeout: h?.timeout,
+        startPeriod: h?.start_period, retries: h?.retries }];
+    }));
+  assert.deepEqual(failures, [], JSON.stringify(safeHealthcheckShape));
 });
