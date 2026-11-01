@@ -39,3 +39,16 @@ test('smoke covers Arabic RTL and the protected Super Admin page', () => {
 test('runner refuses to mistake a pre-existing service for the compiled app', () => {
   assert.match(runner, /port 3000 is already serving HTTP/);
 });
+
+test('F61 exact-SHA CI executes both synthetic authenticated viewport journeys and publishes masked artifacts', () => {
+  assert.match(ci, /EPMO_CUSTOMER_JOURNEY: '1'/);
+  assert.match(ci, /EPMO_JOURNEY_ADMIN_USER: 'platform@aetherix\\.test'/);
+  assert.match(ci, /EPMO_JOURNEY_RESTRICTED_USER: 'engineer@al-nakheel\\.test'/);
+  assert.match(ci, /epmo-local-authenticated-journey-/);
+  assert.match(runner, /node scripts\\/frontend-customer-journey\\.mjs/);
+  const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
+  assert.match(journey, /keyboard_navigation_focus_and_escape/);
+  assert.match(journey, /logout_revokes_session/);
+  assert.match(journey, /mask: page\\.locator/);
+  assert.doesNotMatch(journey, /context\\.tracing\\.start/);
+});
