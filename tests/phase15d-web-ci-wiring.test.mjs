@@ -46,7 +46,7 @@ test('F61 exact-SHA CI runs local authenticated journeys and publishes masked ar
   assert.ok(ci.includes("EPMO_JOURNEY_RESTRICTED_USER: 'engineer@al-nakheel.test'"));
   assert.ok(ci.includes('epmo-local-authenticated-journey-'));
   assert.ok(runner.includes('node scripts/frontend-customer-journey.mjs'));
-  assert.ok(runner.includes('WEB_ORIGIN=http://127.0.0.1:3000 HOSTNAME=127.0.0.1'));
+  assert.ok(runner.includes('WEB_ORIGIN=http://localhost:3000 HOSTNAME=localhost'));
   const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
   assert.ok(journey.includes('keyboard_navigation_focus_and_escape'));
   assert.ok(journey.includes('logout_revokes_session'));
@@ -64,7 +64,7 @@ test('F61 compiled standalone browser serves real client bundles before authenti
   const bundle = runner.indexOf('compiled Next.js client bundle is not served');
   const journey = runner.indexOf('node scripts/frontend-customer-journey.mjs');
   assert.ok(bundle > 0 && journey > bundle);
-  assert.ok(runner.includes('http://127.0.0.1:3000/_next/static/$STATIC_REL'));
+  assert.ok(runner.includes('http://localhost:3000/_next/static/$STATIC_REL'));
 });
 
 test('F61 canceled synthetic recovery interception cannot crash CI or leak into later scenarios', () => {
@@ -95,4 +95,17 @@ test('F62 settings tables remain semantic and keyboard-scrollable at 375px RTL',
   for (const section of ['Workspace', 'Members', 'What your role can do']) {
     assert.ok(settings.includes(`aria-label={t('${section}')} tabIndex={0}`));
   }
+});
+
+test('F62 authenticated CI uses the API-aligned localhost origin and verifies a real Secure session cookie', () => {
+  // Production mode marks pmo_session Secure. The browser's localhost
+  // exception is not equivalent to 127.0.0.1 for this acceptance harness.
+  assert.ok(runner.includes('NODE_ENV=production WEB_ORIGIN=http://localhost:3000 HOSTNAME=localhost'));
+  assert.ok(runner.includes('EPMO_UAT_URL=http://localhost:3000'));
+  assert.ok(runner.includes('PHASE15D_WEB_URL=http://localhost:3000'));
+  assert.ok(!runner.includes('http://127.0.0.1:3000'));
+  const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
+  assert.ok(journey.includes('await context.cookies(cfg.origin)'));
+  assert.ok(journey.includes("cookie.name === 'pmo_session'"));
+  assert.ok(journey.includes('cookie.secure && cookie.httpOnly'));
 });
