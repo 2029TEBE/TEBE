@@ -54,7 +54,7 @@ test('unfinished preview destinations, upload, browse and reports fail closed', 
     ['async upload(', 'private async uploadLarge('],
     ['async browse(', 'async reports('],
     ['async reports(', 'async embed('],
-    ['async embed(', '\n  }\n}'],
+    ['async embed(', '\n}'],
   ]) {
     const s = between(start, end);
     assert.match(s, /microsoftUserStorePreviewEnabled\(\)/);
