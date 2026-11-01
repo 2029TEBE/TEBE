@@ -159,7 +159,7 @@ test('S51 rejects non-PGDMP output before off-host write and cleans source', asy
 test('S51 rejects invalid PostgreSQL archive TOC before remote upload', async () => {
  const {dir,env}=fixture(false,false,false,false,true);
  try {
-  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/Docker operation failed/);
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/docker operation failed/);
   const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x==='archive-list').length,1);
   assert.equal(lines.filter(x=>x==='remote-upload').length,0);
