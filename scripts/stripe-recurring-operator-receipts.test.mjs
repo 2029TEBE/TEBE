@@ -19,7 +19,7 @@ function fixture() {
     status:'PASS',testResult:'passed',commitSha:sha,stripeMode:'test',
     executedAtUtc:'2026-11-01T09:50:00Z',
     artifactUrl:'https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41294792139',
-    eventIdSha256:digest(String((i===2?1:i+1)%10)),
+    eventIdSha256:digest(String((i===2?2:i+1)%10)),
     proof:structuredClone(proof[name]),
   }; });
   return { candidateSha:sha,environment:'staging',stripeMode:'test',providerReceipts:'real-test-only',
