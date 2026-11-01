@@ -1,6 +1,9 @@
 /** Never reveal account existence, raw network errors, or upstream response bodies. */
 export function recoveryRequestErrorText(status, lang = 'en') {
   const ar = lang === 'ar';
+  if (status === 'unconfirmed') return ar
+    ? 'تعذّر تأكيد طلب الاستعادة. تحقق من بريدك قبل طلب رابط آخر.'
+    : 'The recovery request could not be confirmed. Check your inbox before requesting another link.';
   if (status === 429) return ar
     ? 'محاولات كثيرة لطلب رابط الاستعادة. انتظر قليلًا قبل المحاولة مجددًا.'
     : 'Too many recovery requests. Wait before requesting another link.';
