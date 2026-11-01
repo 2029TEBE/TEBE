@@ -61,7 +61,7 @@ test('ambiguous, malformed, oversized and redirecting session reads fail closed'
 
 test('session switch route enforces acknowledgement and 401 classification before landing redirect', () => {
   const source = readFileSync(new URL('../app/api/session/tenant/route.ts', import.meta.url), 'utf8');
-  assert.match(source, /classifyTenantSwitch401\(fetch, \`\$\{BASE\}\/auth\/session\`,/);
+  assert.match(source, /classifyTenantSwitch401\(\s*fetch, \`\$\{BASE\}\/auth\/session\`,/);
   assert.match(source, /tenantSwitchAcknowledged\(response\)/);
   assert.match(source, /tenantSwitchFailurePath\(classified\)/);
   assert.match(source, /tenantSwitchFailurePath\(null\)/);
