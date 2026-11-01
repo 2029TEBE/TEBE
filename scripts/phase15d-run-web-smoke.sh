@@ -14,6 +14,25 @@ fi
 command -v node >/dev/null || { echo 'BLOCKED: Node.js is missing.' >&2; exit 1; }
 command -v curl >/dev/null || { echo 'BLOCKED: curl is missing.' >&2; exit 1; }
 
+# A Next.js standalone server does not automatically contain its client JS/CSS.
+# Mirror the production Docker image's asset layout before browser acceptance:
+# without this, HTML smoke passes while React hydration and form journeys fail.
+STATIC_SRC=apps/web/.next-prod/static
+STANDALONE_WEB=apps/web/.next-prod/standalone/apps/web
+if [[ ! -d "$STATIC_SRC" || ! -d apps/web/public ]]; then
+  echo 'BLOCKED: compiled Next.js static/public assets missing; build first.' >&2
+  exit 1
+fi
+STATIC_JS=$(find "$STATIC_SRC" -type f -name '*.js' -print -quit)
+if [[ -z "$STATIC_JS" ]]; then
+  echo 'BLOCKED: compiled Next.js client JavaScript missing.' >&2
+  exit 1
+fi
+mkdir -p "$STANDALONE_WEB/.next-prod/static" "$STANDALONE_WEB/public"
+cp -a "$STATIC_SRC/." "$STANDALONE_WEB/.next-prod/static/"
+cp -a apps/web/public/. "$STANDALONE_WEB/public/"
+STATIC_REL="${STATIC_JS#"$STATIC_SRC"/}"
+
 # Never allow a caller to silently redirect this acceptance step to a live site.
 PHASE15D_WEB_URL=http://127.0.0.1:3000 node --input-type=module -e \
   "import {assertLocalWebOrigin} from './scripts/phase15d-web-smoke.mjs'; assertLocalWebOrigin(process.env.PHASE15D_WEB_URL);"
@@ -35,7 +54,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000 NEXT_DIST_DIR=.next-prod \
+# The compiled browser origin must match the allowlist used for CSRF and
+# canonical redirects. CI API uses localhost:3000 for backend tests, but this
+# isolated compiled web process is intentionally bound to 127.0.0.1.
+NODE_ENV=production WEB_ORIGIN=http://127.0.0.1:3000 HOSTNAME=127.0.0.1 PORT=3000 NEXT_DIST_DIR=.next-prod \
   node "$ARTIFACT" >"$LOG" 2>&1 &
 WEB_PID=$!
 ready=0
@@ -54,6 +76,13 @@ done
 if [[ "$ready" -ne 1 ]]; then
   echo 'BLOCKED: compiled Next.js server did not become ready within 90 seconds' >&2
   tail -n 50 "$LOG" >&2
+  exit 1
+fi
+
+# Require at least one real compiled client bundle over HTTP, not only 200 HTML.
+# A missing bundle silently invalidates every authenticated Playwright assertion.
+if ! curl --fail --silent --show-error --max-time 10 "http://127.0.0.1:3000/_next/static/$STATIC_REL" >/dev/null; then
+  echo 'BLOCKED: compiled Next.js client bundle is not served; browser hydration unverified.' >&2
   exit 1
 fi
 
