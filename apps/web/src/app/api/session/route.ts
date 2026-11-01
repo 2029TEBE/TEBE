@@ -2,6 +2,7 @@ import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { postLoginToApi } from '@/lib/login-proxy.mjs';
+import { verifiedLoginSessionToken } from '@/lib/login-session-ack.mjs';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -44,9 +45,8 @@ export async function POST(req: NextRequest) {
     return back(res.status === 429 ? 'rate_limited' : res.status >= 500 ? 'unavailable' : 'invalid');
   }
 
-  const line = (res.headers.getSetCookie?.() ?? []).find((c) => c.startsWith(`${SESSION}=`));
-  // Preserve opaque cookie values containing '=' padding; split only at the cookie-name boundary.
-  const token = line?.split(';', 1)[0]?.slice(`${SESSION}=`.length);
+  // Do not install a cookie based on HTTP 200 or Set-Cookie alone.
+  const token = await verifiedLoginSessionToken(res);
   if (!token) return back('session_missing');
 
   const out = NextResponse.redirect(publicUrl(req, '/'), 303);
