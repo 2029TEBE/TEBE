@@ -762,13 +762,9 @@ export class MicrosoftService {
   async upload(b: { projectId?: string; name: string; kind?: string; criterionId?: string },
                 file: { buffer: Buffer; originalname: string; mimetype?: string }) {
     requireCapability('pmoa_manage_projects');
-    if (microsoftUserStorePreviewEnabled()) {
-      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
-      // Graph reads. Never route preview writes through legacy workspace SQL.
-      throw new ServiceUnavailableException(
-        'Per-user Microsoft destination and document operations are not enabled yet.');
-    }
-
+    // Preview is opt-in. Legacy single-connection installations retain their
+    // existing credential and destination path when this flag is disabled.
+    const previewUserStore = microsoftUserStorePreviewEnabled();
     const { tenantId, userId } = this.ctx();
 
     // Foreign-key existence alone does not enforce the tenant or project of
@@ -790,7 +786,15 @@ export class MicrosoftService {
     // Bind the bearer to the exact consenting user's sealed credential before
     // sending customer bytes to Graph. A reconnect between token issuance and
     // this snapshot must not associate the old bearer with a new account.
-    const [uploadCredential] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+    // The consenting user and credential must be the same ones that produced
+    // this bearer. Never read the legacy workspace-wide connection in preview.
+    const ownerConnection = previewUserStore
+      ? await readUserMicrosoftConnection(tenantId, this.ownerUserId())
+      : null;
+    const [uploadCredential] = previewUserStore
+      ? [{ refresh_token: ownerConnection?.status === 'connected'
+          ? ownerConnection.sealedRefreshToken : null }]
+      : await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
       SELECT refresh_token FROM integration_connections
       WHERE provider = ${PROVIDER} AND connected_by = ${userId}
         AND status = 'connected' AND refresh_token IS NOT NULL`)));
@@ -800,7 +804,12 @@ export class MicrosoftService {
       throw new ConflictException('Microsoft connection changed before upload. Reconnect and retry.');
     }
 
-    const c = await withTenant(tenantId, (tx) => this.connection(tx));
+    const c = previewUserStore
+      ? { drive_id: ownerConnection?.driveId, root_item_id: ownerConnection?.rootItemId }
+      : await withTenant(tenantId, (tx) => this.connection(tx));
+    if (!c.drive_id || !c.root_item_id) {
+      throw new ConflictException('Your Microsoft connection has no selected destination.');
+    }
 
     // A folder per project, so a customer opening their SharePoint sees their
     // own structure rather than one flat heap of everyone's attachments.
@@ -813,6 +822,17 @@ export class MicrosoftService {
       projectCode = p.code;
       parentId = (await this.folder(token, c.drive_id, c.root_item_id,
         safeName(`${p.code} — ${p.name}`))).id;
+    }
+
+    // Project-folder creation may take time. Refuse to send file bytes if the
+    // consenting user revoked, rotated or moved their destination meanwhile.
+    if (previewUserStore) {
+      const current = await readUserMicrosoftConnection(tenantId, this.ownerUserId());
+      if (!current || current.status !== 'connected' ||
+          current.sealedRefreshToken !== uploadCredential.refresh_token ||
+          current.driveId !== c.drive_id || current.rootItemId !== c.root_item_id) {
+        throw new ConflictException('Your Microsoft connection changed before file transfer. Retry.');
+      }
     }
 
     const filename = safeName(file.originalname || b.name);
@@ -838,7 +858,20 @@ export class MicrosoftService {
       if (!authorized) {
         throw new ForbiddenException('Workspace administrator access changed during Microsoft upload.');
       }
-      const [active] = rows(await tx.execute(sql`
+      // Per-user RLS requires both transaction-local identities. Recheck the
+      // exact owner, destination and sealed credential under the same lock as
+      // the document insert. A reconnect, rotation or revocation fails closed.
+      if (previewUserStore) {
+        await tx.execute(sql`SELECT set_config('app.user_id', ${userId}, true)`);
+      }
+      const [active] = rows(await tx.execute(previewUserStore ? sql`
+        SELECT id FROM microsoft_user_connections
+        WHERE tenant_id = ${tenantId} AND user_id = ${userId}
+          AND provider = ${PROVIDER}
+          AND status = 'connected' AND drive_id = ${c.drive_id}
+          AND root_item_id = ${c.root_item_id}
+          AND refresh_token = ${uploadCredential.refresh_token}
+        FOR SHARE` : sql`
         SELECT id FROM integration_connections
         WHERE provider = ${PROVIDER} AND connected_by = ${userId}
           AND status = 'connected' AND drive_id = ${c.drive_id}

@@ -435,7 +435,13 @@ export class StripeBillingService {
       const latest = rows(await tx.execute(sql`
         SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
         ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
-      const pause = shouldPauseOnPaymentException(verified.type,
+      // C48: a provider-confirmed LOST chargeback must revoke current paid
+      // access even if dispute.created was delayed or never delivered.
+      // Persist the real dispute_closed event type; only the entitlement
+      // decision uses the existing current-period dispute pause policy.
+      const accessLossType = verified.type === 'dispute_closed' && verified.chargebackLost === true
+        ? 'dispute_opened' : verified.type;
+      const pause = shouldPauseOnPaymentException(accessLossType,
         { id: record.subscriptionId, status: record.localStatus,
           periodEndsAt: record.localPeriodEndsAt },
         { subscriptionId: record.subscriptionId, periodEndsAt: record.periodEndsAt },
@@ -457,7 +463,8 @@ export class StripeBillingService {
                 ${verified.amountMinor}, ${ledger.currency}, ${pause},
                 ${JSON.stringify({ providerObjectId: event.providerObjectId,
                   chargeId: event.chargeId, signedType: event.type,
-                  stripeInvoiceId: ledger.stripeInvoiceId })}::jsonb)`);
+                  stripeInvoiceId: ledger.stripeInvoiceId,
+                  chargebackLost: verified.chargebackLost === true })}::jsonb)`);
       if (pause) {
         const changed = rows(await tx.execute(sql`
           UPDATE tenant_subscriptions SET status = 'paused', updated_at = now()
@@ -477,6 +484,7 @@ export class StripeBillingService {
                   stripeInvoiceId: ledger.stripeInvoiceId,
                   paymentIntentId: event.paymentIntent,
                   type: verified.type, payloadSha256: digest,
+                  chargebackLost: verified.chargebackLost === true,
                   subscriptionPaused: pause })}::jsonb)`);
       return { received: true, applied: true, needsReview: true,
         subscriptionPaused: pause, invoiceId: ledger.invoiceId };
