@@ -142,6 +142,12 @@ try {
       try {
         await page.waitForURL(url => url.origin === cfg.origin && url.pathname === '/', { timeout: 20000 });
       } catch { throw new Error('authentication_failed'); }
+      // A 303 alone is not an authenticated browser session. The production
+      // standalone server must issue a Secure, HttpOnly cookie even in this
+      // disposable localhost-only browser proof. Never log the cookie value.
+      const sessionCookies = await context.cookies(cfg.origin);
+      if (!sessionCookies.some(cookie => cookie.name === 'pmo_session' &&
+        cookie.secure && cookie.httpOnly)) throw new Error('authentication_failed');
     }
     async function mutation(form) {
       return page.request.post(cfg.origin + '/api/onboarding', {
