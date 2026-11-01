@@ -110,16 +110,16 @@ test('F62 recovery and billing proof waits for visible 429 and a real loaded sub
   const recoveryEnd = source.indexOf("await step('recovery_200_html_not_confirmed'", recoveryStart);
   const recovery = source.slice(recoveryStart, recoveryEnd);
   assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart);
-  assert.match(recovery, /getByRole\\('alert'\\)\\.filter\\(/);
-  assert.match(recovery, /state: 'visible', timeout: 20000/);
-  assert.match(recovery, /requests !== 1 \\|\\| interceptionFailed/);
-  assert.match(recovery, /getByRole\\('status'\\)\\.count\\(\\)/);
+  for (const check of [
+    "getByRole('alert').filter(", "state: 'visible', timeout: 20000",
+    "requests !== 1 || interceptionFailed", "getByRole('status').count()",
+  ]) assert.ok(recovery.includes(check), 'Missing fail-closed 429 proof: ' + check);
   const billingStart = source.indexOf("await step('admin_subscription_read'");
   const billingEnd = source.indexOf("await step('billing_return_not_proof'", billingStart);
   const billing = source.slice(billingStart, billingEnd);
   assert.ok(billingStart >= 0 && billingEnd > billingStart);
-  assert.match(billing, /waitUntil: 'networkidle'/);
-  assert.match(billing, /subscriptionPanel\\.locator\\('\\.modcard strong'\\)/);
-  assert.match(billing, /getByRole\\('alert'\\)\\.count\\(\\)/);
-  assert.match(billing, /pathname !== '\/billing'/);
+  for (const check of [
+    "waitUntil: 'networkidle'", "subscriptionPanel.locator('.modcard strong')",
+    "getByRole('alert').count()", "pathname !== '/billing'",
+  ]) assert.ok(billing.includes(check), 'Missing fail-closed billing proof: ' + check);
 });
