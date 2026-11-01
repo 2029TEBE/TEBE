@@ -53,6 +53,20 @@ test('incomplete account and workspace fields fail closed before rendering the s
   assert.equal(validSessionEnvelope({ authenticated: false }), true);
 });
 
+test('session rejects duplicate workspace UUIDs despite case changes', () => {
+  const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const member = { tenantId: id, name: 'Synthetic A', slug: 'a', role: 'owner' };
+  const value = { ...signedIn, tenantId: id, tenantName: member.name, tenants: [member] };
+  assert.equal(validSessionEnvelope(value), true);
+  // A single canonical membership may use a differently cased UUID spelling.
+  assert.equal(validSessionEnvelope({ ...value, tenantId: id.toUpperCase() }), true);
+  // A duplicate with a conflicting role must never reach the workspace switcher.
+  assert.equal(validSessionEnvelope({
+    ...value, tenants: [member, { ...member, tenantId: id.toUpperCase(), role: 'restricted_viewer' }],
+  }), false);
+  assert.equal(validSessionEnvelope({ ...value, tenants: [member, { ...member }] }), false);
+});
+
 test('session validator guards the fields dereferenced by TenantSwitcher', () => {
   const switcher = readFileSync(new URL('../components/TenantSwitcher.tsx', import.meta.url), 'utf8');
   const validator = readFileSync(new URL('./session-envelope.mjs', import.meta.url), 'utf8');
