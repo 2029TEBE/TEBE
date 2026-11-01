@@ -49,10 +49,29 @@ try {
     });
     await context.addCookies([{ name: 'pmo_lang', value: variant.lang, url: cfg.origin }]);
     const page = await context.newPage();
+    // Fixed, allowlisted response diagnostics only. Never store URLs, bodies,
+    // headers, tokens, user IDs or credentials in acceptance artifacts.
+    const responsePaths = new Set([
+      '/api/session', '/api/password-recovery/request',
+      '/api/password-recovery/reset', '/api/invite/accept',
+      '/api/onboarding', '/api/session/tenant', '/api/session/logout',
+    ]);
+    let recentResponses = [];
+    let clientExceptionCount = 0;
+    page.on('response', response => {
+      let path;
+      try { path = new URL(response.url()).pathname; } catch { return; }
+      if (!responsePaths.has(path)) return;
+      recentResponses.push({ path, status: response.status() });
+      recentResponses = recentResponses.slice(-8);
+    });
+    page.on('pageerror', () => { clientExceptionCount = Math.min(20, clientExceptionCount + 1); });
     page.on('dialog', dialog => { void dialog.dismiss(); });
     const result = { variant: variant.name, checks: [] };
     report.variants.push(result);
     async function step(name, run) {
+      recentResponses = [];
+      const exceptionsBefore = clientExceptionCount;
       try {
         await run();
         // Fixed-name screenshots only; never record authenticated traces or secrets.
@@ -88,7 +107,47 @@ try {
         // synthetic run actionable without exposing tokens or account data.
         let routePath = '/unknown';
         try { routePath = new URL(page.url()).pathname; } catch { /* no URL */ }
+        // A failed browser scenario without a sanitized DOM/API diagnostic
+        // cannot distinguish a missing form, a 401, a hydration crash or a
+        // wrong redirect. Record only counts, booleans and allowlisted paths.
+        let ui = null;
+        try {
+          ui = await page.evaluate(() => ({
+            readyState: ['loading', 'interactive', 'complete'].includes(document.readyState)
+              ? document.readyState : 'unknown',
+            alertCount: document.querySelectorAll('[role="alert"]').length,
+            statusCount: document.querySelectorAll('[role="status"]').length,
+            formCount: document.querySelectorAll('form').length,
+            submitCount: document.querySelectorAll('button[type="submit"]').length,
+            hasLoginForm: !!document.querySelector('form[action="/api/session"]'),
+            hasAppShell: !!document.querySelector('.shell'),
+          }));
+        } catch { /* browser may already be closed */ }
+        let sessionCookiePresent = null;
+        try {
+          sessionCookiePresent = (await context.cookies(cfg.origin))
+            .some(cookie => cookie.name === 'pmo_session');
+        } catch { /* browser may already be closed */ }
+        let screenshot;
+        // Failure screenshots are limited to PUBLIC routes, and all editable
+        // values are masked. No authenticated page or bearer trace is saved.
+        if (new Set(['/login', '/forgot-password', '/reset-password', '/accept-invite']).has(routePath)) {
+          try {
+            screenshot = variant.name + '-' + name + '-failed.png';
+            await page.screenshot({
+              path: join(cfg.out, screenshot), fullPage: true,
+              animations: 'disabled',
+              mask: page.locator('input, textarea, select, [contenteditable="true"]'),
+              maskColor: '#808080',
+            });
+          } catch { screenshot = undefined; }
+        }
         result.checks.push({ name, status: 'FAIL', code, routePath,
+          diagnostic: { errorType: ['Error', 'TimeoutError', 'TypeError'].includes(error?.name)
+            ? error.name : 'other', ui, sessionCookiePresent,
+            clientExceptions: clientExceptionCount - exceptionsBefore,
+            responses: recentResponses.slice(-8) },
+          ...(screenshot ? { screenshot } : {}),
           ...(code === 'horizontal_overflow' && overflowEvidence
             ? { layout: overflowEvidence } : {}) });
         overflowEvidence = null;
