@@ -47,7 +47,7 @@ export function assertRecurringReversalProvider(
   event: StripePaymentException, intent: any, invoice: any, subscription: any,
   charge: any, dispute: any, ledger: RecurringReversalLedger,
   liveMode: boolean,
-): { type: StripePaymentException['type']; amountMinor: number } {
+): { type: StripePaymentException['type']; amountMinor: number; chargebackLost?: boolean } {
   if (liveMode || !ledger || !UUID.test(ledger.tenantId) ||
       !UUID.test(ledger.subscriptionId) || !UUID.test(ledger.planId) ||
       !UUID.test(ledger.invoiceId) ||
@@ -133,7 +133,12 @@ export function assertRecurringReversalProvider(
             'warning_under_review'].includes(dispute.status) :
           !['won', 'lost', 'warning_closed'].includes(dispute.status)))
       throw new Error('Dispute is not independently confirmed for this charge');
-    return { type: event.type, amountMinor: event.amountMinor };
+    // A terminal LOST dispute is independently confirmed loss of captured funds.
+    // The original dispute-open event can be delayed or permanently missing;
+    // preserve its actual event type while signaling the entitlement policy.
+    return event.type === 'dispute_closed' && dispute.status === 'lost'
+      ? { type: event.type, amountMinor: event.amountMinor, chargebackLost: true }
+      : { type: event.type, amountMinor: event.amountMinor };
   }
   if (dispute != null || event.providerObjectId !== charge.id ||
       charge.amount_refunded < event.amountMinor ||
