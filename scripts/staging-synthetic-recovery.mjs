@@ -138,7 +138,11 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
       '-U', 'postgres', '-d', 'postgres'], { input: Buffer.from(sql) });
     if (query(source, docker) !== expected) throw new Error('Synthetic fixture failed verification');
     const dump = docker(['exec', source, 'pg_dump', '-Fc', '-U', 'postgres', '-d', 'postgres']);
-    if (dump.length < 100) throw new Error('Synthetic PostgreSQL dump is empty');
+    // S51: fail before any off-host write if pg_dump emitted an unusable archive.
+    // The PostgreSQL parser must accept the full TOC, not just the magic bytes.
+    if (dump.length < 100 || !dump.subarray(0, 5).equals(Buffer.from('PGDMP')))
+      throw new Error('Synthetic PostgreSQL custom archive is invalid');
+    docker(['exec', '-i', source, 'pg_restore', '--list'], { input: dump });
     writeFileSync(encrypted, encryptArchive(dump, key), { flag: 'wx', mode: 0o600 });
     aws(['s3', 'cp', encrypted, url, '--only-show-errors']);
     aws(['s3api', 'head-object', '--bucket', remote.bucket, '--key', objectKey]);
