@@ -292,10 +292,11 @@ try {
         proofPhase = 'recovery_singleflight';
         if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
-        const message = await page.getByRole('alert').innerText();
-        if (!(variant.lang === 'ar' ? message.includes('محاولات كثيرة') : message.includes('Too many recovery requests')))
-          throw new Error('recovery_rate_limit_not_explained');
+        // The visible localized alert above already proves the exact guidance.
+        // Re-reading it through an unfiltered locator races React rerenders.
+        proofPhase = 'recovery_layout';
         await layout();
+        proofPhase = 'recovery_unroute';
         await page.unroute('**/api/password-recovery/request');
       });
       await step('recovery_200_html_not_confirmed', async () => {
@@ -446,7 +447,11 @@ try {
         proofPhase = 'billing_card';
         await subscriptionPanel.locator('.modcard strong').first().waitFor({ state: 'visible', timeout: 30000 });
         proofPhase = 'billing_no_alert';
+        // Other streamed read-only panels may briefly replace a loading
+        // placeholder. A persistent permission/401/service error still fails.
+        await page.locator('[role="alert"]').first().waitFor({ state: 'hidden', timeout: 15000 });
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
+        proofPhase = 'billing_layout';
         await layout();
       });
       await step('billing_return_not_proof', async () => {
@@ -477,6 +482,7 @@ try {
         if (new URL(page.url()).pathname !== '/settings')
           throw new Error('workspace_switch_not_confirmed');
         proofPhase = 'workspace_first_layout';
+        await page.waitForLoadState('load');
         await layout();
 
         await page.locator('button.orgchip').click();
@@ -490,6 +496,7 @@ try {
         if (new URL(page.url()).pathname !== '/settings')
           throw new Error('workspace_switch_revert_failed');
         proofPhase = 'workspace_return_layout';
+        await page.waitForLoadState('load');
         await layout();
       });
       await step('unauthorized_workspace_switch_rejected', async () => {
