@@ -824,6 +824,17 @@ export class MicrosoftService {
         safeName(`${p.code} — ${p.name}`))).id;
     }
 
+    // Project-folder creation may take time. Refuse to send file bytes if the
+    // consenting user revoked, rotated or moved their destination meanwhile.
+    if (previewUserStore) {
+      const current = await readUserMicrosoftConnection(tenantId, this.ownerUserId());
+      if (!current || current.status !== 'connected' ||
+          current.sealedRefreshToken !== uploadCredential.refresh_token ||
+          current.driveId !== c.drive_id || current.rootItemId !== c.root_item_id) {
+        throw new ConflictException('Your Microsoft connection changed before file transfer. Retry.');
+      }
+    }
+
     const filename = safeName(file.originalname || b.name);
     // A path-based direct PUT defaults to replacing an existing Graph file.
     // Never overwrite files that may predate this workspace's document record.
