@@ -60,8 +60,8 @@ test('C46: ordinary updates retain scheduled/no-op behavior; invalid modes fail'
     { ...subscription, livemode: true },
     { ...subscription, customer: 'cus_FOREIGN', metadata: { tenantId: 'bad', planId } },
     { ...subscription, id: 'bad' },
-    { ...subscription, status: 'incomplete_expired' },
   ]) assert.throws(() => parse(bad));
+  assert.equal(parse({ ...subscription, status: 'incomplete_expired' }), null);
   assert.throws(() => parseRecurringCancellation(raw(), true));
   assert.throws(() => parseRecurringCancellation(Buffer.from('{'), false));
 });
