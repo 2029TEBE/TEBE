@@ -1112,6 +1112,11 @@ export class StripeBillingService {
         subscription?.id !== candidate.stripeSubscriptionId ||
         !UUID.test(subscription?.metadata?.planId ?? ''))
       throw new ConflictException('Terminal invoice tenant routing is invalid');
+    // A finalization failure is a blocked draft, not a voided/uncollectible invoice.
+    // Keep its replay ledger distinct to avoid false terminal state assertions.
+    const ledgerEventType = candidate.eventType === 'invoice.finalization_failed' ?
+      'billing.stripe_recurring_invoice_finalization_failed' :
+      'billing.stripe_recurring_invoice_terminal';
     return withTenant(tenantId, async tx => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
       const record = rows(await tx.execute(sql`
@@ -1189,7 +1194,7 @@ export class StripeBillingService {
                details ->> 'providerStatus' AS "providerStatus"
         FROM subscription_events
         WHERE tenant_id = ${tenantId}
-          AND event_type = 'billing.stripe_recurring_invoice_terminal'
+          AND event_type = ${ledgerEventType}
           AND details ->> 'eventId' = ${candidate.eventId}
         ORDER BY created_at DESC LIMIT 1`))[0];
       if (previous) {
@@ -1219,7 +1224,7 @@ export class StripeBillingService {
         INSERT INTO subscription_events
           (tenant_id, subscription_id, event_type, details)
         VALUES (${tenantId}, ${binding.subscriptionId},
-          'billing.stripe_recurring_invoice_terminal',
+          ${ledgerEventType},
           ${JSON.stringify({ eventId: candidate.eventId,
             stripeInvoiceId: candidate.invoiceId,
             stripeSubscriptionId: candidate.stripeSubscriptionId,
@@ -1708,10 +1713,11 @@ export class StripeBillingService {
       }
     }
 
-    // C42: terminal recurring invoices require independently verified
+    // C42/C45: terminal or failed-finalization recurring invoices require independently verified
     // provider/tenant reconciliation; one-time invoices remain unchanged.
     if (signedEnvelope?.type === 'invoice.voided' ||
-        signedEnvelope?.type === 'invoice.marked_uncollectible') {
+        signedEnvelope?.type === 'invoice.marked_uncollectible' ||
+        signedEnvelope?.type === 'invoice.finalization_failed') {
       const terminal = signedEnvelope.data?.object;
       const recurring = !!(terminal?.subscription ||
         terminal?.parent?.subscription_details?.subscription ||
