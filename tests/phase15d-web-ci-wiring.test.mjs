@@ -53,3 +53,16 @@ test('F61 exact-SHA CI runs local authenticated journeys and publishes masked ar
   assert.ok(journey.includes('mask: page.locator'));
   assert.ok(!journey.includes('context.tracing.start'));
 });
+
+test('F61 compiled standalone browser serves real client bundles before authenticated UAT', () => {
+  // A successful HTML-only smoke is insufficient: without static JS the
+  // recovery/invitation forms never hydrate and false-positive UAT is possible.
+  assert.ok(runner.includes('STATIC_SRC=apps/web/.next-prod/static'));
+  assert.ok(runner.includes('STANDALONE_WEB=apps/web/.next-prod/standalone/apps/web'));
+  assert.ok(runner.includes('cp -a "$STATIC_SRC/." "$STANDALONE_WEB/.next-prod/static/"'));
+  assert.ok(runner.includes('cp -a apps/web/public/. "$STANDALONE_WEB/public/"'));
+  const bundle = runner.indexOf('compiled Next.js client bundle is not served');
+  const journey = runner.indexOf('node scripts/frontend-customer-journey.mjs');
+  assert.ok(bundle > 0 && journey > bundle);
+  assert.ok(runner.includes('http://127.0.0.1:3000/_next/static/$STATIC_REL'));
+});
