@@ -11,7 +11,7 @@ test('login validates the current opaque base64url token without truncating cook
   assert.match(route, /verifiedLoginSessionToken\(res\)/);
   assert.ok(helper.includes("split(';', 1)[0].slice(`\${SESSION}=`.length)"));
   assert.ok(helper.includes('const TOKEN = /^[A-Za-z0-9_-]{43}$/;'));
-  assert.doesNotMatch(helper, /split\('= '\)\[1\]/);
+  assert.doesNotMatch(helper, /split\('='\)\[1\]/);
 });
 
 test('login refuses to create a session from a missing or unverified token', () => {
