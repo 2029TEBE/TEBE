@@ -106,16 +106,16 @@ test('C51 signed updated events use locked replay-safe recurring handler, no gra
   const webhook = source.slice(source.indexOf('async webhook('));
   const method = source.slice(source.indexOf('private async recordRecurringPaymentException('),
     source.indexOf('private async handlePaymentException('));
-  assert.match(policy, /'charge\\.dispute\\.updated'/);
+  assert.match(policy, /'charge\.dispute\.updated'/);
   assert.ok(webhook.indexOf('verifyStripeSignature(rawBody, header') <
     webhook.indexOf('parseStripePaymentException(rawBody, config.liveMode)'));
-  assert.match(webhook, /if \\(exceptionEvent\\) return this\\.handlePaymentException/);
-  assert.match(method, /config\\.liveMode \\|\\| process\\.env\\.DEPLOYMENT_ENV === 'production'/);
+  assert.match(webhook, /if \(exceptionEvent\) return this\.handlePaymentException/);
+  assert.match(method, /config\.liveMode \|\| process\.env\.DEPLOYMENT_ENV === 'production'/);
   assert.match(method, /pg_advisory_xact_lock/);
   assert.match(method, /FOR UPDATE OF b, s, i, pay/);
   assert.match(method, /assertRecurringReversalProvider/);
-  assert.match(method, /existing\\.digest !== digest/);
-  assert.match(method, /prior\\.providerObjectId !== event\\.providerObjectId/);
+  assert.match(method, /existing\.digest !== digest/);
+  assert.match(method, /prior\.providerObjectId !== event\.providerObjectId/);
   assert.match(method, /UPDATE tenant_subscriptions SET status = 'paused'/);
   assert.doesNotMatch(method, /INSERT INTO billing_payments|SET status = 'active'/);
 });
