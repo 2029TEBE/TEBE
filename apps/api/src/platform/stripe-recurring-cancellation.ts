@@ -27,10 +27,15 @@ export function parseRecurringCancellation(rawBody: Buffer, liveMode: boolean):
   if (event?.type !== 'customer.subscription.deleted' &&
       event?.type !== 'customer.subscription.updated') return null;
   const subscription = event?.data?.object;
+  // Stripe may emit a terminal 'updated' snapshot (status=canceled)
+  // before/without 'deleted'. Treat that as a terminal revocation, even
+  // when cancel_at_period_end is false. Do not acknowledge it as a no-op.
+  const terminal = event.type === 'customer.subscription.deleted' ||
+    (event.type === 'customer.subscription.updated' &&
+     subscription?.status === 'canceled');
   // Other subscription updates are not cancellation signals.
-  if (event.type === 'customer.subscription.updated' &&
+  if (event.type === 'customer.subscription.updated' && !terminal &&
       subscription?.cancel_at_period_end === false) return null;
-  const terminal = event.type === 'customer.subscription.deleted';
   if (!id('evt_', event.id) || event.livemode !== liveMode ||
       !subscription || subscription.object !== 'subscription' ||
       subscription.livemode !== liveMode ||

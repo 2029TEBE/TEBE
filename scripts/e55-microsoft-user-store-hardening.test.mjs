@@ -8,9 +8,12 @@ const migration = read('../packages/db/migrations/0022_microsoft_user_owner_rls.
 const journal = JSON.parse(read('../packages/db/migrations/meta/_journal.json'));
 const manifest = JSON.parse(read('../packages/db/migrations/meta/_sha256.json'));
 
-test('E55 owner-scoped DAO is dormant and never silently migrates legacy connections', () => {
+test('E55 owner-scoped DAO stays gated and never silently migrates legacy connections', () => {
   assert.match(store, /if \(!microsoftUserStorePreviewEnabled\(\)\)/);
-  assert.doesNotMatch(service, /from '\.\/user-connection-store'/);
+  // E56 wires the store only behind the explicit opt-in gate. Default installs
+  // still use the original workspace runtime; the DAO never migrates its rows.
+  assert.match(service, /from '\.\/user-connection-store'/);
+  assert.match(service, /if \(microsoftUserStorePreviewEnabled\(\)\) return this\.previewAccessToken\(resource\)/);
   assert.doesNotMatch(store, /(?:INSERT INTO|UPDATE|DELETE FROM)\s+integration_connections/);
   assert.match(store, /set_config\('app\.user_id', \$\{userId\}, true\)/);
 });
