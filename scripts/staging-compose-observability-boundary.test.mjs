@@ -23,6 +23,17 @@ test('S47 permits only reviewed staging healthchecks and no remote logging', () 
   assert.equal(integrated(minimal), true);
 });
 
+test('S47 accepts only the exact Docker Compose escaped PostgreSQL probe form', () => {
+  const services = fixture();
+  const dollar = String.fromCharCode(36, 36);
+  services.postgres.healthcheck.test[1] =
+    'pg_isready -U ' + dollar + '{POSTGRES_USER} -d ' + dollar + '{POSTGRES_DB}';
+  assert.equal(safeStagingObservabilityBoundary(services), true);
+  assert.equal(integrated(services), true);
+  services.postgres.healthcheck.test[1] += '; env';
+  assert.equal(safeStagingObservabilityBoundary(services), false);
+});
+
 test('S47 rejects remote log drivers and file-sourced labels on every service', () => {
   for (const name of names) for (const [field, value] of [
     ['logging', { driver: 'syslog', options: { 'syslog-address': 'tcp://203.0.113.1:514' } }],
