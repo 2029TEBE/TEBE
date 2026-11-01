@@ -13,7 +13,7 @@ const between = (start, end) => {
 
 test('preview status reads only authenticated owner and returns a public metadata whitelist', () => {
   const s = between('async status():', 'async beginConnect(');
-  assert.match(s, /readUserMicrosoftConnection\(tenantId, this\.ctx\(\)\.userId\)/);
+  assert.match(s, /readUserMicrosoftConnection\(tenantId, this\.ownerUserId\(\)\)/);
   assert.ok(s.indexOf('microsoftUserStorePreviewEnabled()') < s.indexOf('FROM integration_connections'));
   const publicBranch = s.slice(s.indexOf('if (microsoftUserStorePreviewEnabled())'), s.indexOf('const row = await withTenant'));
   assert.doesNotMatch(publicBranch, /sealedRefreshToken|refresh_token|accessToken/);
@@ -31,9 +31,9 @@ test('OAuth callback persists consent from consumed state user, never workspace 
 test('preview refresh and revocation are owner-scoped with exact credential CAS', () => {
   const s = between('private async accessToken(', 'async places(');
   assert.match(s, /readUserMicrosoftConnection\(tenantId, userId\)/);
-  assert.match(s, /hit\.credential === own\.sealedRefreshToken/);
-  assert.match(s, /markUserMicrosoftCredentialRevoked\(tenantId, userId, own\.sealedRefreshToken\)/);
-  assert.match(s, /rotateUserMicrosoftCredential\(\s*tenantId, userId, own\.sealedRefreshToken/);
+  assert.match(s, /hit\.credential === sealedCredential/);
+  assert.match(s, /markUserMicrosoftCredentialRevoked\(tenantId, ownerId, sealedCredential\)/);
+  assert.match(s, /rotateUserMicrosoftCredential\(\s*tenantId, ownerId, sealedCredential/);
   assert.ok(s.indexOf('rotateUserMicrosoftCredential(') < s.indexOf('this.tokens.set(cacheKey'));
   assert.ok(s.indexOf('microsoftUserStorePreviewEnabled()') < s.indexOf('FROM integration_connections'));
 });
