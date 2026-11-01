@@ -836,10 +836,21 @@ export class MicrosoftService {
       } catch {
         throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned invalid or oversized completed upload metadata.');
       }
+      // Upload-session completion is not proof that Graph created the file we
+      // requested. A wrong name, size, drive or parent must never become an
+      // EPMO document record, even when the response has an id and webUrl.
       if (!item || typeof item !== 'object' ||
-          !('id' in item) || typeof item.id !== 'string' ||
-          !('webUrl' in item) || typeof item.webUrl !== 'string') {
-        throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
+          !('id' in item) || typeof item.id !== 'string' || !item.id.trim() ||
+          !('webUrl' in item) || typeof item.webUrl !== 'string' || !item.webUrl.trim() ||
+          ('name' in item && item.name !== filename) ||
+          ('size' in item && (!Number.isSafeInteger(item.size) || item.size !== buf.length)) ||
+          ('folder' in item && item.folder != null) ||
+          ('parentReference' in item && item.parentReference != null &&
+            (typeof item.parentReference !== 'object' ||
+             ('driveId' in item.parentReference && item.parentReference.driveId !== driveId) ||
+             ('id' in item.parentReference && item.parentReference.id !== parentId)))) {
+        throw new MsApiError(502, 'uploadInvalid',
+          'Microsoft returned completed upload metadata for a different file or destination.');
       }
       return item as GraphUploadedFile;
     }
