@@ -36,7 +36,7 @@ test('F63 refuses unapproved staging, non-TLS, production origins and unpinned S
 test('F63 only permits two exact staging origins and data/blob, never arbitrary provider redirects', () => {
   for (const url of [`${STAGING_WEB}/login`, `${STAGING_API}/health`, 'data:text/plain,a', 'blob:https://staging.theepmo.com/abc'])
     assert.equal(assertStagingBrowserRequest(url), true);
-  for (const url of ['https://theepmo.com', 'https://evil-staging.theepmo.com', 'http://staging.theepmo.com', 'https://login.microsoftonline.com', 'file:///etc/passwd'])
+  for (const url of ['https://theepmo.com', 'https://evil-staging.theepmo.com', 'http://staging.theepmo.com', 'https://login.microsoftonline.com', 'blob:https://evil.example/abc', 'file:///etc/passwd'])
     assert.equal(assertStagingBrowserRequest(url), false);
 });
 
