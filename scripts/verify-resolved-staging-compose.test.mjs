@@ -162,3 +162,26 @@ test('rejects device passthrough and volumes_from overrides', () => {
     assert.ok(failed(model).some(x => x.includes('host device passthrough')), field);
   }
 });
+
+test('S48 resolved Compose rejects hidden production bind via named-volume driver_opts', () => {
+  const model = fixture();
+  model.volumes.pgdata.driver = 'local';
+  model.volumes.pgdata.driver_opts = {
+    type: 'none', o: 'bind', device: '/var/lib/production-postgres',
+  };
+  assert.ok(failed(model).some(name => name.includes('named-volume bind')));
+});
+
+test('S48 resolved Compose rejects custom production network reuse and driver/IPAM', () => {
+  for (const override of [
+    { name: 'pmo-prod_staging-app' },
+    { driver: 'macvlan' },
+    { driver_opts: { parent: 'eth0' } },
+    { ipam: { config: [{ subnet: '10.0.0.0/8' }] } },
+  ]) {
+    const model = fixture();
+    Object.assign(model.networks['staging-app'], override);
+    assert.ok(failed(model).some(name => name.includes('network driver escape')),
+      JSON.stringify(override));
+  }
+});
