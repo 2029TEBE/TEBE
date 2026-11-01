@@ -27,6 +27,9 @@ test('E58: upload bytes require exact cached bearer and encrypted credential mat
   assert.match(beforeGraph, /issued\.accessToken !== token/);
   assert.match(beforeGraph, /issued\.credential !== uploadCredential\.refresh_token/);
   assert.match(beforeGraph, /if \(!c\.drive_id \|\| !c\.root_item_id\)/);
+  assert.match(beforeGraph, /const current = await readUserMicrosoftConnection\(tenantId, this\.ownerUserId\(\)\)/);
+  assert.match(beforeGraph, /current\.sealedRefreshToken !== uploadCredential\.refresh_token/);
+  assert.match(beforeGraph, /current\.driveId !== c\.drive_id \|\| current\.rootItemId !== c\.root_item_id/);
   assert.match(beforeGraph, /throw new ConflictException\('Microsoft connection changed before upload/);
   assert.match(upload, /const item = await this\.uploadLarge\(token, c\.drive_id, parentId, filename, file\.buffer\)/);
 });
