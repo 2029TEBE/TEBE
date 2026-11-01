@@ -82,6 +82,11 @@ try {
           : 'browser_journey_failed';
         result.checks.push({ name, status: 'FAIL', code });
         report.failed++;
+      } finally {
+        // A failed scenario must not leak interception into the next one.
+        // Wait for outstanding handlers and suppress their late abort errors;
+        // the scenario itself still records FAIL if its response was missing.
+        await page.unrouteAll({ behavior: 'ignoreErrors' });
       }
     }
     async function layout() {
@@ -152,10 +157,17 @@ try {
         // Synthetic rate limit: rapid repeated submits must create one request,
         // show localized guidance, and never claim a recovery email was sent.
         let requests = 0;
+        let interceptionFailed = false;
         await page.route('**/api/password-recovery/request', async route => {
           requests++;
           await new Promise(resolve => setTimeout(resolve, 200));
-          await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+          try {
+            await route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
+          } catch {
+            // Navigations may cancel a pending route. Do not crash Node with
+            // an unhandled Playwright rejection or count a canceled 429 as PASS.
+            interceptionFailed = true;
+          }
         });
         await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'domcontentloaded' });
         await page.locator('input[type="email"]').fill('journey-recovery@example.test');
@@ -164,7 +176,7 @@ try {
           form.requestSubmit();
         });
         await page.getByRole('alert').waitFor();
-        if (requests !== 1) throw new Error('recovery_request_replayed');
+        if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
         if (!(variant.lang === 'ar' ? message.includes('محاولات كثيرة') : message.includes('Too many recovery requests')))
