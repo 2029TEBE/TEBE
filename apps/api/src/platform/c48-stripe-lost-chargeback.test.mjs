@@ -64,8 +64,11 @@ test('C48: won and warning-closed disputes do not become lost chargebacks', () =
     assert.deepEqual(verify(event, intent, invoice, subscription, charge, d),
       { type: 'dispute_closed', amountMinor: 12000 });
   }
-  assert.throws(() => verify(closed, intent, invoice, subscription, charge,
-    { ...dispute, status: 'won' }), /Dispute is not independently confirmed/);
+  // A delayed signed lost snapshot must not override Stripe's independently
+  // retrieved current won state. The provider, not the webhook, is authoritative.
+  assert.deepEqual(verify(closed, intent, invoice, subscription, charge,
+    { ...dispute, status: 'won' }),
+    { type: 'dispute_closed', amountMinor: 12000 });
 });
 
 test('C48: only a current, unexpired, active tenant period can be paused', () => {
