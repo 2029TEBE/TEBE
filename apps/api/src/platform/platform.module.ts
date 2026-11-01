@@ -9,6 +9,7 @@ import { SuperAdminService } from './super-admin.service';
 import { BillingController, BillingWebhookController } from './billing.controller';
 import { BillingService } from './billing.service';
 import { StripeBillingService } from './stripe.service';
+import { StripeTestOperatorController } from './stripe-test-operator.controller';
 
 /**
  * The module catalogue is licensing data. The application role can read it but
@@ -17,7 +18,7 @@ import { StripeBillingService } from './stripe.service';
  */
 @Global()
 @Module({
-  controllers: [PlatformController, SubscriptionController, SuperAdminController, BillingController, BillingWebhookController],
+  controllers: [PlatformController, SubscriptionController, SuperAdminController, BillingController, BillingWebhookController, StripeTestOperatorController],
   providers: [PlatformService, ModuleGuard, SubscriptionService, SuperAdminService, BillingService, StripeBillingService],
   exports: [PlatformService, ModuleGuard],
 })

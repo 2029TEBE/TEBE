@@ -1,13 +1,22 @@
 name: EPMO4 disposable encrypted PostgreSQL recovery proof (nondeploying)
+# Re-run on each new canonical integration PR, not only when this workflow changes.
+# Noncanonical source PRs are skipped below; no deployment or external secrets.
 on:
   pull_request:
-    paths:
-      - '.github/workflows/epmo4-synthetic-recovery-drill.yml'
 permissions:
   contents: read
 jobs:
   disposable-recovery:
     name: Real disposable Docker backup-restore-rollback
+    # Exact-head synthetic recovery is required for canonical Q integration PRs.
+    # The one S56 branch exception allows this trigger repair to prove itself.
+    # Forks and unrelated source PRs cannot run Docker on this job.
+    if: >-
+      ${{
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        (startsWith(github.event.pull_request.head.ref, 'integration/q') ||
+         github.event.pull_request.head.ref == 'epmo4/s56-canonical-recovery-trigger-20261101')
+      }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
