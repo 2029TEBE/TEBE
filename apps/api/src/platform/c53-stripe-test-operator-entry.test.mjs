@@ -8,7 +8,7 @@ const env = Object.freeze({
   STRIPE_RECURRING_CHECKOUT_ENABLED: 'true', STRIPE_ENABLED: 'true',
   STRIPE_SECRET_KEY: 'sk_test_' + 'A'.repeat(24),
   STRIPE_WEBHOOK_SECRET: 'whsec_' + 'B'.repeat(24),
-  STRIPE_WEBHOOK_PUBLIC_URL: 'https://staging.theepmo.com/api/v1/billing/stripe-webhook',
+  STRIPE_WEBHOOK_PUBLIC_URL: 'https://api-staging.theepmo.com/api/v1/billing/stripe-webhook',
   STRIPE_TEST_OPERATOR_SECRET: 'C'.repeat(48),
 });
 const denied = (patch, credential = env.STRIPE_TEST_OPERATOR_SECRET) =>
@@ -24,10 +24,12 @@ test('C53 operator access requires every explicit staging-only TEST gate', () =>
     ['STRIPE_SECRET_KEY', 'sk_live_' + 'A'.repeat(24)],
     ['STRIPE_SECRET_KEY', ''], ['STRIPE_WEBHOOK_SECRET', ''],
     ['STRIPE_TEST_OPERATOR_SECRET', 'short'],
-    ['STRIPE_WEBHOOK_PUBLIC_URL', 'http://staging.theepmo.com/api/v1/billing/stripe-webhook'],
+    ['STRIPE_WEBHOOK_PUBLIC_URL', 'http://api-staging.theepmo.com/api/v1/billing/stripe-webhook'],
     ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://theepmo.com/api/v1/billing/stripe-webhook'],
-    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://staging.theepmo.com/api/v1/billing/stripe-webhook?secret=x'],
-    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://staging.theepmo.com/api/v1/billing/stripe-webhook/'],
+    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://staging.theepmo.com/api/v1/billing/stripe-webhook'],
+    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://api-staging.theepmo.com.evil.example/api/v1/billing/stripe-webhook'],
+    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://api-staging.theepmo.com/api/v1/billing/stripe-webhook?secret=x'],
+    ['STRIPE_WEBHOOK_PUBLIC_URL', 'https://api-staging.theepmo.com/api/v1/billing/stripe-webhook/'],
   ]) assert.equal(denied({ [key]: value }), false, key);
 });
 
