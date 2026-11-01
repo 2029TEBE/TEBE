@@ -6,6 +6,7 @@ import { getLang } from '@/lib/i18n';
 import { can, type Capability } from '@pmo/contracts';
 import { onboardingActionHref, onboardingActionLicensed } from '@/lib/onboarding-guidance';
 import { effectiveSubscriptionStatus, daysUntil } from '@/lib/subscription-display.mjs';
+import { loadVerifiedOnboardingJourney } from '@/lib/onboarding-journey.mjs';
 
 const copy = {
   en: {
@@ -84,10 +85,7 @@ export default async function GettingStarted() {
         <p>{lang === 'ar' ? 'انتهت صلاحية الاشتراك. قد تكون الوحدات التجارية غير متاحة حتى تأكيد التجديد.' : 'The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.'}</p>
         <Link href="/billing">{lang === 'ar' ? 'فتح الفوترة' : 'Open billing'}</Link>
       </section>}
-      <Loaded load={async () => ({
-        data: await api.onboarding(),
-        modules: await api.enabledModules().catch(() => ['core360']),
-      })}>
+      <Loaded load={async () => loadVerifiedOnboardingJourney(api.onboarding, api.enabledModules)}>
         {({ data, modules }: { data: OnboardingStatus; modules: string[] }) => {
           const nextTask = data.tasks.find(task => task.key === data.nextStep);
           const canOpenNext = nextTask && can(capabilities, nextTask.capability)

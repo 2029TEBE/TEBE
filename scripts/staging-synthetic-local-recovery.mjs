@@ -86,8 +86,9 @@ export async function runLocalSyntheticRecovery(env = process.env, deps = {}) {
     }
     const query = id => docker(['exec', id, 'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
       '-U', 'postgres', '-d', 'postgres', '-c', selectSql]).toString().trim();
-    const restore = (id, archive) => {
+    const restore = (id, archive, rollback = false) => {
       docker(['exec', '-i', id, 'pg_restore', '--exit-on-error', '--single-transaction',
+        ...(rollback ? ['--clean', '--if-exists'] : []),
         '--no-owner', '--no-acl', '-U', 'postgres', '-d', 'postgres'], archive);
       if (query(id) !== expected) throw new Error('Restored synthetic data mismatch');
     };
@@ -116,8 +117,9 @@ export async function runLocalSyntheticRecovery(env = process.env, deps = {}) {
     docker(['exec', target, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
       '-d', 'postgres', '-c', "UPDATE epmo_s36_fixture SET marker='S36_SYNTHETIC_FAILED' WHERE id=1"]);
     if (query(target) === expected) throw new Error('Failure injection did not alter data');
-    const rollback = await start();
-    restore(rollback, recovered);
+    // S53: rollback the *mutated target*, not a third clean database. The
+    // single-transaction restore must replace the failed fixture atomically.
+    restore(target, recovered, true);
   } finally {
     // No PASS until *every* disposable container has been removed and scratch
     // data erased. A failed removal is a failed drill, even after valid restore.

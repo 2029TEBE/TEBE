@@ -1001,14 +1001,60 @@ export class MicrosoftService {
   async documentLink(documentId: string): Promise<{ url: string; name: string }> {
     const { tenantId } = this.ctx();
     const [d] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
-      SELECT name, external_drive_id, external_item_id, storage_provider, url
-      FROM documents WHERE id = ${documentId}`)));
+      SELECT name, external_drive_id, external_item_id, storage_provider, url, owner_id
+      FROM documents WHERE id = ${documentId} AND tenant_id = ${tenantId}`)));
     if (!d) throw new NotFoundException('No such document in this workspace.');
-    if (d.storage_provider !== PROVIDER || !d.external_item_id) {
+    const previewUserStore = microsoftUserStorePreviewEnabled();
+    // A legacy document without a Graph item ID may keep its safe stored link,
+    // but preview must never bypass owner/credential checks for Microsoft files.
+    if (d.storage_provider !== PROVIDER || (!previewUserStore && !d.external_item_id)) {
       const safeUrl = safeDocumentRedirectUrl(d.url);
       if (!safeUrl) throw new NotFoundException('That document has no safe external link.');
       return { url: safeUrl, name: d.name };
     }
+
+    if (previewUserStore) {
+      requireCapability('pmoa_admin');
+      const ownerId = this.ownerUserId();
+      // A document's uploader is its consenting Microsoft connection owner.
+      // Never open another user's Graph item with the caller's delegated token.
+      if (!d.external_item_id || d.owner_id !== ownerId || !d.external_drive_id) {
+        throw new NotFoundException('No such Microsoft document for your connection.');
+      }
+      const token = await this.accessToken('graph');
+      const own = await readUserMicrosoftConnection(tenantId, ownerId);
+      const cacheKey = `${tenantId}:${ownerId}:graph`;
+      const issued = this.tokens.get(cacheKey);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken ||
+          !own.driveId || own.driveId !== d.external_drive_id ||
+          !issued || issued.accessToken !== token ||
+          issued.credential !== own.sealedRefreshToken) {
+        throw new ConflictException('Your Microsoft connection changed before opening this document.');
+      }
+      const item = await call<any>(GRAPH, token,
+        `/drives/${encodeURIComponent(own.driveId)}/items/${encodeURIComponent(d.external_item_id)}`);
+      // The provider must confirm the exact item and drive, not merely return
+      // a plausible URL for an unrelated object or a folder.
+      if (!item || item.id !== d.external_item_id || item.folder ||
+          item.parentReference?.driveId !== own.driveId) {
+        throw new ConflictException('Microsoft returned a different document.');
+      }
+      const safeUrl = safeDocumentRedirectUrl(item['@microsoft.graph.downloadUrl'] ?? item.webUrl);
+      if (!safeUrl) throw new NotFoundException('That document has no safe external link.');
+      // Graph can respond after disconnect, token rotation, administrator
+      // downgrade or reconnection. Recheck ownership before exposing a URL.
+      const latest = await readUserMicrosoftConnection(tenantId, ownerId);
+      const currentBearer = this.tokens.get(cacheKey);
+      if (!latest || latest.status !== 'connected' ||
+          latest.sealedRefreshToken !== own.sealedRefreshToken ||
+          latest.driveId !== own.driveId ||
+          !currentBearer || currentBearer.accessToken !== token ||
+          currentBearer.credential !== own.sealedRefreshToken) {
+        throw new ConflictException('Your Microsoft connection changed while opening this document.');
+      }
+      return { url: safeUrl, name: d.name };
+    }
+
     const token = await this.accessToken('graph');
     const item = await call<any>(GRAPH, token,
       `/drives/${encodeURIComponent(d.external_drive_id)}/items/${encodeURIComponent(d.external_item_id)}`);

@@ -426,19 +426,13 @@ export class StripeBillingService {
         FROM billing_webhook_receipts
         WHERE tenant_id = ${tenantId} AND provider = ${STRIPE_PROVIDER}
           AND provider_event_id = ${event.eventId}`))[0];
-      if (existing) {
-        if (existing.invoiceId !== ledger.invoiceId || existing.digest !== digest)
-          throw new ConflictException('Recurring reversal event identity was reused');
-        return { received: true, applied: false, duplicate: true,
-          invoiceId: ledger.invoiceId };
-      }
+      if (existing && (existing.invoiceId !== ledger.invoiceId || existing.digest !== digest))
+        throw new ConflictException('Recurring reversal event identity was reused');
       const latest = rows(await tx.execute(sql`
         SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
         ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
-      // C48: a provider-confirmed LOST chargeback must revoke current paid
-      // access even if dispute.created was delayed or never delivered.
-      // Persist the real dispute_closed event type; only the entitlement
-      // decision uses the existing current-period dispute pause policy.
+      // A provider-confirmed LOST chargeback or cumulative full refund must
+      // revoke only the currently paid period, never a newer renewal.
       const accessLossType = verified.type === 'dispute_closed' && verified.chargebackLost === true
         ? 'dispute_opened' : verified.type;
       const pause = shouldPauseOnPaymentException(accessLossType,
@@ -446,6 +440,64 @@ export class StripeBillingService {
           periodEndsAt: record.localPeriodEndsAt },
         { subscriptionId: record.subscriptionId, periodEndsAt: record.periodEndsAt },
         latest?.id ?? '');
+      if (existing) {
+        // C50: a signed, byte-identical webhook replay can reveal a stronger
+        // independently fetched provider state (partial -> full refund, or
+        // open/won -> lost dispute). Never let the receipt short-circuit a
+        // current-period entitlement revocation. The original signed receipt
+        // and exception evidence remain intact; only the monotonic pause flag
+        // is raised and the new provider assessment is appended to the audit.
+        const prior = rows(await tx.execute(sql`
+          SELECT provider_payment_id AS "paymentIntentId",
+                 details ->> 'providerObjectId' AS "providerObjectId",
+                 details ->> 'chargeId' AS "chargeId",
+                 details ->> 'signedType' AS "signedType",
+                 details ->> 'stripeInvoiceId' AS "stripeInvoiceId"
+          FROM billing_payment_exceptions
+          WHERE tenant_id = ${tenantId} AND invoice_id = ${ledger.invoiceId}
+            AND provider = ${STRIPE_PROVIDER}
+            AND provider_event_id = ${event.eventId}
+          FOR UPDATE`))[0];
+        if (!prior || prior.paymentIntentId !== event.paymentIntent ||
+            prior.providerObjectId !== event.providerObjectId ||
+            prior.chargeId !== event.chargeId ||
+            prior.signedType !== event.type ||
+            prior.stripeInvoiceId !== ledger.stripeInvoiceId)
+          throw new ConflictException('Recurring reversal replay has no matching exception evidence');
+        if (!pause)
+          return { received: true, applied: false, duplicate: true,
+            invoiceId: ledger.invoiceId };
+        const changed = rows(await tx.execute(sql`
+          UPDATE tenant_subscriptions SET status = 'paused', updated_at = now()
+          WHERE tenant_id = ${tenantId} AND id = ${record.subscriptionId}
+            AND status = 'active'
+            AND period_ends_at = ${record.periodEndsAt}::timestamptz
+          RETURNING id`));
+        if (changed.length !== 1)
+          throw new ConflictException('Recurring reversal replay entitlement changed');
+        const marked = rows(await tx.execute(sql`
+          UPDATE billing_payment_exceptions SET subscription_paused = true
+          WHERE tenant_id = ${tenantId} AND invoice_id = ${ledger.invoiceId}
+            AND provider = ${STRIPE_PROVIDER}
+            AND provider_event_id = ${event.eventId}
+          RETURNING id`));
+        if (marked.length !== 1)
+          throw new ConflictException('Recurring reversal replay exception changed');
+        await tx.execute(sql`
+          INSERT INTO subscription_events
+            (tenant_id, subscription_id, event_type, details)
+          VALUES (${tenantId}, ${record.subscriptionId},
+                  'billing.stripe_recurring_reversal_replay_escalated',
+                  ${JSON.stringify({ eventId: event.eventId,
+                    stripeInvoiceId: ledger.stripeInvoiceId,
+                    paymentIntentId: event.paymentIntent, payloadSha256: digest,
+                    verifiedType: verified.type, verifiedAmountMinor: verified.amountMinor,
+                    chargebackLost: verified.chargebackLost === true,
+                    subscriptionPaused: true })}::jsonb)`);
+        return { received: true, applied: true, duplicate: true,
+          replayReconciled: true, needsReview: true, subscriptionPaused: true,
+          invoiceId: ledger.invoiceId };
+      }
       const receipt = rows(await tx.execute(sql`
         INSERT INTO billing_webhook_receipts
           (tenant_id, invoice_id, provider, provider_event_id, payload_sha256)
