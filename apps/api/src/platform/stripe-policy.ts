@@ -313,7 +313,8 @@ export function parseStripePaymentException(rawBody: Buffer, liveMode: boolean):
   if (typeof event.id !== 'string' || !/^evt_[A-Za-z0-9]+$/.test(event.id) ||
       event.livemode !== liveMode || typeof event.type !== 'string')
     throw new Error('Invalid Stripe exception identity or mode');
-  if (!['charge.refunded', 'charge.dispute.created', 'charge.dispute.closed'].includes(event.type))
+  if (!['charge.refunded', 'charge.dispute.created', 'charge.dispute.closed',
+        'charge.dispute.updated'].includes(event.type))
     return null;
   const object = event.data?.object;
   const dispute = event.type.startsWith('charge.dispute.');
@@ -332,13 +333,22 @@ export function parseStripePaymentException(rawBody: Buffer, liveMode: boolean):
   let type: StripePaymentException['type'];
   let amount: number;
   if (dispute) {
-    if (event.type === 'charge.dispute.created' && object.status !== 'needs_response' &&
-        object.status !== 'under_review' && object.status !== 'warning_needs_response' &&
-        object.status !== 'warning_under_review')
+    const openStatuses = ['needs_response', 'under_review',
+      'warning_needs_response', 'warning_under_review'];
+    const terminalStatuses = ['won', 'lost', 'warning_closed'];
+    if (event.type === 'charge.dispute.created' && !openStatuses.includes(object.status))
       throw new Error('Unexpected opened dispute status');
-    if (event.type === 'charge.dispute.closed' && !['won', 'lost', 'warning_closed'].includes(object.status))
+    if (event.type === 'charge.dispute.closed' && !terminalStatuses.includes(object.status))
       throw new Error('Unexpected closed dispute status');
-    type = event.type === 'charge.dispute.created' ? 'dispute_opened' : 'dispute_closed';
+    // C51: Stripe may deliver only dispute.updated after a dispute changes.
+    // Reconcile signed open/terminal updates through the same independent
+    // provider/tenant checks; never acknowledge unknown statuses as handled.
+    if (event.type === 'charge.dispute.updated' &&
+        !openStatuses.includes(object.status) && !terminalStatuses.includes(object.status))
+      throw new Error('Unexpected updated dispute status');
+    type = event.type === 'charge.dispute.closed' ||
+      (event.type === 'charge.dispute.updated' && terminalStatuses.includes(object.status))
+      ? 'dispute_closed' : 'dispute_opened';
     amount = object.amount;
   } else {
     if (!Number.isSafeInteger(object.amount_refunded) || object.amount_refunded <= 0 ||
