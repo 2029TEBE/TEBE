@@ -1,6 +1,6 @@
 import { readBoundedUpstreamJson } from './bounded-upstream-body.mjs';
 import { fetchTenantMutation } from './tenant-mutation-fetch.mjs';
-import { validSessionEnvelope } from './session-envelope.mjs';
+import { validSessionEnvelope, sameWorkspaceIdentity } from './session-envelope.mjs';
 
 /** A 200 status is not proof that the active workspace changed. The trusted
  * API contract is exactly a JSON {ok:true} response. Never trust an HTML
@@ -29,5 +29,5 @@ export async function classifyTenantSwitch401(fetcher, endpoint, cookie, tenantI
   if (body.authenticated === false) return 401;
   // A verified session without target membership is a permission denial.
   // If membership is present, the conflicting 401 remains ambiguous.
-  return body.tenants.some(t => t.tenantId === tenantId) ? null : 403;
+  return body.tenants.some(t => sameWorkspaceIdentity(t.tenantId, tenantId)) ? null : 403;
 }

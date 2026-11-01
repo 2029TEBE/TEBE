@@ -43,6 +43,28 @@ test('a 401 for nonmembership is classified as permission denied using one safe 
   assert.equal(calls, 1);
 });
 
+test('case-variant UUID membership is ambiguous 401, not a false forbidden redirect', async () => {
+  const member = 'abcdefab-1234-4abc-8abc-1234567890ab';
+  let calls = 0;
+  const outcome = await classifyTenantSwitch401(async (_url, init) => {
+    calls++;
+    assert.equal(init.method, 'GET');
+    assert.equal(init.redirect, 'error');
+    return json(session([active, member.toUpperCase()]));
+  }, endpoint, cookie, member);
+  assert.equal(outcome, null);
+  assert.equal(calls, 1, '401 classification must not replay the mutation');
+});
+
+test('ambiguous duplicate case-variant memberships never become a permission decision', async () => {
+  const member = 'abcdefab-1234-4abc-8abc-1234567890ab';
+  const result = await classifyTenantSwitch401(
+    async () => json(session([active, member, member.toUpperCase()])),
+    endpoint, cookie, member,
+  );
+  assert.equal(result, null);
+});
+
 test('expired and signed-out sessions remain 401, never permission success', async () => {
   for (const response of [json({authenticated:false}), json({}, 401)]) {
     assert.equal(await classifyTenantSwitch401(async () => response, endpoint, cookie, target), 401);
