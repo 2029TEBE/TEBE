@@ -116,6 +116,10 @@ jobs:
         run: node scripts/phase15e-release-evidence.mjs record types
       - name: Tenant isolation must hold
         run: pnpm verify:rls
+      - name: Independent restricted-role PostgreSQL negative read/write/replay (disposable CI)
+        run: node scripts/e62-ci-restricted-rls-negative.mjs
+        env:
+          EPMO_CI_RLS_NEGATIVE: 'YES_DISPOSABLE_CI_RLS_NEGATIVE'
       - name: Data integrity
         run: pnpm check:data
       - name: Record tenant isolation and data integrity evidence
