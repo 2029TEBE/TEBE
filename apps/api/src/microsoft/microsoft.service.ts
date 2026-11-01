@@ -113,6 +113,7 @@ export class MicrosoftService {
     const { tenantId } = this.ctx();
     const configured = Boolean(msConfig()) && canSealTokens();
     if (microsoftUserStorePreviewEnabled()) {
+      requireCapability('pmoa_admin');
       // Only the authenticated consenting administrator's row is visible.
       // Never return encrypted credentials or fall back to workspace credentials.
       const own = await readUserMicrosoftConnection(tenantId, this.ownerUserId());
