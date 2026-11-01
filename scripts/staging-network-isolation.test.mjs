@@ -58,22 +58,5 @@ test('S29: resolved Compose isolates private services without published data por
   assert.equal(config.services['staging-edge'].ports[0].host_ip, '127.0.0.1');
   // Check the actual resolved Compose model, not just hand-authored fixture JSON.
   const safety = inspectResolvedStagingCompose(config, 'a'.repeat(40));
-  // Diagnostic contains field names and value *types* only, never credentials.
-  const startupShape = Object.fromEntries(
-    ['postgres', 'redis', 'api', 'web', 'staging-edge'].map(name => {
-      const s = config.services[name];
-      return [name, {
-        imageMatches: s.image === ({
-          postgres: 'postgres:16-alpine', redis: 'redis:7-alpine',
-          'staging-edge': 'nginx:1.28-alpine',
-        }[name] || 'epmo-staging-' + name + ':sha-' + 'a'.repeat(40)),
-        startupFields: Object.keys(s).filter(key =>
-          ['entrypoint', 'pull_policy', 'init', 'user', 'working_dir', 'stdin_open',
-            'tty', 'profiles', 'isolation', 'command', 'build'].includes(key)),
-        commandType: Array.isArray(s.command) ? 'array' : typeof s.command,
-        commandLength: Array.isArray(s.command) ? s.command.length : null,
-      }];
-    }));
-  assert.deepEqual(safety.filter(check => !check.passed).map(check => check.name),
-    [], JSON.stringify(startupShape));
+  assert.deepEqual(safety.filter(check => !check.passed).map(check => check.name), []);
 });
