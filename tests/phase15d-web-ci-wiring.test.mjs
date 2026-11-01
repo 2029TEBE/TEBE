@@ -50,7 +50,7 @@ test('F61 exact-SHA CI runs local authenticated journeys and publishes masked ar
   const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
   assert.ok(journey.includes('keyboard_navigation_focus_and_escape'));
   assert.ok(journey.includes('logout_revokes_session'));
-  assert.ok(journey.includes('mask: page.locator'));
+  assert.ok(journey.includes('mask: [page.locator'), 'Playwright mask must be a Locator array');
   assert.ok(!journey.includes('context.tracing.start'));
 });
 
