@@ -19,6 +19,16 @@ test('S46 accepts reviewed staging image and Redis argv contract', () => {
   assert.equal(integrated(fixture()), true);
 });
 
+test('S46 accepts Compose normalized null command and entrypoint defaults', () => {
+  const model = fixture();
+  for (const name of names) {
+    model[name].entrypoint = null;
+    if (name !== 'redis') model[name].command = null;
+  }
+  assert.equal(safeStagingStartupBoundary(model), true);
+  assert.equal(integrated(model), true);
+});
+
 test('S46 rejects arbitrary command or entrypoint on every service', () => {
   for (const name of names) {
     for (const [field, value] of [['entrypoint', ['/bin/sh', '-c', 'exit 0']],
