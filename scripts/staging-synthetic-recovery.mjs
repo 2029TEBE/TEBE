@@ -107,8 +107,9 @@ async function startContainer(name, image, docker) {
 }
 const query = (name, docker) => docker(['exec', name, 'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
   '-U', 'postgres', '-d', 'postgres', '-c', verifySql]).toString().trim();
-function restore(name, archive, docker) {
+function restore(name, archive, docker, rollback = false) {
   docker(['exec', '-i', name, 'pg_restore', '--exit-on-error', '--single-transaction',
+    ...(rollback ? ['--clean', '--if-exists'] : []),
     '--no-owner', '--no-acl', '-U', 'postgres', '-d', 'postgres'], { input: archive });
   if (query(name, docker) !== expected) throw new Error('Synthetic restored rows do not match fixture');
 }
@@ -117,7 +118,16 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
   const { key, image, remote } = validateDrillEnvironment(env);
   // Dependency injection is for non-networked regression fixtures; CLI never passes deps.
   assertSyntheticRecoveryRuntime(env, deps.socketCheck);
-  const { docker, aws, region } = makeIsolatedClients(env);
+  const clients = makeIsolatedClients(env);
+  // Dependency injection is only used by offline tests. The CLI passes no deps;
+  // real Docker/AWS routing and explicit TEST credential checks remain mandatory.
+  if (deps.clients) {
+    if (typeof deps.clients.docker !== 'function' || typeof deps.clients.aws !== 'function')
+      throw new Error('Invalid synthetic recovery test clients');
+    clients.docker = deps.clients.docker;
+    clients.aws = deps.clients.aws;
+  }
+  const { docker, aws, region } = clients;
   const id = randomBytes(12).toString('hex');
   const objectKey = remote.prefix + '/' + id + '.pgdump.aes256gcm';
   const url = 's3://' + remote.bucket + '/' + objectKey;
@@ -159,9 +169,10 @@ export async function runSyntheticDrill(env = process.env, deps = {}) {
     docker(['exec', target, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
       '-d', 'postgres', '-c', "UPDATE epmo_synthetic_recovery SET marker='S34_SYNTHETIC_CORRUPTED' WHERE id=1"]);
     if (query(target, docker) === expected) throw new Error('Failure injection did not change the restored data');
-    const rollback = container(); active.push(rollback);
-    await startContainer(rollback, image, docker);
-    restore(rollback, restoredDump, docker);
+    // S54: prove recovery of the same corrupted disposable database, not a
+    // third fresh container. Single-transaction --clean/--if-exists replaces
+    // the mutated fixture atomically; the restore helper checks both rows.
+    restore(target, restoredDump, docker, true);
     completed = true;
     return { objectKey, result: 'synthetic-drill-only' };
   } finally {
