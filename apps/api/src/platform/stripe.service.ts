@@ -1031,7 +1031,8 @@ export class StripeBillingService {
       const previous = rows(await tx.execute(sql`
         SELECT subscription_id AS "subscriptionId",
                details ->> 'payloadSha256' AS "payloadSha256",
-               details ->> 'stripeInvoiceId' AS "stripeInvoiceId"
+               details ->> 'stripeInvoiceId' AS "stripeInvoiceId",
+               details ->> 'eventType' AS "eventType"
         FROM subscription_events
         WHERE tenant_id = ${tenantId}
           AND event_type = 'billing.stripe_recurring_invoice_failed'
@@ -1040,7 +1041,8 @@ export class StripeBillingService {
       if (previous) {
         if (previous.subscriptionId !== binding.subscriptionId ||
             previous.payloadSha256 !== digest ||
-            previous.stripeInvoiceId !== candidate.invoiceId)
+            previous.stripeInvoiceId !== candidate.invoiceId ||
+            (previous.eventType != null && previous.eventType !== candidate.eventType))
           throw new ConflictException('Recurring failed invoice event identity was reused');
         return { received: true, applied: false, duplicate: true,
           subscriptionId: binding.subscriptionId };
@@ -1063,7 +1065,7 @@ export class StripeBillingService {
           (tenant_id, subscription_id, event_type, details)
         VALUES (${tenantId}, ${binding.subscriptionId},
           'billing.stripe_recurring_invoice_failed',
-          ${JSON.stringify({ eventId: candidate.eventId,
+          ${JSON.stringify({ eventId: candidate.eventId, eventType: candidate.eventType,
             stripeInvoiceId: candidate.invoiceId,
             stripeSubscriptionId: candidate.stripeSubscriptionId,
             payloadSha256: digest, attemptCount: candidate.attemptCount,
@@ -1663,7 +1665,10 @@ export class StripeBillingService {
     let signedEnvelope: any;
     try { signedEnvelope = JSON.parse(rawBody.toString('utf8')); }
     catch { throw new BadRequestException('Invalid signed Stripe event JSON'); }
-    if (signedEnvelope?.type === 'invoice.payment_failed') {
+    // C44: action-required recurring payments share the C34 locked, unpaid
+    // reconciliation path; they are never treated as successful settlement.
+    if (signedEnvelope?.type === 'invoice.payment_failed' ||
+        signedEnvelope?.type === 'invoice.payment_action_required') {
       const failed = signedEnvelope.data?.object;
       const recurring = !!(failed?.subscription ||
         failed?.parent?.subscription_details?.subscription ||

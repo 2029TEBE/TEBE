@@ -1,5 +1,5 @@
 /**
- * C34: TEST-only recurring invoice.payment_failed verification.
+ * C34/C44: TEST-only recurring invoice payment failure/action verification.
  * A signed snapshot is not authority to revoke/grant tenant access. The caller
  * independently GETs Stripe Invoice, Subscription, Price and (if present)
  * PaymentIntent, then reconciles the immutable tenant binding under a lock.
@@ -16,7 +16,8 @@ const ref = (value: any): string | null =>
   value && typeof value === 'object' && typeof value.id === 'string' ? value.id : null;
 
 export type FailedRecurringInvoiceCandidate = Readonly<{
-  eventId: string; invoiceId: string; stripeSubscriptionId: string;
+  eventId: string; eventType: 'invoice.payment_failed' | 'invoice.payment_action_required';
+  invoiceId: string; stripeSubscriptionId: string;
   stripeCustomerId: string; billingReason: 'subscription_create' | 'subscription_cycle';
   amountMinor: number; currency: string; attemptCount: number;
 }>;
@@ -31,7 +32,8 @@ export function parseFailedRecurringInvoice(raw: Buffer, liveMode: boolean):
   let event: any;
   try { event = JSON.parse(raw.toString('utf8')); }
   catch { throw new Error('Invalid signed failed invoice JSON'); }
-  if (event?.type !== 'invoice.payment_failed') return null;
+  if (event?.type !== 'invoice.payment_failed' &&
+      event?.type !== 'invoice.payment_action_required') return null;
   const invoice = event?.data?.object;
   const oldSub = ref(invoice?.subscription);
   const parentSub = ref(invoice?.parent?.subscription_details?.subscription);
@@ -49,8 +51,13 @@ export function parseFailedRecurringInvoice(raw: Buffer, liveMode: boolean):
       !/^[a-z]{3}$/.test(invoice.currency) ||
       !Number.isSafeInteger(invoice.attempt_count) || invoice.attempt_count < 1)
     throw new Error('Signed invoice is not a failed automatic recurring payment');
+  // C44: an action-required event must carry an unambiguous PaymentIntent.
+  // Never treat a missing payment reference as an ordinary failed attempt.
+  if (event.type === 'invoice.payment_action_required' &&
+      !failedInvoicePaymentIntentId(invoice))
+    throw new Error('Action-required invoice has no PaymentIntent');
   return Object.freeze({
-    eventId: event.id, invoiceId: invoice.id,
+    eventId: event.id, eventType: event.type, invoiceId: invoice.id,
     stripeSubscriptionId: oldSub ?? parentSub!,
     stripeCustomerId: ref(invoice.customer)!,
     billingReason: invoice.billing_reason,
@@ -87,7 +94,9 @@ export function assertFailedRecurringProvider(
 ): Readonly<{ shouldPause: boolean; periodEndsAt: string }> {
   const invoice = invoiceValue as any;
   const sub = subscriptionValue as any;
-  if (liveMode || !candidate || !binding || !plan || !local ||
+  if (liveMode || !candidate ||
+      !['invoice.payment_failed', 'invoice.payment_action_required'].includes(candidate.eventType) ||
+      !binding || !plan || !local ||
       !UUID.test(binding.tenantId) || !UUID.test(binding.subscriptionId) ||
       !UUID.test(binding.planId) || binding.planId !== plan.id ||
       latestSubscriptionId !== binding.subscriptionId ||
@@ -173,10 +182,13 @@ export function assertFailedRecurringProvider(
         intent.amount !== plan.priceMinor || intent.amount_received !== 0 ||
         intent.currency !== plan.currency.toLowerCase() ||
         ref(intent.customer) !== binding.stripeCustomerId ||
-        ref(intent.invoice) !== candidate.invoiceId)
-      throw new Error('Stripe PaymentIntent GET is not an unpaid failed charge');
-  } else if (intentValue != null) {
-    throw new Error('Unexpected failed invoice PaymentIntent');
+        ref(intent.invoice) !== candidate.invoiceId ||
+        (candidate.eventType === 'invoice.payment_action_required' &&
+         intent.status !== 'requires_action'))
+      throw new Error('Stripe PaymentIntent GET is not the exact outstanding action/failed charge');
+  } else if (intentValue != null ||
+             candidate.eventType === 'invoice.payment_action_required') {
+    throw new Error('Action-required invoice lacks a verified PaymentIntent');
   }
   return Object.freeze({ shouldPause: localEnd <= now, periodEndsAt: new Date(end).toISOString() });
 }
