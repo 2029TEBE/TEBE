@@ -68,3 +68,16 @@ test('F46 browser journey verifies both tenant transitions and refuses 403/401',
   assert.match(source, /maxRedirects: 0/);
   assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
 });
+
+test('F62 failed authenticated journeys emit bounded redacted diagnostics and masked public screenshots', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  for (const assertion of [
+    'responsePaths.has(path)', 'recentResponses.slice(-8)', 'clientExceptionCount - exceptionsBefore',
+    'sessionCookiePresent', 'hasLoginForm', 'hasAppShell', 'alertCount', 'statusCount',
+    'mask: page.locator(\'input, textarea, select, [contenteditable="true"]\')',
+  ]) assert.ok(source.includes(assertion), 'Missing bounded diagnostic: ' + assertion);
+  assert.match(source, /new Set\(\['\/login', '\/forgot-password', '\/reset-password', '\/accept-invite'\]\)/);
+  assert.ok(!source.includes('error.stack'), 'Never persist raw browser exception stacks');
+  assert.ok(!source.includes('error.message }'), 'Never persist raw exception messages');
+  assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
+});
