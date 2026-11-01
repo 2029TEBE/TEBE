@@ -2,6 +2,7 @@
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { useEffect, useRef, useState } from 'react';
 import { focusWrapTarget } from '@/lib/focus-trap.mjs';
+import { sameWorkspaceIdentity } from '@/lib/session-envelope.mjs';
 import { usePathname } from 'next/navigation';
 
 export type SignedInSession = {
@@ -68,7 +69,7 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
             <section>
               <h4>{tx(session.tenants.length > 1 ? 'Switch workspace' : 'Workspace')}</h4>
               {session.tenants.map((t) => {
-                const current = t.tenantId === session.tenantId;
+                const current = sameWorkspaceIdentity(t.tenantId, session.tenantId);
                 return current ? (
                   <div className="ident on" key={t.tenantId}>
                     <span className="av">{t.name.slice(0, 2).toUpperCase()}</span>
