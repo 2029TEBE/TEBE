@@ -22,7 +22,7 @@ if(bin==='docker'){
    const n=args[args[1]==='-i'?2:1],cmd=args.find(x=>['psql','pg_dump','pg_restore','pg_isready'].includes(x));
    if(cmd==='pg_isready')process.stdout.write('ready');
    else if(cmd==='pg_dump'){write('dump');process.stdout.write((invalidDump?'BROKEN':'PGDMP')+('synthetic'.repeat(35)));}
-   else if(cmd==='pg_restore'){fs.readFileSync(0);if(args.includes('--list')){write('archive-list');if(rejectToc)process.exit(9);}else{fs.writeFileSync(state(n),'restored');write('restore '+n);}}
+   else if(cmd==='pg_restore'){fs.readFileSync(0);if(args.includes('--list')){write('archive-list');if(rejectToc)process.exit(9);}else{fs.writeFileSync(state(n),'restored');write('restore '+n);if(args.includes('--clean'))write('rollback-clean '+n);}}
    else if(cmd==='psql'){
      const query=args[args.indexOf('-c')+1]||'';
      if(query.includes('SELECT id,marker')){
@@ -88,9 +88,12 @@ test('S34 executes synthetic remote roundtrip, injected failure and clean rollba
   const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.deepEqual(lines.slice(0,3), ['bucket-public-access','bucket-location','bucket-encryption']);
   assert.ok(lines.indexOf('bucket-encryption') < lines.indexOf('image-inspect'));
-  assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
-  assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
-  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,3);
+  assert.equal(lines.filter(x=>x.startsWith('run ')).length,2);
+  const restores=lines.filter(x=>x.startsWith('restore '));
+  assert.equal(restores.length,2);
+  assert.equal(restores[0],restores[1], 'rollback must repair the mutated target');
+  assert.equal(lines.filter(x=>x.startsWith('rollback-clean ')).length,1);
+  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('mutate ')).length,1);
   assert.ok(lines.indexOf('archive-list')>lines.indexOf('dump'));
   assert.ok(lines.indexOf('archive-list')<lines.indexOf('remote-upload'));
@@ -124,12 +127,13 @@ test('S41 fails closed if a disposable container cannot be removed after success
  try {
   await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}),/cleanup failed; no PASS accepted/);
   const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
-  assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
+  assert.equal(lines.filter(x=>x.startsWith('run ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
+  assert.equal(lines.filter(x=>x.startsWith('rollback-clean ')).length,1);
   assert.equal(lines.filter(x=>x.startsWith('rm-failed ')).length,1);
-  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,2);
-  assert.equal(lines.filter(x=>x.startsWith('rm')).length,3,
-    'all three removals must be attempted despite the first failure');
+  assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
+  assert.equal(lines.filter(x=>x.startsWith('rm')).length,2,
+    'both removals must be attempted despite the first failure');
  } finally {rmSync(dir,{recursive:true,force:true});}
 });
 

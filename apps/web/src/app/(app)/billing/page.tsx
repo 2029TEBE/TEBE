@@ -1,6 +1,7 @@
 import { billingChangeGuidance } from '@/lib/billing-self-service.mjs';
 import { checkoutReturnStatus } from '@/lib/billing-return-status.mjs';
 import { billingFailureText } from '@/lib/billing-mutation-feedback.mjs';
+import { billingInvoicePresentation, loadVerifiedBillingInvoices } from '@/lib/billing-invoice-visibility.mjs';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Page, Loaded } from '@/components/Page';
@@ -110,17 +111,19 @@ export default async function BillingPage({ searchParams }: {
 
     <section className="panel" style={{ marginBlockEnd: 20 }} aria-label={tx('Renewal invoices', 'فواتير التجديد')}>
       <h2>{tx('Renewal invoices', 'فواتير التجديد')}</h2>
-      <Loaded load={api.billingInvoices} empty={tx('No renewal invoices yet.', 'لا توجد فواتير تجديد بعد.')}>
-        {invoices => <div className="modgrid">{invoices.map(i => <article className="modcard" key={i.id}>
-          <strong>{i.status === 'paid' ? tx('Paid', 'مدفوعة') : i.status === 'open' ? tx('Open', 'مفتوحة') : tx('Voided', 'ملغاة')}</strong>
+      <Loaded load={() => loadVerifiedBillingInvoices(api.billingInvoices)} empty={tx('No renewal invoices yet.', 'لا توجد فواتير تجديد بعد.')}>
+        {invoices => <div className="modgrid">{invoices.map(i => {
+          const invoiceView = billingInvoicePresentation(i);
+          return <article className="modcard" key={i.id}>
+          <strong>{invoiceView.status === 'paid' ? tx('Paid', 'مدفوعة') : invoiceView.status === 'open' ? tx('Open', 'مفتوحة') : invoiceView.status === 'voided' ? tx('Voided', 'ملغاة') : tx('Status unavailable', 'الحالة غير متاحة')}</strong>
           <p>{formatBillingMoney(i.amountMinor, i.currency, lang)}</p>
           <p className="dim">{formatBillingDate(i.periodStartsAt, lang)} — {formatBillingDate(i.periodEndsAt, lang)}</p>
-          {i.status === 'open' && <form method="post" action="/api/billing/checkout">
+          {invoiceView.canCheckout && <form method="post" action="/api/billing/checkout">
             <input type="hidden" name="action" value="checkout"/>
             <input type="hidden" name="invoiceId" value={i.id}/>
             <button type="submit" className="btn">{tx('Pay securely with Stripe', 'الدفع الآمن عبر Stripe')}</button>
           </form>}
-        </article>)}</div>}
+        </article>; })}</div>}
       </Loaded>
     </section>
 
