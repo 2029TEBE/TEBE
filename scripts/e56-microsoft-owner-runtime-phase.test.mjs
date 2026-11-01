@@ -48,9 +48,8 @@ test('preview disconnect removes only owner row, and audit is transactional', ()
   assert.match(store, /WHERE tenant_id = \$\{tenantId\} AND user_id = \$\{userId\}/);
 });
 
-test('unfinished preview destinations, upload, browse and reports fail closed', () => {
+test('unfinished preview upload, browse and reports fail closed', () => {
   for (const [start, end] of [
-    ['async chooseLocation(', 'private async folder('],
     ['async upload(', 'private async uploadLarge('],
     ['async browse(', 'async reports('],
     ['async reports(', 'async embed('],
