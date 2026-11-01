@@ -592,7 +592,8 @@ export class MicrosoftService {
     return { driveId: b.driveId, rootItemId: root.id, folder, webUrl: root.webUrl };
   }
 
-  /** Resolve a real Graph folder; a same-name file must never become an upload target. */
+  /** Get a child folder by name, creating it if it is not there yet. */
+  // A same-name Graph file is not a folder; never treat it as an upload destination.
   private async folder(token: string, driveId: string, parentId: string, name: string) {
     const path = `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}`
       + `:/${encodeURIComponent(name)}`;
