@@ -1020,10 +1020,90 @@ export class MicrosoftService {
   /** What is in the workspace folder right now, straight from their storage. */
   async browse(projectId?: string) {
     if (microsoftUserStorePreviewEnabled()) {
-      // E56 only enables owner-scoped OAuth, status, disconnect and bounded
-      // Graph reads. Never route preview writes through legacy workspace SQL.
-      throw new ServiceUnavailableException(
-        'Per-user Microsoft destination and document operations are not enabled yet.');
+      requireCapability('pmoa_admin');
+      const { tenantId } = this.ctx();
+      const ownerId = this.ownerUserId();
+      const token = await this.accessToken('graph');
+      const own = await readUserMicrosoftConnection(tenantId, ownerId);
+      const cacheKey = `${tenantId}:${ownerId}:graph`;
+      const issued = this.tokens.get(cacheKey);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken ||
+          !issued || issued.accessToken !== token ||
+          issued.credential !== own.sealedRefreshToken) {
+        throw new ConflictException('Your Microsoft connection changed before browsing. Retry.');
+      }
+      if (!own.driveId || !own.rootItemId) {
+        throw new ConflictException('Select your own Microsoft document destination before browsing.');
+      }
+
+      // Graph requests can finish after disconnect, refresh, a destination
+      // switch, or an administrator downgrade. Never return stale results.
+      const assertStillOwner = async () => {
+        const latest = await readUserMicrosoftConnection(tenantId, ownerId);
+        const currentBearer = this.tokens.get(cacheKey);
+        if (!latest || latest.status !== 'connected' ||
+            latest.sealedRefreshToken !== own.sealedRefreshToken ||
+            latest.driveId !== own.driveId || latest.rootItemId !== own.rootItemId ||
+            !currentBearer || currentBearer.accessToken !== token ||
+            currentBearer.credential !== own.sealedRefreshToken) {
+          throw new ConflictException('Your Microsoft connection changed during browsing. Retry.');
+        }
+      };
+
+      let parentId = own.rootItemId;
+      if (projectId) {
+        const [project] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+          SELECT code, name FROM projects
+          WHERE id = ${projectId} AND tenant_id = ${tenantId}`)));
+        if (!project) throw new NotFoundException('No such project in this workspace.');
+        try {
+          const folder = await call<any>(GRAPH, token,
+            `/drives/${encodeURIComponent(own.driveId)}/items/${encodeURIComponent(own.rootItemId)}`
+            + `:/${encodeURIComponent(safeName(`${project.code} — ${project.name}`))}`);
+          // A same-name file or a provider response from another drive/root
+          // must never become the parent of this owner's listing.
+          if (!folder || typeof folder.id !== 'string' || !folder.id.trim() ||
+              !folder.folder || typeof folder.folder !== 'object' ||
+              folder.parentReference?.id !== own.rootItemId ||
+              folder.parentReference?.driveId !== own.driveId) {
+            throw new ConflictException('Microsoft returned a different project folder.');
+          }
+          parentId = folder.id;
+        } catch (e) {
+          if (e instanceof MsApiError && e.status === 404) {
+            await assertStillOwner();
+            return { items: [] };
+          }
+          throw e;
+        }
+      }
+
+      // Bounded read-only listing. No workspace-wide connection fallback,
+      // no Graph write, and no arbitrary drive or parent supplied by the caller.
+      const items = await callAll<any>(GRAPH, token,
+        `/drives/${encodeURIComponent(own.driveId)}/items/${encodeURIComponent(parentId)}/children`, 200);
+      await assertStillOwner();
+      return { items: items.map((item) => {
+        if (!item || typeof item.id !== 'string' || !item.id.trim() ||
+            typeof item.name !== 'string' ||
+            item.parentReference?.id !== parentId ||
+            item.parentReference?.driveId !== own.driveId) {
+          throw new ConflictException('Microsoft returned an item outside your selected folder.');
+        }
+        const safeUrl = item.webUrl == null ? null : safeDocumentRedirectUrl(item.webUrl);
+        if (item.webUrl != null && !safeUrl) {
+          throw new ConflictException('Microsoft returned an unsafe document link.');
+        }
+        return {
+          id: item.id, name: item.name, isFolder: Boolean(item.folder),
+          sizeKb: Number.isSafeInteger(item.size) && item.size >= 0
+            ? Math.round(item.size / 1024) : null,
+          webUrl: safeUrl,
+          modifiedAt: typeof item.lastModifiedDateTime === 'string' ? item.lastModifiedDateTime : null,
+          modifiedBy: typeof item.lastModifiedBy?.user?.displayName === 'string'
+            ? item.lastModifiedBy.user.displayName : null,
+        };
+      }) };
     }
 
     const { tenantId } = this.ctx();
