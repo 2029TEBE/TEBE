@@ -3,8 +3,9 @@
  * ONE EPMO workspace, plus a third consenting user in another workspace.
  *
  * Run once with EPMO_ENTRA_PHASE=active. After an authorized staging operator
- * independently prepares A's revoked/errored fixture, run with phase=revoked.
- * Never obtains consent, revokes credentials, logs cookies or mutates data.
+ * independently prepares A's provider-revoked fixture, run with phase=revoked;
+ * after owner A disconnects, use phase=disconnected. Never obtains consent,
+ * revokes credentials, logs cookies or mutates data.
  * Synthetic tests do NOT constitute Entra or staging acceptance receipts.
  */
 import { fileURLToPath } from 'node:url';
@@ -30,7 +31,7 @@ export function validateSameWorkspaceConfig(env) {
       origin.port || origin.username || origin.password || origin.pathname !== '/' ||
       origin.search || origin.hash) fail('CONFIG');
   const phase = env.EPMO_ENTRA_PHASE;
-  if (phase !== 'active' && phase !== 'revoked') fail('CONFIG');
+  if (!['active', 'revoked', 'disconnected'].includes(phase)) fail('CONFIG');
 
   const owners = ['A', 'B', 'C'].map(key => ({
     key,
@@ -110,6 +111,11 @@ function assertConnection(status, owner, expectedStatus) {
     fail('BOUNDARY');
 }
 
+function assertDisconnected(status) {
+  // Disconnect deletes only the owner's credential row: status is null, not error.
+  if (status?.configured !== true || status.connection !== null) fail('BOUNDARY');
+}
+
 function assertGraph(places, owner) {
   if (!Array.isArray(places?.sites) || !places?.oneDrive ||
       places.oneDrive.driveId !== owner.driveId) fail('PROVIDER');
@@ -146,24 +152,32 @@ export async function runSameWorkspaceReadOnly(config, fetcher = fetch) {
   }
 
   for (const owner of config.owners) {
-    const expectedStatus = config.phase === 'revoked' && owner.key === 'A'
-      ? 'error' : 'connected';
-    assertConnection(await get('/api/v1/microsoft/status', owner.session, 200),
-      owner, expectedStatus);
-    if (expectedStatus === 'error') {
-      // A's previously cached Graph token must not remain usable after revocation.
+    const affectedA = owner.key === 'A' && config.phase !== 'active';
+    const status = await get('/api/v1/microsoft/status', owner.session, 200);
+    if (affectedA && config.phase === 'disconnected') {
+      assertDisconnected(status);
       await get('/api/v1/microsoft/places', owner.session, 409);
     } else {
-      assertGraph(await get('/api/v1/microsoft/places', owner.session, 200), owner);
+      const expectedStatus = affectedA ? 'error' : 'connected';
+      assertConnection(status, owner, expectedStatus);
+      if (expectedStatus === 'error') {
+        // A's previously cached Graph token must not remain usable after revocation.
+        await get('/api/v1/microsoft/places', owner.session, 409);
+      } else {
+        assertGraph(await get('/api/v1/microsoft/places', owner.session, 200), owner);
+      }
     }
   }
 
   // A cannot impersonate B by changing userId. In the revoked phase, A must
   // remain revoked even when trying to borrow B's active connection.
   const userOverride = '?userId=' + encodeURIComponent(b.userId);
-  assertConnection(await get('/api/v1/microsoft/status' + userOverride, a.session, 200),
-    a, config.phase === 'revoked' ? 'error' : 'connected');
-  if (config.phase === 'revoked') {
+  const overriddenStatus = await get('/api/v1/microsoft/status' + userOverride,
+    a.session, 200);
+  if (config.phase === 'disconnected') assertDisconnected(overriddenStatus);
+  else assertConnection(overriddenStatus, a,
+    config.phase === 'revoked' ? 'error' : 'connected');
+  if (config.phase !== 'active') {
     await get('/api/v1/microsoft/places' + userOverride, a.session, 409);
   } else {
     assertGraph(await get('/api/v1/microsoft/places' + userOverride, a.session, 200), a);
@@ -184,6 +198,7 @@ export async function runSameWorkspaceReadOnly(config, fetcher = fetch) {
       'per-owner bounded Graph reads', 'foreign user override denied',
       'cross-tenant override denied', 'credential fields redacted',
       config.phase === 'revoked' ? 'revoked A denied while B and C remain usable'
+        : config.phase === 'disconnected' ? 'disconnected A denied while B and C remain usable'
         : 'active owners usable before external revocation'],
     limitation: 'Read-only acceptance only; external consent, provider identity, revocation setup and independent staging receipts required',
   };
