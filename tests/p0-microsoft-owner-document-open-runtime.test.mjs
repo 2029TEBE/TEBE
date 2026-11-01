@@ -9,7 +9,7 @@ const begin = source.indexOf('async documentLink(documentId: string)');
 const end = source.indexOf('/** What is in the workspace folder right now', begin);
 assert.ok(begin >= 0 && end > begin, 'documentLink method exists');
 const method = source.slice(begin, end);
-const previewStart = method.indexOf('if (microsoftUserStorePreviewEnabled())');
+const previewStart = method.indexOf('if (previewUserStore)');
 const legacyStart = method.lastIndexOf("const token = await this.accessToken('graph');");
 assert.ok(previewStart >= 0 && legacyStart > previewStart, 'isolated preview and legacy branches');
 const preview = method.slice(previewStart, legacyStart);
@@ -20,7 +20,8 @@ test('E60: document lookup is tenant-scoped and preview never borrows another up
   assert.match(method, /SELECT name, external_drive_id, external_item_id, storage_provider, url, owner_id/);
   assert.match(preview, /requireCapability\('pmoa_admin'\)/);
   assert.match(preview, /const ownerId = this\.ownerUserId\(\)/);
-  assert.match(preview, /d\.owner_id !== ownerId/);
+  assert.match(preview, /!d\.external_item_id \|\| d\.owner_id !== ownerId/);
+  assert.match(method.slice(0, previewStart), /!previewUserStore && !d\.external_item_id/);
   assert.match(preview, /throw new NotFoundException\('No such Microsoft document for your connection\.'\)/);
 });
 
