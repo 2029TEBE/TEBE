@@ -68,3 +68,71 @@ test('F46 browser journey verifies both tenant transitions and refuses 403/401',
   assert.match(source, /maxRedirects: 0/);
   assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
 });
+
+test('F62 failed authenticated journeys emit bounded redacted diagnostics and masked public screenshots', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  for (const assertion of [
+    'responsePaths.has(path)', 'recentResponses.slice(-8)', 'clientExceptionCount - exceptionsBefore',
+    'sessionCookiePresent', 'hasLoginForm', 'hasAppShell', 'alertCount', 'statusCount',
+    'mask: [page.locator(\'input, textarea, select, [contenteditable="true"]\')]',
+  ]) assert.ok(source.includes(assertion), 'Missing bounded diagnostic: ' + assertion);
+  assert.match(source, /new Set\(\['\/login', '\/forgot-password', '\/reset-password', '\/accept-invite'\]\)/);
+  assert.ok(!source.includes('error.stack'), 'Never persist raw browser exception stacks');
+  assert.ok(!source.includes('error.message }'), 'Never persist raw exception messages');
+  assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
+});
+
+test('F62 Playwright screenshots use locator arrays, not invalid singleton mask values', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const masks = source.split('mask: [page.locator(').length - 1;
+  assert.equal(masks, 2, 'Both public and authenticated screenshots must use Playwright Locator[]');
+  assert.ok(!source.includes('mask: page.locator('), 'A singleton Locator causes TypeError and false journey failures');
+});
+
+
+test('F62 admin onboarding checks hidden invitation action attachment, not visibility', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("await step('admin_login_and_onboarding'");
+  const end = source.indexOf("await step('onboarding_return_not_proof'", start);
+  assert.ok(start >= 0 && end > start, 'admin onboarding scenario must exist');
+  const scenario = source.slice(start, end);
+  assert.ok(scenario.includes('input[name="action"][value="invite"]'), 'invitation action must be checked');
+  assert.ok(scenario.includes(".waitFor({ state: 'attached', timeout: 15000 })"),
+    'hidden input must be attached, not visible');
+  assert.ok(scenario.includes('button[type="submit"]'), 'visible submit control must be checked');
+  assert.ok(scenario.includes(".waitFor({ state: 'visible', timeout: 15000 })"),
+    'admin must see a visible submit control');
+});
+
+test('F62 recovery and billing proof waits for visible 429 and a real loaded subscription card', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const recoveryStart = source.indexOf("await step('recovery_429_singleflight_no_success'");
+  const recoveryEnd = source.indexOf("await step('recovery_200_html_not_confirmed'", recoveryStart);
+  const recovery = source.slice(recoveryStart, recoveryEnd);
+  assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart);
+  for (const check of [
+    "getByRole('alert').filter(", "state: 'visible', timeout: 20000",
+    "requests !== 1 || interceptionFailed", "getByRole('status').count()",
+  ]) assert.ok(recovery.includes(check), 'Missing fail-closed 429 proof: ' + check);
+  const billingStart = source.indexOf("await step('admin_subscription_read'");
+  const billingEnd = source.indexOf("await step('billing_return_not_proof'", billingStart);
+  const billing = source.slice(billingStart, billingEnd);
+  assert.ok(billingStart >= 0 && billingEnd > billingStart);
+  for (const check of [
+    "waitUntil: 'networkidle'", "subscriptionPanel.locator('.modcard strong')",
+    "billing_panels_complete", "sections.length === 3", "section.querySelector('.modcard, .panel')",
+    "!section.querySelector('[role=\"alert\"], .locked')", "pathname !== '/billing'",
+  ]) assert.ok(billing.includes(check), 'Missing fail-closed billing proof: ' + check);
+});
+
+test('F62 recovery 503 requires the actual intercepted response and exact localized error', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("await step('recovery_503_no_success'");
+  const end = source.indexOf("await step('recovery_429_singleflight_no_success'", start);
+  const scenario = source.slice(start, end);
+  for (const expected of ["page.waitForResponse(", "response.status() === 503",
+    "getByRole('alert').filter(", "state: 'visible', timeout: 20000",
+    "getByRole('status').count()", "finally { await page.unroute("]) {
+    assert.ok(scenario.includes(expected), '503 proof must fail closed: ' + expected);
+  }
+});
