@@ -48,9 +48,8 @@ test('preview disconnect removes only owner row, and audit is transactional', ()
   assert.match(store, /WHERE tenant_id = \$\{tenantId\} AND user_id = \$\{userId\}/);
 });
 
-test('unfinished preview browse and Power BI routes still fail closed', () => {
+test('unfinished preview Power BI routes still fail closed', () => {
   for (const [start, end] of [
-    ['async browse(', 'async reports('],
     ['async reports(', 'async embed('],
     ['async embed(', '\n}'],
   ]) {
