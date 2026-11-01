@@ -809,10 +809,26 @@ export class StripeBillingService {
       let transition: ReturnType<typeof recurringSuspensionTransition>;
       try { transition = recurringSuspensionTransition(candidate, record); }
       catch { throw new ConflictException('Recurring suspension transition is invalid'); }
-      if (transition) {
+      // C47: Stripe incomplete_expired is terminal. Persist the cancellation
+      // barrier under the same tenant lock, even when access is already revoked.
+      if (candidate.providerStatus === 'incomplete_expired') {
+        const terminal = rows(await tx.execute(sql`
+          UPDATE billing_stripe_recurring_bindings
+          SET cancel_at_period_end = true, updated_at = now()
+          WHERE tenant_id = ${tenantId} AND subscription_id = ${record.subscriptionId}
+            AND stripe_subscription_id = ${candidate.stripeSubscriptionId}
+            AND status IN ('pending', 'active')
+          RETURNING id`));
+        if (terminal.length !== 1)
+          throw new ConflictException('Recurring terminal binding changed during reconciliation');
+      }
+      if (transition || candidate.providerStatus === 'incomplete_expired') {
         const changed = rows(await tx.execute(sql`
           UPDATE tenant_subscriptions
-          SET status = ${transition}, updated_at = now()
+          SET status = ${transition ?? record.localStatus},
+              cancel_at_period_end = CASE WHEN ${candidate.providerStatus === 'incomplete_expired'}
+                THEN true ELSE cancel_at_period_end END,
+              updated_at = now()
           WHERE tenant_id = ${tenantId} AND id = ${record.subscriptionId}
             AND status = ${record.localStatus}
             AND period_ends_at = ${record.localPeriodEndsAt}::timestamptz
