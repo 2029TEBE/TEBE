@@ -436,44 +436,7 @@ export class MicrosoftService {
     const { tenantId, userId } = this.ctx();
     const cacheKey = `${tenantId}:${userId}:${resource}`;
 
-    if (microsoftUserStorePreviewEnabled()) {
-      // The store enforces active user + admin membership under locks and
-      // transaction-local tenant/user RLS, including for cached bearer reads.
-      const ownerId = this.ownerUserId();
-      const own = await readUserMicrosoftConnection(tenantId, ownerId);
-      if (!own || own.status !== 'connected' || !own.sealedRefreshToken) {
-        this.tokens.delete(cacheKey);
-        throw new ConflictException('Your Microsoft account is not connected. Reconnect.');
-      }
-      const sealedCredential: string = own.sealedRefreshToken;
-      const hit = this.tokens.get(cacheKey);
-      if (hit && hit.credential === sealedCredential &&
-          hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
-      let tok;
-      try {
-        tok = await refresh(cfg, open(sealedCredential), resource);
-      } catch (e) {
-        this.tokens.delete(cacheKey);
-        if (e instanceof MsAuthError && e.needsConsent) {
-          throw new ConflictException('Microsoft needs additional delegated permission. Reconnect.');
-        }
-        if (e instanceof MsAuthError && e.needsReconnect) {
-          await markUserMicrosoftCredentialRevoked(tenantId, ownerId, sealedCredential);
-          throw new ConflictException('Your Microsoft credential was revoked. Reconnect.');
-        }
-        throw new ServiceUnavailableException('Microsoft token refresh is temporarily unavailable.');
-      }
-      const credential = await rotateUserMicrosoftCredential(
-        tenantId, ownerId, sealedCredential, tok.refreshToken ?? null);
-      if (!credential) {
-        this.tokens.delete(cacheKey);
-        throw new ConflictException('Your Microsoft connection changed during refresh. Retry.');
-      }
-      this.tokens.set(cacheKey, {
-        accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential,
-      });
-      return tok.accessToken;
-    }
+    if (microsoftUserStorePreviewEnabled()) return this.previewAccessToken(resource);
 
     // A valid session or previously cached Graph token does not survive a
     // disabled EPMO user, suspended membership or administrator downgrade.
@@ -1100,4 +1063,45 @@ export class MicrosoftService {
       expiresAt: new Date(expiresAt).toISOString(),
     };
   }
+  /** Isolated preview path; legacy token authorization and its regressions stay intact. */
+  private async previewAccessToken(resource: Resource): Promise<string> {
+    const cfg = this.config();
+    const { tenantId } = this.ctx();
+    const cacheKey = `${tenantId}:${this.ownerUserId()}:${resource}`;
+      const ownerId = this.ownerUserId();
+      const own = await readUserMicrosoftConnection(tenantId, ownerId);
+      if (!own || own.status !== 'connected' || !own.sealedRefreshToken) {
+        this.tokens.delete(cacheKey);
+        throw new ConflictException('Your Microsoft account is not connected. Reconnect.');
+      }
+      const sealedCredential: string = own.sealedRefreshToken;
+      const hit = this.tokens.get(cacheKey);
+      if (hit && hit.credential === sealedCredential &&
+          hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
+      let tok;
+      try {
+        tok = await refresh(cfg, open(sealedCredential), resource);
+      } catch (e) {
+        this.tokens.delete(cacheKey);
+        if (e instanceof MsAuthError && e.needsConsent) {
+          throw new ConflictException('Microsoft needs additional delegated permission. Reconnect.');
+        }
+        if (e instanceof MsAuthError && e.needsReconnect) {
+          await markUserMicrosoftCredentialRevoked(tenantId, ownerId, sealedCredential);
+          throw new ConflictException('Your Microsoft credential was revoked. Reconnect.');
+        }
+        throw new ServiceUnavailableException('Microsoft token refresh is temporarily unavailable.');
+      }
+      const credential = await rotateUserMicrosoftCredential(
+        tenantId, ownerId, sealedCredential, tok.refreshToken ?? null);
+      if (!credential) {
+        this.tokens.delete(cacheKey);
+        throw new ConflictException('Your Microsoft connection changed during refresh. Retry.');
+      }
+      this.tokens.set(cacheKey, {
+        accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential,
+      });
+      return tok.accessToken;
+  }
+
 }
