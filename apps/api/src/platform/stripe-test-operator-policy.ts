@@ -12,7 +12,7 @@ function approvedStagingWebhook(raw: string | undefined): boolean {
   if (!raw) return false;
   try {
     const url = new URL(raw);
-    return url.protocol === 'https:' && url.hostname === 'staging.theepmo.com' &&
+    return url.protocol === 'https:' && url.hostname === 'api-staging.theepmo.com' &&
       url.port === '' && !url.username && !url.password && !url.search && !url.hash &&
       url.pathname === '/api/v1/billing/stripe-webhook' &&
       url.origin + url.pathname === raw;
