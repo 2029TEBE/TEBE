@@ -26,7 +26,15 @@ function reviewedHealthcheck(name, service) {
       check.interval === '10s' && check.retries === 12 &&
       check.timeout === undefined && check.start_period === undefined;
   }
-  if (!exact(check.test, tests[name])) return false;
+  // Docker Compose's JSON config preserves escaped dollar signs in the
+  // PostgreSQL probe on some versions. Both forms are fixed, reviewed argv;
+  // do not accept arbitrary shell commands or substitutions.
+  if (name === 'postgres') {
+    const approved = [tests.postgres[1],
+      'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'];
+    if (!Array.isArray(check.test) || check.test.length !== 2 ||
+        check.test[0] !== 'CMD-SHELL' || !approved.includes(check.test[1])) return false;
+  } else if (!exact(check.test, tests[name])) return false;
   if (name === 'postgres') return check.interval === '10s' && check.retries === 12 &&
     check.timeout === undefined && check.start_period === undefined;
   return check.interval === '20s' && check.timeout === '4s' &&
