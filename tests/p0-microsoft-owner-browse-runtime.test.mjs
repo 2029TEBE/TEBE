@@ -9,8 +9,10 @@ const begin = source.indexOf('async browse(projectId?: string)');
 const end = source.indexOf('async reports(', begin);
 assert.ok(begin >= 0 && end > begin, 'bounded browse implementation exists');
 const browse = source.slice(begin, end);
-const preview = browse.slice(browse.indexOf('if (microsoftUserStorePreviewEnabled())'), browse.indexOf('\n    const { tenantId } = this.ctx();', browse.indexOf('return { items: items.map(')));
-const legacy = browse.slice(browse.indexOf('\n    const { tenantId } = this.ctx();', browse.indexOf('return { items: items.map('));
+const legacyStart = browse.indexOf('\n    const { tenantId } = this.ctx();', browse.indexOf('return { items: items.map('));
+assert.ok(legacyStart > 0, 'legacy branch must remain separate');
+const preview = browse.slice(browse.indexOf('if (microsoftUserStorePreviewEnabled())'), legacyStart);
+const legacy = browse.slice(legacyStart);
 
 test('E59: preview browse uses the signed-in owner, never workspace-wide credentials', () => {
   assert.match(preview, /requireCapability\('pmoa_admin'\)/);
