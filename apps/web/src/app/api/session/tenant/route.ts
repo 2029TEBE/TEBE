@@ -6,6 +6,7 @@ import { publicUrl } from '@/lib/public-url';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { tenantSwitchFailurePath } from '@/lib/tenant-switch-feedback.mjs';
+import { tenantSwitchAcknowledged, classifyTenantSwitch401 } from '@/lib/tenant-switch-verification.mjs';
 import { uuidPathSegment } from '@/lib/uuid-path.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -39,8 +40,20 @@ export async function POST(req: NextRequest) {
     cache: 'no-store',
   });
 
+  if (response?.status === 401) {
+    // The API returns 401 for both an expired cookie and nonmembership.
+    // Recheck the current session without repeating the tenant mutation.
+    const classified = await classifyTenantSwitch401(
+      fetch, `${BASE}/auth/session`, `${SESSION}=${token}`, tenantId,
+    );
+    return NextResponse.redirect(publicUrl(req, tenantSwitchFailurePath(classified)), 303);
+  }
   if (!response?.ok) {
     return NextResponse.redirect(publicUrl(req, tenantSwitchFailurePath(response?.status)), 303);
+  }
+  // Do not claim a workspace switch from an HTML login page or a malformed 200.
+  if (!await tenantSwitchAcknowledged(response)) {
+    return NextResponse.redirect(publicUrl(req, tenantSwitchFailurePath(null)), 303);
   }
   // A project or programme deep link belongs to the previous workspace.
   // Preserve only shared index routes, dropping old filters and flash messages.
