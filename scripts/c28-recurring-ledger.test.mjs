@@ -13,8 +13,10 @@ test('C28 recurring ledger is a pinned, additive, ordered migration', () => {
   const filename = '0021_stripe_recurring_ledger.sql';
   const hash = createHash('sha256').update(sql).digest('hex');
   assert.equal(verifyMigrationSnapshot(filename, Buffer.from(sql), manifest), hash);
-  assert.equal(journal.entries.at(-1).tag, '0021_stripe_recurring_ledger');
-  assert.equal(journal.entries.at(-1).idx, 21);
+  // Later additive migrations must not invalidate the immutable C28 ledger.
+  const entry = journal.entries.find(e => e.tag === '0021_stripe_recurring_ledger');
+  assert.equal(entry?.idx, 21);
+  assert.ok(journal.entries.every((e, i) => e.idx === i));
   assert.doesNotMatch(sql, /\b(?:DROP|TRUNCATE|DELETE\s+FROM|UPDATE\s+tenant_subscriptions)\b/i);
 });
 
