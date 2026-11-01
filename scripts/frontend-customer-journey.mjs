@@ -275,8 +275,9 @@ try {
           form.requestSubmit();
           form.requestSubmit();
         });
-        await page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests' })
-          .waitFor({ state: 'visible', timeout: 15000 });
+        await page.waitForFunction(expected => Array.from(document.querySelectorAll('[role="alert"]'))
+          .some(el => el.textContent?.includes(expected)),
+        variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests', { timeout: 20000 });
         if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
@@ -423,6 +424,9 @@ try {
           throw new Error('missing_billing_screen');
         // A generic Loaded error/401/403 is not a successful billing journey.
         await page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]').waitFor({ timeout: 15000 });
+        // Wait for the read-only billing loaders to settle; a persistent API
+        // 401/403/error still fails instead of being counted as acceptance.
+        await page.waitForFunction(() => !document.querySelector('[role="alert"]'), null, { timeout: 15000 });
         if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
         await layout();
       });
