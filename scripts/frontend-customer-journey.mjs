@@ -88,7 +88,7 @@ try {
           path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled',
           // The accounts are disposable .test fixtures, but still mask visible
           // identifiers and any form values. Never record storage state/traces.
-          mask: page.locator('input[type="email"], input[type="password"], td:has-text("@"), .sheet header, .who em'),
+          mask: [page.locator('input[type="email"], input[type="password"], td:has-text("@"), .sheet header, .who em')],
           maskColor: '#808080',
         });
         result.checks.push({ name, status: 'PASS', ...(screenshot ? { screenshot } : {}) });
@@ -137,7 +137,7 @@ try {
             await page.screenshot({
               path: join(cfg.out, screenshot), fullPage: true,
               animations: 'disabled',
-              mask: page.locator('input, textarea, select, [contenteditable="true"]'),
+              mask: [page.locator('input, textarea, select, [contenteditable="true"]')],
               maskColor: '#808080',
             });
           } catch { screenshot = undefined; }
