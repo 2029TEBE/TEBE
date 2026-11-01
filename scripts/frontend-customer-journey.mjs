@@ -10,6 +10,7 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { journeyConfiguration, JOURNEY_VARIANTS, assertJourneyLayout, assertMutationRedirect } from './frontend-customer-journey-policy.mjs';
+import { validInvitationToken } from '../apps/web/src/lib/invitation-feedback.mjs';
 
 const cfg = journeyConfiguration(process.env);
 await mkdir(cfg.out, { recursive: true, mode: 0o700 });
@@ -26,6 +27,9 @@ const known = new Set([
   'billing_return_false_confirmation', 'onboarding_return_false_confirmation', 'recovery_false_success', 'reset_false_success',
 ]);
 const fakeToken = '00000000-0000-4000-8000-000000000000.' + 'A'.repeat(43);
+// Use a syntactically valid, deliberately nonexistent tenant UUID. A version-0
+// UUID made both invitation negatives fail before any request was exercised.
+if (!validInvitationToken(fakeToken)) throw new Error('Invalid synthetic invitation fixture');
 let browser;
 try {
   browser = await chromium.launch({ headless: true });
