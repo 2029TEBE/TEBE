@@ -21,9 +21,9 @@ export function requiresRecurringLifecycleReconciliation(value: unknown): boolea
     const subscription = event.data?.object;
     // A malformed signed subscription update is not safe to acknowledge.
     if (!subscription || subscription.object !== 'subscription') return true;
-    // Paused/unpaid, cancellation and resumption are reconciled earlier in
-    // the webhook. An unhandled terminal/past-due update is NOT success.
-    return ['past_due', 'incomplete', 'incomplete_expired', 'canceled']
+    // Paused/unpaid/past_due, cancellation and resumption are reconciled earlier in
+    // the webhook. An unhandled terminal/incomplete update is NOT success.
+    return ['incomplete', 'incomplete_expired', 'canceled']
       .includes(subscription.status);
   }
   if (!UNSUPPORTED_RECURRING_INVOICES.has(event.type)) return false;
