@@ -71,7 +71,16 @@ try {
         result.checks.push({ name, status: 'PASS', ...(screenshot ? { screenshot } : {}) });
         report.passed++;
       } catch (error) {
-        result.checks.push({ name, status: 'FAIL', code: known.has(error?.message) ? error.message : 'browser_journey_failed' });
+        // Sanitize Playwright errors: raw messages can contain URLs, selectors,
+        // tokens or request payloads. Record only a fixed diagnostic category.
+        const detail = typeof error?.message === 'string' ? error.message : '';
+        const code = known.has(detail) ? detail
+          : /screenshot/i.test(detail) ? 'screenshot_failed'
+          : /Timeout|waiting for/i.test(detail) ? 'browser_timeout'
+          : /net::ERR_|ERR_CONNECTION/i.test(detail) ? 'browser_network_failed'
+          : /locator|selector|strict mode/i.test(detail) ? 'browser_locator_failed'
+          : 'browser_journey_failed';
+        result.checks.push({ name, status: 'FAIL', code });
         report.failed++;
       }
     }
