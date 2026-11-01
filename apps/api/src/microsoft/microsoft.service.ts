@@ -107,7 +107,7 @@ export class MicrosoftService {
     const configured = Boolean(msConfig()) && canSealTokens();
     if (microsoftUserStorePreviewEnabled()) {
       // Only the authenticated consenting administrator's row is visible.
-      // Never return sealedRefreshToken or fall back to the workspace credential.
+      // Never return encrypted credentials or fall back to workspace credentials.
       const own = await readUserMicrosoftConnection(tenantId, this.ctx().userId);
       return { configured, connection: own ? {
         id: own.id, status: own.status,
