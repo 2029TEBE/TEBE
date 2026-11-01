@@ -74,10 +74,17 @@ test('F62 failed authenticated journeys emit bounded redacted diagnostics and ma
   for (const assertion of [
     'responsePaths.has(path)', 'recentResponses.slice(-8)', 'clientExceptionCount - exceptionsBefore',
     'sessionCookiePresent', 'hasLoginForm', 'hasAppShell', 'alertCount', 'statusCount',
-    'mask: page.locator(\'input, textarea, select, [contenteditable="true"]\')',
+    'mask: [page.locator(\'input, textarea, select, [contenteditable="true"]\')]',
   ]) assert.ok(source.includes(assertion), 'Missing bounded diagnostic: ' + assertion);
   assert.match(source, /new Set\(\['\/login', '\/forgot-password', '\/reset-password', '\/accept-invite'\]\)/);
   assert.ok(!source.includes('error.stack'), 'Never persist raw browser exception stacks');
   assert.ok(!source.includes('error.message }'), 'Never persist raw exception messages');
   assert.ok(!source.includes('context.tracing.start('), 'Never record credential-bearing traces');
+});
+
+test('F62 Playwright screenshots use locator arrays, not invalid singleton mask values', async () => {
+  const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
+  const masks = source.match(/mask:\\s*\\[page\\.locator\\(/g) ?? [];
+  assert.equal(masks.length, 2, 'Both public and authenticated screenshots must use Playwright Locator[]');
+  assert.ok(!/mask:\\s*page\\.locator\\(/.test(source), 'A singleton Locator causes TypeError and false journey failures');
 });
