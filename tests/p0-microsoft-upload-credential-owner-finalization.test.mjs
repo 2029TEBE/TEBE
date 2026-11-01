@@ -12,7 +12,7 @@ test('E48: snapshot exact owner credential after Graph token acquisition and bef
   const token = upload.indexOf("const token = await this.accessToken('graph')");
   const snapshot = upload.indexOf('const [uploadCredential]');
   const issued = upload.indexOf('const issued = this.tokens.get(');
-  const graph = upload.indexOf('const item = file.buffer.length');
+  const graph = upload.indexOf('const item = await this.uploadLarge(');
   assert.ok(token >= 0 && snapshot > token && issued > snapshot && graph > issued);
   assert.match(upload, /SELECT refresh_token FROM integration_connections[\s\S]*?connected_by = \$\{userId\}[\s\S]*?status = 'connected' AND refresh_token IS NOT NULL/);
   assert.match(upload, /issued\.accessToken !== token/);
