@@ -234,9 +234,9 @@ try {
         });
         assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
           { path: '/login', key: 'error', value: 'invalid' });
-        await page.goto(cfg.origin + '/login?error=invalid', { waitUntil: 'domcontentloaded' });
-        const alert = page.getByRole('alert');
-        await alert.waitFor();
+        await page.goto(cfg.origin + '/login?error=invalid', { waitUntil: 'commit' });
+        const alert = page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'غير صحيح' : 'not recognised' });
+        await alert.waitFor({ state: 'visible', timeout: 15000 });
         const message = await alert.innerText();
         if (!(variant.lang === 'ar' ? message.includes('غير صحيح') :
           message.includes('not recognised'))) throw new Error('authentication_failed');
@@ -275,7 +275,8 @@ try {
           form.requestSubmit();
           form.requestSubmit();
         });
-        await page.getByRole('alert').waitFor();
+        await page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'محاولات كثيرة' : 'Too many recovery requests' })
+          .waitFor({ state: 'visible', timeout: 15000 });
         if (requests !== 1 || interceptionFailed) throw new Error('recovery_request_replayed');
         if (await page.getByRole('status').count()) throw new Error('missing_recovery_error');
         const message = await page.getByRole('alert').innerText();
@@ -293,8 +294,8 @@ try {
           await page.goto(cfg.origin + '/forgot-password', { waitUntil: 'networkidle' });
           await page.locator('input[type="email"]').fill('journey-recovery@example.test');
           await page.locator('button[type="submit"]').click();
-          const alert = page.getByRole('alert');
-          await alert.waitFor();
+          const alert = page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'تعذّر تأكيد طلب الاستعادة' : 'could not be confirmed' });
+          await alert.waitFor({ state: 'visible', timeout: 15000 });
           const message = await alert.innerText();
           if (!(variant.lang === 'ar' ? message.includes('تعذّر تأكيد طلب الاستعادة') :
             message.includes('could not be confirmed')) ||
@@ -313,8 +314,8 @@ try {
           await page.locator('input[type="password"]').nth(1).fill('SyntheticOnly123!');
           if (new URL(page.url()).hash) throw new Error('fragment_not_scrubbed');
           await page.locator('button[type="submit"]').click();
-          const alert = page.getByRole('alert');
-          await alert.waitFor();
+          const alert = page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'لم نتمكن من تأكيد' : 'could not be confirmed' });
+          await alert.waitFor({ state: 'visible', timeout: 15000 });
           const message = await alert.innerText();
           if (!(variant.lang === 'ar' ? message.includes('لم نتمكن من تأكيد') :
             message.includes('could not be confirmed')) ||
@@ -356,8 +357,8 @@ try {
         try {
           await page.goto(cfg.origin + '/accept-invite#token=' + fakeToken, { waitUntil: 'networkidle' });
           await page.locator('button[type="submit"]').click();
-          const alert = page.getByRole('alert');
-          await alert.waitFor();
+          const alert = page.getByRole('alert').filter({ hasText: variant.lang === 'ar' ? 'لم نتمكن من تأكيد' : 'could not be confirmed' });
+          await alert.waitFor({ state: 'visible', timeout: 15000 });
           const message = await alert.innerText();
           if (!(variant.lang === 'ar' ? message.includes('لم نتمكن من تأكيد') :
             message.includes('could not be confirmed')))
@@ -415,6 +416,8 @@ try {
       });
       await step('admin_subscription_read', async () => {
         await page.goto(cfg.origin + '/billing', { waitUntil: 'domcontentloaded' });
+        await page.getByRole('heading', { level: 1, name: variant.lang === 'ar' ? 'الاشتراك والفوترة' : 'Subscription and billing' })
+          .waitFor({ state: 'visible', timeout: 15000 });
         if (new URL(page.url()).pathname !== '/billing' ||
             !(await page.getByRole('heading', { level: 1 }).count()))
           throw new Error('missing_billing_screen');
@@ -525,6 +528,7 @@ try {
       });
       await step('restricted_billing_redirect', async () => {
         await page.goto(cfg.origin + '/billing', { waitUntil: 'domcontentloaded' });
+        await page.waitForURL(url => url.origin === cfg.origin && url.pathname === '/', { timeout: 15000 });
         if (new URL(page.url()).pathname !== '/') throw new Error('restricted_billing_access');
         await layout();
       });
