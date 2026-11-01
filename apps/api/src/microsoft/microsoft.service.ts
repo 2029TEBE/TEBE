@@ -592,22 +592,46 @@ export class MicrosoftService {
     return { driveId: b.driveId, rootItemId: root.id, folder, webUrl: root.webUrl };
   }
 
-  /** Get a child folder by name, creating it if it is not there yet. */
+  /** Resolve a real Graph folder; a same-name file must never become an upload target. */
   private async folder(token: string, driveId: string, parentId: string, name: string) {
+    const path = `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}`
+      + `:/${encodeURIComponent(name)}`;
+
+    const confirmedFolder = (item: any) => {
+      if (!item || typeof item.id !== 'string' || !item.id ||
+          !item.folder || typeof item.folder !== 'object') {
+        throw new ConflictException(
+          'The Microsoft destination contains an item with this name that is not a folder.');
+      }
+      return item;
+    };
+    const readExisting = async () => {
+      try {
+        return confirmedFolder(await call<any>(GRAPH, token, path));
+      } catch (e) {
+        if (e instanceof MsApiError && e.status === 404) return null;
+        throw e;
+      }
+    };
+
+    const existing = await readExisting();
+    if (existing) return existing;
     try {
-      return await call<any>(GRAPH, token,
-        `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}`
-        + `:/${encodeURIComponent(name)}`);
+      // Never replace an existing Graph item, even when two uploads race.
+      return confirmedFolder(await call<any>(GRAPH, token,
+        `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}/children`, {
+          method: 'POST',
+          body: JSON.stringify({ name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }),
+        }));
     } catch (e) {
-      if (!(e instanceof MsApiError) || e.status !== 404) throw e;
+      // Another authorized upload may have created the folder after our 404.
+      // Re-read once; accept only a verified folder, never a conflicting file.
+      if (e instanceof MsApiError && (e.status === 409 || e.status === 412)) {
+        const winner = await readExisting();
+        if (winner) return winner;
+      }
+      throw e;
     }
-    return call<any>(GRAPH, token,
-      `/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(parentId)}/children`, {
-        method: 'POST',
-        // 'replace' would overwrite a folder somebody already had with that
-        // name. 'fail' is caught above and re-read instead.
-        body: JSON.stringify({ name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }),
-      });
   }
 
   private async connection(tx: any) {
