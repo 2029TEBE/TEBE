@@ -186,10 +186,16 @@ jobs:
         run: node scripts/phase15e-release-evidence.mjs record production_build
       - name: Install Chromium for disposable local browser evidence
         run: pnpm exec playwright install --with-deps chromium
-      - name: Live Next.js bilingual and authentication smoke
+      - name: Live Next.js bilingual, public and authenticated synthetic customer journeys
         run: bash scripts/phase15d-run-web-smoke.sh
         env:
           EPMO_BROWSER_UAT: '1'
+          # F61: disposable .test accounts only; no external provider identities.
+          EPMO_CUSTOMER_JOURNEY: '1'
+          EPMO_JOURNEY_ADMIN_USER: 'platform@aetherix.test'
+          EPMO_JOURNEY_RESTRICTED_USER: 'engineer@al-nakheel.test'
+          EPMO_JOURNEY_ADMIN_PASSWORD: 'pmoalign-dev'
+          EPMO_JOURNEY_RESTRICTED_PASSWORD: 'pmoalign-dev'
       - name: Record compiled-web runtime evidence
         run: node scripts/phase15e-release-evidence.mjs record web_runtime
       - name: Enforce current-run CI acceptance evidence
@@ -212,6 +218,14 @@ jobs:
         with:
           name: epmo-local-browser-${{ github.run_id }}
           path: /tmp/epmo-browser-uat/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Publish masked local authenticated journey evidence (not staging acceptance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epmo-local-authenticated-journey-${{ github.run_id }}
+          path: /tmp/epmo-customer-journey/
           if-no-files-found: warn
           retention-days: 7
   dependency-remediation-candidate:
