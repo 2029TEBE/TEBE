@@ -48,13 +48,16 @@ test('preview disconnect removes only owner row, and audit is transactional', ()
   assert.match(store, /WHERE tenant_id = \$\{tenantId\} AND user_id = \$\{userId\}/);
 });
 
-test('unfinished preview Power BI routes still fail closed', () => {
-  for (const [start, end] of [
-    ['async reports(', 'async embed('],
-    ['async embed(', '\n}'],
-  ]) {
-    const s = between(start, end);
-    assert.match(s, /microsoftUserStorePreviewEnabled\(\)/);
-    assert.match(s, /throw new ServiceUnavailableException/);
-  }
+test('preview Power BI catalogue is owner-bound; transferable embed bearer still fails closed', () => {
+  const listing = between('async reports(', 'async embed(');
+  assert.match(listing, /microsoftUserStorePreviewEnabled\(\)/);
+  assert.match(listing, /requireCapability\('pmoa_admin'\)/);
+  assert.match(listing, /readUserMicrosoftConnection\(tenantId, ownerId\)/);
+  assert.match(listing, /powerBiReportSummary\(/);
+  const preview = listing.slice(0, listing.indexOf('// This is a workspace-level delegated'));
+  assert.doesNotMatch(preview, /FROM integration_connections/);
+  assert.doesNotMatch(preview, /accessToken: token/);
+  const embed = between('async embed(', '\n}');
+  assert.match(embed, /microsoftUserStorePreviewEnabled\(\)/);
+  assert.match(embed, /throw new ServiceUnavailableException/);
 });
