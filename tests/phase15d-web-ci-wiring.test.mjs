@@ -66,3 +66,12 @@ test('F61 compiled standalone browser serves real client bundles before authenti
   assert.ok(bundle > 0 && journey > bundle);
   assert.ok(runner.includes('http://127.0.0.1:3000/_next/static/$STATIC_REL'));
 });
+
+test('F61 canceled synthetic recovery interception cannot crash CI or leak into later scenarios', () => {
+  const journey = readFileSync(resolve(root, 'scripts/frontend-customer-journey.mjs'), 'utf8');
+  assert.ok(journey.includes("await page.unrouteAll({ behavior: 'ignoreErrors' })"));
+  assert.ok(journey.includes('let interceptionFailed = false;'));
+  assert.ok(journey.includes('interceptionFailed = true;'));
+  assert.ok(journey.includes("requests !== 1 || interceptionFailed"));
+  assert.ok(journey.includes("report.failed++"));
+});
