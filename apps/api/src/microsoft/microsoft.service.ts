@@ -1004,18 +1004,21 @@ export class MicrosoftService {
       SELECT name, external_drive_id, external_item_id, storage_provider, url, owner_id
       FROM documents WHERE id = ${documentId} AND tenant_id = ${tenantId}`)));
     if (!d) throw new NotFoundException('No such document in this workspace.');
-    if (d.storage_provider !== PROVIDER || !d.external_item_id) {
+    const previewUserStore = microsoftUserStorePreviewEnabled();
+    // A legacy document without a Graph item ID may keep its safe stored link,
+    // but preview must never bypass owner/credential checks for Microsoft files.
+    if (d.storage_provider !== PROVIDER || (!previewUserStore && !d.external_item_id)) {
       const safeUrl = safeDocumentRedirectUrl(d.url);
       if (!safeUrl) throw new NotFoundException('That document has no safe external link.');
       return { url: safeUrl, name: d.name };
     }
 
-    if (microsoftUserStorePreviewEnabled()) {
+    if (previewUserStore) {
       requireCapability('pmoa_admin');
       const ownerId = this.ownerUserId();
       // A document's uploader is its consenting Microsoft connection owner.
       // Never open another user's Graph item with the caller's delegated token.
-      if (d.owner_id !== ownerId || !d.external_drive_id) {
+      if (!d.external_item_id || d.owner_id !== ownerId || !d.external_drive_id) {
         throw new NotFoundException('No such Microsoft document for your connection.');
       }
       const token = await this.accessToken('graph');
