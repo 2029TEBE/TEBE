@@ -5,17 +5,25 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 [ "$(id -u)" -eq 0 ] || { echo "Run as root."; exit 1; }
 command -v docker >/dev/null
+ENVFILE=.env.prod
+# Never follow a symlink or replace an existing environment file with new credentials.
+if [ -L "$ENVFILE" ]; then
+  echo "STOP: environment file is a symlink; manual review required." >&2
+  exit 1
+fi
+if [ -e "$ENVFILE" ] && ! grep -qx '# EPMO_SERVITRO_INITIALIZED' "$ENVFILE"; then
+  echo "STOP: existing environment file is not managed by this initializer; preserve credentials and reconcile manually." >&2
+  exit 1
+fi
+if [ ! -e "$ENVFILE" ] && docker volume inspect pmo-prod_pgdata >/dev/null 2>&1; then
+  echo "STOP: existing database volume; preserve and reconcile its credentials first." >&2
+  exit 1
+fi
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y nodejs
 node scripts/verify-migration-chain.mjs
-ENVFILE=.env.prod
-if ! grep -q '^# EPMO_SERVITRO_INITIALIZED$' "$ENVFILE" 2>/dev/null; then
-  if docker volume inspect pmo-prod_pgdata >/dev/null 2>&1; then
-    echo "STOP: existing database volume; preserve and reconcile its credentials first."
-    exit 1
-  fi
+if [ ! -e "$ENVFILE" ]; then
   umask 077
-  [ ! -f "$ENVFILE" ] || cp -p "$ENVFILE" "$ENVFILE.before-servitro"
   node --input-type=module <<'NODE'
 import {randomBytes} from 'node:crypto';
 import {writeFileSync} from 'node:fs';
@@ -27,8 +35,8 @@ const env=[
 'REDIS_PASSWORD='+redis,
 'DATABASE_URL=postgres://pmo_app:'+app+'@postgres:5432/pmo',
 'REDIS_URL=redis://:'+redis+'@redis:6379',
-'WEB_ORIGIN=https://app.theepmo.com',
-'PUBLIC_API_URL=https://app.theepmo.com',
+'WEB_ORIGIN=https://theepmo.com',
+'PUBLIC_API_URL=https://theepmo.com',
 'WEB_BIND=127.0.0.1','WEB_PORT=3000',
 'DEPLOYMENT_ENV=production',
 'STRIPE_ENABLED=false',
@@ -37,7 +45,7 @@ const env=[
 'MAIL_TRANSPORT=none','MAIL_FROM=',
 'MS_TOKEN_KEY='+secret(),
 ''];
-writeFileSync('.env.prod',env.join('\n'),{mode:0o600});
+writeFileSync('.env.prod',env.join('\n'),{mode:0o600,flag:'wx'});
 NODE
 fi
 chmod 600 "$ENVFILE"
