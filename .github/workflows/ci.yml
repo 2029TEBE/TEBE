@@ -303,6 +303,16 @@ jobs:
           node scripts/verify-build-artifacts.mjs --scope all
           # Run database-independent regression checks; full integration tests stay in verify.
           pnpm test:offline
+      - name: E65 evaluate real pnpm glob 7 package patch against minimatch 11 (disposable candidate only)
+        run: |
+          pnpm patch glob@7.2.3 --edit-dir "$RUNNER_TEMP/epmo-glob7-patch"
+          node scripts/e65-glob7-package-patch.mjs "$RUNNER_TEMP/epmo-glob7-patch"
+          pnpm patch-commit "$RUNNER_TEMP/epmo-glob7-patch"
+          pnpm install --frozen-lockfile
+          node scripts/legacy-glob-minimatch-compat.mjs
+          node scripts/e65-exceljs-streaming-compat.mjs
+          pnpm audit --audit-level moderate
+          echo "E65 disposable package patch candidate passed scoped tests; NOT committed or release accepted" >> "$GITHUB_STEP_SUMMARY"
       - name: Audit candidate without weakening security gate
         if: always() && github.event_name == 'pull_request'
         run: pnpm audit --audit-level high
@@ -314,6 +324,7 @@ jobs:
           path: |
             pnpm-lock.yaml
             pnpm-workspace.yaml
+            patches/glob@7.2.3.patch
             package.json
             apps/*/package.json
             packages/*/package.json
