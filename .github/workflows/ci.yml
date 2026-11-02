@@ -330,6 +330,13 @@ jobs:
           path: /tmp/epmo-advisory-only.patch
           if-no-files-found: warn
           retention-days: 7
+      - name: Emit bounded advisory-only source patch for exact-blob promotion
+        if: always()
+        run: |
+          test -s /tmp/epmo-advisory-only.patch
+          echo EPMO_ADVISORY_PATCH_BEGIN
+          cat /tmp/epmo-advisory-only.patch
+          echo EPMO_ADVISORY_PATCH_END
       - name: Preserve candidate manifests and lockfile for review
         if: always()
         uses: actions/upload-artifact@v4
