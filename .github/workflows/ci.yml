@@ -289,8 +289,6 @@ jobs:
             echo "Dependency candidate: CHANGED; pending compatibility and audit checks (not security acceptance)" >> "$GITHUB_STEP_SUMMARY"
           fi
           pnpm install --frozen-lockfile
-          # Disposable compatibility hypothesis only; no committed dependency patch.
-          node scripts/glob7-minimatch11-disposable-candidate.mjs
           node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
           pnpm why vite
           # Expose the exact resolved lockfile version used by the candidate audit.
