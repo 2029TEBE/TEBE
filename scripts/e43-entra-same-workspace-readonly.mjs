@@ -25,9 +25,11 @@ export function validateSameWorkspaceConfig(env) {
   let origin;
   try { origin = new URL(env.EPMO_ENTRA_STAGING_ORIGIN); }
   catch { fail('CONFIG'); }
+  // Staging Nginx routes API endpoints only through api-staging.theepmo.com.
+  // The web origin has no /api/v1/microsoft or /auth/session routes.
   const host = origin.hostname.toLowerCase();
   if (origin.protocol !== 'https:' ||
-      !(host === 'staging.theepmo.com' || host.endsWith('.staging.theepmo.com')) ||
+      host !== 'api-staging.theepmo.com' ||
       origin.port || origin.username || origin.password || origin.pathname !== '/' ||
       origin.search || origin.hash) fail('CONFIG');
   const phase = env.EPMO_ENTRA_PHASE;
