@@ -12,6 +12,11 @@ overrides:
   vite: 8.3.3
   typescript: ~5.9.3
 
+patchedDependencies:
+  glob@7.2.3:
+    hash: b23b98fb593456fb0bdadd4c75c41261fdff0eb117111ed7e18accb2499058fa
+    path: patches/glob@7.2.3.patch
+
 importers:
 
   .:
@@ -3934,7 +3939,7 @@ snapshots:
 
   archiver-utils@2.1.0:
     dependencies:
-      glob: 7.2.3
+      glob: 7.2.3(patch_hash=b23b98fb593456fb0bdadd4c75c41261fdff0eb117111ed7e18accb2499058fa)
       graceful-fs: 4.2.11
       lazystream: 1.0.1
       lodash.defaults: 4.2.0
@@ -3947,7 +3952,7 @@ snapshots:
 
   archiver-utils@3.0.4:
     dependencies:
-      glob: 7.2.3
+      glob: 7.2.3(patch_hash=b23b98fb593456fb0bdadd4c75c41261fdff0eb117111ed7e18accb2499058fa)
       graceful-fs: 4.2.11
       lazystream: 1.0.1
       lodash.defaults: 4.2.0
@@ -4562,7 +4567,7 @@ snapshots:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
-  glob@7.2.3:
+  glob@7.2.3(patch_hash=b23b98fb593456fb0bdadd4c75c41261fdff0eb117111ed7e18accb2499058fa):
     dependencies:
       fs.realpath: 1.0.0
       inflight: 1.0.6
@@ -5147,7 +5152,7 @@ snapshots:
 
   rimraf@2.7.1:
     dependencies:
-      glob: 7.2.3
+      glob: 7.2.3(patch_hash=b23b98fb593456fb0bdadd4c75c41261fdff0eb117111ed7e18accb2499058fa)
 
   rolldown@1.2.16:
     dependencies:

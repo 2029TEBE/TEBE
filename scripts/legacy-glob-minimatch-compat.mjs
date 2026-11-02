@@ -31,6 +31,7 @@ try {
   writeFileSync(join(fixture, 'a.txt'), 'synthetic');
   writeFileSync(join(fixture, 'nested', 'b.txt'), 'synthetic');
   writeFileSync(join(fixture, 'nested', 'ignore.json'), '{}');
+  writeFileSync(join(fixture, '.hidden.txt'), 'synthetic');
   const expected = ['a.txt', 'nested/b.txt'];
   assert.deepEqual(glob.sync('**/*.txt', {cwd: fixture, nodir: true}).sort(), expected);
   const asyncResults = await new Promise((resolvePromise, reject) => {
@@ -38,6 +39,13 @@ try {
       error ? reject(error) : resolvePromise(matches));
   });
   assert.deepEqual(asyncResults.sort(), expected);
+  assert.deepEqual(glob.sync('**/*.txt', {cwd: fixture, nodir: true, dot: true}).sort(),
+    ['.hidden.txt', ...expected], 'dot:true must include hidden file');
+  assert.deepEqual(glob.sync('.hidden.*', {cwd: fixture, nodir: true}),
+    ['.hidden.txt'], 'explicit dotfile glob must work');
+  assert.deepEqual(glob.sync('**/*.txt', {cwd: fixture, nodir: true, ignore: 'nested/**'}),
+    ['a.txt'], 'ignore must exclude nested matches');
+
   assert.equal(glob.hasMagic('**/*.txt'), true);
   console.log('PASS synthetic glob@7.2.3 sync/async matching with locked minimatch override (NOT security acceptance)');
 } finally {

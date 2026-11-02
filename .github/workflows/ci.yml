@@ -77,6 +77,8 @@ jobs:
         run: node scripts/exceljs-runtime-reachability.mjs
       - name: Exercise legacy glob 7 API under patched minimatch 11 override (synthetic)
         run: node scripts/legacy-glob-minimatch-compat.mjs
+      - name: Verify ExcelJS buffered and streaming XLSX after dependency patch (synthetic)
+        run: node scripts/e65-exceljs-streaming-compat.mjs
       - name: Install PostgreSQL client for integration assertions
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - run: pnpm build:packages
@@ -303,17 +305,6 @@ jobs:
           node scripts/verify-build-artifacts.mjs --scope all
           # Run database-independent regression checks; full integration tests stay in verify.
           pnpm test:offline
-      - name: E65 evaluate real pnpm glob 7 package patch against minimatch 11 (disposable candidate only)
-        run: |
-          pnpm patch glob@7.2.3 --edit-dir "$RUNNER_TEMP/epmo-glob7-patch"
-          node scripts/e65-glob7-package-patch.mjs "$RUNNER_TEMP/epmo-glob7-patch"
-          pnpm patch-commit "$RUNNER_TEMP/epmo-glob7-patch"
-          # Force reimport the patched snapshot; the earlier in-place install reused an unpatched store entry.
-          pnpm install --force --frozen-lockfile
-          node scripts/legacy-glob-minimatch-compat.mjs
-          node scripts/e65-exceljs-streaming-compat.mjs
-          pnpm audit --audit-level moderate
-          echo "E65 disposable package patch candidate passed scoped tests; NOT committed or release accepted" >> "$GITHUB_STEP_SUMMARY"
       - name: Audit candidate without weakening security gate
         if: always() && github.event_name == 'pull_request'
         run: pnpm audit --audit-level high
