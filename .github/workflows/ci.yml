@@ -308,7 +308,8 @@ jobs:
           pnpm patch glob@7.2.3 --edit-dir "$RUNNER_TEMP/epmo-glob7-patch"
           node scripts/e65-glob7-package-patch.mjs "$RUNNER_TEMP/epmo-glob7-patch"
           pnpm patch-commit "$RUNNER_TEMP/epmo-glob7-patch"
-          pnpm install --frozen-lockfile
+          # Force reimport the patched snapshot; the earlier in-place install reused an unpatched store entry.
+          pnpm install --force --frozen-lockfile
           node scripts/legacy-glob-minimatch-compat.mjs
           node scripts/e65-exceljs-streaming-compat.mjs
           pnpm audit --audit-level moderate
