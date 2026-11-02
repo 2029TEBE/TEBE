@@ -278,6 +278,21 @@ jobs:
           # Do not modify or duplicate the established workspace overrides.
           pnpm update --recursive --lockfile-only
           fi
+          # P0 advisory-specific evaluation ONLY in this disposable candidate.
+          # This does not alter the committed workspace graph or grant release acceptance.
+          # Patched floors from GHSA-67mh-4wv8-2f99, GHSA-w5hq-g745-h8pq,
+          # and GHSA-g3hv-75wg-m249; incompatible major bumps must fail tests.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'pnpm-workspace.yaml';
+          let workspace = fs.readFileSync(path, 'utf8');
+          if (!/^overrides:\s*$/m.test(workspace)) throw Error('Missing workspace overrides');
+          const patched = ['  esbuild: "0.25.0"', '  uuid: "11.1.1"', '  minimatch: "11.0.1"'].join('\n');
+          workspace = workspace.replace(/^overrides:\s*$/m, (line) => line + '\n' + patched);
+          fs.writeFileSync(path, workspace);
+          NODE
+          pnpm install --lockfile-only
+          echo "Advisory-targeted disposable candidate: esbuild 0.25.0; uuid 11.1.1; minimatch 11.0.1; NOT PROMOTED" >> "$GITHUB_STEP_SUMMARY"
           # A successful candidate job is not proof of security remediation.
           # Explicitly distinguish a changed, tested graph from an unchanged graph.
           if git diff --quiet -- pnpm-lock.yaml pnpm-workspace.yaml package.json apps/api/package.json apps/web/package.json packages/contracts/package.json packages/db/package.json; then
