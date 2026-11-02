@@ -273,10 +273,9 @@ jobs:
           node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
           pnpm install --lockfile-only
           else
-          # Existing workspace overrides must not suppress a real candidate evaluation.
-          # Resolve only semver-compatible dependency updates in this disposable runner.
-          # Do not modify or duplicate the established workspace overrides.
-          pnpm update --recursive --lockfile-only
+          # Preserve existing manifests; evaluate only the known advisory patches below.
+          # Avoid unrelated semver updates in this P0 remediation candidate.
+          echo "Existing workspace overrides retained for isolated advisory-only candidate"
           fi
           # P0 advisory-specific evaluation ONLY in this disposable candidate.
           # This does not alter the committed workspace graph or grant release acceptance.
