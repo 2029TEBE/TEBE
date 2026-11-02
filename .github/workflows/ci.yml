@@ -273,25 +273,11 @@ jobs:
           node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
           pnpm install --lockfile-only
           else
-          # Preserve existing manifests; evaluate only the known advisory patches below.
-          # Avoid unrelated semver updates in this P0 remediation candidate.
-          echo "Existing workspace overrides retained for isolated advisory-only candidate"
+          # Existing workspace overrides must not suppress a real candidate evaluation.
+          # Resolve only semver-compatible dependency updates in this disposable runner.
+          # Do not modify or duplicate the established workspace overrides.
+          pnpm update --recursive --lockfile-only
           fi
-          # P0 advisory-specific evaluation ONLY in this disposable candidate.
-          # This does not alter the committed workspace graph or grant release acceptance.
-          # Patched floors from GHSA-67mh-4wv8-2f99, GHSA-w5hq-g745-h8pq,
-          # and GHSA-g3hv-75wg-m249; incompatible major bumps must fail tests.
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = 'pnpm-workspace.yaml';
-          let workspace = fs.readFileSync(path, 'utf8');
-          if (!/^overrides:\s*$/m.test(workspace)) throw Error('Missing workspace overrides');
-          const patched = ['  esbuild: "0.25.0"', '  uuid: "11.1.1"', '  minimatch: "11.0.1"'].join('\n');
-          workspace = workspace.replace(/^overrides:\s*$/m, (line) => line + '\n' + patched);
-          fs.writeFileSync(path, workspace);
-          NODE
-          pnpm install --lockfile-only
-          echo "Advisory-targeted disposable candidate: esbuild 0.25.0; uuid 11.1.1; minimatch 11.0.1; NOT PROMOTED" >> "$GITHUB_STEP_SUMMARY"
           # A successful candidate job is not proof of security remediation.
           # Explicitly distinguish a changed, tested graph from an unchanged graph.
           if git diff --quiet -- pnpm-lock.yaml pnpm-workspace.yaml package.json apps/api/package.json apps/web/package.json packages/contracts/package.json packages/db/package.json; then
@@ -318,25 +304,6 @@ jobs:
       - name: Audit candidate without weakening security gate
         if: always() && github.event_name == 'pull_request'
         run: pnpm audit --audit-level high
-      - name: Preserve exact advisory-only source patch for reviewed promotion
-        if: always()
-        run: |
-          git diff --no-ext-diff -- pnpm-workspace.yaml pnpm-lock.yaml > /tmp/epmo-advisory-only.patch
-          test -s /tmp/epmo-advisory-only.patch
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: epmo-advisory-only-patch-${{ github.run_id }}
-          path: /tmp/epmo-advisory-only.patch
-          if-no-files-found: warn
-          retention-days: 7
-      - name: Emit bounded advisory-only source patch for exact-blob promotion
-        if: always()
-        run: |
-          test -s /tmp/epmo-advisory-only.patch
-          echo EPMO_ADVISORY_PATCH_BEGIN
-          cat /tmp/epmo-advisory-only.patch
-          echo EPMO_ADVISORY_PATCH_END
       - name: Preserve candidate manifests and lockfile for review
         if: always()
         uses: actions/upload-artifact@v4
