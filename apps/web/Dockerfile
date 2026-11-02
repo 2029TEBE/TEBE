@@ -4,6 +4,8 @@ WORKDIR /app
 ENV CI=true
 RUN corepack enable
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
+# The frozen lockfile records a scoped, audited glob 7 compatibility patch.
+COPY patches/glob@7.2.3.patch patches/glob@7.2.3.patch
 COPY packages/contracts/package.json packages/contracts/
 COPY packages/db/package.json        packages/db/
 COPY apps/web/package.json           apps/web/
