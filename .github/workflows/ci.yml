@@ -75,6 +75,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Probe ExcelJS transitive vulnerable call paths on synthetic XLSX (not security acceptance)
         run: node scripts/exceljs-runtime-reachability.mjs
+      - name: Exercise legacy glob 7 API under patched minimatch 11 override (synthetic)
+        run: node scripts/legacy-glob-minimatch-compat.mjs
       - name: Install PostgreSQL client for integration assertions
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
       - run: pnpm build:packages
