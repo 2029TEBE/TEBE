@@ -272,6 +272,19 @@ jobs:
           # uploaded candidate is directly reproducible with a frozen lockfile.
           node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
           pnpm install --lockfile-only
+          else
+          # Existing workspace overrides must not suppress a real candidate evaluation.
+          # Resolve only semver-compatible dependency updates in this disposable runner.
+          # Do not modify or duplicate the established workspace overrides.
+          pnpm update --recursive --lockfile-only
+          fi
+          # A successful candidate job is not proof of security remediation.
+          # Explicitly distinguish a changed, tested graph from an unchanged graph.
+          if git diff --quiet -- pnpm-lock.yaml pnpm-workspace.yaml package.json apps/api/package.json apps/web/package.json packages/contracts/package.json packages/db/package.json; then
+            echo "::warning::No compatible dependency candidate changes generated; advisory disposition still required"
+            echo "Dependency candidate: UNCHANGED (not security acceptance)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Dependency candidate: CHANGED; pending compatibility and audit checks (not security acceptance)" >> "$GITHUB_STEP_SUMMARY"
           fi
           pnpm install --frozen-lockfile
           node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
