@@ -15,7 +15,7 @@ const conns = ['11111111-1111-4111-8111-111111111111',
 const env = {
   DEPLOYMENT_ENV: 'staging', NODE_ENV: 'test',
   EPMO_ENTRA_SAME_WORKSPACE_ACCEPTANCE: 'YES_READ_ONLY_STAGING_ENTRA_SAME_WORKSPACE',
-  EPMO_ENTRA_STAGING_ORIGIN: 'https://staging.theepmo.com',
+  EPMO_ENTRA_STAGING_ORIGIN: 'https://api-staging.theepmo.com',
   EPMO_ENTRA_PHASE: 'active',
 };
 for (const [i, key] of ['A', 'B', 'C'].entries()) {
@@ -38,7 +38,7 @@ function fakeFetch(phase = 'active', overrides = {}) {
     const cookie = init.headers.cookie;
     const who = ['A', 'B', 'C'].find(key =>
       cookie === 'pmo_session=' + env['EPMO_ENTRA_' + key + '_SESSION']) || 'none';
-    calls.push({ path, who, method: init.method, redirect: init.redirect, cache: init.cache });
+    calls.push({ origin: parsed.origin, path, who, method: init.method, redirect: init.redirect, cache: init.cache });
     const override = overrides[path + ':' + who];
     if (override) return override();
     if (who === 'none') return reply(401, { error: 'Unauthorized' });
@@ -68,6 +68,8 @@ test('fail-closed configuration requires two owners in one workspace and foreign
   for (const patch of [
     { DEPLOYMENT_ENV: 'production' }, { NODE_ENV: 'production' },
     { EPMO_ENTRA_SAME_WORKSPACE_ACCEPTANCE: '' },
+    { EPMO_ENTRA_STAGING_ORIGIN: 'https://staging.theepmo.com' },
+    { EPMO_ENTRA_STAGING_ORIGIN: 'https://other.staging.theepmo.com' },
     { EPMO_ENTRA_STAGING_ORIGIN: 'https://theepmo.com' },
     { EPMO_ENTRA_STAGING_ORIGIN: 'https://api.theepmo.com' },
     { EPMO_ENTRA_STAGING_ORIGIN: 'http://staging.theepmo.com' },
@@ -90,6 +92,8 @@ test('active phase checks same-workspace owners, third tenant and no mutation', 
   assert.equal(result.passed, true);
   assert.equal(result.checks.length, 9);
   assert.equal(calls.length, 15);
+  assert.ok(calls.every(c => c.origin === 'https://api-staging.theepmo.com'),
+    'all acceptance requests must target the API vhost, not the web vhost');
   assert.ok(calls.every(c => c.method === 'GET' && c.redirect === 'manual' &&
     c.cache === 'no-store'));
   assert.equal(calls.filter(c => c.path.startsWith('/api/v1/microsoft/places')).length, 6);
