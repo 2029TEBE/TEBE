@@ -15,6 +15,8 @@ export class RecoveryService {
     // Fail visibly for ALL addresses when recovery has not been configured.
     const transport = buildTransport();
     if (!transport.delivers) throw new ServiceUnavailableException('Password recovery email is unavailable. Contact support.');
+    // Keep the public response generic; never reveal pilot or account membership.
+    if (transport.canSendTo && !transport.canSendTo(email)) return GENERIC;
     const origin = (process.env.WEB_ORIGIN ?? '').split(',')[0]?.trim();
     if (!origin) throw new ServiceUnavailableException('Password recovery is not configured. Contact support.');
     const { token, hash } = issueRecoveryToken();
