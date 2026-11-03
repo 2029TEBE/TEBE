@@ -5,6 +5,27 @@ import { DeploymentRoutingError } from './trusted-deployment-routing.mjs';
 // Database role must have RLS enabled and must not possess BYPASSRLS.
 // Never interpolate principal identifiers or accept deployment routing headers.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Fail closed unless the current database identity is a restricted login and
+// every routing table has PostgreSQL RLS enabled. This is an independent
+// runtime check, not a substitute for tenant-scoped RLS policy acceptance.
+async function assertRestrictedRls(db) {
+  const result = await db.query(`
+    SELECT NOT r.rolsuper AND NOT r.rolbypassrls AS restricted,
+           COUNT(c.oid) FILTER (WHERE c.relrowsecurity AND c.relforcerowsecurity) AS protected_count,
+           COUNT(c.oid) AS table_count
+    FROM pg_roles r
+    CROSS JOIN (VALUES ('tenant_memberships'), ('tenant_deployment_bindings'),
+                       ('tenant_deployments')) AS expected(name)
+    LEFT JOIN pg_class c ON c.oid = to_regclass('public.' || expected.name)
+    WHERE r.rolname = current_user
+    GROUP BY r.rolsuper, r.rolbypassrls
+  `);
+  const row = result?.rows?.[0];
+  if (result?.rows?.length !== 1 || row?.restricted !== true ||
+      Number(row.protected_count) !== 3 || Number(row.table_count) !== 3)
+    throw new DeploymentRoutingError();
+}
+
 const one = async (db, sql, args) => {
   const result = await db.query(sql, args);
   if (!Array.isArray(result?.rows) || result.rows.length !== 1) throw new DeploymentRoutingError();
@@ -15,6 +36,7 @@ export async function resolvePostgresDeployment({ db, session, approvedOrigins }
       !UUID.test(session?.userId ?? '') || !UUID.test(session?.tenantId ?? '') ||
       session?.authenticated !== true) throw new DeploymentRoutingError();
   try {
+    await assertRestrictedRls(db);
     // Every query is scoped by authenticated server-owned tenant ID.
     return await resolveDeploymentForSession({
       session, approvedOrigins,
