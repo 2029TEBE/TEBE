@@ -47,6 +47,7 @@ test('customer route retains anti-CSRF session checks and never confirms first p
   assert.match(proxy, /action === 'first-checkout'/);
   assert.match(page, /process\.env\.DEPLOYMENT_ENV === 'staging'/);
   assert.match(page, /STRIPE_RECURRING_CHECKOUT_ENABLED === 'true'/);
+  assert.match(page, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true'/);
   assert.match(page, /subscription\?\.status === 'trialing'/);
   assert.match(page, /status === 'expired'/);
   assert.match(page, /name="action" value="first-checkout"/);

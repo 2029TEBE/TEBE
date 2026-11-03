@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Req, ServiceUnavailableException } from '@nestjs/common';
 import type { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { BillingService } from './billing.service';
@@ -26,6 +26,11 @@ export class BillingController {
   @Throttle({ default: { ttl: 60_000, limit: 2 } })
   @Post('stripe/recurring-checkout')
   recurringCheckout(@Body(new ZodPipe(z.object({}).strict())) _body: Record<string, never>) {
+    // Independent customer-exposure switch: the existing C53 operator-only
+    // preview does not authorize general customer access to TEST Checkout.
+    if (process.env.DEPLOYMENT_ENV !== 'staging' || process.env.NODE_ENV !== 'production' ||
+        process.env.STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Customer TEST checkout is disabled');
     return this.stripe.prepareRecurringCheckout();
   }
 }

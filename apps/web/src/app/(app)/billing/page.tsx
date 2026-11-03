@@ -57,6 +57,7 @@ export default async function BillingPage({ searchParams }: {
       // production collection, or treats a redirect as payment proof.
       const firstTestCheckout = process.env.DEPLOYMENT_ENV === 'staging' &&
         process.env.STRIPE_RECURRING_CHECKOUT_ENABLED === 'true' &&
+        process.env.STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true' &&
         subscription?.status === 'trialing' && status === 'expired' &&
         !subscription?.cancelAtPeriodEnd;
       return <section className="panel" aria-label={tx('Current subscription', 'الاشتراك الحالي')} style={{ marginBlockEnd: 20 }}>

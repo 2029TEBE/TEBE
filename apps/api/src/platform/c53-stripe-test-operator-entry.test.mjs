@@ -40,7 +40,7 @@ test('C53 denies missing, mismatched, repeated, malformed and nonstring operator
   }
 });
 
-test('C53 separate operator controller preserves session tenancy, capability and no customer route', () => {
+test('C53 operator secret remains separate from explicitly switched-off customer TEST entry', () => {
   const controller = readFileSync(new URL('./stripe-test-operator.controller.ts', import.meta.url), 'utf8');
   const billing = readFileSync(new URL('./billing.controller.ts', import.meta.url), 'utf8');
   const service = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
@@ -54,7 +54,13 @@ test('C53 separate operator controller preserves session tenancy, capability and
   assert.match(controller, /stripeTestOperatorAllowed\(process\.env, req\.headers\['x-epmo-stripe-test-operator-key'\]\)/);
   assert.match(controller, /this\.stripe\.prepareRecurringCheckout\(\)/);
   assert.match(module, /controllers: \[.*StripeTestOperatorController/);
-  assert.doesNotMatch(billing, /prepareRecurringCheckout|recurring-checkout/);
+  assert.match(billing, /@Post\('stripe\/recurring-checkout'\)/);
+  assert.match(billing, /process\.env\.DEPLOYMENT_ENV !== 'staging'/);
+  assert.match(billing, /process\.env\.NODE_ENV !== 'production'/);
+  assert.match(billing, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED !== 'true'/);
+  assert.match(billing, /new ServiceUnavailableException\('Customer TEST checkout is disabled'\)/);
+  assert.match(billing, /this\.stripe\.prepareRecurringCheckout\(\)/);
+  assert.doesNotMatch(billing, /x-epmo-stripe-test-operator-key/);
   const method = service.slice(service.indexOf('async prepareRecurringCheckout()'),
     service.indexOf('/** Authenticated customer administrator creates hosted checkout'));
   assert.match(method, /requireCapability\('pmoa_admin'\)/);

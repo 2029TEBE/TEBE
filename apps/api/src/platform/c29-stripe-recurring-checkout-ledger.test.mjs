@@ -18,6 +18,8 @@ test('C29 TEST-only recurring Checkout requires explicit authenticated gate', ()
   assert.match(controller, /this\.stripe\.prepareRecurringCheckout\(\)/);
   assert.match(controller, /@Throttle\(\{ default: \{ ttl: 60_000, limit: 2 \} \}\)/);
   assert.match(controller, /z\.object\(\{\}\)\.strict\(\)/);
+  assert.match(controller, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED !== 'true'/);
+  assert.match(controller, /process\.env\.DEPLOYMENT_ENV !== 'staging'/);
 });
 
 test('C29 takes the same tenant lock as cancellation and signed invoice settlement', () => {
