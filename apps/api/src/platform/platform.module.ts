@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { PlatformController } from './platform.controller';
+import { PaidDeploymentController } from './paid-deployment.controller';
 import { PlatformService } from './platform.service';
 import { ModuleGuard } from './module.guard';
 import { SubscriptionController } from './subscription.controller';
@@ -18,7 +19,7 @@ import { StripeTestOperatorController } from './stripe-test-operator.controller'
  */
 @Global()
 @Module({
-  controllers: [PlatformController, SubscriptionController, SuperAdminController, BillingController, BillingWebhookController, StripeTestOperatorController],
+  controllers: [PaidDeploymentController, PlatformController, SubscriptionController, SuperAdminController, BillingController, BillingWebhookController, StripeTestOperatorController],
   providers: [PlatformService, ModuleGuard, SubscriptionService, SuperAdminService, BillingService, StripeBillingService],
   exports: [PlatformService, ModuleGuard],
 })
