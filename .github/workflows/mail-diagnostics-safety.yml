@@ -21,6 +21,46 @@ jobs:
             echo 'Unsafe mutation or secret-read pattern detected' >&2
             exit 1
           fi
+      - name: Observe public TCP mail ports (no authentication or email)
+        run: |
+          python3 - <<'PY'
+          import socket
+          import os
+          host = "mail.theepmo.com"
+          expected = "85.93.31.149"
+          ports = {25: "Inbound MX SMTP", 465: "SMTP over TLS", 587: "SMTP submission", 993: "IMAPS"}
+          try:
+              actual = socket.gethostbyname(host)
+          except OSError as exc:
+              print(f"DNS resolution failed: {exc}")
+              raise SystemExit(0)  # Observation only, not a release assertion.
+          if actual != expected:
+              print(f"Resolved IP changed from expected {expected} to {actual}; skipping TCP probes")
+              raise SystemExit(0)
+          results = []
+          for port, purpose in ports.items():
+              with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+                  connection.settimeout(4.0)
+                  try:
+                      connection.connect((actual, port))
+                      state = "CONNECTED"
+                  except ConnectionRefusedError:
+                      state = "REFUSED"
+                  except socket.timeout:
+                      state = "TIMEOUT"
+                  except OSError as exc:
+                      state = f"ERROR {type(exc).__name__}"
+              results.append((port, purpose, state))
+              print(f"{host} ({actual}):{port} — {purpose}: {state}")
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as out:
+                  out.write("\n## Public mail TCP reachability (observation only)\n")
+                  out.write("| Port | Purpose | Result |\n| --- | --- | --- |\n")
+                  for port, purpose, state in results:
+                      out.write(f"| {port} | {purpose} | {state} |\n")
+                  out.write("\nNo SMTP commands, authentication, email, or server changes were performed.\n")
+          PY
       - name: Confirm domain/TLS incident review remains non-commercial
         run: |
           test -f docs/release/MAIL-TLS-RECOVERY-20261103.md
