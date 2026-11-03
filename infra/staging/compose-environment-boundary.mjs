@@ -12,15 +12,15 @@ const allowed = {
   api: [
     'NODE_ENV', 'DATABASE_URL', 'REDIS_URL', 'WEB_ORIGIN',
     'ALLOW_HEADER_AUTH', 'API_PORT', 'DEPLOYMENT_ENV',
-    'STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION', 'STRIPE_ENABLED',
-    'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_WEBHOOK_PUBLIC_URL',
-    'MAIL_TRANSPORT', 'MAIL_FROM', 'MAIL_REGION',
+    'BILLING_PROVIDER', 'PADDLE_ENABLED', 'PADDLE_ENV',
+    'PADDLE_API_KEY', 'PADDLE_WEBHOOK_SECRET', 'PADDLE_WEBHOOK_PUBLIC_URL',
+        'MAIL_TRANSPORT', 'MAIL_FROM', 'MAIL_REGION',
     'BILLING_REFERENCE_WEBHOOK_ENABLED', 'WEB_INTERNAL_URL',
     'BEDROCK_REGION', 'BEDROCK_MODEL_ID',
     'MS_CLIENT_ID', 'MS_CLIENT_SECRET', 'MS_REDIRECT_URI',
     'MS_TOKEN_KEY', 'MS_AUTHORITY',
   ],
-  web: ['NODE_ENV', 'API_URL', 'NEXT_PUBLIC_API_URL', 'WEB_ORIGIN'],
+  web: ['NODE_ENV', 'API_URL', 'NEXT_PUBLIC_API_URL', 'WEB_ORIGIN', 'BILLING_PROVIDER'],
   'staging-edge': [],
 };
 
@@ -43,5 +43,7 @@ export function safeStagingEnvironmentBoundary(services) {
   // app-to-app route while the public origins remain canonical.
   return (api.API_PORT === undefined || api.API_PORT === '4000') &&
     (api.WEB_INTERNAL_URL === undefined || api.WEB_INTERNAL_URL === 'http://web:3000') &&
-    (web.API_URL === undefined || web.API_URL === 'http://api:4000');
+    (web.API_URL === undefined || web.API_URL === 'http://api:4000') &&
+    api.BILLING_PROVIDER === 'paddle' && api.PADDLE_ENABLED === 'false' &&
+    api.PADDLE_ENV === 'sandbox' && web.BILLING_PROVIDER === 'paddle';
 }

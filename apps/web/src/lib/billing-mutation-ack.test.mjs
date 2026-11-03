@@ -33,21 +33,17 @@ test('200 HTML login, invalid JSON, oversized body, redirects and non-JSON all f
   Object.defineProperty(redirected, 'redirected', { value: true });
   assert.equal(await readBillingMutationJson(redirected), null);
 });
-test('both billing proxies require bounded, contract-matching JSON before redirecting success', () => {
-  const checkout = readFileSync(new URL('../app/api/billing/checkout/route.ts', import.meta.url), 'utf8');
-  const subscriptionRoute = readFileSync(new URL('../app/api/billing/subscription/route.ts', import.meta.url), 'utf8');
-  assert.match(checkout, /readBillingMutationJson\(response\)/);
-  assert.match(checkout, /isRenewalInvoiceAcknowledged\(data\)/);
-  assert.match(subscriptionRoute, /readBillingMutationJson\(response\)/);
-  assert.match(subscriptionRoute, /isSubscriptionPreferenceAcknowledged\(data, action === 'schedule-cancellation'\)/);
-  assert.doesNotMatch(checkout, /response\.json\(\)/);
+test('both customer mutation endpoints reject all payments while Paddle integration is incomplete',()=>{
+ for(const route of ['checkout','subscription']){
+  const source=readFileSync(new URL('../app/api/billing/'+route+'/route.ts',import.meta.url),'utf8');
+  assert.match(source,/rejectUnsafeBrowserMutation\(req\)/);
+  assert.match(source,/status: 503/);
+  assert.match(source,/Cache-Control': 'no-store'/);
+  assert.doesNotMatch(source,/paymentVerified:\s*true|entitlementGranted:\s*true/);
+ }
 });
-test('billing page never claims a confirmed change from a forgeable URL query flag', () => {
-  const source = readFileSync(new URL('../app/(app)/billing/page.tsx', import.meta.url), 'utf8');
-  assert.match(source, /success === '1'/);
-  assert.match(source, /updated === '1'/);
-  assert.match(source, /this URL does not confirm an invoice or payment/);
-  assert.match(source, /this URL does not confirm cancellation or resumption/);
-  assert.doesNotMatch(source, /Renewal invoice created or found\./);
-  assert.doesNotMatch(source, /Subscription preference updated\./);
+test('billing UI does not claim success from query parameters',()=>{
+ const source=readFileSync(new URL('../app/(app)/billing/page.tsx',import.meta.url),'utf8');
+ assert.match(source,/Paddle is our billing provider/);
+ assert.doesNotMatch(source,/success === '1'|updated === '1'|Renewal invoice created or found\./);
 });

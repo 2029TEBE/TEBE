@@ -33,7 +33,7 @@ test('live suite exercises authenticated tenant boundaries and denies unauthoriz
     "login('pm@pmoalign.test')", "'/api/v1/subscription/billing/invoices'",
     "'/api/v1/subscription/current'", "'/api/v1/subscription/cancel-at-period-end'",
     "'/api/v1/subscription/resume'", "/api/v1/subscription/billing/renewal-invoice",
-    "/api/v1/billing/stripe-webhook",
+    "/api/v1/billing/paddle-webhook",
   ]) assert.ok(suite.includes(fragment), `Missing live check: ${fragment}`);
   assert.match(suite, /expect\(response\.status\)\.toBe\(403\)/);
   assert.match(suite, /expect\(row\.tenantId\)\.toBe\(tenantA\)/);

@@ -147,8 +147,10 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     webEnv.NEXT_PUBLIC_API_URL === 'https://api-staging.theepmo.com' &&
     webEnv.WEB_ORIGIN === 'https://staging.theepmo.com' &&
     apiEnv.WEB_ORIGIN === 'https://staging.theepmo.com');
-  add('Staging never receives live Stripe keys',
-    !/^(?:sk|rk)_live_/.test(String(apiEnv.STRIPE_SECRET_KEY || '')) &&
+  add('Staging Paddle remains sandbox-only and disabled',
+    apiEnv.PADDLE_ENV === 'sandbox' && apiEnv.PADDLE_ENABLED === 'false' &&
+    apiEnv.BILLING_PROVIDER === 'paddle' &&
+    webEnv.BILLING_PROVIDER === 'paddle' &&
     apiEnv.BILLING_REFERENCE_WEBHOOK_ENABLED === 'false');
   return checks;
 }

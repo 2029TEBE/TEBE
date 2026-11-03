@@ -47,16 +47,13 @@ test('401 expired session, 403 denied and 503 outage are not disguised as empty 
   }
 });
 
-test('Arabic 375px and English desktop billing UI uses safe state and authorization guard', () => {
-  const page = readFileSync(new URL('../app/(app)/billing/page.tsx', import.meta.url), 'utf8');
-  const boundary = readFileSync(new URL('../components/Page.tsx', import.meta.url), 'utf8');
-  assert.match(page, /loadVerifiedBillingInvoices\(api\.billingInvoices\)/);
-  assert.match(page, /billingInvoicePresentation\(i\)/);
-  assert.match(page, /invoiceView\.canCheckout/);
-  assert.match(page, /Status unavailable/);
-  assert.match(page, /الحالة غير متاحة/);
-  assert.doesNotMatch(page, /i\.status === 'open' && <form/);
-  assert.match(boundary, /err\.status === 401/);
-  assert.match(boundary, /err\.status === 403/);
-  assert.match(boundary, /role="alert"/);
+test('Paddle billing displays only server-owned records, never checkout actions',()=>{
+ const page=readFileSync(new URL('../app/(app)/billing/page.tsx',import.meta.url),'utf8');
+ const boundary=readFileSync(new URL('../components/Page.tsx',import.meta.url),'utf8');
+ assert.match(page,/!session\.authenticated/);
+ assert.match(page,/!session\.capabilities\.includes\('pmoa_admin'\)/);
+ assert.match(page,/api\.billingInvoices/);
+ assert.match(page,/Paddle is our billing provider/);
+ assert.doesNotMatch(page,/<form|checkout\.stripe|paymentVerified:\s*true/);
+ assert.match(boundary,/role="alert"/);
 });

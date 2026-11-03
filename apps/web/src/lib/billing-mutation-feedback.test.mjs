@@ -24,20 +24,17 @@ test('known errors have distinct English and Arabic guidance without raw upstrea
   assert.equal(billingFailureText('https://evil.test/?cookie=secret'), billingFailureText('failed'));
   assert.equal(billingFailureText('__proto__'), billingFailureText('failed'));
 });
-test('both browser billing mutations use bounded forms and non-replaying upstream deadline', () => {
-  for (const path of ['checkout', 'subscription']) {
-    const source = readFileSync(new URL('../app/api/billing/' + path + '/route.ts', import.meta.url), 'utf8');
-    assert.match(source, /rejectUnsafeBrowserMutation\(req\)/);
-    assert.match(source, /readBoundedBrowserForm\(req, 16_384\)/);
-    assert.match(source, /fetchTenantMutation\(fetch,/);
-    assert.match(source, /billingFailurePath\(401\)/);
-    assert.match(source, /billingFailurePath\(response\?\.status\)/);
-    assert.doesNotMatch(source, /req\.formData\(/);
-    assert.doesNotMatch(source, /fetch\(\x60\$\{BASE\}/);
-  }
+test('browser billing mutations reject unsafe requests and fail closed',()=>{
+ for(const route of ['checkout','subscription']){
+  const source=readFileSync(new URL('../app/api/billing/'+route+'/route.ts',import.meta.url),'utf8');
+  assert.match(source,/rejectUnsafeBrowserMutation\(req\)/);
+  assert.match(source,/status: 503/);
+  assert.doesNotMatch(source,/fetchTenantMutation|response\.redirected|req\.formData\(/);
+ }
 });
-test('billing UI maps allowlisted localized error feedback', () => {
-  const source = readFileSync(new URL('../app/(app)/billing/page.tsx', import.meta.url), 'utf8');
-  assert.match(source, /billingFailureText\(error, lang\)/);
-  assert.doesNotMatch(source, /\{error\}/);
+test('Paddle UI provides bilingual status without propagating raw errors',()=>{
+ const source=readFileSync(new URL('../app/(app)/billing/page.tsx',import.meta.url),'utf8');
+ assert.match(source,/Paddle is our billing provider/);
+ assert.match(source,/Paddle هو مزود الفوترة/);
+ assert.doesNotMatch(source,/\{error\}/);
 });
