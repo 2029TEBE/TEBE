@@ -20,6 +20,8 @@ export interface MailTransport {
   readonly delivers: boolean;
   /** Why it is not delivering, in words a non-engineer can act on. */
   readonly status: string;
+  readonly pilot?: { mode: 'verified-only'; approvedRecipients: number; maximumRecipients: number; providerVerificationRequired: boolean };
+  canSendTo?(address: string): boolean;
   send(m: Sendable): Promise<SendResult>;
 }
 
@@ -90,8 +92,10 @@ export function buildTransport(env: NodeJS.ProcessEnv = process.env): MailTransp
       accountId: (env.CLOUDFLARE_ACCOUNT_ID ?? '').trim(),
       token: env.CLOUDFLARE_EMAIL_API_TOKEN ?? '',
       from: (env.MAIL_FROM ?? '').trim(),
+      // Default to the free invited pilot. Unrestricted sending is an explicit paid-mode choice.
+      pilotAllowlist: env.CLOUDFLARE_EMAIL_MODE === 'paid' ? undefined : env.CLOUDFLARE_PILOT_RECIPIENTS ?? '',
     });
-    if (!transport) return new NoTransport('Cloudflare email is not configured. Set MAIL_FROM, CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_EMAIL_API_TOKEN in the API environment.');
+    if (!transport) return new NoTransport('Cloudflare email is not configured. Set the sender, account, sending token and a valid pilot recipient list (1–200 approved addresses).');
     return transport;
   }
 
