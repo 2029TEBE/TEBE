@@ -66,3 +66,13 @@ for (const [label, guard] of [
     error=>error.message==='Deployment unavailable');
   assert.equal(calls.length,1);
 });
+
+// Regression: the RLS preflight attests public.* tables; subsequent reads
+// must not be redirected through a caller-controlled PostgreSQL search_path.
+test('tenant reads use the same schema-qualified relations attested by RLS', async () => {
+  const {db,calls}=fixture();
+  await resolvePostgresDeployment({db,session,approvedOrigins});
+  assert.match(calls[1].sql, /FROM public\\.tenant_memberships\\b/);
+  assert.match(calls[2].sql, /FROM public\\.tenant_deployment_bindings\\b/);
+  assert.match(calls[3].sql, /FROM public\\.tenant_deployments\\b/);
+});
