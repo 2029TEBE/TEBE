@@ -17,12 +17,9 @@ const schema = z.object({
   BILLING_REFERENCE_WEBHOOK_ENABLED: z.enum(['true', 'false']).default('false'),
   BILLING_REFERENCE_WEBHOOK_SECRET: z.string().optional(),
   // Explicit provider selection; no provider enabled by default.
-  BILLING_PROVIDER: z.enum(['none','paddle','stripe']).default('none'),
+  BILLING_PROVIDER: z.literal('paddle').default('paddle'),
   PADDLE_ENABLED: z.enum(['true','false']).default('false'),
   PADDLE_ENV: z.enum(['sandbox','production']).default('sandbox'),
-  STRIPE_ENABLED: z.enum(['true', 'false']).default('false'),
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
   LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(8),
   /*
    * Two independent session limits, both enforced on the server.
@@ -68,34 +65,10 @@ export function loadEnv(): Env {
       (!env.BILLING_REFERENCE_WEBHOOK_SECRET || Buffer.byteLength(env.BILLING_REFERENCE_WEBHOOK_SECRET) < 32))
     throw new Error('BILLING_REFERENCE_WEBHOOK_SECRET must be at least 32 bytes when the reference webhook is enabled.');
 
-  // The Paddle cutover is fail-closed until recurring checkout and the
-  // signed, durable Paddle webhook-to-tenant ledger are implemented.
-  if (env.BILLING_PROVIDER === 'paddle') {
-    if (env.STRIPE_ENABLED === 'true' ||
-        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED === 'true' ||
-        process.env.STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true')
-      throw new Error('Stripe checkout must remain disabled after Paddle selection.');
-    if (env.PADDLE_ENABLED === 'true')
-      throw new Error('Paddle payment collection is blocked pending signed webhook, ledger and sandbox acceptance.');
-  }
-  if (env.PADDLE_ENABLED === 'true' && env.BILLING_PROVIDER !== 'paddle')
-    throw new Error('Paddle cannot be enabled without selecting the Paddle provider.');
-
-  if (env.STRIPE_ENABLED === 'true') {
-    if (!env.STRIPE_SECRET_KEY || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(env.STRIPE_SECRET_KEY) ||
-        !env.STRIPE_WEBHOOK_SECRET || !/^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET))
-      throw new Error('Stripe requires valid STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET when enabled.');
-    // Staging uses the *production-compiled* API but must NEVER process live
-    // Stripe payments. The billing service checks the same deployment boundary.
-    const staging = env.DEPLOYMENT_ENV === 'staging';
-    const testInProductionBuild = staging && process.env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === 'true';
-    if (staging && !env.STRIPE_SECRET_KEY.startsWith('sk_test_'))
-      throw new Error('Stripe staging requires sk_test credentials; live keys are forbidden.');
-    if (secureDeployment && !env.STRIPE_SECRET_KEY.startsWith('sk_live_') && !testInProductionBuild)
-      throw new Error('Production Stripe integration requires sk_live credentials unless staging is explicitly opted in.');
-    if (secureDeployment && !staging && process.env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === 'true')
-      throw new Error('Stripe staging exemption cannot be enabled in production.');
-  }
+  // Payment collection remains disabled until provider-backed reconciliation,
+  // durable webhook settlement, staging tests, and commercial approval pass.
+  if (env.PADDLE_ENABLED === 'true')
+    throw new Error('Paddle collection is blocked pending signed webhook, ledger and sandbox acceptance.');
 
   // The reference HMAC adapter is for controlled integration testing, never real billing.
   if (secureDeployment && env.BILLING_REFERENCE_WEBHOOK_ENABLED === 'true')

@@ -6,7 +6,7 @@ import { effectiveSubscriptionStatus, formatBillingDate } from '@/lib/subscripti
 
 /**
  * Read-only customer verification view. Never infer payment or license activation
- * from checkout query parameters, client storage, or a Stripe redirect.
+ * from checkout query parameters, client storage, or a browser redirect.
  */
 export default async function VerificationPage() {
   const ar = (await getLang()) === 'ar';
