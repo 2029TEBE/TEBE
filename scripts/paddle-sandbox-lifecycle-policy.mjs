@@ -33,6 +33,10 @@ export function evaluatePaddleLifecycle(event, binding, { signatureVerified=fals
     const incoming=Date.parse(data.updated_at);
     if (incoming < last) return deny('stale_event');
     if (incoming === last && binding.lastProviderStatus !== data.status) return deny('conflicting_event');
+    // Same timestamp/status is a replay only when its immutable provider event ID matches.
+    // Otherwise two distinct events cannot be ordered safely and must not overwrite the watermark.
+    if (incoming === last && (!/^evt_[a-z0-9]{20,}$/.test(binding.lastProviderEventId || '') ||
+        binding.lastProviderEventId !== event.event_id)) return deny('ambiguous_replay');
   }
   // Never treat provider subscription status as payment evidence.
   return {accepted:true,eventId:event.event_id,tenantId:binding.tenantId,
