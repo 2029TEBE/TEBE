@@ -104,7 +104,7 @@ test('F62 admin onboarding checks hidden invitation action attachment, not visib
     'admin must see a visible submit control');
 });
 
-test('F62 recovery and billing proof waits for visible 429 and a real loaded subscription card', async () => {
+test('F62 recovery and Paddle billing proof waits for a visible 429 and read-only loaded records', async () => {
   const source = await readFile(new URL('./frontend-customer-journey.mjs', import.meta.url), 'utf8');
   const recoveryStart = source.indexOf("await step('recovery_429_singleflight_no_success'");
   const recoveryEnd = source.indexOf("await step('recovery_200_html_not_confirmed'", recoveryStart);
@@ -119,10 +119,12 @@ test('F62 recovery and billing proof waits for visible 429 and a real loaded sub
   const billing = source.slice(billingStart, billingEnd);
   assert.ok(billingStart >= 0 && billingEnd > billingStart);
   for (const check of [
-    "waitUntil: 'networkidle'", "subscriptionPanel.locator('.modcard strong')",
-    "billing_panels_complete", "sections.length === 3", "section.querySelector('.modcard, .panel')",
-    "!section.querySelector('[role=\"alert\"], .locked')", "pathname !== '/billing'",
-  ]) assert.ok(billing.includes(check), 'Missing fail-closed billing proof: ' + check);
+    "waitUntil: 'networkidle'", "subscriptionPanel.locator('p').first().waitFor",
+    "billing_invoices", "await invoicePanel.waitFor",
+    "await page.locator('main [role=\"alert\"], main .locked').count()",
+    "await page.locator('form[action^=\"/api/billing/\"]').count()",
+    "pathname !== '/billing'",
+  ]) assert.ok(billing.includes(check), 'Missing fail-closed Paddle billing proof: ' + check);
 });
 
 test('F62 recovery 503 requires the actual intercepted response and exact localized error', async () => {
