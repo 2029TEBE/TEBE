@@ -17,7 +17,7 @@ const fixture=(overrides={})=>{
  const db={query:async(sql,args)=>{
    calls.push({sql,args});
    const index=calls.length-1;
-   return {rows:[overrides[index] ?? (index===0 ? rlsOk : rows[index-1])]};
+   return {rows:[(Object.hasOwn(overrides,index) ? overrides[index] : (index===0 ? rlsOk : rows[index-1]))]};
  }};
  return {db,calls};
 };
