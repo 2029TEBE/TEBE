@@ -24,7 +24,7 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
     try {
       const response = await fetch('/api/invite/accept', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, displayName: name, password }),
+        body: JSON.stringify({ token, displayName: name, password, lang }),
       });
       if (!response.ok) {
         const result = await response.json().catch(() => null);
