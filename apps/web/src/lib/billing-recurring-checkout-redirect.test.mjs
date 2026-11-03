@@ -37,7 +37,7 @@ test('rejects live sessions, redirects, forged entitlement and stale references'
   ]) assert.equal(stripeRecurringCheckoutRedirect(value, now), null);
 });
 
-test('customer route retains anti-CSRF session checks and never confirms first payment on redirect', () => {
+test('archived checkout route remains guarded while Paddle billing renders no legacy checkout', () => {
   const proxy = readFileSync(new URL('../app/api/billing/checkout/route.ts', import.meta.url), 'utf8');
   const page = readFileSync(new URL('../app/(app)/billing/page.tsx', import.meta.url), 'utf8');
   assert.match(proxy, /rejectUnsafeBrowserMutation\(req\)/);
@@ -45,12 +45,11 @@ test('customer route retains anti-CSRF session checks and never confirms first p
   assert.match(proxy, /stripeRecurringCheckoutRedirect\(data\)/);
   assert.match(proxy, /billingFailurePath\(502\)/);
   assert.match(proxy, /action === 'first-checkout'/);
-  assert.match(page, /process\.env\.DEPLOYMENT_ENV === 'staging'/);
-  assert.match(page, /STRIPE_RECURRING_CHECKOUT_ENABLED === 'true'/);
-  assert.match(page, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true'/);
-  assert.match(page, /subscription\?\.status === 'trialing'/);
-  assert.match(page, /status === 'expired'/);
-  assert.match(page, /name="action" value="first-checkout"/);
-  assert.match(page, /Stripe TEST subscription/);
+  // Historical Stripe route tests remain as regression evidence, not an active purchase path.
+  assert.doesNotMatch(page, /<form\\b|name="action" value="first-checkout"|checkout\\.stripe\\.com/i);
+  assert.doesNotMatch(page, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED/);
+  assert.match(page, /Paddle checkout is not implemented/);
+  assert.match(page, /!session\\.authenticated/);
+  assert.match(page, /session\\.capabilities\\.includes\\('pmoa_admin'\\)/);
   assert.doesNotMatch(proxy, /status\s*=\s*'active'/);
 });
