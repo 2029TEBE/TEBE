@@ -14,6 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: Cloudflare transactional email transport security checks
+        run: node --experimental-strip-types --test apps/api/src/notify/cloudflare-transport.test.mjs
       - run: node scripts/verify-ci-safety.mjs
       - run: node scripts/verify-release-static.mjs
       - run: node scripts/verify-migration-chain.mjs
