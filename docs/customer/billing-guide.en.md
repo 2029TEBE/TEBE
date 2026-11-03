@@ -1,13 +1,13 @@
-# The EPMO — Subscription and billing (Paddle transition)
+# THE EPMO — Paddle billing
 
-Paddle Billing is the selected **future** payment processor. Account registration at https://login.paddle.com/signup is for The EPMO merchant, not customers.
+Paddle Billing is the selected payment provider. The merchant registration portal is not a customer checkout page.
 
-**A checkout return is not proof of payment.**
+**Online payments are not yet enabled.** Workspace administrators may view their subscription and existing invoice history, but cannot purchase or renew a subscription online until the secure Paddle integration has passed acceptance.
 
-**Payments are currently disabled.** Existing authenticated Billing & Renewals screens remain read-only for historical invoice and subscription records. Do not initiate a legacy Stripe Checkout or treat a checkout return as paid access. Current customer enrollment remains invitation-request only.
+A browser redirect is never proof of payment. Paid access is granted only after a genuine provider-signed event is validated, persistently reconciled to the correct tenant and billing period, and independently checked by the server.
 
-After Paddle merchant approval, products/prices and sandbox credentials are provisioned, the engineering team must implement Paddle Checkout with server-owned tenant/price mapping; verify raw-body `Paddle-Signature` and process `transaction.completed`, `subscription.created/updated/canceled` into a durable tenant-specific ledger; exercise real sandbox payment, replay, failure, cancellation and isolation; and separately approve launch. Historical Stripe records are retained for financial/audit reconciliation and are never silently converted into Paddle payments.
+Before launch, THE EPMO must verify Paddle merchant approval, checkout domains, products/prices, webhook signature verification, idempotent PostgreSQL settlement, sandbox payments (including failure, refunds and replay), customer email and recovery, and operational rollback.
 
-Contact the workspace administrator or platform owner for billing assistance. Never send payment-card details, API keys, or webhook secrets in chat or email.
+Historical financial records remain available for accounting; they cannot independently activate a Paddle-paid subscription. For help, contact your workspace administrator or THE EPMO support. Never send card numbers, keys or webhook secrets through chat or email.
 
-**Release status: Paddle migration in progress; not ready for paid subscriptions.**
+**Status: Paddle migration in progress — checkout disabled.**

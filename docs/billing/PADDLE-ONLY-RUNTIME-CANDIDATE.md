@@ -1,9 +1,7 @@
-# Paddle-only runtime removal — review candidate
+# Paddle-only runtime candidate
 
-This source-only candidate removes inactive-provider settings from all environment examples and API configuration, unregisters legacy provider controllers, and removes legacy checkout/mutation execution from customer routes and the billing UI.
+This draft removes retired payment-provider runtime wiring and replaces the billing UI with a read-only Paddle experience. Customer checkout, webhooks and paid entitlements remain blocked until secure provider reconciliation is proven.
 
-**NO-GO for live payments.** The Paddle webhook deliberately returns a non-2xx error until signed receipt validation, atomic database writes, idempotent settlement, provider API checks, lifecycle handling and tenant-bound entitlement verification are implemented and tested in a real sandbox.
+Applied SQL migrations and historical finance data remain unchanged; deployed schema integrity, financial reconciliation and rollback cannot be sacrificed to remove textual references from history.
 
-Old financial records and already-applied SQL migrations must not be rewritten or deleted. The repository still contains archival code, migration names and regression tests referencing the previous provider. This is **not** a claim of zero references across Git history or source.
-
-Required next: migrate dormant payment helper files and legacy tests in separate bounded batches, then run full CI, validate true sandbox checkout, and independently approve staging and live release.
+All remaining source and infrastructure checks must pass on the exact commit. Independent sandbox merchant approval and deployment verification are still necessary before paid launch.

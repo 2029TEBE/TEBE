@@ -18,7 +18,7 @@ const env = {
   STAGING_EDGE_BIND: '127.0.0.1', STAGING_EDGE_HTTPS_PORT: '8443',
   STAGING_TLS_CERT_PATH: '/etc/epmo/tls.crt',
   STAGING_TLS_KEY_PATH: '/etc/epmo/tls.key',
-  STRIPE_SECRET_KEY: 'sk_test_fixture_only',
+  BILLING_PROVIDER: 'paddle', PADDLE_ENV: 'sandbox', PADDLE_ENABLED: 'false',
 };
 const failed = e => stagingEdgeChecks(e).filter(c => !c.passed).map(c => c.name);
 
@@ -32,7 +32,7 @@ test('staging edge config allows only isolated HTTPS hostnames and loopback port
   assert.ok(failed({ ...env, STAGING_EDGE_BIND: '0.0.0.0' }).length > 0);
   assert.ok(failed({ ...env, STAGING_EDGE_HTTPS_PORT: '3001' }).length > 0);
   assert.ok(failed({ ...env, STAGING_TLS_KEY_PATH: env.STAGING_TLS_CERT_PATH }).length > 0);
-  assert.ok(failed({ ...env, STRIPE_SECRET_KEY: 'sk_live_never' }).length > 0);
+  assert.ok(failed({ ...env, PADDLE_ENV: 'production' }).length > 0);
 });
 
 test('missing staging certificate and key fail closed without revealing paths', () => {
@@ -143,7 +143,7 @@ test('staging compose overrides parse and preserve private API and loopback edge
       STAGING_EDGE_BIND: '127.0.0.1', STAGING_EDGE_HTTPS_PORT: '8443',
       STAGING_TLS_CERT_PATH: '/tmp/epmo-ci-staging.crt',
       STAGING_TLS_KEY_PATH: '/tmp/epmo-ci-staging.key',
-      EPMO_DEPLOY_SHA: shaA,
+      EPMO_DEPLOY_SHA: shaA, PADDLE_ENV: 'sandbox',
     },
   });
   assert.equal(result.status, 0, result.stderr);

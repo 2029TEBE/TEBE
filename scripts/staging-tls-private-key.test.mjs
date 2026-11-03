@@ -68,9 +68,9 @@ test('S11 staging TLS preflight rejects legacy CN-only wildcard without DNS SAN'
   }
 });
 
-test('S18 staging edge rejects restricted Stripe live keys', () => {
- const result = stagingEdgeChecks({ STRIPE_SECRET_KEY: 'rk_live_forbidden' });
- assert.equal(result.find(check => check.name === 'No live Stripe credentials')?.passed, false);
+test('S18 staging edge rejects production Paddle configuration', () => {
+ const result = stagingEdgeChecks({ BILLING_PROVIDER: 'paddle', PADDLE_ENV: 'production', PADDLE_ENABLED: 'false' });
+ assert.equal(result.find(check => check.name === 'Paddle sandbox only with payments disabled')?.passed, false);
 });
 
 test('S43 offline readiness rejects extra production, wildcard, IP and duplicate SAN entries', () => {
