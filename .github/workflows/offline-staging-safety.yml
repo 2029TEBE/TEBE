@@ -26,7 +26,7 @@ jobs:
           set -eu
           for file in scripts/staging-*.mjs; do node --check "$file"; done
       - name: Offline positive and negative safety tests
-        run: node --test scripts/staging-region-policy.test.mjs scripts/staging-profile-fixtures.test.mjs scripts/staging-offline-recovery-plan.test.mjs
+        run: node --test scripts/staging-*.test.mjs
       - name: Assert no cloud credentials or execution permissions
         run: |
           test "${CI}" = true
