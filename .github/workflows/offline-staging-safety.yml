@@ -1,0 +1,35 @@
+name: Offline Saudi staging safety
+on:
+  pull_request:
+    paths:
+      - 'scripts/staging-*.mjs'
+      - 'docs/S11-OFFLINE-SA-ENV-POLICY.md'
+      - '.github/workflows/offline-staging-safety.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check offline staging scripts
+        run: |
+          set -eu
+          for file in scripts/staging-*.mjs; do node --check "$file"; done
+      - name: Offline positive and negative safety tests
+        run: node --test scripts/staging-region-policy.test.mjs scripts/staging-profile-fixtures.test.mjs scripts/staging-offline-recovery-plan.test.mjs
+      - name: Assert no cloud credentials or execution permissions
+        run: |
+          test "${CI}" = true
+          test -z "${AWS_ACCESS_KEY_ID:-}"
+          test -z "${AZURE_CLIENT_SECRET:-}"
+          test -z "${GOOGLE_APPLICATION_CREDENTIALS:-}"
