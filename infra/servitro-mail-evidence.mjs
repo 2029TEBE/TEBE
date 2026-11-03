@@ -27,7 +27,7 @@ export function validateMailEvidence(value, now=Date.now()) {
 // Read evidence through a single no-follow descriptor; reject symlinks, devices and oversized files.
 // This guards local CLI ingestion, not the authenticity of operator/provider evidence.
 export async function readMailEvidenceFile(path) {
- const {open,constants}=await import('node:fs/promises');
+ const {open}=await import('node:fs/promises');
  const {constants:fsConstants}=await import('node:fs');
  let handle;
  try {
