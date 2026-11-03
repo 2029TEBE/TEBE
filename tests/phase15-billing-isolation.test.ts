@@ -147,10 +147,10 @@ describe.skipIf(!liveAcceptance)('Phase 15A: real billing API tenant isolation',
       method: 'POST', headers: { cookie: `pmo_session=${consultant}` },
     });
     expect(response.status).toBe(403);
-    const webhook = await fetch(`${API}/api/v1/billing/stripe-webhook`, {
+    const webhook = await fetch(`${API}/api/v1/billing/paddle-webhook`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
-    // Stripe is intentionally disabled in CI; no unverified request may settle payment.
+    // Paddle collection is intentionally disabled in CI; no unverified request may settle payment.
     expect([400, 403, 503]).toContain(webhook.status);
   });
 });

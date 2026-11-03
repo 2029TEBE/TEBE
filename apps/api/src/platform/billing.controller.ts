@@ -1,5 +1,6 @@
 import { Controller, Get, Post, ServiceUnavailableException } from '@nestjs/common';
 import { BillingService } from './billing.service';
+import { requireCapability } from '../common/require-capability';
 
 /** Read-only tenant invoice and payment history during Paddle migration. */
 @Controller('api/v1/subscription/billing')
@@ -10,6 +11,7 @@ export class BillingController {
   @Get('exceptions') exceptions() { return this.billing.exceptions(); }
   @Get('reconciliation') reconciliation() { return this.billing.reconciliation(); }
   @Post('renewal-invoice') renewalInvoice() {
+    requireCapability('pmoa_admin');
     throw new ServiceUnavailableException('Paddle renewal invoicing not yet enabled');
   }
 }

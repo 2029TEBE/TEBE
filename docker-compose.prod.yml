@@ -41,15 +41,14 @@ services:
       WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
       ALLOW_HEADER_AUTH: 'false'
       API_PORT: '4000'
-      # Stripe runs only in the API container; do not put secret keys in the
-      # web container or NEXT_PUBLIC_* variables. Compose does NOT pass through
-      # variables from --env-file unless each is explicitly mapped here.
+      # Paddle-only billing; collection is disabled until signed settlement is proven.
       DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-production}
-      STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION: ${STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:-false}
-      STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      STRIPE_WEBHOOK_PUBLIC_URL: ${STRIPE_WEBHOOK_PUBLIC_URL:-}
+      BILLING_PROVIDER: paddle
+      PADDLE_ENABLED: 'false'
+      PADDLE_ENV: ${PADDLE_ENV:-production}
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_WEBHOOK_PUBLIC_URL: ${PADDLE_WEBHOOK_PUBLIC_URL:-}
       # Phase 13A: SES invitation email is API-only. IAM credentials must be
       # supplied through the host's workload role, never through the web app.
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-none}
@@ -90,6 +89,7 @@ services:
       API_URL: http://api:4000
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL}
       WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+      BILLING_PROVIDER: paddle
     # Host port is configurable so a production stack can run alongside a dev server.
     # Loopback by default: on a public box the app is reached only through
     # nginx (TLS), never by hitting the container port directly. Set
