@@ -15,7 +15,11 @@ export class BillingController {
   @Get('payments') payments() { return this.billing.payments(); }
   @Get('exceptions') exceptions() { return this.billing.exceptions(); }
   @Get('reconciliation') reconciliation() { return this.billing.reconciliation(); }
-  @Post('renewal-invoice') renewalInvoice() { return this.billing.issueRenewalInvoice(); }
+  @Post('renewal-invoice') renewalInvoice() {
+    if (process.env.BILLING_PROVIDER === 'paddle')
+      throw new ServiceUnavailableException('Renewal invoicing is disabled during Paddle migration');
+    return this.billing.issueRenewalInvoice();
+  }
   @Post('stripe/checkout') checkout(@Body() body: unknown) {
     if (process.env.BILLING_PROVIDER === 'paddle')
       throw new ServiceUnavailableException('Legacy payment checkout is unavailable');

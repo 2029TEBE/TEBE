@@ -7,6 +7,7 @@ const env=read('apps/api/src/common/env.ts');
 const provider=read('apps/api/src/platform/stripe.service.ts');
 const billing=read('apps/api/src/platform/billing.controller.ts');
 const operator=read('apps/api/src/platform/stripe-test-operator.controller.ts');
+const subscriptions=read('apps/api/src/platform/subscription.controller.ts');
 const paid=read('apps/api/src/platform/paid-deployment.controller.ts');
 const page=read('apps/web/src/app/(app)/billing/page.tsx');
 const checkout=read('apps/web/src/app/api/billing/checkout/route.ts');
@@ -34,6 +35,8 @@ test('old Stripe endpoints and UI are blocked for Paddle-selected deployments',(
  assert.match(page,/const paddleMigration = process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(page,/!paddleMigration &&.*invoiceView\.canCheckout/);
  assert.match(paid,/Paddle entitlements are not integrated/);
+ assert.match(subscriptions,/Provider-managed cancellation is not configured/);
+ assert.match(billing,/Renewal invoicing is disabled during Paddle migration/);
 });
 test('migration never interprets checkout signup link as paid transaction',()=>{
  for(const name of conf) assert.doesNotMatch(read(name),/PADDLE_ENABLED=true/);

@@ -11,11 +11,11 @@ const COOKIE = 'pmo_session';
 
 /** Authenticated same-origin proxy; the API enforces tenant and capability checks. */
 export async function POST(req: NextRequest) {
+  const unsafe = rejectUnsafeBrowserMutation(req);
+  if (unsafe) return unsafe;
   // No legacy Stripe or local subscription mutations during Paddle cutover.
   if (process.env.BILLING_PROVIDER === 'paddle')
     return NextResponse.json({ error: 'Billing provider migration in progress' }, { status: 503 });
-  const unsafe = rejectUnsafeBrowserMutation(req);
-  if (unsafe) return unsafe;
   const token = req.cookies.get(COOKIE)?.value;
   if (!token) return NextResponse.redirect(publicUrl(req, billingFailurePath(401)), 303);
   const parsed = await readBoundedBrowserForm(req, 16_384);
