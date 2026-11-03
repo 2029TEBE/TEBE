@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     method: 'POST', cache: 'no-store',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ token: body.token, displayName: body.displayName || undefined,
-      password: body.password || undefined }),
+      password: body.password || undefined, lang: body.lang === 'ar' ? 'ar' : 'en' }),
   }).catch(() => null);
   if (!result) return NextResponse.json({ message: 'The service is currently unavailable' }, { status: 503 });
   // Never echo the token in a response or log it.
