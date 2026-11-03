@@ -25,7 +25,7 @@ test('cancellation and past due may be persisted but never grant access',()=>{
  }
 });
 test('status mismatch, malformed event and missing timestamp reject',()=>{
- for(const e of [{...event,event_type:'transaction.completed'}, {...event,data:{...event.data,status:'canceled'}},
+ for(const e of [{...event,event_type:'transaction.completed'}, {...event,event_type:'subscription.canceled',data:{...event.data,status:'active'}},
   {...event,data:{...event.data,updated_at:null}}, {...event,event_id:'evt_bad'}]){
   assert.equal(check(e,binding,{signatureVerified:true}).accepted,false);
  }
@@ -55,4 +55,12 @@ test('invalid persisted watermark and ambiguous timezone fail closed',()=>{
  assert.equal(check(event,{...binding,lastProviderUpdatedAt:'invalid'},{signatureVerified:true}).reason,'invalid_watermark');
  const ambiguous={...event,data:{...event.data,updated_at:'2026-11-03T20:00:00'}};
  assert.equal(check(ambiguous,binding,{signatureVerified:true}).reason,'missing_ordering');
+});
+
+test('subscription.updated accepts canceled status as an explicit lifecycle transition, never as settlement',()=>{
+ const result=check({...event,data:{...event.data,status:'canceled'}},binding,{signatureVerified:true});
+ assert.equal(result.accepted,true);
+ assert.equal(result.providerStatus,'canceled');
+ assert.equal(result.grantEntitlement,false);
+ assert.equal(result.requiresVerifiedSettlementForAccess,true);
 });
