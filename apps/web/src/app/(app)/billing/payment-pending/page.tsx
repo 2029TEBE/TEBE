@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import VerifiedPaymentRefresh from '@/components/VerifiedPaymentRefresh';
 import { redirect } from 'next/navigation';
 import { api, getLayoutSession } from '@/lib/api';
 import { getLang } from '@/lib/i18n';
@@ -56,7 +57,7 @@ export default async function PaymentPendingPage() {
       'العودة الناجحة من Stripe ليست إثباتًا للدفع. لا يُحدّث الاشتراك والصلاحيات إلا حدث دفع يتحقق منه الخادم. إذا دفعت في الوضع التجريبي، انتظر المعالجة ثم حدّث الحالة.'
     )}</p>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-      <a href="/billing/payment-pending">{tx('Refresh verified status', 'تحديث الحالة المتحقق منها')}</a>
+      <VerifiedPaymentRefresh ar={ar} confirmed={active} />
       <Link href="/billing/verification">{tx('View subscription details', 'عرض تفاصيل الاشتراك')}</Link>
       <Link href="/billing">{tx('Manage billing', 'إدارة الفوترة')}</Link>
     </div>
