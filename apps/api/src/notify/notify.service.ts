@@ -27,7 +27,7 @@ export class NotifyService implements OnModuleInit {
   }
 
   get transportStatus() {
-    return { name: this.transport.name, delivers: this.transport.delivers, status: this.transport.status };
+    return { name: this.transport.name, delivers: this.transport.delivers, status: this.transport.status, pilot: this.transport.pilot };
   }
 
   /**
