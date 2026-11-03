@@ -2,6 +2,14 @@ type Message = { to: string; subject: string; body: string; lang: 'en' | 'ar' };
 type Result = { ok: true } | { ok: false; error: string };
 type Config = { accountId: string; token: string; from: string };
 type Fetcher = typeof fetch;
+/** Application guard only: Cloudflare still independently verifies each destination. */
+export function pilotRecipients(value: string | undefined): ReadonlySet<string> | null {
+  const parts = (value ?? '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+  const addresses = new Set(parts);
+  if (addresses.size === 0 || addresses.size > 200 || parts.some(v =>
+    v.length > 254 || v.includes('*') || !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(v))) return null;
+  return addresses;
+}
 
 const mailbox = (value: string) => value.length <= 254 && /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(value);
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, c => ({
@@ -9,16 +17,24 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, c => ({
 }[c]!));
 
 /** No configurable endpoint: secrets and reset links only go to Cloudflare HTTPS. */
-export function createCloudflareTransport(config: Config, fetcher: Fetcher = fetch) {
+export function createCloudflareTransport(config: Config & { pilotAllowlist?: string }, fetcher: Fetcher = fetch) {
   if (!/^[a-f0-9]{32}$/.test(config.accountId) || !config.token.trim() ||
       /[\r\n]/.test(config.token) || !mailbox(config.from)) return null;
+  const allowed = config.pilotAllowlist === undefined ? undefined : pilotRecipients(config.pilotAllowlist);
+  if (allowed === null) return null;
   return {
     name: 'cloudflare',
     delivers: true,
-    status: 'Transactional email is configured through Cloudflare; inbox delivery requires verification.',
+    status: allowed ? 'Cloudflare invited pilot: only approved recipients can be sent email; each also needs Cloudflare verification. Provider acceptance is not inbox delivery.' :
+      'Transactional email is configured through Cloudflare; inbox delivery requires verification.',
+    pilot: allowed ? { mode: 'verified-only' as const, approvedRecipients: allowed.size, maximumRecipients: 200, providerVerificationRequired: true } : undefined,
+    canSendTo: (address: string) => !allowed || allowed.has(address.trim().toLowerCase()),
     async send(message: Message): Promise<Result> {
       if (!mailbox(message.to) || !message.subject.trim() || /[\r\n]/.test(message.subject)) {
         return { ok: false, error: 'Invalid transactional email.' };
+      }
+      if (allowed && !allowed.has(message.to.toLowerCase())) {
+        return { ok: false, error: 'Recipient is not approved for pilot email. Ask the administrator to verify and approve this address.' };
       }
       try {
         const response = await fetcher(
