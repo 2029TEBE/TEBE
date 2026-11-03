@@ -23,7 +23,7 @@ export function evaluatePaddleLifecycle(event, binding, { signatureVerified=fals
   const expected={ 'subscription.created':['active','trialing'], 'subscription.updated':['active','trialing','past_due','paused','canceled'],
     'subscription.canceled':['canceled'], 'subscription.past_due':['past_due'] };
   if (!expected[event.event_type].includes(data.status)) return deny('status_mismatch');
-  if (typeof data.updated_at!=='string' || !/^\\d{4}-\\d{2}-\\d{2}T/.test(data.updated_at) ||
+  if (typeof data.updated_at!=='string' || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(data.updated_at) ||
       !Number.isFinite(Date.parse(data.updated_at))) return deny('missing_ordering');
   // Never treat provider subscription status as payment evidence.
   return {accepted:true,eventId:event.event_id,tenantId:binding.tenantId,
