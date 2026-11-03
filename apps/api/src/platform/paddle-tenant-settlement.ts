@@ -11,6 +11,10 @@ export type PaddleSettlementEvidence = Readonly<{
   subscriptionId: string;
   transactionId: string;
   receiptTransactionId: string;
+  receiptSubscriptionId: string;
+  receiptEventId: string;
+  receiptId: string;
+  expectedSubscriptionId: string;
   receiptTenantId: string;
   receiptProvider: string;
   receiptSignatureVerified: boolean;
@@ -41,7 +45,13 @@ export function hasTenantBoundPaddleSettlement(
   if (e.provider !== 'paddle' || e.receiptProvider !== 'paddle' ||
       !validId(e.tenantId) || e.tenantId !== authenticatedTenantId ||
       e.receiptTenantId !== authenticatedTenantId ||
-      !validId(e.subscriptionId) || !validId(e.transactionId) ||
+      !validId(e.subscriptionId) ||
+      !validId(e.expectedSubscriptionId) ||
+      e.subscriptionId !== e.expectedSubscriptionId ||
+      !validId(e.receiptSubscriptionId) ||
+      e.receiptSubscriptionId !== e.subscriptionId ||
+      !validId(e.receiptEventId) || !validId(e.receiptId) ||
+      !validId(e.transactionId) ||
       e.transactionId !== e.receiptTransactionId ||
       !e.receiptSignatureVerified || !e.receiptCommitted ||
       e.transactionStatus !== 'completed' ||
