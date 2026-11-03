@@ -14,6 +14,8 @@ export class StripeTestOperatorController {
 
   @Post('recurring-checkout')
   recurringCheckout(@Req() req: Request) {
+    if (process.env.BILLING_PROVIDER === 'paddle')
+      throw new ForbiddenException('Legacy Stripe TEST operator is retired');
     requireCapability('pmoa_admin');
     if (req.secure !== true || (req.body != null &&
         (typeof req.body !== 'object' || Array.isArray(req.body) || Object.keys(req.body).length !== 0)))

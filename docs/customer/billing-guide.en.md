@@ -1,14 +1,11 @@
-# The EPMO — Subscription and billing guide
+# The EPMO — Subscription and billing (Paddle transition)
 
-**Who can manage billing?** Workspace administrators with the `pmoa_platform` permission can open **Billing & Renewals**. If you cannot see it, ask your administrator.
+Paddle Billing is the selected **future** payment processor. Account registration at https://login.paddle.com/signup is for The EPMO merchant, not customers.
 
-1. **Check your plan.** Open Billing & Renewals to see the current plan, effective status, billing dates, and remaining trial time. Trial access is time-limited; a plan catalogue listing is not a license grant.
-2. **Compare plans.** Prices and trial lengths reflect the current published catalogue. Ask the platform owner to confirm module entitlements, taxes, and commercial terms. Plan upgrades are not yet self-service.
-3. **Create a renewal invoice.** If eligible, use **Create renewal invoice**. This step does not charge you or renew the subscription.
-4. **Pay securely.** Click **Pay securely with Stripe** on the open invoice. Card details are entered on Stripe's hosted checkout, not in The EPMO.
-5. **Verify payment.** Returning from Stripe is **not proof** of payment. The EPMO waits for a signed Stripe webhook before recording the payment and renewing the subscription. Refresh Billing & Renewals to see the final status.
-6. **Cancel or resume.** An authorized administrator can schedule cancellation for the end of the current period and reverse that schedule before the period expires. Canceling does not automatically refund an invoice.
+**Payments are currently disabled.** Existing authenticated Billing & Renewals screens remain read-only for historical invoice and subscription records. Do not initiate a legacy Stripe Checkout or treat a checkout return as paid access. Current customer enrollment remains invitation-request only.
 
-For billing disagreements or missing subscriptions, contact your workspace administrator or The EPMO platform owner. Never send payment card details or Stripe API secrets by email or chat.
+After Paddle merchant approval, products/prices and sandbox credentials are provisioned, the engineering team must implement Paddle Checkout with server-owned tenant/price mapping; verify raw-body `Paddle-Signature` and process `transaction.completed`, `subscription.created/updated/canceled` into a durable tenant-specific ledger; exercise real sandbox payment, replay, failure, cancellation and isolation; and separately approve launch. Historical Stripe records are retained for financial/audit reconciliation and are never silently converted into Paddle payments.
 
-**Release status:** These workflows have offline tests, but live Stripe, PostgreSQL, and staging validation remain pending.
+Contact the workspace administrator or platform owner for billing assistance. Never send payment-card details, API keys, or webhook secrets in chat or email.
+
+**Release status: Paddle migration in progress; not ready for paid subscriptions.**

@@ -17,6 +17,8 @@ export class BillingController {
   @Get('reconciliation') reconciliation() { return this.billing.reconciliation(); }
   @Post('renewal-invoice') renewalInvoice() { return this.billing.issueRenewalInvoice(); }
   @Post('stripe/checkout') checkout(@Body() body: unknown) {
+    if (process.env.BILLING_PROVIDER === 'paddle')
+      throw new ServiceUnavailableException('Legacy payment checkout is unavailable');
     const parsed = new ZodPipe(z.object({ invoiceId: z.string().uuid() }).strict()).transform(body) as { invoiceId: string };
     return this.stripe.createCheckout(parsed.invoiceId);
   }
@@ -26,6 +28,8 @@ export class BillingController {
   @Throttle({ default: { ttl: 60_000, limit: 2 } })
   @Post('stripe/recurring-checkout')
   recurringCheckout(@Body(new ZodPipe(z.object({}).strict())) _body: Record<string, never>) {
+    if (process.env.BILLING_PROVIDER === 'paddle')
+      throw new ServiceUnavailableException('Legacy payment checkout is unavailable');
     // Independent customer-exposure switch: the existing C53 operator-only
     // preview does not authorize general customer access to TEST Checkout.
     if (process.env.DEPLOYMENT_ENV !== 'staging' || process.env.NODE_ENV !== 'production' ||
@@ -42,6 +46,8 @@ export class BillingWebhookController {
   @Post('stripe-webhook')
   @HttpCode(200)
   stripeWebhook(@Req() req: Request & { rawBody?: Buffer }) {
+    if (process.env.BILLING_PROVIDER === 'paddle')
+      throw new ServiceUnavailableException('Legacy Stripe webhook disabled after provider cutover');
     return this.stripe.webhook(req.rawBody, req.headers['stripe-signature']);
   }
   @Post('reference-webhook')

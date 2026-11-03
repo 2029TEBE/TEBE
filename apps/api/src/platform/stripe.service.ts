@@ -25,6 +25,8 @@ const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function stripeConfig() {
+  if (process.env.BILLING_PROVIDER === 'paddle')
+    throw new ServiceUnavailableException('Legacy Stripe billing retired for the Paddle cutover');
   const key = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (process.env.STRIPE_ENABLED !== 'true' || !key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ||

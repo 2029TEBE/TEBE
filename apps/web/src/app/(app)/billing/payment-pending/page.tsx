@@ -53,8 +53,8 @@ export default async function PaymentPendingPage() {
       unknown: tx('Unavailable', 'غير متاح'),
     } as Record<string, string>)[status] ?? tx('Unavailable', 'غير متاح')}</strong></p>
     <p className="dim">{tx(
-      'A successful Stripe redirect is not payment proof. Only a verified server-side payment event can update your subscription and entitlements. If you just paid in TEST mode, allow processing time and refresh.',
-      'العودة الناجحة من Stripe ليست إثباتًا للدفع. لا يُحدّث الاشتراك والصلاحيات إلا حدث دفع يتحقق منه الخادم. إذا دفعت في الوضع التجريبي، انتظر المعالجة ثم حدّث الحالة.'
+      'A checkout redirect is not payment proof. Only a signed and verified provider event can update your subscription and entitlements. Paddle payments are not enabled yet.',
+      'العودة من صفحة الدفع ليست إثباتًا للدفع. لا يُحدّث الاشتراك والصلاحيات إلا حدث دفع موقّع يتحقق منه الخادم. الدفع عبر Paddle غير مفعّل بعد.'
     )}</p>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
       <VerifiedPaymentRefresh ar={ar} confirmed={active} />

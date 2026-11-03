@@ -24,6 +24,11 @@ export class PaidDeploymentController {
       // Missing request context must fail with the same generic denial as a
       // revoked or unbound tenant; never expose middleware internals.
       const { tenantId, userId } = currentContext();
+      // A historical Stripe paid row cannot authorize access after the
+      // merchant-selected provider changes to Paddle. New authorization must
+      // depend on independently verified Paddle settlement once implemented.
+      if (process.env.BILLING_PROVIDER === 'paddle')
+        throw new Error('Paddle entitlements are not integrated');
       if (!tenantId || !userId) throw new Error('Missing authenticated tenant');
       // An active flag alone is not proof of a paid subscription. Require
       // immutable webhook and provider-payment evidence for the *same* current
