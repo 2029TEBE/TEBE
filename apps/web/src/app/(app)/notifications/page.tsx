@@ -24,7 +24,7 @@ export default async function Notifications({ searchParams }:
           <>
             <div className={`panel ${d.transport.delivers ? 'importok' : 'importbad'}`}>
               <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
-                {d.transport.delivers ? t('Mail is being delivered') : t('Nothing is being sent yet')}
+                {d.transport.delivers ? (lang === 'ar' ? 'البريد مهيأ · الإرسال المقبول لا يثبت وصول الرسالة' : 'Email configured · provider acceptance does not prove inbox delivery') : t('Nothing is being sent yet')}
               </h2>
               <p className="dim" style={{ margin: '10px 0 0', maxWidth: '78ch' }}>{d.transport.status}</p>
               <form method="post" action="/api/notifications/run" style={{ marginBlockStart: 14 }}>
