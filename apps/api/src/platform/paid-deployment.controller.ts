@@ -27,8 +27,8 @@ export class PaidDeploymentController {
       // A historical Stripe paid row cannot authorize access after the
       // merchant-selected provider changes to Paddle. New authorization must
       // depend on independently verified Paddle settlement once implemented.
-      if (process.env.BILLING_PROVIDER === 'paddle')
-        throw new Error('Paddle entitlements are not integrated');
+      if (process.env.BILLING_PROVIDER !== 'stripe' || process.env.STRIPE_ENABLED !== 'true')
+        throw new Error('Provider-specific entitlements are not integrated or enabled');
       if (!tenantId || !userId) throw new Error('Missing authenticated tenant');
       // An active flag alone is not proof of a paid subscription. Require
       // immutable webhook and provider-payment evidence for the *same* current
