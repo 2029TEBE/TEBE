@@ -56,6 +56,7 @@ export type OnboardingStatus = {
 };
 
 export const api = {
+  emailReadiness: () => get<{name:string;configured:boolean;status:string;pilot:null|{mode:'verified-only';maximumRecipients:number;providerVerificationRequired:boolean}}>('/api/v1/onboarding/email-readiness'),
   workspaceProfile: () => get<{id:string;slug:string;displayName:string;nameAr:string|null;contactEmail:string|null}>('/api/v1/onboarding/profile'),
   workspaceInvitations: () => get<{id:string;email:string;role:string;deliveryStatus:string;expiresAt:string;consumedAt:string|null;revokedAt:string|null}[]>('/api/v1/onboarding/invitations'),
   onboarding: () => get<OnboardingStatus>('/api/v1/onboarding/status'),
