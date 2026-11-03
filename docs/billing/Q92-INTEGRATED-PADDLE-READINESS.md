@@ -1,0 +1,7 @@
+# Q92 — Integrated Paddle sandbox checks (review only)
+
+This exact-head candidate stacks on Q91 #383, preserving the additive Paddle ledger and historical Stripe accounting records. It selectively incorporates independently green C69 #386 (pure signed-event settlement preflight) and S24 #390 (offline Servitro/Paddle deployment declaration gate). The cross-workstream regression suite combines raw-body HMAC verification, tenant-specific Paddle transaction/price matching, and an immutable nonproduction deployment plan. No direct gateway checkout, API listener, production host, customer database or payment is touched.
+
+**Assurance limits:** Signature validity alone is not settlement or entitlement. A synthetic event never proves it was received from Paddle. There is no production webhook handler, provider API fetch, atomic ledger write or real authorized sandbox receipt in this integration. The preflight validator always returns deploymentAuthorized:false, even for valid declarations; it never mutates a server. Paddle checkout remains disabled and customer launch remains NO-GO. Full real account, subscription and payment integration must be implemented and audited separately.
+
+**Deferred:** C70 #391 (Paddle-only runtime cleanup) currently fails its own CI because of migrated legacy tests and a 503-vs-403 authorization regression. Do not merge C70 wholesale until it passes exact-head tests. Public /signup and mail daemons are separately blocked on Servitro deployment/console access. No Servitro support communications without separate explicit approval.
