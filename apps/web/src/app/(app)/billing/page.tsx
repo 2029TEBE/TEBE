@@ -45,6 +45,7 @@ export default async function BillingPage({ searchParams }: {
     {checkoutReturn === 'awaiting-webhook' && <p role="status" className="dim">{tx(
       'You returned from Stripe Checkout. Your license renews only after our server verifies Stripe’s payment webhook.',
       'عدت من بوابة Stripe. لا يتجدد الترخيص إلا بعد تحقق الخادم من إشعار الدفع الموقّع.')}</p>}
+    {checkoutReturn === 'awaiting-webhook' && <p className="dim"><Link href="/billing/payment-pending">{tx('Check verified payment status', 'التحقق من حالة الدفع الموثّقة')}</Link></p>}
     {checkoutReturn === 'cancelled' && <p role="status" className="dim">{tx(
       'Stripe Checkout was canceled. No payment confirmation has been received.',
       'تم إلغاء عملية الدفع عبر Stripe. لم يصل تأكيد دفع.')}</p>}
