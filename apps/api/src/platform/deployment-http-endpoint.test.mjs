@@ -23,11 +23,17 @@ test('anonymous caller denied without querying database',async()=>{
   assert.equal(result.headers['Cache-Control'],'no-store');
 });
 test('server principal overrides spoofed tenant/deployment headers',async()=>{
-  let n=0; const seen=[];
-  const result=await invoke({db:{query:async(_sql,args)=>{seen.push(args);return {rows:[[...rows][n++]]};}}});
+  // E73 must attest the restricted role and forced RLS BEFORE tenant reads.
+  // A fixture without this row only tests fail-closed 403, not spoofing resistance.
+  const replies=[{restricted:true,protected_count:'3',table_count:'3'},...rows];
+  const seen=[];
+  const result=await invoke({db:{query:async(_sql,args)=>{
+    seen.push(args);
+    return {rows:[replies.shift()]};
+  }}});
   assert.equal(result.statusCode,200);
   assert.equal(result.body.deploymentId,D);
-  assert.deepEqual(seen,[[U,T],[T],[D,T]]);
+  assert.deepEqual(seen,[undefined,[U,T],[T],[D,T]]);
   assert.equal(JSON.stringify(result.body).includes('attacker'),false);
 });
 test('database failures redact connection secrets',async()=>{
@@ -35,8 +41,12 @@ test('database failures redact connection secrets',async()=>{
   assert.equal(result.statusCode,403);
   assert.equal(JSON.stringify(result.body).includes('password'),false);
 });
-test('cross-tenant registry denied',async()=>{
-  let n=0; const bad=[rows[0],rows[1],{...rows[2],tenant_id:U}];
+test('cross-tenant registry denied only after valid RLS attestation and scoped reads',async()=>{
+  let n=0;
+  const bad=[{restricted:true,protected_count:'3',table_count:'3'},
+    rows[0],rows[1],{...rows[2],tenant_id:U}];
   const result=await invoke({db:{query:async()=>({rows:[bad[n++]]})}});
   assert.equal(result.statusCode,403);
+  // This assertion prevents a false positive caused by an invalid preflight fixture.
+  assert.equal(n,4);
 });

@@ -72,7 +72,7 @@ for (const [label, guard] of [
 test('tenant reads use the same schema-qualified relations attested by RLS', async () => {
   const {db,calls}=fixture();
   await resolvePostgresDeployment({db,session,approvedOrigins});
-  assert.match(calls[1].sql, /FROM public\\.tenant_memberships\\b/);
-  assert.match(calls[2].sql, /FROM public\\.tenant_deployment_bindings\\b/);
-  assert.match(calls[3].sql, /FROM public\\.tenant_deployments\\b/);
+  assert.match(calls[1].sql, /FROM public\.tenant_memberships\b/);
+  assert.match(calls[2].sql, /FROM public\.tenant_deployment_bindings\b/);
+  assert.match(calls[3].sql, /FROM public\.tenant_deployments\b/);
 });
