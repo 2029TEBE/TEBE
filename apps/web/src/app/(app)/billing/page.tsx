@@ -49,6 +49,8 @@ export default async function BillingPage({ searchParams }: {
       'Stripe Checkout was canceled. No payment confirmation has been received.',
       'تم إلغاء عملية الدفع عبر Stripe. لم يصل تأكيد دفع.')}</p>}
 
+    <p className="dim"><Link href="/billing/verification">{tx('Verify subscription status with the server', 'التحقق من حالة الاشتراك عبر الخادم')}</Link></p>
+
     <Loaded load={api.subscriptionCurrent}>{subscription => {
       const status = effectiveSubscriptionStatus(subscription);
       const actions = availableBillingActions(subscription);
