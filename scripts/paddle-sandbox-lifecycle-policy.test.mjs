@@ -32,7 +32,7 @@ test('status mismatch, malformed event and missing timestamp reject',()=>{
 });
 
 test('persisted tenant watermark rejects out-of-order and conflicting events',()=>{
- const watermark={...binding,lastProviderUpdatedAt:'2026-11-03T21:00:00Z',lastProviderStatus:'canceled'};
+ const watermark={...binding,lastProviderUpdatedAt:'2026-11-03T21:00:00Z',lastProviderStatus:'canceled',lastProviderEventId:event.event_id};
  assert.equal(check(event,watermark,{signatureVerified:true}).reason,'stale_event');
  const sameTime={...event,data:{...event.data,updated_at:'2026-11-03T21:00:00Z'}};
  assert.equal(check(sameTime,watermark,{signatureVerified:true}).reason,'conflicting_event');
@@ -63,4 +63,14 @@ test('subscription.updated accepts canceled status as an explicit lifecycle tran
  assert.equal(result.providerStatus,'canceled');
  assert.equal(result.grantEntitlement,false);
  assert.equal(result.requiresVerifiedSettlementForAccess,true);
+});
+
+test('same timestamp and status requires the exact persisted provider event ID',()=>{
+ const prior={...binding,lastProviderUpdatedAt:event.data.updated_at,lastProviderStatus:'active'};
+ assert.equal(check(event,prior,{signatureVerified:true}).reason,'ambiguous_replay');
+ assert.equal(check(event,{...prior,lastProviderEventId:'evt_99999999999999999999'},{signatureVerified:true}).reason,'ambiguous_replay');
+ const exact=check(event,{...prior,lastProviderEventId:event.event_id},{signatureVerified:true});
+ assert.equal(exact.accepted,true);
+ assert.equal(exact.isReplay,true);
+ assert.equal(exact.grantEntitlement,false);
 });
