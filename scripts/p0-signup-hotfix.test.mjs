@@ -13,6 +13,8 @@ test('independent /signup route exists on the main deployment line',()=>{
  assert.match(source,/href="\/login"/);
  assert.match(source,/href="https:\/\/theepmo\.com\/"/);
  assert.match(login,/getLang/);
+ assert.match(login,/<Link href="\/signup">/);
+ assert.match(source,/robots: \{ index: false, follow: false \}/);
  assert.match(css,/\.authwrap/);
  assert.match(css,/\.authpanel/);
 });

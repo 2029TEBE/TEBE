@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getLang } from '@/lib/i18n';
 
-export const metadata = { title: 'Request access · The EPMO' };
+export const metadata = { title: 'Request access · The EPMO', robots: { index: false, follow: false } };
 
 /**
  * Independent public route for the currently deployed application line.
