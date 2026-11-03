@@ -162,6 +162,13 @@
       "when": 1789238219559,
       "tag": "0022_microsoft_user_owner_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789238220559,
+      "tag": "0023_paddle_ledger",
+      "breakpoints": true
     }
   ]
 }

@@ -66,6 +66,9 @@ REVOKE UPDATE, DELETE ON platform_subscription_audit_events FROM pmo_app;
 REVOKE UPDATE, DELETE ON billing_payments, billing_webhook_receipts, billing_payment_exceptions FROM pmo_app;
 REVOKE DELETE ON billing_invoices FROM pmo_app;
 REVOKE UPDATE, DELETE ON billing_stripe_checkout_sessions FROM pmo_app;
+-- Paddle checkout bindings and signed receipts are append-only under the app role.
+REVOKE UPDATE, DELETE ON billing_paddle_checkout_intents,
+  billing_paddle_webhook_receipts, billing_paddle_settlements FROM pmo_app;
 -- Recurring Checkout identities are immutable; only a verified settlement may
 -- update the narrow binding lifecycle fields, never provider or tenant IDs.
 REVOKE UPDATE, DELETE ON billing_stripe_recurring_checkout_sessions FROM pmo_app;
