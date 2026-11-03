@@ -449,54 +449,50 @@ try {
         await layout();
       });
       await step('admin_subscription_read', async () => {
-        // Next.js streams the authenticated subscription loader. DOMContentLoaded
-        // can precede the actual billing panel; wait for the settled navigation
-        // and prove that a real subscription card rendered (not merely a heading).
+        // The Paddle transition page is read-only; require both real,
+        // authenticated subscription and historical invoice loaders to settle.
         proofPhase = 'billing_navigation';
         await page.goto(cfg.origin + '/billing', { waitUntil: 'networkidle' });
         proofPhase = 'billing_heading';
-        await page.getByRole('heading', { level: 1, name: variant.lang === 'ar' ? 'الاشتراك والفوترة' : 'Subscription and billing' })
-          .waitFor({ state: 'visible', timeout: 30000 });
+        await page.getByRole('heading', { level: 1,
+          name: variant.lang === 'ar' ? 'الاشتراك والفوترة' : 'Subscription and billing'
+        }).waitFor({ state: 'visible', timeout: 30000 });
         proofPhase = 'billing_route';
         if (new URL(page.url()).pathname !== '/billing') throw new Error('missing_billing_screen');
-        proofPhase = 'billing_panel';
-        const subscriptionPanel = page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]');
+        proofPhase = 'billing_subscription';
+        const subscriptionPanel = page.locator('section.panel').filter({
+          has: page.getByRole('heading', {level: 2,
+            name: variant.lang === 'ar' ? 'الاشتراك الحالي' : 'Current subscription'})
+        });
         await subscriptionPanel.waitFor({ state: 'visible', timeout: 30000 });
-        // Do not accept a generic heading, empty/loading panel, or 401/403
-        // failure as proof of subscription visibility.
-        proofPhase = 'billing_card';
-        await subscriptionPanel.locator('.modcard strong').first().waitFor({ state: 'visible', timeout: 30000 });
-        proofPhase = 'billing_panels_complete';
-        // The billing screen has four independent server-loaded sections.
-        // Prove plans, invoices and exceptions have *settled successfully*,
-        // not merely that the subscription card rendered. A persistent 401,
-        // 403, service error or missing section must fail the journey.
-        // A global notification unrelated to these panels is not a billing
-        // loader failure; scope checks to the actual billing data surfaces.
-        await page.waitForFunction(() => {
-          const names = new Set([
-            'Available plans', 'الخطط المتاحة',
-            'Renewal invoices', 'فواتير التجديد',
-            'Payment exceptions', 'استثناءات المدفوعات',
-          ]);
-          const sections = Array.from(document.querySelectorAll('section[aria-label]'))
-            .filter(section => names.has(section.getAttribute('aria-label')));
-          return sections.length === 3 && sections.every(section =>
-            !section.querySelector('[role="alert"], .locked') &&
-            !!section.querySelector('.modcard, .panel'));
-        }, undefined, { timeout: 30000 });
-        if (await page.locator('p.err[role="alert"]').count())
+        await subscriptionPanel.locator('p').first().waitFor({state:'visible', timeout:30000});
+        proofPhase = 'billing_invoices';
+        const invoicePanel = page.locator('section.panel').filter({
+          has: page.getByRole('heading', {level: 2,
+            name: variant.lang === 'ar' ? 'سجل الفواتير' : 'Invoice history'})
+        });
+        await invoicePanel.waitFor({state:'visible', timeout:30000});
+        proofPhase = 'billing_no_fake_payment';
+        const notices=await page.getByRole('status').allTextContents();
+        const marker=variant.lang === 'ar' ? 'Paddle هو مزود الفوترة' : 'Paddle is our billing provider';
+        if (!notices.some(t=>t.includes(marker)) ||
+            await page.locator('main [role="alert"], main .locked').count() ||
+            await page.locator('form[action^="/api/billing/"]').count())
           throw new Error('missing_billing_screen');
         proofPhase = 'billing_layout';
         await layout();
       });
       await step('billing_return_not_proof', async () => {
-        // Forgeable query flags must never claim an invoice, payment, or cancellation succeeded.
-        await page.goto(cfg.origin + '/billing?success=1&updated=1', { waitUntil: 'domcontentloaded' });
-        const notices = await page.getByRole('status').allTextContents();
-        const marker = variant.lang === 'ar' ? 'لا يؤكد' : 'does not confirm';
-        if (notices.filter(message => message.includes(marker)).length < 2 ||
-            notices.some(message => /Renewal invoice created or found|Subscription preference updated|تم إنشاء فاتورة التجديد|تم تحديث إعداد الاشتراك/.test(message)))
+        // Forged browser flags must never claim invoice settlement, payment,
+        // cancellation or subscription activation. The provider notice is explicit.
+        await page.goto(cfg.origin + '/billing?success=1&updated=1', { waitUntil: 'networkidle' });
+        const notices=await page.getByRole('status').allTextContents();
+        const marker=variant.lang === 'ar'
+          ? 'روابط العودة لا تؤكد الدفع' : 'No payment is confirmed by a return link';
+        if (!notices.some(t=>t.includes(marker)) ||
+            notices.some(t=>/Renewal invoice created or found|Subscription preference updated|تم إنشاء فاتورة التجديد|تم تحديث إعداد الاشتراك/.test(t)))
+          throw new Error('billing_return_false_confirmation');
+        if (await page.locator('form[action^="/api/billing/"]').count())
           throw new Error('billing_return_false_confirmation');
         await layout();
       });
@@ -570,15 +566,19 @@ try {
           { path: '/login', key: 'error', value: 'expired' });
       });
       await step('expired_billing_mutations_rejected', async () => {
-        // No real invoice or subscription is touched: cookies were cleared above.
-        for (const path of ['/api/billing/checkout', '/api/billing/subscription']) {
-          const res = await page.request.post(cfg.origin + path, {
-            data: new URLSearchParams({ action: 'resume' }).toString(),
-            headers: { origin: cfg.origin, 'content-type': 'application/x-www-form-urlencoded' },
-            maxRedirects: 0, timeout: 15000,
+        // No session cookie and no real invoice: the Paddle-only billing
+        // mutation routes must reject every request without a charge or redirect.
+        for (const path of ['/api/billing/checkout','/api/billing/subscription']) {
+          const res=await page.request.post(cfg.origin+path,{
+            data:new URLSearchParams({action:'resume'}).toString(),
+            headers:{origin:cfg.origin,'content-type':'application/x-www-form-urlencoded'},
+            maxRedirects:0, timeout:15000
           });
-          assertMutationRedirect(res.status(), res.headers()['location'], cfg.origin,
-            { path: '/login', key: 'error', value: 'expired' });
+          if (res.status() !== 503 || res.headers()['cache-control'] !== 'no-store')
+            throw new Error('mutation_not_rejected');
+          const body=await res.json().catch(()=>null);
+          if (!body || body.error !== 'Paddle billing is not yet accepting customer payments')
+            throw new Error('mutation_not_rejected');
         }
       });
       await step('restricted_login_and_no_invitation_form', async () => {
