@@ -1,0 +1,28 @@
+name: EPMO read-only public DNS and HTTPS observation
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/public-domain-readiness.mjs'
+      - 'scripts/public-domain-readiness.test.mjs'
+      - '.github/workflows/public-domain-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test read-only probe and failure cases
+        run: node --test scripts/public-domain-readiness.test.mjs
+      - name: Observe public DNS and HTTPS from independent runner
+        run: node scripts/public-domain-readiness.mjs
