@@ -19,7 +19,7 @@ test('paid-access SQL keeps receipt digest and settlement predicates in one EXIS
 
 test('paid-access controller has one fail-closed return path after receipt verification', () => {
   assert.equal((source.match(/return\s*\{\s*deploymentId:/g) ?? []).length, 1);
-  assert.equal((source.match(/throw new ForbiddenException\('Access unavailable'\)/g) ?? []).length, 2);
+  assert.equal((source.match(/throw new ForbiddenException\('Access unavailable'\)/g) ?? []).length, 1);
   assert.match(source, /if \(!Array\.isArray\(result\) \|\| result\.length !== 1\)/);
   assert.match(source, /\}\s*$/);
 });

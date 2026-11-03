@@ -1589,6 +1589,11 @@ export class StripeBillingService {
           replay = assertRecurringProviderSettlement(
             candidate, invoice, subscription, intent, replayBinding, plan, false);
         } catch { throw new ConflictException('Recurring Stripe replay provider verification failed'); }
+        // A previously paid invoice can subsequently be refunded or disputed.
+        // Replays must not acknowledge the old entitlement as valid without
+        // checking the current Charge state against the trusted binding.
+        try { assertUnreversedRecurringCharge(intent, charge, replayBinding, replay, false); }
+        catch { throw new ConflictException('Recurring Stripe replay Charge was reversed or disputed'); }
         if (prior.status !== 'paid' || prior.paymentIntent !== replay.paymentIntentId ||
             new Date(prior.periodEndsAt).getTime() !== Date.parse(replay.periodEndsAt) ||
             !binding.lastPeriodEndsAt ||

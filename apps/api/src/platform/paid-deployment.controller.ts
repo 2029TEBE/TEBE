@@ -1,4 +1,4 @@
-import { Controller, Get, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Header, ForbiddenException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { withTenant } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
@@ -15,11 +15,16 @@ import { assertRuntimeDeploymentTenant, parseRuntimeDeployment } from '../tenanc
  */
 @Controller('api/v1/platform/deployment')
 export class PaidDeploymentController {
+  // Entitlements can be revoked at any time; never cache authorization results.
+  @Header('Cache-Control', 'private, no-store, max-age=0')
+  @Header('Pragma', 'no-cache')
   @Get('paid-access')
   async paidAccess() {
-    const { tenantId, userId } = currentContext();
-    if (!userId) throw new ForbiddenException('Access unavailable');
     try {
+      // Missing request context must fail with the same generic denial as a
+      // revoked or unbound tenant; never expose middleware internals.
+      const { tenantId, userId } = currentContext();
+      if (!tenantId || !userId) throw new Error('Missing authenticated tenant');
       // An active flag alone is not proof of a paid subscription. Require
       // immutable webhook and provider-payment evidence for the *same* current
       // period, tenant, subscription, invoice, event and PaymentIntent.

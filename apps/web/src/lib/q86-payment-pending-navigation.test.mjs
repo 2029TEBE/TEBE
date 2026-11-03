@@ -25,5 +25,5 @@ test('Q86 controller receipt query is complete; no duplicated or truncated metho
   assert.match(controller, /e\.tenant_id = s\.tenant_id/);
   assert.match(controller, /i\.period_ends_at = s\.period_ends_at/);
   assert.equal((controller.match(/return\s*\{\s*deploymentId:/g) ?? []).length, 1);
-  assert.equal((controller.match(/throw new ForbiddenException\('Access unavailable'\)/g) ?? []).length, 2);
+  assert.equal((controller.match(/throw new ForbiddenException\('Access unavailable'\)/g) ?? []).length, 1);
 });
