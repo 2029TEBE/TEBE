@@ -20,9 +20,11 @@ export class PaidDeploymentController {
   @Header('Pragma', 'no-cache')
   @Get('paid-access')
   async paidAccess() {
-    const { tenantId, userId } = currentContext();
-    if (!userId) throw new ForbiddenException('Access unavailable');
     try {
+      // Missing request context must fail with the same generic denial as a
+      // revoked or unbound tenant; never expose middleware internals.
+      const { tenantId, userId } = currentContext();
+      if (!tenantId || !userId) throw new Error('Missing authenticated tenant');
       // An active flag alone is not proof of a paid subscription. Require
       // immutable webhook and provider-payment evidence for the *same* current
       // period, tenant, subscription, invoice, event and PaymentIntent.
