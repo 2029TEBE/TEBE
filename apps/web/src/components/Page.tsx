@@ -16,8 +16,8 @@ export async function Page({ title, sub, children }:
   );
 }
 
-export async function Loaded<T>({ load, children, empty }:
-  { load: () => Promise<T>; children: (d: T) => React.ReactNode; empty?: string }) {
+export async function Loaded<T>({ load, children, empty, renderEmpty = false }:
+  { load: () => Promise<T>; children: (d: T) => React.ReactNode; empty?: string; renderEmpty?: boolean }) {
   const t = await tr();
   const ar = (await getLang()) === 'ar';
   let data: T;
@@ -71,7 +71,7 @@ export async function Loaded<T>({ load, children, empty }:
       </div>
     );
   }
-  if (Array.isArray(data) && data.length === 0) {
+  if (Array.isArray(data) && data.length === 0 && !renderEmpty) {
     return <div className="panel">{t(empty ?? 'Nothing here yet.')}</div>;
   }
   return <>{children(data)}</>;
