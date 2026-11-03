@@ -58,6 +58,8 @@ services:
       # Cloudflare sending token is API-only, never NEXT_PUBLIC_* or the web container.
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       CLOUDFLARE_EMAIL_API_TOKEN: ${CLOUDFLARE_EMAIL_API_TOKEN:-}
+      CLOUDFLARE_EMAIL_MODE: ${CLOUDFLARE_EMAIL_MODE:-verified-only}
+      CLOUDFLARE_PILOT_RECIPIENTS: ${CLOUDFLARE_PILOT_RECIPIENTS:-}
       BILLING_REFERENCE_WEBHOOK_ENABLED: 'false'
       # The PDF export prints the real web app in headless Chromium, so the
       # API has to be able to reach it over the compose network. This is the
