@@ -42,6 +42,7 @@ export default async function LoginPage({ searchParams }:
           {error && <p className="formerr" role="alert">{t(error)}</p>}
           <button className="btn wide" type="submit">{ar ? 'تسجيل الدخول' : 'Sign in'}</button>
           <Link href="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
+          <Link href="/signup">{ar ? 'طلب دعوة لمساحة عمل' : 'Request workspace access'}</Link>
         </form>
 
         {showHint && (
