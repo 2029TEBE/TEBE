@@ -31,10 +31,12 @@ test('C30 binding is TEST-only, tenant-locked, ledger-owned and provider-verifie
   assert.match(binding, /ON CONFLICT DO NOTHING RETURNING id/);
 });
 
-test('C30 does not activate access or expose unfinished recurring Checkout', () => {
+test('C30 pending binding does not activate access and TEST checkout is explicitly gated', () => {
   const controller = readFileSync(new URL('./billing.controller.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(binding, /UPDATE tenant_subscriptions|INSERT INTO billing_payments|status = 'active'/);
   assert.match(binding, /'pending'/);
   assert.match(binding, /paymentVerified: false/);
-  assert.doesNotMatch(controller, /prepareRecurringCheckout|bindRecurringCheckout|recurring-checkout/);
+  assert.match(controller, /@Post\('stripe\/recurring-checkout'\)/);
+  assert.match(controller, /this\.stripe\.prepareRecurringCheckout\(\)/);
+  assert.doesNotMatch(controller, /bindRecurringCheckout\(/);
 });

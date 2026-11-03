@@ -9,12 +9,15 @@ const start = service.indexOf('async prepareRecurringCheckout()');
 const end = service.indexOf('/** Authenticated customer administrator creates hosted checkout', start);
 const method = service.slice(start, end);
 
-test('C29 TEST-only recurring Checkout is implemented but not customer-exposed', () => {
+test('C29 TEST-only recurring Checkout requires explicit authenticated gate', () => {
   assert.ok(start >= 0 && end > start);
   assert.match(method, /requireCapability\('pmoa_admin'\)/);
   assert.match(method, /config\.liveMode \|\| process\.env\.DEPLOYMENT_ENV === 'production'/);
   assert.match(method, /STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true'/);
-  assert.doesNotMatch(controller, /prepareRecurringCheckout|stripe\/recurring-checkout/);
+  assert.match(controller, /@Post\('stripe\/recurring-checkout'\)/);
+  assert.match(controller, /this\.stripe\.prepareRecurringCheckout\(\)/);
+  assert.match(controller, /@Throttle\(\{ default: \{ ttl: 60_000, limit: 2 \} \}\)/);
+  assert.match(controller, /z\.object\(\{\}\)\.strict\(\)/);
 });
 
 test('C29 takes the same tenant lock as cancellation and signed invoice settlement', () => {

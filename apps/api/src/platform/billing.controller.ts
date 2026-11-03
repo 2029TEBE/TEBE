@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { BillingService } from './billing.service';
 import { StripeBillingService } from './stripe.service';
 import { z } from 'zod';
@@ -18,6 +19,14 @@ export class BillingController {
   @Post('stripe/checkout') checkout(@Body() body: unknown) {
     const parsed = new ZodPipe(z.object({ invoiceId: z.string().uuid() }).strict()).transform(body) as { invoiceId: string };
     return this.stripe.createCheckout(parsed.invoiceId);
+  }
+  /** TEST-only first-subscription Checkout. The service requires an authenticated
+   * workspace admin, expired trial, approved Stripe TEST price and explicit
+   * feature flag. The signed webhook is the only entitlement authority. */
+  @Throttle({ default: { ttl: 60_000, limit: 2 } })
+  @Post('stripe/recurring-checkout')
+  recurringCheckout(@Body(new ZodPipe(z.object({}).strict())) _body: Record<string, never>) {
+    return this.stripe.prepareRecurringCheckout();
   }
 }
 

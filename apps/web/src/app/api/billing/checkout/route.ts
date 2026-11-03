@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { stripeCheckoutRedirect } from '@/lib/billing-checkout-redirect';
+import { stripeRecurringCheckoutRedirect } from '@/lib/billing-recurring-checkout-redirect.mjs';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { billingFailurePath } from '@/lib/billing-mutation-feedback.mjs';
@@ -32,6 +33,9 @@ export async function POST(req: NextRequest) {
   } else if (action === 'checkout' && UUID.test(invoiceId)) {
     path = '/api/v1/subscription/billing/stripe/checkout';
     payload = { invoiceId };
+  } else if (action === 'first-checkout') {
+    path = '/api/v1/subscription/billing/stripe/recurring-checkout';
+    payload = {};
   } else {
     return NextResponse.redirect(publicUrl(req, billingFailurePath(400)), 303);
   }
@@ -53,6 +57,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
     target.searchParams.set('success', '1');
     return NextResponse.redirect(target, 303);
+  }
+  if (action === 'first-checkout') {
+    // A TEST Checkout session is not a paid subscription. Only a signed
+    // server-side invoice webhook can activate the tenant entitlement.
+    const recurringUrl = stripeRecurringCheckoutRedirect(data);
+    return recurringUrl
+      ? NextResponse.redirect(recurringUrl, 303)
+      : NextResponse.redirect(publicUrl(req, billingFailurePath(502)), 303);
   }
   const url = stripeCheckoutRedirect(data, invoiceId);
   if (!url) {

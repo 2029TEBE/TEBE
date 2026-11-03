@@ -53,6 +53,12 @@ export default async function BillingPage({ searchParams }: {
       const status = effectiveSubscriptionStatus(subscription);
       const actions = availableBillingActions(subscription);
       const remaining = status === 'trialing' ? daysUntil(subscription?.trialEndsAt) : null;
+      // Preview only on explicitly configured TEST staging. This never enables
+      // production collection, or treats a redirect as payment proof.
+      const firstTestCheckout = process.env.DEPLOYMENT_ENV === 'staging' &&
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED === 'true' &&
+        subscription?.status === 'trialing' && status === 'expired' &&
+        !subscription?.cancelAtPeriodEnd;
       return <section className="panel" aria-label={tx('Current subscription', 'الاشتراك الحالي')} style={{ marginBlockEnd: 20 }}>
         <h2>{tx('Your current subscription', 'اشتراكك الحالي')}</h2>
         <div className="modgrid">
@@ -72,6 +78,15 @@ export default async function BillingPage({ searchParams }: {
             <p className="dim">{tx(
               'Creating an invoice does not charge your card. Renewal is applied only after a verified payment.',
               'إنشاء الفاتورة لا يخصم من بطاقتك. يُنفذ التجديد بعد التحقق من الدفع فقط.')}</p>
+            {firstTestCheckout && <>
+              <p className="dim">{tx(
+                'Your trial has ended. You can open a Stripe TEST subscription Checkout. This is a test payment only; access activates after a verified signed invoice event.',
+                'انتهت الفترة التجريبية. يمكنك فتح بوابة اشتراك Stripe التجريبية. هذا دفع تجريبي فقط، ولا يُفعّل الوصول إلا بعد التحقق من إشعار فاتورة موقّع.')}</p>
+              <form action="/api/billing/checkout" method="post">
+                <input type="hidden" name="action" value="first-checkout"/>
+                <button type="submit" className="btn">{tx('Start Stripe TEST subscription', 'بدء اشتراك Stripe التجريبي')}</button>
+              </form>
+            </>}
             {actions.invoice && <p className="dim">{billingChangeGuidance('issue-invoice', actions.invoice, lang)}</p>}
             {actions.invoice && <form action="/api/billing/checkout" method="post">
               <input type="hidden" name="action" value="issue-invoice"/>
