@@ -1,4 +1,4 @@
-import { Controller, Get, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Header, ForbiddenException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { withTenant } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
@@ -15,6 +15,9 @@ import { assertRuntimeDeploymentTenant, parseRuntimeDeployment } from '../tenanc
  */
 @Controller('api/v1/platform/deployment')
 export class PaidDeploymentController {
+  // Entitlements can be revoked at any time; never cache authorization results.
+  @Header('Cache-Control', 'private, no-store, max-age=0')
+  @Header('Pragma', 'no-cache')
   @Get('paid-access')
   async paidAccess() {
     const { tenantId, userId } = currentContext();
