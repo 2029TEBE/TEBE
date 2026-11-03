@@ -24,11 +24,22 @@ export function evaluatePaddleLifecycle(event, binding, { signatureVerified=fals
     'subscription.canceled':['canceled'], 'subscription.past_due':['past_due'] };
   if (!expected[event.event_type].includes(data.status)) return deny('status_mismatch');
   if (typeof data.updated_at!=='string' || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T/.test(data.updated_at) ||
-      !Number.isFinite(Date.parse(data.updated_at))) return deny('missing_ordering');
+      !Number.isFinite(Date.parse(data.updated_at)) || !/(Z|[+-][0-9]{2}:[0-9]{2})$/.test(data.updated_at)) return deny('missing_ordering');
+  // The persisted watermark must come from the locked tenant/provider row, never the request.
+  // Equal timestamps cannot safely resolve conflicting lifecycle states.
+  if (binding.lastProviderUpdatedAt !== undefined && binding.lastProviderUpdatedAt !== null) {
+    const last=Date.parse(binding.lastProviderUpdatedAt);
+    if (!Number.isFinite(last)) return deny('invalid_watermark');
+    const incoming=Date.parse(data.updated_at);
+    if (incoming < last) return deny('stale_event');
+    if (incoming === last && binding.lastProviderStatus !== data.status) return deny('conflicting_event');
+  }
   // Never treat provider subscription status as payment evidence.
   return {accepted:true,eventId:event.event_id,tenantId:binding.tenantId,
     subscriptionId:binding.subscriptionId,providerSubscriptionId:data.id,
     providerStatus:data.status,providerUpdatedAt:data.updated_at,
+    // Apply only under the same tenant-scoped transaction lock as the receipt insert.
+    isReplay:binding.lastProviderUpdatedAt!=null && Date.parse(binding.lastProviderUpdatedAt)===Date.parse(data.updated_at),
     grantEntitlement:false,requiresAtomicPersistence:true,
     requiresVerifiedSettlementForAccess:true};
 }
