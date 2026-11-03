@@ -1,5 +1,3 @@
-import { billingChangeGuidance } from '@/lib/billing-self-service.mjs';
-import { checkoutReturnStatus } from '@/lib/billing-return-status.mjs';
 import { billingFailureText } from '@/lib/billing-mutation-feedback.mjs';
 import { billingInvoicePresentation, loadVerifiedBillingInvoices } from '@/lib/billing-invoice-visibility.mjs';
 import Link from 'next/link';
@@ -8,13 +6,13 @@ import { Page, Loaded } from '@/components/Page';
 import { api, getSession } from '@/lib/api';
 import { getLang } from '@/lib/i18n';
 import {
-  effectiveSubscriptionStatus, availableBillingActions, daysUntil,
+  effectiveSubscriptionStatus, daysUntil,
   formatBillingDate, formatBillingMoney,
 } from '@/lib/subscription-display.mjs';
 
 /** Read-only plan comparison and workspace billing controls. Payment confirmation is webhook-only. */
 export default async function BillingPage({ searchParams }: {
-  searchParams: Promise<{ error?: string; success?: string; billing?: string; updated?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; updated?: string }>;
 }) {
   const session = await getSession();
   if (!session.authenticated) redirect('/login');
@@ -22,11 +20,8 @@ export default async function BillingPage({ searchParams }: {
   const ar = (await getLang()) === 'ar';
   const lang = ar ? 'ar' : 'en';
   const tx = (en: string, arabic: string) => ar ? arabic : en;
-  const { error, success, billing, updated } = await searchParams;
-  const checkoutReturn = checkoutReturnStatus(billing);
-  // Paddle migration is not enabled for customer checkout. Fail closed even if
-  // an older environment still advertises Stripe-specific feature flags.
-  const paddleMigration = true;
+  const { error, success, updated } = await searchParams;
+  // Paddle checkout is not implemented; no payment or mutation actions are rendered.
   const labels: Record<string, string> = {
     active: tx('Active', 'نشط'), trialing: tx('Trial', 'تجريبي'),
     past_due: tx('Past due', 'متأخر السداد'), paused: tx('Paused', 'موقوف مؤقتًا'),
@@ -37,7 +32,7 @@ export default async function BillingPage({ searchParams }: {
   return <Page title={tx('Subscription and billing', 'الاشتراك والفوترة')}
     sub={tx('Review your plan, trial, renewal invoices, and billing options.',
       'راجع خطتك والفترة التجريبية وفواتير التجديد وخيارات الفوترة.')}>
-    {paddleMigration && <p role="status" className="dim">{tx(
+    {<p role="status" className="dim">{tx(
       'Paddle is our new billing provider. Online checkout and subscription changes are temporarily disabled until Paddle sandbox payments, secure webhook settlement, and account approval are verified. Your current billing records remain available for review.',
       'Paddle هو مزوّد الفوترة الجديد لدينا. الدفع الإلكتروني وتغيير الاشتراكات متوقفان مؤقتًا لحين التحقق من الدفع التجريبي وإشعارات الدفع الموقعة واعتماد الحساب. تظل سجلات الفوترة الحالية متاحة للمراجعة.')}</p>}
     {error && <p role="alert" className="err">{billingFailureText(error, lang)}</p>}
@@ -48,27 +43,12 @@ export default async function BillingPage({ searchParams }: {
     {updated === '1' && <p role="status" className="dim">{tx(
       'Subscription request returned. Check the current subscription below; this URL does not confirm cancellation or resumption.',
       'تمت العودة من طلب الاشتراك. راجع الاشتراك الحالي أدناه؛ هذا الرابط لا يؤكد الإلغاء أو استئناف الاشتراك.')}</p>}
-    {!paddleMigration && checkoutReturn === 'awaiting-webhook' && <p role="status" className="dim">{tx(
-      'You returned from Stripe Checkout. Your license renews only after our server verifies Stripe’s payment webhook.',
-      'عدت من بوابة Stripe. لا يتجدد الترخيص إلا بعد تحقق الخادم من إشعار الدفع الموقّع.')}</p>}
-    {!paddleMigration && checkoutReturn === 'awaiting-webhook' && <p className="dim"><Link href="/billing/payment-pending">{tx('Check verified payment status', 'التحقق من حالة الدفع الموثّقة')}</Link></p>}
-    {!paddleMigration && checkoutReturn === 'cancelled' && <p role="status" className="dim">{tx(
-      'Stripe Checkout was canceled. No payment confirmation has been received.',
-      'تم إلغاء عملية الدفع عبر Stripe. لم يصل تأكيد دفع.')}</p>}
 
     <p className="dim"><Link href="/billing/verification">{tx('Verify subscription status with the server', 'التحقق من حالة الاشتراك عبر الخادم')}</Link></p>
 
     <Loaded load={api.subscriptionCurrent}>{subscription => {
       const status = effectiveSubscriptionStatus(subscription);
-      const actions = availableBillingActions(subscription);
       const remaining = status === 'trialing' ? daysUntil(subscription?.trialEndsAt) : null;
-      // Preview only on explicitly configured TEST staging. This never enables
-      // production collection, or treats a redirect as payment proof.
-      const firstTestCheckout = false && !paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && process.env.DEPLOYMENT_ENV === 'staging' &&
-        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED === 'true' &&
-        process.env.STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true' &&
-        subscription?.status === 'trialing' && status === 'expired' &&
-        !subscription?.cancelAtPeriodEnd;
       return <section className="panel" aria-label={tx('Current subscription', 'الاشتراك الحالي')} style={{ marginBlockEnd: 20 }}>
         <h2>{tx('Your current subscription', 'اشتراكك الحالي')}</h2>
         <div className="modgrid">
@@ -88,32 +68,9 @@ export default async function BillingPage({ searchParams }: {
             <p className="dim">{tx(
               'Creating an invoice does not charge your card. Renewal is applied only after a verified payment.',
               'إنشاء الفاتورة لا يخصم من بطاقتك. يُنفذ التجديد بعد التحقق من الدفع فقط.')}</p>
-            {firstTestCheckout && <>
-              <p className="dim">{tx(
-                'Your trial has ended. You can open a Stripe TEST subscription Checkout. This is a test payment only; access activates after a verified signed invoice event.',
-                'انتهت الفترة التجريبية. يمكنك فتح بوابة اشتراك Stripe التجريبية. هذا دفع تجريبي فقط، ولا يُفعّل الوصول إلا بعد التحقق من إشعار فاتورة موقّع.')}</p>
-              <form action="/api/billing/checkout" method="post">
-                <input type="hidden" name="action" value="first-checkout"/>
-                <button type="submit" className="btn">{tx('Start Stripe TEST subscription', 'بدء اشتراك Stripe التجريبي')}</button>
-              </form>
-            </>}
-            {!paddleMigration && actions.invoice && <p className="dim">{billingChangeGuidance('issue-invoice', actions.invoice, lang)}</p>}
-            {!paddleMigration && actions.invoice && <form action="/api/billing/checkout" method="post">
-              <input type="hidden" name="action" value="issue-invoice"/>
-              <button type="submit" className="btn">{tx('Create renewal invoice', 'إنشاء فاتورة تجديد')}</button>
-            </form>}
-            {!paddleMigration && actions.scheduleCancellation && <p className="dim">{billingChangeGuidance('schedule-cancellation', actions.scheduleCancellation, lang)}</p>}
-            {!paddleMigration && actions.scheduleCancellation && <form action="/api/billing/subscription" method="post">
-              <input type="hidden" name="action" value="schedule-cancellation"/>
-              <button type="submit" className="btn">{tx('Cancel at period end', 'الإلغاء عند نهاية الفترة')}</button>
-            </form>}
-            {!paddleMigration && actions.resume && <form action="/api/billing/subscription" method="post">
-              <input type="hidden" name="action" value="resume"/>
-              <button type="submit" className="btn">{tx('Keep my subscription', 'الإبقاء على اشتراكي')}</button>
-            </form>}
-            {!actions.invoice && !actions.resume && !actions.scheduleCancellation && <p className="dim">{tx(
+            <p className="dim">{tx(
               'Self-service renewal is not available for this status. Contact your workspace administrator or the platform owner.',
-              'التجديد الذاتي غير متاح لهذه الحالة. تواصل مع مسؤول مساحة العمل أو مالك المنصة.')}</p>}
+              'التجديد الذاتي غير متاح لهذه الحالة. تواصل مع مسؤول مساحة العمل أو مالك المنصة.')}</p>
           </div>
         </div>
       </section>;
@@ -143,11 +100,6 @@ export default async function BillingPage({ searchParams }: {
           <strong>{invoiceView.status === 'paid' ? tx('Paid', 'مدفوعة') : invoiceView.status === 'open' ? tx('Open', 'مفتوحة') : invoiceView.status === 'voided' ? tx('Voided', 'ملغاة') : tx('Status unavailable', 'الحالة غير متاحة')}</strong>
           <p>{formatBillingMoney(i.amountMinor, i.currency, lang)}</p>
           <p className="dim">{formatBillingDate(i.periodStartsAt, lang)} — {formatBillingDate(i.periodEndsAt, lang)}</p>
-          {false && !paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && invoiceView.canCheckout && <form method="post" action="/api/billing/checkout">
-            <input type="hidden" name="action" value="checkout"/>
-            <input type="hidden" name="invoiceId" value={i.id}/>
-            <button type="submit" className="btn">{tx('Pay securely with Stripe', 'الدفع الآمن عبر Stripe')}</button>
-          </form>}
         </article>; })}</div>}
       </Loaded>
     </section>
