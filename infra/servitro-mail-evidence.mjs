@@ -1,6 +1,20 @@
 // S26: local-only, fail-closed mail receipt validator. No network calls or credentials.
 const SHA=/^[a-f0-9]{40}$/i;
 const TYPES=['inbound','outbound','smtp-tls','imap-tls','dkim','ptr','spf','dmarc'];
+// References are navigation pointers, never proof of authenticity. Reject local targets and URL tricks.
+export function safeEvidenceUrl(input) {
+ if(typeof input!=='string'||input.length>1024||/\\s|[\\x00-\\x1f\\x7f]/.test(input)) return false;
+ try {
+  const u=new URL(input);
+  if(u.protocol!=='https:'||!u.hostname||u.username||u.password||u.hash||u.port) return false;
+  if(!/^https:\\/\\/[^/?#]+(?:[/?]|$)/.test(input)) return false;
+  const host=u.hostname.toLowerCase().replace(/\\.$/,'');
+  if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.endsWith('.internal')) return false;
+  if(/^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)||host.startsWith('[')||host==='0') return false;
+  if(!host.includes('.')||host.includes('..')) return false;
+  return true;
+ } catch {return false;}
+}
 export function validateMailEvidence(value, now=Date.now()) {
  const errors=[];
  if (!value || typeof value!=='object' || Array.isArray(value)) return {accepted:false,errors:['invalid evidence'],operationallyVerified:false};
@@ -8,6 +22,7 @@ export function validateMailEvidence(value, now=Date.now()) {
  if(!SHA.test(value.releaseSha||'')) errors.push('invalid release SHA');
  if(value.domain!=='theepmo.com') errors.push('unexpected domain');
  if(!Array.isArray(value.receipts)||value.receipts.length!==TYPES.length) errors.push('incomplete receipts');
+ if(!Number.isFinite(now)) errors.push('invalid clock');
  const seen=new Set();
  for(const receipt of Array.isArray(value.receipts)?value.receipts:[]) {
   if(!receipt||typeof receipt!=='object'||Array.isArray(receipt)){errors.push('invalid receipt');continue;}
