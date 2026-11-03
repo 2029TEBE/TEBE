@@ -1,6 +1,6 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
 import {reconcileTestWebhook as decide} from './commercial-webhook-reconciliation.mjs';
-const binding={mode:'test',deployment:'shared_saas',tenantId:'tenant-a',accountId:'acct_test',customerId:'cus_a',subscriptionId:'sub_a',currency:'sar'};
+const binding={mode:'test',deployment:'shared_saas',tenantId:'tenant-a',accountId:'acct_test',customerId:'cus_a',subscriptionId:'sub_a',currency:'sar',expectedAmountMinor:1000};
 const event={id:'evt_a',type:'invoice.paid',livemode:false,created:100,account:'acct_test',data:{object:{customer:'cus_a',subscription:'sub_a',currency:'sar',amount_due:1000,amount_paid:1000,paid:true,status:'paid'}}};
 const run=(overrides={},extras={})=>decide({event:{...event,...overrides},binding,current:null,verifiedSignature:true,...extras});
 test('paid TEST invoice grants',()=>assert.equal(run().grant,true));
@@ -17,3 +17,9 @@ test('failed invoice revokes',()=>assert.equal(run({type:'invoice.payment_failed
 test('subscription updated never grants',()=>assert.equal(run({type:'customer.subscription.updated',data:{object:{id:'sub_a',customer:'cus_a',status:'active'}}}).grant,false));
 test('canceled subscription revokes',()=>assert.equal(run({type:'customer.subscription.deleted',data:{object:{id:'sub_a',customer:'cus_a'}}}).revoke,true));
 test('dedicated cannot self-service',()=>assert.throws(()=>run({}, {binding:{...binding,deployment:'dedicated'}}),/binding/));
+
+test('paid invoice without trusted price cannot grant',()=>assert.throws(()=>run({}, {binding:{...binding,expectedAmountMinor:undefined}}),/price mismatch/));
+test('paid invoice with wrong trusted amount cannot grant',()=>assert.throws(()=>run({}, {binding:{...binding,expectedAmountMinor:2000}}),/price mismatch/));
+test('paid invoice wrong amount due cannot grant',()=>assert.throws(()=>run({data:{object:{...event.data.object,amount_due:999}}}),/price mismatch/));
+test('invalid event timestamp rejected',()=>assert.throws(()=>run({created:0}),/unsupported/));
+test('same-second different event fails closed until provider reconciliation',()=>assert.equal(run({}, {current:{lastEventCreated:100,lastEventId:'evt_other'}}).action,'stale'));
