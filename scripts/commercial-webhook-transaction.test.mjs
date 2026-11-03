@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { persistVerifiedTestEvent } from './commercial-webhook-transaction.mjs';
 
-const binding={mode:'test',deployment:'shared_saas',tenantId:'tenant-a',accountId:'acct_test',customerId:'cus_a',subscriptionId:'sub_a',currency:'sar'};
+const binding={mode:'test',deployment:'shared_saas',tenantId:'tenant-a',accountId:'acct_test',customerId:'cus_a',subscriptionId:'sub_a',currency:'sar',expectedAmountMinor:1000};
 const event={id:'evt_1',type:'invoice.paid',livemode:false,created:100,account:'acct_test',data:{object:{customer:'cus_a',subscription:'sub_a',currency:'sar',amount_due:1000,amount_paid:1000,paid:true,status:'paid'}}};
 function memoryAdapter() {
   const events=new Set(), log=[]; let state=null, enabled=false;
