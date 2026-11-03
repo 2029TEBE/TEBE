@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assessPublicRoutes} from './public-route-acceptance.mjs';
+const sha='a'.repeat(40), now=new Date('2026-11-03T18:30:00Z');
+const urls={apex:'https://theepmo.com/',login:'https://app.theepmo.com/login',signup:'https://app.theepmo.com/signup'};
+const good=()=>({candidateSha:sha,signupMode:'account-registration',observations:Object.entries(urls).map(([route,url])=>({route,url,status:200,observedAt:now.toISOString(),tlsVerified:true,redirected:false,source:'independent-readonly-probe'}))});
+test('synthetic receipts pass contract but never authorize deployment',()=>{const r=assessPublicRoutes(good(),{now});assert.equal(r.accepted,true);assert.equal(r.deploymentAuthorized,false);assert.equal(r.operationallyVerified,false)});
+test('observed signup 404 fails closed',()=>{const x=good();x.observations[2].status=404;assert.match(assessPublicRoutes(x,{now}).failures.join(','),/signup:http-status/)});
+test('invitation request is not account registration',()=>{const x=good();x.signupMode='invitation-request';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('redirects cannot hide broken route',()=>{const x=good();x.observations[2].redirected=true;assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('stale evidence rejected',()=>{const x=good();x.observations[0].observedAt='2026-11-03T18:00:00Z';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('future evidence rejected',()=>{const x=good();x.observations[0].observedAt='2026-11-04T18:30:00Z';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('unverified TLS rejected',()=>{const x=good();x.observations[1].tlsVerified=false;assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('missing route rejected',()=>{const x=good();x.observations.pop();assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('unexpected fields rejected to avoid credential leakage',()=>{const x=good();x.observations[0].secret='redacted';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('invalid candidate SHA rejected',()=>{const x=good();x.candidateSha='main';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('duplicate route rejected',()=>{const x=good();x.observations[2].route='login';assert.equal(assessPublicRoutes(x,{now}).accepted,false)});
+test('malformed input rejected',()=>assert.equal(assessPublicRoutes(null,{now}).accepted,false));
