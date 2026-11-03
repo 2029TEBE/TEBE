@@ -11,12 +11,13 @@ const rows=[
  {tenant_id:T,deployment_id:D,immutable:true},
  {id:D,tenant_id:T,profile:'shared_sa',region:'me-central2',status:'active',api_origin:approvedOrigins[0]}
 ];
+const rlsOk={restricted:true,protected_count:'3',table_count:'3'};
 const fixture=(overrides={})=>{
  const calls=[];
  const db={query:async(sql,args)=>{
    calls.push({sql,args});
    const index=calls.length-1;
-   return {rows:[overrides[index] ?? rows[index]]};
+   return {rows:[overrides[index] ?? (index===0 ? rlsOk : rows[index-1])]};
  }};
  return {db,calls};
 };
@@ -25,17 +26,17 @@ test('authenticated tenant-scoped SQL lookup returns trusted deployment',async()
  const value=await resolvePostgresDeployment({db,session,approvedOrigins});
  assert.equal(value.deploymentId,D);
  assert(Object.isFrozen(value));
- assert.deepEqual(calls.map(c=>c.args),[[U,T],[T],[D,T]]);
+ assert.deepEqual(calls.map(c=>c.args),[undefined,[U,T],[T],[D,T]]);
  assert(calls.every(c=>!c.sql.includes(U)&&!c.sql.includes(T)));
 });
 for(const [name,overrides] of [
- ['cross tenant membership',{0:{...rows[0],tenant_id:U}}],
- ['inactive membership',{0:{...rows[0],active:false}}],
- ['mutable binding',{1:{...rows[1],immutable:false}}],
- ['cross tenant registry',{2:{...rows[2],tenant_id:U}}],
- ['unapproved region',{2:{...rows[2],region:'us-east-1'}}],
- ['spoofed deployment',{1:{...rows[1],deployment_id:U}}],
- ['untrusted origin',{2:{...rows[2],api_origin:'https://evil.example'}}]
+ ['cross tenant membership',{1:{...rows[0],tenant_id:U}}],
+ ['inactive membership',{1:{...rows[0],active:false}}],
+ ['mutable binding',{2:{...rows[1],immutable:false}}],
+ ['cross tenant registry',{3:{...rows[2],tenant_id:U}}],
+ ['unapproved region',{3:{...rows[2],region:'us-east-1'}}],
+ ['spoofed deployment',{2:{...rows[1],deployment_id:U}}],
+ ['untrusted origin',{3:{...rows[2],api_origin:'https://evil.example'}}]
 ]) test('denies '+name,async()=>{
  const {db}=fixture(overrides);
  await assert.rejects(resolvePostgresDeployment({db,session,approvedOrigins}),e=>e.message==='Deployment unavailable');
@@ -50,6 +51,18 @@ test('redacts database errors',async()=>{
  await assert.rejects(resolvePostgresDeployment({db,session,approvedOrigins}),e=>e.message==='Deployment unavailable'&&!e.message.includes('secret'));
 });
 test('rejects duplicate membership rows',async()=>{
- const db={query:async()=>({rows:[rows[0],rows[0]]})};
+ const db={query:async(sql)=>({rows:sql.includes('pg_roles')?[rlsOk]:[rows[0],rows[0]]})};
  await assert.rejects(resolvePostgresDeployment({db,session,approvedOrigins}));
+});
+
+for (const [label, guard] of [
+  ['superuser role', {...rlsOk,restricted:false}],
+  ['missing forced RLS', {...rlsOk,protected_count:'2'}],
+  ['missing routing table', {...rlsOk,table_count:'2'}],
+  ['missing role attestation', null],
+]) test('fails closed for '+label, async () => {
+  const {db,calls}=fixture({0:guard});
+  await assert.rejects(resolvePostgresDeployment({db,session,approvedOrigins}),
+    error=>error.message==='Deployment unavailable');
+  assert.equal(calls.length,1);
 });
