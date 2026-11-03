@@ -31,7 +31,7 @@ export class SubscriptionService {
     const { tenantId, userId } = currentContext();
     return withTenant(tenantId, async tx => {
       // Use the same tenant-scoped advisory lock as renewal invoice creation,
-      // Stripe Checkout and webhook settlement. Acquire it BEFORE the row lock
+      // provider checkout and signed webhook settlement. Acquire it BEFORE the row lock
       // so cancellation and payment cannot race through different lock orders.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
       // The row lock makes the eligibility check and update atomic.

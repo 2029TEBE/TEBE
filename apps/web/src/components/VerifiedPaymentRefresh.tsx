@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
 /**
- * Informational server revalidation only: never use browser state, Stripe
+ * Informational server revalidation only: never use browser state, Paddle redirects
  * redirects, or the result of router.refresh() to grant entitlements.
  */
 export default function VerifiedPaymentRefresh({ ar, confirmed }: { ar: boolean; confirmed: boolean }) {

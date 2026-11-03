@@ -1,5 +1,5 @@
 import { z } from 'zod';
-/** Reference HMAC event schema; not a native event from Moyasar/HyperPay/Stripe. */
+/** Reference HMAC test event schema; not a live provider event. */
 export const referenceSettlementSchema = z.object({
   eventId: z.string().min(5).max(128).regex(/^[a-zA-Z0-9_:-]+$/),
   paymentId: z.string().min(5).max(128).regex(/^[a-zA-Z0-9_:-]+$/),
