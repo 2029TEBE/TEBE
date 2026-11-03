@@ -45,7 +45,7 @@ export default async function LoginPage({ searchParams }:
     (!process.env.DEPLOYMENT_ENV || process.env.DEPLOYMENT_ENV === 'development');
 
   return (
-    <div className="authwrap">
+    <div className="authwrap" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar' : 'en'}>
       <div className="authpanel">
         <div className="brand" style={{ padding: 0, marginBlockEnd: 26 }}>
           <span className="glyph">E</span><span className="wordmark">{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span>
