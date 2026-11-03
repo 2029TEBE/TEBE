@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 const api = path => readFileSync(new URL('./' + path, import.meta.url),'utf8');
 const controller = api('paid-deployment.controller.ts');
 const stripe = api('stripe.service.ts');
-const page = readFileSync(new URL('../../../../web/src/app/(app)/billing/payment-pending/page.tsx', import.meta.url),'utf8');
-const refresh = readFileSync(new URL('../../../../web/src/components/VerifiedPaymentRefresh.tsx', import.meta.url),'utf8');
+const page = readFileSync(new URL('../../../web/src/app/(app)/billing/payment-pending/page.tsx', import.meta.url),'utf8');
+const refresh = readFileSync(new URL('../../../web/src/components/VerifiedPaymentRefresh.tsx', import.meta.url),'utf8');
 const probe = readFileSync(new URL('../../../../infra/servitro-probe-contract.mjs', import.meta.url),'utf8');
 
 test('Q88: paid access is bounded to authenticated context, uncached and verified records', () => {
