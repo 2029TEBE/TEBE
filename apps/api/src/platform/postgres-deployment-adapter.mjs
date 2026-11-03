@@ -4,6 +4,8 @@ import { DeploymentRoutingError } from './trusted-deployment-routing.mjs';
 // Adapter contract: db.query(sql, parameters) must use a server-owned connection.
 // Database role must have RLS enabled and must not possess BYPASSRLS.
 // Never interpolate principal identifiers or accept deployment routing headers.
+// Qualify the schema explicitly: search_path must never redirect tenant reads
+// to attacker-created shadow relations outside the attested RLS tables.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // Fail closed unless the current database identity is a restricted login and
 // every routing table has PostgreSQL RLS enabled. This is an independent
@@ -42,19 +44,19 @@ export async function resolvePostgresDeployment({ db, session, approvedOrigins }
       session, approvedOrigins,
       loadMembership: async (userId, tenantId) => {
         const row = await one(db,
-          'SELECT user_id, tenant_id, active FROM tenant_memberships WHERE user_id = $1 AND tenant_id = $2 AND active = TRUE LIMIT 2',
+          'SELECT user_id, tenant_id, active FROM public.tenant_memberships WHERE user_id = $1 AND tenant_id = $2 AND active = TRUE LIMIT 2',
           [userId, tenantId]);
         return { userId: row.user_id, tenantId: row.tenant_id, active: row.active === true };
       },
       loadBinding: async tenantId => {
         const row = await one(db,
-          'SELECT tenant_id, deployment_id, immutable FROM tenant_deployment_bindings WHERE tenant_id = $1 LIMIT 2',
+          'SELECT tenant_id, deployment_id, immutable FROM public.tenant_deployment_bindings WHERE tenant_id = $1 LIMIT 2',
           [tenantId]);
         return { tenantId: row.tenant_id, deploymentId: row.deployment_id, immutable: row.immutable === true };
       },
       loadRegistry: async deploymentId => {
         const row = await one(db,
-          'SELECT id, tenant_id, profile, region, status, api_origin FROM tenant_deployments WHERE id = $1 AND tenant_id = $2 LIMIT 2',
+          'SELECT id, tenant_id, profile, region, status, api_origin FROM public.tenant_deployments WHERE id = $1 AND tenant_id = $2 LIMIT 2',
           [deploymentId, session.tenantId]);
         return { id: row.id, tenantId: row.tenant_id, profile: row.profile,
           region: row.region, status: row.status, apiOrigin: row.api_origin };
