@@ -1573,6 +1573,8 @@ export class StripeBillingService {
           AND e.details ->> 'stripeInvoiceId' = ${candidate.invoiceId}
           AND e.details ->> 'paymentIntent' = ${paymentIntentId}
           AND p.provider = ${STRIPE_PROVIDER}
+          AND p.provider_payment_id = e.details ->> 'paymentIntent'
+          AND p.provider_event_id = e.details ->> 'eventId'
         ORDER BY e.created_at DESC LIMIT 1`))[0];
       if (prior) {
         // Re-verify provider funds/period using the historical lifecycle
