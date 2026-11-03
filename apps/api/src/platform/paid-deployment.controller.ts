@@ -84,3 +84,4 @@ export class PaidDeploymentController {
       throw new ForbiddenException('Access unavailable');
     }
   }
+}
