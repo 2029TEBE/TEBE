@@ -1,0 +1,28 @@
+name: Mail diagnostics safety and syntax
+on:
+  pull_request:
+    paths:
+      - 'infra/mail/diagnose-mail.sh'
+      - '.github/workflows/mail-diagnostics-safety.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-read-only-mail-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate operator-only shell syntax
+        run: bash -n infra/mail/diagnose-mail.sh
+      - name: Refuse mutations and private data reads in diagnostic script
+        run: |
+          if grep -En '(apt(-get)? (install|remove)|systemctl (enable|start|restart|stop)|ufw (allow|deny)|nft add|iptables -[AID]|chmod|chown|rm -|cat .*(\.key|passwd|shadow)|SECRET_KEY|MAIL_PASSWORD)' infra/mail/diagnose-mail.sh; then
+            echo 'Unsafe mutation or secret-read pattern detected' >&2
+            exit 1
+          fi
+      - name: Confirm domain/TLS incident review remains non-commercial
+        run: |
+          test -f docs/release/MAIL-TLS-RECOVERY-20261103.md
+          grep -q 'No connected authenticated VPS terminal' docs/release/MAIL-TLS-RECOVERY-20261103.md
+          echo 'Diagnostics are read-only; mail service requires authorized VPS operator.'
