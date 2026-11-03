@@ -6,8 +6,9 @@ const billing = readFileSync(new URL('../app/(app)/billing/page.tsx', import.met
 const pending = readFileSync(new URL('../app/(app)/billing/payment-pending/page.tsx', import.meta.url), 'utf8');
 const controller = readFileSync(new URL('../../../api/src/platform/paid-deployment.controller.ts', import.meta.url), 'utf8');
 
-test('Q86 provides navigation only after a pending checkout return, not a fake entitlement', () => {
-  assert.match(billing, /checkoutReturn === 'awaiting-webhook'/);
+test('Q86 retains safe payment-pending navigation without a legacy checkout return', () => {
+  assert.doesNotMatch(billing, /checkoutReturn === 'awaiting-webhook'|name="action" value="first-checkout"/);
+  assert.match(billing, /Paddle checkout is not implemented/);
   assert.match(billing, /<Link href="\/billing\/payment-pending">/);
   assert.match(pending, /getLayoutSession\(\)/);
   assert.match(pending, /pmoa_admin/);
