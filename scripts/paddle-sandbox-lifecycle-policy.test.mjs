@@ -30,3 +30,29 @@ test('status mismatch, malformed event and missing timestamp reject',()=>{
   assert.equal(check(e,binding,{signatureVerified:true}).accepted,false);
  }
 });
+
+test('persisted tenant watermark rejects out-of-order and conflicting events',()=>{
+ const watermark={...binding,lastProviderUpdatedAt:'2026-11-03T21:00:00Z',lastProviderStatus:'canceled'};
+ assert.equal(check(event,watermark,{signatureVerified:true}).reason,'stale_event');
+ const sameTime={...event,data:{...event.data,updated_at:'2026-11-03T21:00:00Z'}};
+ assert.equal(check(sameTime,watermark,{signatureVerified:true}).reason,'conflicting_event');
+ const sameState={...sameTime,data:{...sameTime.data,status:'canceled'}};
+ const replay=check(sameState,watermark,{signatureVerified:true});
+ assert.equal(replay.accepted,true);
+ assert.equal(replay.isReplay,true);
+ assert.equal(replay.grantEntitlement,false);
+});
+test('future lifecycle updates cannot be mistaken for paid settlement',()=>{
+ const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:00:00Z',lastProviderStatus:'past_due'};
+ const result=check(event,prior,{signatureVerified:true});
+ assert.equal(result.accepted,true);
+ assert.equal(result.isReplay,false);
+ assert.equal(result.requiresAtomicPersistence,true);
+ assert.equal(result.requiresVerifiedSettlementForAccess,true);
+ assert.equal(result.grantEntitlement,false);
+});
+test('invalid persisted watermark and ambiguous timezone fail closed',()=>{
+ assert.equal(check(event,{...binding,lastProviderUpdatedAt:'invalid'},{signatureVerified:true}).reason,'invalid_watermark');
+ const ambiguous={...event,data:{...event.data,updated_at:'2026-11-03T20:00:00'}};
+ assert.equal(check(ambiguous,binding,{signatureVerified:true}).reason,'missing_ordering');
+});
