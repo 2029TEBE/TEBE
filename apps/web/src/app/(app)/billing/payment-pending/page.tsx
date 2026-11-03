@@ -6,7 +6,7 @@ import { getLang } from '@/lib/i18n';
 import { effectiveSubscriptionStatus } from '@/lib/subscription-display.mjs';
 
 /**
- * Payment follow-up is informational. A Stripe return, URL parameter, or
+ * Payment follow-up is informational. A provider return, URL parameter, or
  * browser state cannot grant a license or mark an invoice paid.
  */
 export default async function PaymentPendingPage() {
@@ -53,8 +53,8 @@ export default async function PaymentPendingPage() {
       unknown: tx('Unavailable', 'غير متاح'),
     } as Record<string, string>)[status] ?? tx('Unavailable', 'غير متاح')}</strong></p>
     <p className="dim">{tx(
-      'A checkout redirect is not payment proof. Only a signed and verified provider event can update your subscription and entitlements. Paddle payments are not enabled yet.',
-      'العودة من صفحة الدفع ليست إثباتًا للدفع. لا يُحدّث الاشتراك والصلاحيات إلا حدث دفع موقّع يتحقق منه الخادم. الدفع عبر Paddle غير مفعّل بعد.'
+      'A checkout redirect is not payment proof. Only a verified Paddle settlement recorded by the server can update paid access. Paddle checkout is currently unavailable; do not attempt a payment.',
+      'العودة من صفحة الدفع ليست إثباتًا للدفع. لا تُحدَّث صلاحيات الوصول المدفوع إلا بعد تسوية Paddle يتحقق منها الخادم ويسجلها. الدفع عبر Paddle غير متاح حاليًا؛ لا تحاول إجراء دفع.'
     )}</p>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
       <VerifiedPaymentRefresh ar={ar} confirmed={active} />
