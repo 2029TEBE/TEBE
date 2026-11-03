@@ -53,15 +53,15 @@ test('Arabic 375px and English desktop billing UI uses safe state and authorizat
   assert.match(page, /loadVerifiedBillingInvoices\(api\.billingInvoices\)/);
   assert.match(page, /billingInvoicePresentation\(i\)/);
   // Paddle checkout is disabled: a valid open invoice must never render a legacy payment action.
-  assert.doesNotMatch(page, /invoiceView\\.canCheckout/);
-  assert.doesNotMatch(page, /<form\\b/);
-  assert.doesNotMatch(page, /stripe\\.com|checkout\\/sessions|checkoutUrl/i);
+  assert.doesNotMatch(page, /invoiceView\.canCheckout/);
+  assert.doesNotMatch(page, /<form\b/);
+  assert.doesNotMatch(page, /stripe\.com|checkout\/sessions|checkoutUrl/i);
   assert.match(page, /Paddle checkout is not implemented/);
-  assert.match(page, /api\\.subscriptionCurrent/);
-  assert.match(page, /api\\.subscriptionPlans/);
-  assert.match(page, /api\\.billingExceptions/);
-  assert.match(page, /!session\\.authenticated/);
-  assert.match(page, /session\\.capabilities\\.includes\\('pmoa_admin'\\)/);
+  assert.match(page, /api\.subscriptionCurrent/);
+  assert.match(page, /api\.subscriptionPlans/);
+  assert.match(page, /api\.billingExceptions/);
+  assert.match(page, /!session\.authenticated/);
+  assert.match(page, /session\.capabilities\.includes\('pmoa_admin'\)/);
   assert.match(page, /Status unavailable/);
   assert.match(page, /الحالة غير متاحة/);
   assert.doesNotMatch(page, /i\.status === 'open' && <form/);
