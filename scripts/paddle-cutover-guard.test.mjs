@@ -34,7 +34,12 @@ test('old Stripe endpoints and UI are blocked for Paddle-selected deployments',(
  assert.match(subscription,/process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(page,/const paddleMigration = process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(page,/!paddleMigration &&.*invoiceView\.canCheckout/);
- assert.match(paid,/Paddle entitlements are not integrated/);
+ // E83 deliberately replaced the old Paddle-only message with a stricter
+ // explicit-Stripe-and-enabled guard. Assert the actual authorization boundary,
+ // not a stale error string; unknown/missing providers must also fail closed.
+ assert.match(paid,/process\.env\.BILLING_PROVIDER !== 'stripe'/);
+ assert.match(paid,/process\.env\.STRIPE_ENABLED !== 'true'/);
+ assert.match(paid,/Provider-specific entitlements are not integrated or enabled/);
  assert.match(subscriptions,/Provider-managed cancellation is not configured/);
  assert.match(billing,/Renewal invoicing is disabled during Paddle migration/);
 });
