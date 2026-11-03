@@ -23,7 +23,7 @@ test('subscription read includes pricing metadata', () => {
   assert.match(subscriptionService, /p\.currency/);
 });
 test('payment does not activate licenses on browser redirect', () => {
-  assert.match(billing, /verifies Stripe’s payment webhook/);
+  assert.match(billing, /signed payment event from the configured provider/);
   assert.doesNotMatch(billing, /confirmPaymentFromQuery/);
 });
 test('form actions use existing safe mutation proxy', () => {
@@ -63,7 +63,8 @@ test('billing customer guides exist in both languages and clearly separate payme
   const english = read('docs/customer/billing-guide.en.md');
   const arabic = read('docs/customer/billing-guide.ar.md');
   assert.match(english, /not proof.*payment/i);
-  assert.match(english, /Stripe/);
-  assert.match(arabic, /Stripe/);
+  assert.match(english, /Paddle/);
+  assert.match(arabic, /Paddle/);
+  assert.match(english, /Stripe records are retained/);
   assert.match(arabic, /لا.*تجدد/);
 });
