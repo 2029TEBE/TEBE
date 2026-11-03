@@ -58,20 +58,7 @@ export class PaidDeploymentController {
              AND r.invoice_id = p.invoice_id
              AND r.provider = 'stripe'
              AND r.provider_event_id = p.provider_event_id
-             AND r.payload_sha256 ~ '^[a-f0-9]{64}
-      return {
-        deploymentId: runtime.deploymentId,
-        profile: runtime.profile,
-        region: runtime.region,
-        apiOrigin: runtime.apiOrigin,
-      };
-    } catch {
-      // No database error, subscription IDs, tenant IDs or token details leak.
-      throw new ForbiddenException('Access unavailable');
-    }
-  }
-}
-
+             AND r.payload_sha256 ~ '^[a-f0-9]{64}$'
             WHERE e.tenant_id = s.tenant_id
               AND e.subscription_id = s.id
               AND e.event_type IN (
@@ -97,4 +84,3 @@ export class PaidDeploymentController {
       throw new ForbiddenException('Access unavailable');
     }
   }
-}
