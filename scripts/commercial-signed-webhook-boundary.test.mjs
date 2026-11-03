@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
+import { verifyTestStripeSignature,handleSignedTestStripeWebhook } from './commercial-signed-webhook-boundary.mjs';
+const secret='whsec_test_only_secret';
+const now=1770000000;
+const sign=(body,ts=now)=>'t='+ts+',v1='+createHmac('sha256',secret).update(String(ts)).update('.').update(body).digest('hex');
+test('accepts authentic raw payload',()=>{const body=Buffer.from('{"id":"evt_1"}');assert.equal(verifyTestStripeSignature({rawBody:body,signature:sign(body),secret,now}),true)});
+test('rejects forged signature',()=>{const body=Buffer.from('{}');assert.throws(()=>verifyTestStripeSignature({rawBody:body,signature:'t='+now+',v1='+'0'.repeat(64),secret,now}),/invalid/)});
+test('rejects changed body',()=>{const body=Buffer.from('{"a":1}');assert.throws(()=>verifyTestStripeSignature({rawBody:Buffer.from('{"a":2}'),signature:sign(body),secret,now}),/invalid/)});
+test('rejects replay outside tolerance',()=>{const body=Buffer.from('{}');assert.throws(()=>verifyTestStripeSignature({rawBody:body,signature:sign(body,now-301),secret,now}),/timestamp/)});
+test('rejects missing raw body',()=>assert.throws(()=>verifyTestStripeSignature({rawBody:{},signature:'',secret,now}),/raw/));
+test('rejects live events before binding or DB',async()=>{const body=Buffer.from(JSON.stringify({id:'evt_1',livemode:true}));let called=false;await assert.rejects(handleSignedTestStripeWebhook({rawBody:body,signature:sign(body),secret,now,resolveBinding:()=>{called=true}}),/TEST/);assert.equal(called,false)});
+test('rejects missing trusted tenant binding',async()=>{const body=Buffer.from(JSON.stringify({id:'evt_1',livemode:false,data:{object:{customer:'cus_1',subscription:'sub_1'}}}));await assert.rejects(handleSignedTestStripeWebhook({rawBody:body,signature:sign(body),secret,now,resolveBinding:async()=>null}),/binding/)});
+test('rejects unsigned event before resolver',async()=>{const body=Buffer.from(JSON.stringify({id:'evt_1',livemode:false}));let called=false;await assert.rejects(handleSignedTestStripeWebhook({rawBody:body,signature:'t='+now+',v1='+'0'.repeat(64),secret,now,resolveBinding:()=>{called=true}}),/invalid/);assert.equal(called,false)});
