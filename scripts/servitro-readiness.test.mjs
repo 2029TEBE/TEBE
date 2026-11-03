@@ -18,7 +18,8 @@ const env = () => ({
   STAGING_TLS_CERT_PATH: '/tmp/staging.crt', STAGING_TLS_KEY_PATH: '/tmp/staging.key',
   DATABASE_URL: 'postgres://pmo_app:very-long-staging-only-test-credential@postgres:5432/pmo',
   REDIS_URL: 'redis://:another-long-staging-only-test-credential@redis:6379',
-  BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', STRIPE_SECRET_KEY: 'sk_test_fixture',
+  BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', BILLING_PROVIDER: 'paddle',
+  PADDLE_ENV: 'sandbox', PADDLE_ENABLED: 'false',
 });
 const model = () => ({
   name: 'pmo-staging', networks: { 'staging-data': { internal: true }, 'staging-app': {} },
@@ -33,11 +34,11 @@ const model = () => ({
         NODE_ENV: 'production', DEPLOYMENT_ENV: 'staging', ALLOW_HEADER_AUTH: 'false',
         DATABASE_URL: env().DATABASE_URL, REDIS_URL: env().REDIS_URL,
         WEB_ORIGIN: env().WEB_ORIGIN, BILLING_REFERENCE_WEBHOOK_ENABLED: 'false',
-        STRIPE_SECRET_KEY: 'sk_test_fixture' } },
+        BILLING_PROVIDER: 'paddle', PADDLE_ENV: 'sandbox', PADDLE_ENABLED: 'false' } },
     web: { networks: { 'staging-app': null }, image: 'epmo-staging-web:sha-' + sha,
       ports: [{ host_ip: '127.0.0.1', target: 3000, published: '3001' }],
       environment: { NODE_ENV: 'production', WEB_ORIGIN: env().WEB_ORIGIN,
-        NEXT_PUBLIC_API_URL: env().PUBLIC_API_URL } },
+        NEXT_PUBLIC_API_URL: env().PUBLIC_API_URL, BILLING_PROVIDER: 'paddle' } },
     'staging-edge': { image: 'nginx:1.28-alpine', networks: { 'staging-app': null },
       volumes: [
         { type: 'bind', source: resolve(root, 'infra/staging/nginx.conf'), target: '/etc/nginx/conf.d/default.conf', read_only: true },
@@ -57,7 +58,7 @@ test('S35 rejects production domain, public edge and wrong SHA', () => {
   for (const delta of [{ EPMO_DEPLOY_SHA: 'b'.repeat(40) },
     { WEB_ORIGIN: 'https://app.theepmo.com' }, { EPMO_SYNTHETIC_ONLY: 'NO' },
     { EPMO_DNS_CHANGE_APPROVED: 'YES' }, { STAGING_EDGE_BIND: '0.0.0.0' },
-    { STRIPE_SECRET_KEY: 'sk_live_not_allowed' }])
+    { PADDLE_ENV: 'production' }])
     assert.ok(failed({ ...env(), ...delta }).length > 0, JSON.stringify(delta));
 });
 test('S35 rejects private data exposure, Compose project substitution and credential redirect', () => {

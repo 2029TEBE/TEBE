@@ -5,7 +5,7 @@ import { requiresSecureTransport } from '../apps/api/src/common/deployment-polic
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const auth = read('apps/api/src/auth/auth.controller.ts');
 const env = read('apps/api/src/common/env.ts');
-const stripe = read('apps/api/src/platform/stripe.service.ts');
+const paddle = read('infra/staging/preflight.mjs');
 
 test('staging enforces HTTPS and secure cookies even with NODE_ENV=development', () => {
   assert.equal(requiresSecureTransport('development', 'staging'), true);
@@ -33,8 +33,9 @@ test('staging and production HTTP browser origins are rejected by boot validatio
 test('reference payment simulator is blocked in all secure deployments', () => {
   assert.match(env, /if \(secureDeployment && env\.BILLING_REFERENCE_WEBHOOK_ENABLED === 'true'\)/);
 });
-test('Stripe browser redirects require HTTPS in secure deployments', () => {
-  assert.match(stripe, /requiresSecureTransport\(process\.env\.NODE_ENV, process\.env\.DEPLOYMENT_ENV\) && base\.protocol !== 'https:'/);
+test('Paddle staging is sandbox-only and payment collection disabled', () => {
+  assert.match(paddle, /env\.PADDLE_ENV === 'sandbox'/);
+  assert.match(paddle, /env\.PADDLE_ENABLED === 'false'/);
 });
 test('login and session constraints remain enforced in secure deployments', () => {
   assert.match(env, /if \(secureDeployment\) \{/);

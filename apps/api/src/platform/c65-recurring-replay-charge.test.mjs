@@ -1,22 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { test } from 'node:test';
-import { strict as assert } from 'node:assert';
-
-const source = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
-
-test('recurring invoice replay checks current provider Charge reversal before duplicate acknowledgement', () => {
-  const start = source.indexOf('if (prior) {', source.indexOf('async settleRecurringInvoice('));
-  const end = source.indexOf('if (receipt) throw new ConflictException', start);
-  assert.ok(start > 0 && end > start, 'expected recurring replay branch');
-  const replay = source.slice(start, end);
-  assert.match(replay, /assertRecurringProviderSettlement\(/);
-  assert.match(replay, /assertUnreversedRecurringCharge\(intent, charge, replayBinding, replay, false\)/);
-  assert.ok(replay.indexOf('assertUnreversedRecurringCharge(') < replay.indexOf('return { received: true, applied: false, duplicate: true'), 'reversal check must precede duplicate acknowledgement');
+import {readFileSync} from 'node:fs';
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+const schema=readFileSync(new URL('../../../../packages/db/migrations/0023_paddle_ledger.sql',import.meta.url),'utf8');
+test('Paddle transaction replay cannot insert duplicate receipt, settlement or invoice',()=>{
+ for(const fragment of ['paddle_event_id text NOT NULL UNIQUE','paddle_transaction_id text NOT NULL UNIQUE','receipt_id uuid NOT NULL UNIQUE','invoice_id uuid NOT NULL UNIQUE'])
+ assert.ok(schema.includes(fragment),fragment);
 });
-
-test('new recurring invoice settlement also checks current provider Charge', () => {
-  const start = source.indexOf('async settleRecurringInvoice(');
-  const end = source.indexOf('\n  async ', start + 6);
-  const settlement = source.slice(start, end < 0 ? undefined : end);
-  assert.match(settlement, /assertUnreversedRecurringCharge\(intent, charge, binding, verified, false\)/);
+test('Paddle ledger enforces tenant composite bindings',()=>{
+ assert.match(schema,/FOREIGN KEY \(tenant_id,checkout_intent_id,paddle_transaction_id,subscription_id\)/);
+ assert.match(schema,/FOREIGN KEY \(tenant_id,receipt_id,checkout_intent_id\)/);
 });

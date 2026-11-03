@@ -29,6 +29,6 @@ fi
 # DEPLOYMENT_ENV is narrowly scoped to the RLS audit, which intentionally
 # requires staging semantics and rejects production deployment mode.
 DEPLOYMENT_ENV=staging \
-  STRIPE_DB_TENANT_A_ID="$TENANT_A" \
-  STRIPE_DB_TENANT_B_ID="$TENANT_B" \
-  node scripts/stripe-db-rls-audit.mjs
+  FINANCIAL_DB_TENANT_A_ID="$TENANT_A" \
+  FINANCIAL_DB_TENANT_B_ID="$TENANT_B" \
+  node scripts/financial-db-rls-audit.mjs

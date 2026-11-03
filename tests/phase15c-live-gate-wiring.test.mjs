@@ -27,11 +27,11 @@ test('CI executes live RLS audit after authenticated billing acceptance and befo
 test('live audit extracts IDs only from fixed test tenants', () => {
   assert.match(script, /get_tenant_id 'al-nakheel'/);
   assert.match(script, /get_tenant_id 'nexa'/);
-  assert.match(script, /scripts\/stripe-db-rls-audit\.mjs/);
+  assert.match(script, /scripts\/financial-db-rls-audit\.mjs/);
   assert.match(script, /set -euo pipefail/);
 });
 test('live audit uses the restricted app role from existing financial table verifier', () => {
-  const audit = read('scripts/stripe-db-rls-audit.mjs');
+  const audit = read('scripts/financial-db-rls-audit.mjs');
   assert.match(audit, /dbRole === 'pmo_app'/);
   assert.match(audit, /SET TRANSACTION READ ONLY/);
   assert.match(audit, /verifyVisibleRows\(rows, requestedTenant, table\)/);

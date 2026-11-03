@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Offline staging TLS-edge preflight. Does not contact Docker, DNS, hosts,
- * Stripe, Microsoft, PostgreSQL, or any network. Never prints secret values.
+ * Paddle, Microsoft, PostgreSQL, or any network. Never prints secret values.
  */
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { X509Certificate, createPrivateKey, createPublicKey } from 'node:crypto';
@@ -28,7 +28,8 @@ export function stagingEdgeChecks(env) {
     ['Web port is non-privileged', portOk(webPort)],
     ['TLS edge port is non-privileged and distinct from web port',
       portOk(edgePort) && String(edgePort) !== String(webPort)],
-    ['No live Stripe credentials', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
+    ['Paddle sandbox only with payments disabled', env.BILLING_PROVIDER === 'paddle' &&
+      env.PADDLE_ENV === 'sandbox' && env.PADDLE_ENABLED === 'false'],
     ['Development header authentication disabled', env.ALLOW_HEADER_AUTH !== 'true'],
     ['Production Node runtime required for staging TLS edge', env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV === 'staging'],
     ['Certificate and key paths are distinct absolute paths',

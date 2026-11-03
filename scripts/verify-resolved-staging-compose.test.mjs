@@ -21,11 +21,12 @@ const fixture = () => ({
         DATABASE_URL: 'postgres://app:fixture@postgres:5432/pmo',
         REDIS_URL: 'redis://:fixture@redis:6379',
         WEB_ORIGIN: 'https://staging.theepmo.com',
-        BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', STRIPE_SECRET_KEY: 'sk_test_fixture' } },
+        BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', BILLING_PROVIDER: 'paddle',
+        PADDLE_ENV: 'sandbox', PADDLE_ENABLED: 'false' } },
     web: { networks: { 'staging-app': null }, image: 'epmo-staging-web:sha-' + sha,
       ports: [{ host_ip: '127.0.0.1', target: 3000, published: '3001' }],
       environment: { NODE_ENV: 'production', WEB_ORIGIN: 'https://staging.theepmo.com',
-        NEXT_PUBLIC_API_URL: 'https://api-staging.theepmo.com' } },
+        NEXT_PUBLIC_API_URL: 'https://api-staging.theepmo.com', BILLING_PROVIDER: 'paddle' } },
     'staging-edge': { image: 'nginx:1.28-alpine', networks: { 'staging-app': null },
       ports: [{ host_ip: '127.0.0.1', target: 8443, published: '8443' }] },
   },
@@ -55,13 +56,13 @@ test('rejects private network removal, external networks and privileged override
   assert.ok(failed(model).some(x => x.includes('assigned')));
   assert.ok(failed(model).some(x => x.includes('privileged')));
 });
-test('rejects cross-environment URLs, wrong candidate images and live Stripe', () => {
+test('rejects cross-environment URLs, wrong candidate images and production Paddle', () => {
   const model = fixture(); model.services.api.environment.DATABASE_URL = 'postgres://app:pw@production-db:5432/pmo';
   model.services.api.environment.REDIS_URL = 'redis://:pw@redis-prod:6379';
-  model.services.api.environment.STRIPE_SECRET_KEY = 'sk_live_fake';
+  model.services.api.environment.PADDLE_ENV = 'production';
   model.services.web.image = 'epmo-staging-web:latest';
   assert.ok(failed(model).some(x => x.includes('runtime and database')));
-  assert.ok(failed(model).some(x => x.includes('Stripe')));
+  assert.ok(failed(model).some(x => x.includes('Paddle')));
   assert.ok(failed(model).some(x => x.includes('images')));
 });
 test('S33 blocks hosts-file and DNS overrides that bypass service-name isolation', () => {

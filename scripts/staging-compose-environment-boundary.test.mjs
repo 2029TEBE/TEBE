@@ -22,12 +22,13 @@ const fixture = () => ({
         DATABASE_URL: 'postgres://app:fixture@postgres:5432/pmo',
         REDIS_URL: 'redis://:fixture@redis:6379',
         WEB_ORIGIN: 'https://staging.theepmo.com',
-        BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', STRIPE_SECRET_KEY: 'sk_test_fixture' } },
+        BILLING_REFERENCE_WEBHOOK_ENABLED: 'false', BILLING_PROVIDER: 'paddle',
+        PADDLE_ENV: 'sandbox', PADDLE_ENABLED: 'false' } },
     web: { networks: { 'staging-app': null }, image: 'epmo-staging-web:sha-' + sha,
       ports: [{ host_ip: '127.0.0.1', target: 3000, published: '3001' }],
       environment: { NODE_ENV: 'production', API_URL: 'http://api:4000',
         WEB_ORIGIN: 'https://staging.theepmo.com',
-        NEXT_PUBLIC_API_URL: 'https://api-staging.theepmo.com' } },
+        NEXT_PUBLIC_API_URL: 'https://api-staging.theepmo.com', BILLING_PROVIDER: 'paddle' } },
     'staging-edge': { image: 'nginx:1.28-alpine', networks: { 'staging-app': null },
       ports: [{ host_ip: '127.0.0.1', target: 8443, published: '8443' }] },
   },
@@ -42,8 +43,8 @@ test('S50 accepts reviewed synthetic staging environment and private service URL
 });
 
 test('S50 blocks web credential exfiltration and injected public build variables', () => {
-  for (const name of ['STRIPE_SECRET_KEY', 'MS_CLIENT_SECRET', 'AWS_SECRET_ACCESS_KEY',
-    'DATABASE_URL', 'NEXT_PUBLIC_STRIPE_SECRET_KEY', 'NODE_OPTIONS']) {
+  for (const name of ['PADDLE_API_KEY', 'MS_CLIENT_SECRET', 'AWS_SECRET_ACCESS_KEY',
+    'DATABASE_URL', 'NEXT_PUBLIC_PADDLE_API_KEY', 'NODE_OPTIONS']) {
     const model = fixture();
     model.services.web.environment[name] = 'sensitive-value-must-never-be-printed';
     assert.equal(denied(model), true, name);

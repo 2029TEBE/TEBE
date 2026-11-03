@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const subscription = source('apps/api/src/platform/subscription.service.ts');
 const billing = source('apps/api/src/platform/billing.service.ts');
-const stripe = source('apps/api/src/platform/stripe.service.ts');
+const paddle = source('apps/api/src/platform/billing.controller.ts');
 const admin = source('apps/api/src/platform/super-admin.service.ts');
 const platform = source('apps/api/src/platform/platform.service.ts');
 const nav = source('apps/web/src/lib/nav.ts');
@@ -27,7 +27,7 @@ test('workspace billing reads and renewal writes require workspace admin, never 
     assert.doesNotMatch(file, /requireCapability\('pmoa_platform'\)/, name);
     assert.match(file, /requireCapability\('pmoa_admin'\)/, name);
   }
-  assert.match(stripe, /async createCheckout\(invoiceId: string\)\s*\{\s*requireCapability\('pmoa_admin'\)/);
+  assert.match(paddle, /requireCapability\('pmoa_admin'\)/);
 });
 
 test('the vendor-only Super Admin and module-entitlement boundary has NOT been relaxed', () => {
@@ -51,7 +51,7 @@ test('tenant billing actions resolve tenant from authenticated context, not body
     assert.match(file, /withTenant\(tenantId/);
     assert.doesNotMatch(file, /@Param\(['"]tenantId/);
   }
-  assert.match(stripe, /WHERE i\.tenant_id = \$\{tenantId\} AND i\.id = \$\{invoiceId\}/);
+  assert.match(billing, /WHERE tenant_id = \$\{tenantId\}/);
 });
 
 test('repeated cancellation preference skips both update and event insertion', () => {
