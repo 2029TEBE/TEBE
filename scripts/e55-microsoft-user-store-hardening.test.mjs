@@ -43,8 +43,10 @@ test('E55 folder writes are credential-CAS bound; revocation removes ciphertext'
 });
 
 test('E55 migration ledger is strictly append-only and preserves C28', () => {
-  assert.equal(journal.entries.at(-1)?.tag, '0022_microsoft_user_owner_rls');
-  assert.equal(journal.entries.at(-1)?.idx, 22);
+  assert.equal(journal.entries[22]?.tag, '0022_microsoft_user_owner_rls');
+  assert.equal(journal.entries[22]?.idx, 22);
+  // Subsequent numbered migrations are additive; preserve E55's pinned SHA.
+  assert.ok(journal.entries.at(-1)?.idx >= 22);
   assert.equal(journal.entries[21]?.tag, '0021_stripe_recurring_ledger');
   assert.equal(manifest.files['0022_microsoft_user_owner_rls.sql'],
     '84e2a1c90349c27eecf65f2b43bfc505fc2559db5c13a12f95d6faf5e8435f29');

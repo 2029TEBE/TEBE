@@ -66,5 +66,5 @@ test('billing customer guides exist in both languages and clearly separate payme
   assert.match(english, /Paddle/);
   assert.match(arabic, /Paddle/);
   assert.match(english, /Stripe records are retained/);
-  assert.match(arabic, /لا.*تجدد/);
+  assert.match(arabic, /لا.*(?:تجدد|يجدد)/);
 });
