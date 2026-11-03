@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateMonitoring,makeMonitoringFixture} from './staging-monitoring-contract.mjs';
+test('safe fixture is only offline-valid',()=>{const r=validateMonitoring(makeMonitoringFixture());assert.equal(r.valid,true);assert.equal(r.operationallyVerified,false);});
+test('rejects missing alert coverage',()=>{const v=makeMonitoringFixture();delete v.profiles[0].alerts.backupAgeHours;assert.ok(validateMonitoring(v).errors.includes('shared:missing-alert:backupAgeHours'));});
+test('rejects public metrics and raw audit logging',()=>{const v=makeMonitoringFixture();v.profiles[1].metricsPrivate=false;v.profiles[1].auditPayloadLogging=true;assert.ok(validateMonitoring(v).errors.includes('dedicated:telemetry-exposure'));});
+test('rejects monitoring namespace collision',()=>{const v=makeMonitoringFixture();v.profiles[1].monitoringNamespace=v.profiles[0].monitoringNamespace;assert.ok(validateMonitoring(v).errors.includes('dedicated:namespace'));});
+test('rejects fabricated provider acceptance',()=>{const v=makeMonitoringFixture();v.profiles[0].operationallyVerified=true;assert.ok(validateMonitoring(v).errors.includes('shared:external-claims'));});
+test('rejects probes that disclose customer data',()=>{const v=makeMonitoringFixture();v.profiles[1].probeIncludesTenantData=true;assert.ok(validateMonitoring(v).errors.includes('dedicated:probe-data'));});
+test('rejects unsafe retention and probe paths',()=>{const v=makeMonitoringFixture();v.profiles[0].retentionDays=365;v.profiles[0].healthPath='/debug';const e=validateMonitoring(v).errors;assert.ok(e.includes('shared:retention'));assert.ok(e.includes('shared:health-path'));});
+test('rejects malformed input',()=>assert.deepEqual(validateMonitoring({profiles:[]}).errors,['monitoring:invalid']));
