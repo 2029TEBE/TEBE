@@ -16,7 +16,7 @@ test('recurring invoice replay checks current provider Charge reversal before du
 
 test('new recurring invoice settlement also checks current provider Charge', () => {
   const start = source.indexOf('async settleRecurringInvoice(');
-  const end = source.indexOf('async ', start + 6);
+  const end = source.indexOf('\n  async ', start + 6);
   const settlement = source.slice(start, end < 0 ? undefined : end);
   assert.match(settlement, /assertUnreversedRecurringCharge\(intent, charge, binding, verified, false\)/);
 });
