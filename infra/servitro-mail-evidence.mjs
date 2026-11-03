@@ -24,7 +24,22 @@ export function validateMailEvidence(value, now=Date.now()) {
  for(const type of TYPES) if(!seen.has(type)) errors.push('missing '+type);
  return {accepted:errors.length===0,errors:[...new Set(errors)],operationallyVerified:false,deploymentAuthorized:false};
 }
+// Read evidence through a single no-follow descriptor; reject symlinks, devices and oversized files.
+// This guards local CLI ingestion, not the authenticity of operator/provider evidence.
+export async function readMailEvidenceFile(path) {
+ const {open,constants}=await import('node:fs/promises');
+ const {constants:fsConstants}=await import('node:fs');
+ let handle;
+ try {
+  handle=await open(path,fsConstants.O_RDONLY|fsConstants.O_NOFOLLOW|fsConstants.O_NONBLOCK);
+  const stat=await handle.stat();
+  if(!stat.isFile()||stat.size>1048576||stat.size===0) throw Error('invalid evidence file');
+  const data=await handle.readFile({encoding:'utf8'});
+  if(Buffer.byteLength(data,'utf8')>1048576) throw Error('oversized evidence file');
+  return JSON.parse(data);
+ } finally {await handle?.close();}
+}
 if(process.argv[1]?.endsWith('servitro-mail-evidence.mjs')&&process.argv[2]) {
- const {readFileSync,lstatSync}=await import('node:fs');
- try { const p=process.argv[2];const s=lstatSync(p);if(!s.isFile()||s.size>1048576) throw Error('invalid file');const result=validateMailEvidence(JSON.parse(readFileSync(p,'utf8')));console.log(JSON.stringify(result));process.exitCode=result.accepted?0:1;} catch {console.error('mail evidence rejected');process.exitCode=1;}
+ try {const result=validateMailEvidence(await readMailEvidenceFile(process.argv[2]));console.log(JSON.stringify(result));process.exitCode=result.accepted?0:1;}
+ catch {console.error('mail evidence rejected');process.exitCode=1;}
 }
