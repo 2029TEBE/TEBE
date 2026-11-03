@@ -32,5 +32,5 @@ test('Paddle settlement must link same tenant, subscription, receipt, invoice an
 test('No historical Stripe records are reclassified, deleted or migrated by schema',()=>{
  assert.doesNotMatch(sql,/DROP TABLE|TRUNCATE|DELETE FROM|UPDATE billing_stripe|INSERT INTO billing_stripe/i);
  assert.doesNotMatch(sql,/INSERT INTO billing_payments|UPDATE billing_payments/i);
- assert.match(sql,/no historical backfill or delete/i);
+ assert.match(sql,/no Stripe backfill or delete/i);
 });
