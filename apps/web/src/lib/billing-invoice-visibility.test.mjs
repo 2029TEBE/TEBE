@@ -52,11 +52,31 @@ test('Arabic 375px and English desktop billing UI uses safe state and authorizat
   const boundary = readFileSync(new URL('../components/Page.tsx', import.meta.url), 'utf8');
   assert.match(page, /loadVerifiedBillingInvoices\(api\.billingInvoices\)/);
   assert.match(page, /billingInvoicePresentation\(i\)/);
-  assert.match(page, /invoiceView\.canCheckout/);
+  // Paddle checkout is disabled: a valid open invoice must never render a legacy payment action.
+  assert.doesNotMatch(page, /invoiceView\\.canCheckout/);
+  assert.doesNotMatch(page, /<form\\b/);
+  assert.doesNotMatch(page, /stripe\\.com|checkout\\/sessions|checkoutUrl/i);
+  assert.match(page, /Paddle checkout is not implemented/);
+  assert.match(page, /api\\.subscriptionCurrent/);
+  assert.match(page, /api\\.subscriptionPlans/);
+  assert.match(page, /api\\.billingExceptions/);
+  assert.match(page, /!session\\.authenticated/);
+  assert.match(page, /session\\.capabilities\\.includes\\('pmoa_admin'\\)/);
   assert.match(page, /Status unavailable/);
   assert.match(page, /الحالة غير متاحة/);
   assert.doesNotMatch(page, /i\.status === 'open' && <form/);
   assert.match(boundary, /err\.status === 401/);
   assert.match(boundary, /err\.status === 403/);
   assert.match(boundary, /role="alert"/);
+});
+
+test('Paddle migration billing remains informational in both languages and cannot claim redirect success', () => {
+  const page = readFileSync(new URL('../app/(app)/billing/page.tsx', import.meta.url), 'utf8');
+  assert.match(page, /Online checkout and subscription changes are temporarily disabled/);
+  assert.match(page, /الدفع الإلكتروني وتغيير الاشتراكات متوقفان مؤقتًا/);
+  assert.match(page, /this URL does not confirm an invoice or payment/);
+  assert.match(page, /هذا الرابط لا يؤكد إنشاء فاتورة أو إتمام الدفع/);
+  assert.match(page, /this URL does not confirm cancellation or resumption/);
+  assert.match(page, /لا يؤكد الإلغاء أو استئناف الاشتراك/);
+  assert.match(page, /<Loaded load=\{\(\) => loadVerifiedBillingInvoices\(api\.billingInvoices\)\}/);
 });
