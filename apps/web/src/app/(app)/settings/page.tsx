@@ -28,7 +28,7 @@ export default async function Settings({ searchParams }:
   const lang = await getLang();
   const switchMessage = tenantSwitchFeedback(switchStatus, lang);
   const onboardingMessage = onboardingFeedback(onboardingStatus, lang);
-  const onboardingReturned = done === 'profile' || done === 'invite' || done === 'revoke';
+  const onboardingReturned = done === 'profile' || done === 'invite' || done === 'revoke' || done === 'resend';
   const t = await tr();
   // Adding people is its own permission. Offering the form to everyone meant a
   // Team Member could fill in four fields and only then be told no.
@@ -66,8 +66,13 @@ export default async function Settings({ searchParams }:
       </Loaded>
       {mayAddPeople ? <section className="panel" style={{ marginBottom: 18 }}>
         <h2 className="sec" style={{ marginTop: 0 }}>{lang === 'ar' ? 'دعوة زميل بالبريد الإلكتروني' : 'Invite a colleague by email'}</h2>
-        <p className="dim">{lang === 'ar' ? 'رابط آمن يُستخدم مرة واحدة وتنتهي صلاحيته خلال 72 ساعة. يلزم إعداد خدمة البريد Amazon SES.' :
-          'A secure, single-use link that expires after 72 hours. Amazon SES email delivery must be configured.'}</p>
+        <p className="dim">{lang === 'ar' ? 'رابط آمن يُستخدم مرة واحدة وتنتهي صلاحيته خلال 72 ساعة. يلزم إعداد خدمة البريد الإلكتروني المعتمد على الخادم.' :
+          'A secure, single-use link that expires after 72 hours. Verified transactional email delivery must be configured.'}</p>
+        <Loaded load={api.workspaceEmailReadiness}>
+          {(mail) => <p className="dim" role="status">{mail.configured
+            ? (lang === 'ar' ? 'تم إعداد ناقل البريد. يجب التحقق من وصول الرسالة فعلياً.' : 'Email transport is configured. Actual inbox delivery still requires verification.')
+            : (lang === 'ar' ? 'لم يتم إعداد إرسال البريد؛ لن تُرسل الدعوات.' : 'Email sending is not configured; invitations will not be delivered.')}</p>}
+        </Loaded>
         <form action="/api/onboarding" method="post" style={{ display: 'grid', gap: 10, maxWidth: 500 }}>
           <input type="hidden" name="action" value="invite" />
           <input type="hidden" name="lang" value={lang} />
@@ -87,6 +92,12 @@ export default async function Settings({ searchParams }:
                 <td>{!i.revokedAt && !i.consumedAt ? <form action="/api/onboarding" method="post">
                   <input type="hidden" name="action" value="revoke" /><input type="hidden" name="id" value={i.id} />
                   <button type="submit">{lang === 'ar' ? 'إلغاء' : 'Revoke'}</button>
+                </form> : null}
+                {!i.revokedAt && !i.consumedAt ? <form action="/api/onboarding" method="post">
+                  <input type="hidden" name="action" value="resend" />
+                  <input type="hidden" name="id" value={i.id} />
+                  <input type="hidden" name="lang" value={lang} />
+                  <button type="submit">{lang === 'ar' ? 'إعادة إرسال دعوة جديدة' : 'Resend a fresh invitation'}</button>
                 </form> : null}</td></tr>)}</tbody></table>
           </div> : <p className="dim">{lang === 'ar' ? 'لا توجد دعوات بعد.' : 'No invitations yet.'}</p>}
         </Loaded>

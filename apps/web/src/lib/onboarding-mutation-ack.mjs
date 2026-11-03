@@ -8,7 +8,7 @@ import { readBoundedUpstreamJson } from './bounded-upstream-body.mjs';
  */
 export async function onboardingMutationAcknowledged(response, action, expected = {}) {
   const expectedStatus = action === 'profile' ? 200
-    : action === 'invite' || action === 'revoke' ? 201 : null;
+    : action === 'invite' || action === 'revoke' || action === 'resend' ? 201 : null;
   if (!response || response.ok !== true || response.status !== expectedStatus ||
       response.redirected !== false ||
       !/^application\/json(?:\s*;|\s*$)/i.test(response.headers?.get?.('content-type') ?? '')) {
@@ -17,11 +17,11 @@ export async function onboardingMutationAcknowledged(response, action, expected 
   const body = await readBoundedUpstreamJson(response, 4096);
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
   if (action === 'profile' || action === 'revoke') return body.ok === true;
-  if (action === 'invite') {
+  if (action === 'invite' || action === 'resend') {
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return typeof body.id === 'string' && uuid.test(body.id) &&
-      typeof body.email === 'string' && body.email.toLowerCase() === expected.email?.trim().toLowerCase() &&
-      typeof body.role === 'string' && body.role === expected.role &&
+      typeof body.email === 'string' && (action === 'resend' || body.email.toLowerCase() === expected.email?.trim().toLowerCase()) &&
+      typeof body.role === 'string' && (action === 'resend' || body.role === expected.role) &&
       body.deliveryStatus === 'sent' &&
       typeof body.expiresAt === 'string' && Number.isFinite(Date.parse(body.expiresAt));
   }

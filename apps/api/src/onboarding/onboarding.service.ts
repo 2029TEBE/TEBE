@@ -5,6 +5,7 @@ import { withTenant } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
 import { buildTransport } from '../notify/transport';
+import { workspaceWelcome } from '../notify/pilot-policy';
 import { computeOnboardingProgress } from './onboarding-progress';
 import { makeInvitationToken, parseInvitationToken, isInvitationAcceptable, invitationLink } from './invitation-policy';
 import type { AcceptInput, InviteInput, ProfileInput } from './onboarding.schemas';
@@ -13,6 +14,16 @@ const rows = (r: unknown) => r as any[];
 
 @Injectable()
 export class OnboardingService {
+  emailReadiness() {
+    requireCapability('pmoa_manage_people');
+    const transport = buildTransport();
+    return {
+      name: transport.name, configured: transport.delivers, status: transport.status,
+      // Never disclose the account-wide recipient list/count across tenants.
+      pilot: transport.pilot ? { mode: transport.pilot.mode, maximumRecipients: 200,
+        providerVerificationRequired: true } : null,
+    };
+  }
   async status() {
     requireCapability('read');
     const { tenantId } = currentContext();
@@ -86,7 +97,10 @@ export class OnboardingService {
     if (!userId) throw new ForbiddenException('Authenticated administrator required');
     const transport = buildTransport();
     // Never hand a bearer invitation URL back to the administrator or log it.
-    if (!transport.delivers) throw new ServiceUnavailableException('Email delivery is not configured. Configure MAIL_TRANSPORT=ses and MAIL_FROM first.');
+    if (!transport.delivers) throw new ServiceUnavailableException('Email delivery is not configured. Ask the platform administrator to configure transactional email.');
+    if (transport.canSendTo && !transport.canSendTo(body.email)) {
+      throw new ServiceUnavailableException('Verify this address with Cloudflare and approve it for pilot email before inviting it.');
+    }
     const webOrigin = (process.env.WEB_ORIGIN ?? '').split(',')[0]?.trim();
     if (!webOrigin) throw new ServiceUnavailableException('WEB_ORIGIN is not configured');
     const { token, hash } = makeInvitationToken(tenantId);
@@ -160,6 +174,31 @@ export class OnboardingService {
     });
   }
 
+  async resend(id: string, lang: 'en' | 'ar') {
+    requireCapability('pmoa_manage_people');
+    const transport = buildTransport();
+    if (!transport.delivers) throw new ServiceUnavailableException('Email delivery is not configured.');
+    const { tenantId } = currentContext();
+    const invitation = await withTenant(tenantId, async tx => {
+      const [record] = rows(await tx.execute(sql`SELECT id,email,role,created_at AS "createdAt",
+        consumed_at AS "consumedAt",revoked_at AS "revokedAt"
+        FROM tenant_invitations WHERE id=${id} AND tenant_id=${tenantId} FOR UPDATE`));
+      if (!record || record.consumedAt || record.revokedAt) throw new NotFoundException('Active invitation not found');
+      if (transport.canSendTo && !transport.canSendTo(record.email)) {
+        throw new ServiceUnavailableException('Verify and approve this address for pilot email first.');
+      }
+      if (new Date(record.createdAt).getTime() > Date.now() - 5 * 60_000) {
+        throw new ConflictException('Wait five minutes before resending an invitation.');
+      }
+      await tx.execute(sql`UPDATE tenant_invitations SET revoked_at=now()
+        WHERE id=${id} AND tenant_id=${tenantId} AND consumed_at IS NULL AND revoked_at IS NULL`);
+      return record;
+    });
+    // A fresh token is generated; the previous link never becomes valid again.
+    // Preserve the recorded role and email, never accept replacements from a resend form.
+    return this.invite({ email: invitation.email, role: invitation.role, lang });
+  }
+
   /** An emailed bearer token is proof of mailbox access, not a session. */
   async accept(body: AcceptInput) {
     const parsed = parseInvitationToken(body.token);
@@ -208,6 +247,18 @@ export class OnboardingService {
       await tx.execute(sql`INSERT INTO audit_events(tenant_id,actor_id,entity,entity_id,action,diff)
         VALUES (${parsed.tenantId},${user.id},'membership',${user.id},'invitation.accepted',
           ${JSON.stringify({ role: inv.role })}::jsonb)`);
+      const origin = (process.env.WEB_ORIGIN ?? '').split(',')[0]?.trim();
+      if (origin) {
+        // Queue in the same transaction as membership activation. No external send
+        // occurs under the lock, and replay cannot create another welcome message.
+        const lang = body.lang ?? 'en';
+        const welcome = workspaceWelcome(origin, lang);
+        await tx.execute(sql`INSERT INTO notifications
+          (tenant_id,user_id,to_email,kind,subject,body,lang,entity,entity_id,dedupe_key)
+          VALUES (${parsed.tenantId},${user.id},${inv.email},'workspace.welcome',
+            ${welcome.subject},${welcome.body},${lang},'membership',${user.id},${`workspace.welcome:${user.id}`})
+          ON CONFLICT (tenant_id,dedupe_key) DO NOTHING`);
+      }
       return { ok: true, message: 'Invitation accepted. Sign in to access your workspace.' };
     });
   }

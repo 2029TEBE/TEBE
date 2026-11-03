@@ -34,7 +34,7 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
         method: 'POST', cache: 'no-store', redirect: 'error',
         signal: AbortSignal.timeout(20_000),
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, displayName: name, password }),
+        body: JSON.stringify({ token, displayName: name, password, lang }),
       });
       if (!response.ok) {
         setError(invitationErrorText(response.status, lang));

@@ -14,11 +14,17 @@ export class OnboardingController {
   @Get('profile') profile() { return this.onboarding.profile(); }
   @Patch('profile') updateProfile(@Body(new ZodPipe(profileInput)) b: any) { return this.onboarding.updateProfile(b); }
   @Get('invitations') invitations() { return this.onboarding.invitations(); }
+  @Get('email-readiness') emailReadiness() { return this.onboarding.emailReadiness(); }
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('invitations') invite(@Body(new ZodPipe(inviteInput)) b: any) { return this.onboarding.invite(b); }
   @Post('invitations/:id/revoke') revoke(
     @Param('id', new ZodPipe(z.string().uuid())) id: string,
   ) { return this.onboarding.revoke(id); }
+  @Throttle({ default: { ttl: 900_000, limit: 3 } })
+  @Post('invitations/:id/resend') resend(
+    @Param('id', new ZodPipe(z.string().uuid())) id: string,
+    @Body(new ZodPipe(z.object({ lang: z.enum(['en','ar']).default('en') }).strict())) body: { lang: 'en' | 'ar' },
+  ) { return this.onboarding.resend(id, body.lang); }
 
   // Public bearer-token redemption. IP throttling, expiry, database row-lock and
   // token hash checks apply; no tenant id is accepted from a form field.

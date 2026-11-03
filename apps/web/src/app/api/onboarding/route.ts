@@ -40,6 +40,9 @@ export async function POST(req: NextRequest) {
     body = { email: get('email'), role: get('role'), lang: get('lang') === 'ar' ? 'ar' : 'en' };
   } else if (action === 'revoke' && uuid.test(get('id'))) {
     path = `/api/v1/onboarding/invitations/${get('id')}/revoke`;
+  } else if (action === 'resend' && uuid.test(get('id'))) {
+    path = `/api/v1/onboarding/invitations/${get('id')}/resend`;
+    body = { lang: get('lang') === 'ar' ? 'ar' : 'en' };
   } else {
     return NextResponse.redirect(publicUrl(req, onboardingFailurePath(400)), 303);
   }
