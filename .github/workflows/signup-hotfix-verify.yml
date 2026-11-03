@@ -1,0 +1,41 @@
+name: Public signup hotfix isolated build check
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/app/signup/page.tsx'
+      - 'scripts/p0-signup-hotfix.test.mjs'
+      - '.github/workflows/signup-hotfix-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-signup-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate fail-closed invitation-request route
+        run: node --test scripts/p0-signup-hotfix.test.mjs
+      - name: Build shared types
+        run: pnpm build:packages
+      - name: Build the actual Next.js production web artifact
+        run: pnpm --filter @pmo/web build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+      - name: Assert the public signup page was included in the compiled artifact
+        run: |
+          test -f apps/web/.next-prod/server/app/signup/page.js
+          test -f apps/web/.next-prod/standalone/apps/web/server.js
+          printf '%s\n' 'PASS: /signup compiled on this exact PR SHA; NOT deployed to the public server.'
