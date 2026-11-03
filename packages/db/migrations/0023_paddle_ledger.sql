@@ -52,12 +52,12 @@ ALTER TABLE billing_paddle_webhook_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_paddle_webhook_receipts FORCE ROW LEVEL SECURITY;
 ALTER TABLE billing_paddle_settlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing_paddle_settlements FORCE ROW LEVEL SECURITY;
-CREATE POLICY paddle_checkout_tenant_policy ON billing_paddle_checkout_intents
+CREATE POLICY paddle_checkout_tenant_policy ON billing_paddle_checkout_intents AS RESTRICTIVE
  USING (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid)
  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid);
-CREATE POLICY paddle_receipt_tenant_policy ON billing_paddle_webhook_receipts
+CREATE POLICY paddle_receipt_tenant_policy ON billing_paddle_webhook_receipts AS RESTRICTIVE
  USING (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid)
  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid);
-CREATE POLICY paddle_settlement_tenant_policy ON billing_paddle_settlements
+CREATE POLICY paddle_settlement_tenant_policy ON billing_paddle_settlements AS RESTRICTIVE
  USING (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid)
  WITH CHECK (tenant_id = NULLIF(current_setting('app.tenant_id',true),'')::uuid);
