@@ -1,0 +1,33 @@
+name: Database schema and source security (nondeploying)
+on:
+  pull_request:
+    paths:
+      - 'packages/db/**'
+      - 'scripts/verify-db-structure.mjs'
+      - 'scripts/db-structure-security.test.mjs'
+      - '.github/workflows/db-structure-security.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Audit database inventory and security invariants without connecting to production
+        run: node scripts/verify-db-structure.mjs
+      - name: Run negative regression tests (source only)
+        run: node --test scripts/db-structure-security.test.mjs
+      - name: Verify immutable migration journal and SQL digests
+        run: node scripts/verify-migration-chain.mjs
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Compile contracts and database package with TypeScript
+        run: pnpm build:packages
