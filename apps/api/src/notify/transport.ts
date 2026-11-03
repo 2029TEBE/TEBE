@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { createCloudflareTransport } from './cloudflare-transport';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 /**
@@ -19,6 +20,8 @@ export interface MailTransport {
   readonly delivers: boolean;
   /** Why it is not delivering, in words a non-engineer can act on. */
   readonly status: string;
+  readonly pilot?: { mode: 'verified-only'; approvedRecipients: number; maximumRecipients: number; providerVerificationRequired: boolean };
+  canSendTo?(address: string): boolean;
   send(m: Sendable): Promise<SendResult>;
 }
 
@@ -82,6 +85,18 @@ export function buildTransport(env: NodeJS.ProcessEnv = process.env): MailTransp
     return new NoTransport(
       'No mail transport is configured. Notifications are being recorded in full, ' +
       'and will send once MAIL_TRANSPORT and MAIL_FROM are set.');
+  }
+
+  if (kind === 'cloudflare') {
+    const transport = createCloudflareTransport({
+      accountId: (env.CLOUDFLARE_ACCOUNT_ID ?? '').trim(),
+      token: env.CLOUDFLARE_EMAIL_API_TOKEN ?? '',
+      from: (env.MAIL_FROM ?? '').trim(),
+      // Default to the free invited pilot. Unrestricted sending is an explicit paid-mode choice.
+      pilotAllowlist: env.CLOUDFLARE_EMAIL_MODE === 'paid' ? undefined : env.CLOUDFLARE_PILOT_RECIPIENTS ?? '',
+    });
+    if (!transport) return new NoTransport('Cloudflare email is not configured. Set the sender, account, sending token and a valid pilot recipient list (1–200 approved addresses).');
+    return transport;
   }
 
   if (kind === 'ses') {
