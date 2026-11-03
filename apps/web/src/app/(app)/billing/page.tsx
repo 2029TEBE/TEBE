@@ -24,7 +24,9 @@ export default async function BillingPage({ searchParams }: {
   const tx = (en: string, arabic: string) => ar ? arabic : en;
   const { error, success, billing, updated } = await searchParams;
   const checkoutReturn = checkoutReturnStatus(billing);
-  const paddleMigration = process.env.BILLING_PROVIDER === 'paddle';
+  // Paddle migration is not enabled for customer checkout. Fail closed even if
+  // an older environment still advertises Stripe-specific feature flags.
+  const paddleMigration = true;
   const labels: Record<string, string> = {
     active: tx('Active', 'نشط'), trialing: tx('Trial', 'تجريبي'),
     past_due: tx('Past due', 'متأخر السداد'), paused: tx('Paused', 'موقوف مؤقتًا'),
@@ -62,7 +64,7 @@ export default async function BillingPage({ searchParams }: {
       const remaining = status === 'trialing' ? daysUntil(subscription?.trialEndsAt) : null;
       // Preview only on explicitly configured TEST staging. This never enables
       // production collection, or treats a redirect as payment proof.
-      const firstTestCheckout = !paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && process.env.DEPLOYMENT_ENV === 'staging' &&
+      const firstTestCheckout = false && !paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && process.env.DEPLOYMENT_ENV === 'staging' &&
         process.env.STRIPE_RECURRING_CHECKOUT_ENABLED === 'true' &&
         process.env.STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED === 'true' &&
         subscription?.status === 'trialing' && status === 'expired' &&
@@ -141,7 +143,7 @@ export default async function BillingPage({ searchParams }: {
           <strong>{invoiceView.status === 'paid' ? tx('Paid', 'مدفوعة') : invoiceView.status === 'open' ? tx('Open', 'مفتوحة') : invoiceView.status === 'voided' ? tx('Voided', 'ملغاة') : tx('Status unavailable', 'الحالة غير متاحة')}</strong>
           <p>{formatBillingMoney(i.amountMinor, i.currency, lang)}</p>
           <p className="dim">{formatBillingDate(i.periodStartsAt, lang)} — {formatBillingDate(i.periodEndsAt, lang)}</p>
-          {!paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && invoiceView.canCheckout && <form method="post" action="/api/billing/checkout">
+          {false && !paddleMigration && process.env.BILLING_PROVIDER === 'stripe' && invoiceView.canCheckout && <form method="post" action="/api/billing/checkout">
             <input type="hidden" name="action" value="checkout"/>
             <input type="hidden" name="invoiceId" value={i.id}/>
             <button type="submit" className="btn">{tx('Pay securely with Stripe', 'الدفع الآمن عبر Stripe')}</button>
