@@ -4,9 +4,10 @@ import { readFileSync } from 'node:fs';
 import { onboardingMutationAcknowledged } from './onboarding-mutation-ack.mjs';
 
 const read = p => readFileSync(new URL('../' + p, import.meta.url),'utf8');
-const ctl = read('../api/src/onboarding/onboarding.controller.ts');
-const svc = read('../api/src/onboarding/onboarding.service.ts');
-const schemas = read('../api/src/onboarding/onboarding.schemas.ts');
+const readApi = p => readFileSync(new URL('../../../api/src/' + p, import.meta.url),'utf8');
+const ctl = readApi('onboarding/onboarding.controller.ts');
+const svc = readApi('onboarding/onboarding.service.ts');
+const schemas = readApi('onboarding/onboarding.schemas.ts');
 const route = read('app/api/onboarding/route.ts');
 const accept = read('app/api/invite/accept/route.ts');
 const form = read('app/accept-invite/InviteForm.tsx');
