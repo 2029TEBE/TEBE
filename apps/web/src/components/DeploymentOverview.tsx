@@ -44,6 +44,9 @@ export function DeploymentOverview({
   const [failed, setFailed] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const sequence = useRef(0);
+  // A pending request must never refresh or affect a newly selected workspace.
+  const activeWorkspace = useRef(workspaceKey);
+  activeWorkspace.current = workspaceKey;
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
@@ -75,8 +78,12 @@ export function DeploymentOverview({
   }, [loadDeployment, workspaceKey, revision]);
 
   async function submit(preference: DeploymentPreference) {
-    if (!canRequest || !requestDeployment) throw new Error('Unauthorized request');
+    if (!workspaceKey || !canRequest || !requestDeployment) throw new Error('Unauthorized request');
+    const submittedFor = workspaceKey;
     await requestDeployment(preference);
+    // The request belongs to the original workspace. A late response cannot
+    // refresh or imply success in another workspace after the user switches.
+    if (activeWorkspace.current !== submittedFor) return;
     // A submitted request does not imply approved/active; re-read server truth.
     setRevision((value) => value + 1);
   }
@@ -92,8 +99,8 @@ export function DeploymentOverview({
       <DeploymentRequestSelector
         key={workspaceKey}
         locale={locale}
-        disabled={!canRequest || pending}
-        onRequest={canRequest && requestDeployment ? submit : undefined}
+        disabled={!workspaceKey || !canRequest || pending}
+        onRequest={workspaceKey && canRequest && requestDeployment ? submit : undefined}
       />
     </div>
   );
