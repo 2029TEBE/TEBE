@@ -4,6 +4,7 @@ import { when } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 import { Flash } from '@/components/NewRecord';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, can, type Capability } from '@pmo/contracts';
+import { invitationDisplay } from '@/lib/invitation-display';
 
 const CAP_MEANING: Record<string, string> = {
   read: 'See the workspace and anything not otherwise restricted',
@@ -49,8 +50,15 @@ export default async function Settings({ searchParams }:
       </Loaded>
       {mayAddPeople ? <section className="panel" style={{ marginBottom: 18 }}>
         <h2 className="sec" style={{ marginTop: 0 }}>{lang === 'ar' ? 'دعوة زميل بالبريد الإلكتروني' : 'Invite a colleague by email'}</h2>
-        <p className="dim">{lang === 'ar' ? 'رابط آمن يُستخدم مرة واحدة وتنتهي صلاحيته خلال 72 ساعة. يلزم إعداد خدمة البريد Amazon SES.' :
-          'A secure, single-use link that expires after 72 hours. Amazon SES email delivery must be configured.'}</p>
+        <p className="dim">{lang === 'ar' ? 'رابط آمن يُستخدم مرة واحدة وتنتهي صلاحيته خلال 72 ساعة. يلزم إعداد خدمة بريد المعاملات.' :
+          'A secure, single-use link that expires after 72 hours. Transactional email delivery must be configured.'}</p>
+        <Loaded load={api.emailReadiness}>{mail => <div role="status" className="panel" style={{ marginBottom: 12 }}>
+          <strong>{mail.configured ? (lang === 'ar' ? 'خدمة البريد مهيأة · يلزم التحقق من الوصول' : 'Email configured · inbox delivery still needs verification') :
+            (lang === 'ar' ? 'خدمة البريد غير مهيأة' : 'Email is not configured')}</strong>
+          <p>{mail.status}</p>
+          {mail.pilot && <p>{lang === 'ar' ? 'قبل الدعوة: أضف عنوان المستلم في Cloudflare، واطلب منه تأكيده، ثم اعتمده في قائمة الإرسال. الدعوات وإعادة تعيين كلمة المرور والتنبيهات تشترك في نفس العناوين، بحد أقصى 200 عنوان للحساب.' :
+            'Before inviting: add the recipient in Cloudflare, have them verify their address, then approve it in the sending list. Invitations, password resets and alerts share the same addresses, up to 200 account-wide.'}</p>}
+        </div>}</Loaded>
         <form action="/api/onboarding" method="post" style={{ display: 'grid', gap: 10, maxWidth: 500 }}>
           <input type="hidden" name="action" value="invite" />
           <input type="hidden" name="lang" value={lang} />
@@ -64,13 +72,17 @@ export default async function Settings({ searchParams }:
           {(invites) => invites.length ? <div style={{ overflowX: 'auto', marginTop: 18 }}>
             <h3>{lang === 'ar' ? 'الدعوات الأخيرة' : 'Recent invitations'}</h3>
             <table><thead><tr><th>{lang === 'ar' ? 'البريد' : 'Email'}</th><th>{lang === 'ar' ? 'الدور' : 'Role'}</th><th>{lang === 'ar' ? 'الحالة' : 'Status'}</th><th>{lang === 'ar' ? 'الإجراء' : 'Action'}</th></tr></thead>
-              <tbody>{invites.map(i => <tr key={i.id}><td>{i.email}</td>
+              <tbody>{invites.map(i => { const display = invitationDisplay(i, lang); return <tr key={i.id}><td>{i.email}</td>
                 <td>{(lang === 'ar' ? ROLE_LABELS[i.role]?.ar : ROLE_LABELS[i.role]?.en) ?? i.role}</td>
-                <td>{i.consumedAt ? (lang === 'ar' ? 'مقبولة' : 'Accepted') : i.revokedAt ? (lang === 'ar' ? 'ملغاة' : 'Revoked') : i.deliveryStatus}</td>
-                <td>{!i.revokedAt && !i.consumedAt ? <form action="/api/onboarding" method="post">
+                <td>{display.label}<div className="dim">{when(i.expiresAt, lang)}</div></td>
+                <td>{display.mayResend && <form action="/api/onboarding" method="post">
+                  <input type="hidden" name="action" value="resend" /><input type="hidden" name="id" value={i.id} />
+                  <input type="hidden" name="lang" value={lang} />
+                  <button type="submit">{lang === 'ar' ? 'إرسال رابط جديد' : 'Send new link'}</button>
+                </form>}{display.mayRevoke ? <form action="/api/onboarding" method="post">
                   <input type="hidden" name="action" value="revoke" /><input type="hidden" name="id" value={i.id} />
                   <button type="submit">{lang === 'ar' ? 'إلغاء' : 'Revoke'}</button>
-                </form> : null}</td></tr>)}</tbody></table>
+                </form> : null}</td></tr>; })}</tbody></table>
           </div> : <p className="dim">{lang === 'ar' ? 'لا توجد دعوات بعد.' : 'No invitations yet.'}</p>}
         </Loaded>
       </section> : <p className="dim">{lang === 'ar' ? 'فقط مسؤولو مساحة العمل يمكنهم إرسال الدعوات.' :
