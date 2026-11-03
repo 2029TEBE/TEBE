@@ -1,0 +1,43 @@
+name: Isolated public signup route build verification
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/app/signup/page.tsx'
+      - 'apps/web/src/app/login/page.tsx'
+      - 'apps/web/src/lib/signup-access-handoff.test.mjs'
+      - '.github/workflows/signup-route-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  signup-route-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install pinned dependency graph
+        run: pnpm install --frozen-lockfile
+      - name: Verify standalone public signup invitation-only contract
+        run: node --test apps/web/src/lib/signup-access-handoff.test.mjs
+      - name: Build shared workspace packages
+        run: pnpm build:packages
+      - name: Compile deployable Next.js application
+        run: pnpm --filter @pmo/web build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+      - name: Check Next standalone compiled public signup page
+        run: |
+          test -d apps/web/.next-prod
+          test -f apps/web/.next-prod/server/app/signup/page.js || test -f apps/web/.next-prod/server/app/signup/page.js.nft.json
+          echo 'Public signup route compiled; this does NOT attest the Servitro deployed image.'
