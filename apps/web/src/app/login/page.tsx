@@ -70,6 +70,7 @@ export default async function LoginPage({ searchParams }:
           {safeError && <p id="login-error" className="formerr" role="alert">{ar ? safeError.ar : safeError.en}</p>}
           <button className="btn wide" type="submit">{ar ? 'تسجيل الدخول' : 'Sign in'}</button>
           <Link href="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
+          <Link href="/signup">{ar ? 'ليس لديك حساب؟ اطلب دعوة لمساحة عمل' : 'New to The EPMO? Request a workspace invitation'}</Link>
         </form>
 
         {showHint && (
