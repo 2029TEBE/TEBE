@@ -10,7 +10,7 @@ const replay = settlement.slice(settlement.indexOf('if (prior) {'), settlement.i
 const initial = settlement.slice(settlement.indexOf('if (receipt) throw new ConflictException'));
 
 test('recurring settlement must verify a fresh provider Charge for replay and first settlement', () => {
-  assert.match(settlement, /getStripe\(['"]charges\/['"]\s*\+\s*recurringPaidChargeId\(intent\)\)/);
+  assert.match(settlement, /const charge = await getStripe\(\`charges\/\$\{chargeId\}\`\)/);
   assert.match(replay, /assertUnreversedRecurringCharge\(intent, charge, replayBinding, replay, false\)/);
   assert.match(initial, /assertUnreversedRecurringCharge\(intent, charge, binding, verified, false\)/);
 });
