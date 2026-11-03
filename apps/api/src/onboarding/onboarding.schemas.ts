@@ -17,6 +17,7 @@ export const acceptInput = z.object({
   token: z.string().min(80).max(100),
   displayName: z.string().trim().min(2).max(120).optional(),
   password: z.string().min(12).max(200).optional(),
+  lang: z.enum(['ar','en']).default('en'),
 }).strict();
 
 export type ProfileInput = z.infer<typeof profileInput>;
