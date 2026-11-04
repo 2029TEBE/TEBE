@@ -46,10 +46,10 @@ test('archived checkout route remains guarded while Paddle billing renders no le
   assert.match(proxy, /billingFailurePath\(502\)/);
   assert.match(proxy, /action === 'first-checkout'/);
   // Historical Stripe route tests remain as regression evidence, not an active purchase path.
-  assert.doesNotMatch(page, /<form\\b|name="action" value="first-checkout"|checkout\\.stripe\\.com/i);
+  assert.doesNotMatch(page, /<form\b|name="action" value="first-checkout"|checkout\.stripe\.com/i);
   assert.doesNotMatch(page, /STRIPE_RECURRING_CUSTOMER_CHECKOUT_ENABLED/);
   assert.match(page, /Paddle checkout is not implemented/);
-  assert.match(page, /!session\\.authenticated/);
-  assert.match(page, /session\\.capabilities\\.includes\\('pmoa_admin'\\)/);
+  assert.match(page, /!session\.authenticated/);
+  assert.match(page, /session\.capabilities\.includes\('pmoa_admin'\)/);
   assert.doesNotMatch(proxy, /status\s*=\s*'active'/);
 });
