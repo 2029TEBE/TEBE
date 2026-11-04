@@ -86,3 +86,13 @@ test('explicit malformed or empty tenant metadata cannot bypass server binding',
  assert.equal(valid.accepted,true);
  assert.equal(valid.grantEntitlement,false);
 });
+
+test('explicit null custom_data is rejected while absent metadata remains allowed',()=>{
+ const nullMetadata=check({...event,data:{...event.data,custom_data:null}},binding,{signatureVerified:true});
+ assert.equal(nullMetadata.accepted,false);
+ assert.equal(nullMetadata.reason,'invalid_custom_data');
+ assert.equal(nullMetadata.grantEntitlement,false);
+ const absent=check(event,binding,{signatureVerified:true});
+ assert.equal(absent.accepted,true);
+ assert.equal(absent.grantEntitlement,false);
+});
