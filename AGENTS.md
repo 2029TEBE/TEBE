@@ -2,6 +2,14 @@
 
 Applies to human developers, contractors, reviewers, and AI coding agents. Read [the full global commercialization plan](docs/GLOBAL_PRODUCT_IMPLEMENTATION_PLAN.md) before making changes. **This document proposes a direction; it does not establish that features are built, verified, deployed, or commercially ready.**
 
+## Verified two-repository ownership — 2026-11-04
+- **Public website owner:** [`emkanycom-hash/theepmo-website`](https://github.com/emkanycom-hash/theepmo-website) is the existing separate static site for `theepmo.com`; G1 edits the website here. Its `main` was `bbfde5248da634c10453c7af8aea5b323999144d` when checked. Do **not** duplicate the entire site inside `apps/web` or create `apps/marketing` without an approved migration plan.
+- **Application owner:** [`faisalwrokksa-hub/THEEPMOTEST`](https://github.com/faisalwrokksa-hub/THEEPMOTEST) contains `apps/web` (authenticated `app.theepmo.com`, signup/login/invite), `apps/api`, `packages/db`, contracts and `infra`; its `main` was `5c37382bbf42459ca5752ed5685b731dafba947f` when checked.
+- **Cloudflare:** production owner is user-designated `alsaleemfaisal@outlook.com`, not connector-verified. Gmail `faisalsalsaleem@gmail.com` is a receiving inbox and **not an approved development Cloudflare account by default**. Do not create a preview in that account without explicit approval. Website deployment is manual and still needs target-account verification.
+- **Registration and database:** application PR #388 (invitation-only `/signup`) and PR #395 (typed onboarding database source) are review-only; do not advertise them as live. Inbound mail was unverified, and TCP 25/465/587/993 refused on the last external observation. Never send, submit or reply to **Servitro support** without the user's explicit case-by-case approval.
+- **Billing/security:** Paddle rollout is not live-approved; preserve historical Stripe ledger evidence while replacing legacy active billing paths in reviewed branches. Both GitHub repositories are public, so forbid credentials, real data and private environment files in issues, commit history and published assets.
+- **Handoff precedence:** read [the master handoff](docs/EXPERT_MASTER_HANDOFF.md) and its verified addendum together with this file. Any older proposed one-repo, preview-account, or `apps/marketing` instruction must be revalidated before implementation.
+
 ## Mission
 Develop THE EPMO as an **English-first global SaaS** selling useful free project tools, predictable-cost automated monitoring memberships, and optional genuinely AI-powered premium capabilities. Keep a separate, opt-in Arabic/Saudi enterprise experience and preserve enterprise governance.
 
@@ -20,7 +28,7 @@ Develop THE EPMO as an **English-first global SaaS** selling useful free project
 10. Do not modify existing payment fail-closed defaults or enable checkout until **verified provider approval, signed webhook integrity, entitlement lifecycle, refunds/cancellations, and sandbox end-to-end evidence** are complete.
 
 ## Repository orientation
-- `apps/web`: Next.js 15 / React 19 (public pages and application; currently existing root metadata specifies noindex for the private workspace).
+- `apps/web`: Next.js 15 / React 19, **authenticated application and onboarding**, with noindex private workspace metadata. The standalone public marketing frontend is in `emkanycom-hash/theepmo-website`.
 - `apps/api`: NestJS 10 modular backend; auth, portfolio, governance, insights, licensing, exports, onboarding, notifications, billing-related platform code.
 - `packages/contracts`: shared Zod contracts.
 - `packages/db`: PostgreSQL schema, migrations, RLS and proof tests.
