@@ -12,3 +12,17 @@ test('evidence URL rejects SSRF and URL confusion',()=>{
  assert.equal(safeEvidenceUrl('https://evidence.example.org/path?id=1'),true);
 });
 test('nonfinite clock cannot validate receipts',()=>assert.equal(validateMailEvidence(valid(),NaN).accepted,false));
+
+// Reject coercive Date.parse inputs and noncanonical dates without throwing on untrusted receipts.
+for (const [label,value] of [
+ ['symbol',Symbol('invalid')],['object',{toString(){throw Error('must not coerce')}}],
+ ['numeric',1700000000000],['date-only','2026-11-03'],
+ ['timezone-offset','2026-11-03T23:59:59.000+00:00'],
+ ['invalid calendar','2026-11-31T23:59:59.000Z'],
+ ['missing milliseconds','2026-11-03T23:59:59Z'],
+ ['null',null],['array',[]]
+]) test('reject '+label+' evidence timestamp without throwing',()=>{
+ const x=valid();x.receipts[0].observedAt=value;
+ assert.doesNotThrow(()=>validateMailEvidence(x,now));
+ assert.equal(validateMailEvidence(x,now).accepted,false);
+});
