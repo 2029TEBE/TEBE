@@ -114,7 +114,7 @@ test('invalid persisted timestamps cannot coerce into replay watermarks',()=>{
 });
 test('valid timezone-offset provider timestamps retain ordering without payment authority',()=>{
  const e={...event,data:{...event.data,updated_at:'2026-11-03T23:00:00+03:00'}};
- const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:59:59Z',lastProviderStatus:'past_due'};
+ const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:59:59Z',lastProviderStatus:'past_due',lastProviderEventId:'evt_99999999999999999999'};
  const result=check(e,prior,{signatureVerified:true});
  assert.equal(result.accepted,true);
  assert.equal(result.grantEntitlement,false);
