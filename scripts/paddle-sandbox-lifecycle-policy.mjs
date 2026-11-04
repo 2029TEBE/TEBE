@@ -18,7 +18,7 @@ export function evaluatePaddleLifecycle(event, binding, { signatureVerified=fals
       binding.environment!=='sandbox' || !UUID.test(binding.tenantId || '') ||
       !UUID.test(binding.subscriptionId || '') || binding.providerSubscriptionId!==data.id)
     return deny('untrusted_binding');
-  if (data.custom_data != null && (typeof data.custom_data !== 'object' || Array.isArray(data.custom_data)))
+  if (Object.hasOwn(data, 'custom_data') && (data.custom_data === null || typeof data.custom_data !== 'object' || Array.isArray(data.custom_data)))
     return deny('invalid_custom_data');
   if (data.custom_data && Object.hasOwn(data.custom_data, 'tenantId') && data.custom_data.tenantId!==binding.tenantId)
     return deny('tenant_mismatch');
