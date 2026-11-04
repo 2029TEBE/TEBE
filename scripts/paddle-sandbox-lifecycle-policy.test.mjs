@@ -96,3 +96,27 @@ test('explicit null custom_data is rejected while absent metadata remains allowe
  assert.equal(absent.accepted,true);
  assert.equal(absent.grantEntitlement,false);
 });
+
+test('invalid provider calendar dates and offset components fail closed',()=>{
+ for (const updated_at of ['2026-02-30T20:00:00Z','2026-11-31T20:00:00Z','2026-11-03T25:00:00Z',
+  '2026-11-03T20:61:00Z','2026-11-03T20:00:61Z','2026-11-03T20:00:00+24:00',
+  '2026-11-03T20:00:00+02:99','2026-11-03T20:00:00','2026-11-03T20:00:00.1234567890Z']) {
+  const result=check({...event,data:{...event.data,updated_at}},binding,{signatureVerified:true});
+  assert.equal(result.reason,'missing_ordering',updated_at);
+  assert.equal(result.grantEntitlement,false);
+ }
+});
+test('invalid persisted timestamps cannot coerce into replay watermarks',()=>{
+ for (const lastProviderUpdatedAt of [0,1,[],{},'2026-02-30T20:00:00Z','2026-11-03T20:00:00+25:00']) {
+  const result=check(event,{...binding,lastProviderUpdatedAt},{signatureVerified:true});
+  assert.equal(result.reason,'invalid_watermark',JSON.stringify(lastProviderUpdatedAt));
+ }
+});
+test('valid timezone-offset provider timestamps retain ordering without payment authority',()=>{
+ const e={...event,data:{...event.data,updated_at:'2026-11-03T23:00:00+03:00'}};
+ const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:59:59Z',lastProviderStatus:'past_due'};
+ const result=check(e,prior,{signatureVerified:true});
+ assert.equal(result.accepted,true);
+ assert.equal(result.grantEntitlement,false);
+ assert.equal(result.requiresVerifiedSettlementForAccess,true);
+});
