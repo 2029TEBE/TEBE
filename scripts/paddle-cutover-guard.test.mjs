@@ -32,7 +32,7 @@ test('old Stripe endpoints and UI are blocked for Paddle-selected deployments',(
  assert.match(operator,/Legacy Stripe TEST operator is retired/);
  assert.match(checkout,/process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(subscription,/process\.env\.BILLING_PROVIDER === 'paddle'/);
- assert.match(page,/const paddleMigration = process\.env\.BILLING_PROVIDER === 'paddle'/);
+ assert.match(page,/Paddle is our new billing provider/);
  assert.doesNotMatch(page,/invoiceView\.canCheckout/);
  assert.doesNotMatch(page,/<form\b/);
  assert.match(page,/Paddle checkout is not implemented/);
