@@ -125,3 +125,31 @@ If you lack access to Cloudflare or live hosting, implement isolated source and 
 - A feature is complete only when code is present and relevant checks actually pass; commercial readiness additionally needs independent security, payment, hosting and legal evidence.
 
 **Immediate assignment:** G1 confirms safe Cloudflare preview strategy; G2 begins pure deterministic Risk Matrix/Project Health modules; G3 inventories existing scheduler/notifications; G4 continues Paddle fail-closed readiness; G5 inventories infrastructure and trust disclosures. Build real code, not only plans, but keep live operations protected.
+
+## 9. Verified review refresh — 2026-11-04 (PR #422)
+
+This section supersedes older snapshots only where explicitly stated. It is a **GitHub-source-only review**, not an audit of production hosting, Cloudflare, mail delivery, payments, or customer data.
+
+### Confirmed source baseline
+- Application `main`: `5c37382bbf42459ca5752ed5685b731dafba947f` (GitHub branch read). Marketing `main`: `bbfde5248da634c10453c7af8aea5b323999144d` (GitHub branch read). Both remain separate repositories; G1 changes must be made in the marketing repository, not copied wholesale into the application.
+- This handoff originated in commit `7acd55ea475a16694269e9679ce32d2f39f0811e`, but **that SHA is a historical source reference, not the current PR head or a production release**. PR #422 is open/draft/review-only; inspect its current head after each amendment.
+- Application invitation-only signup PR #388 remains open/draft at `e7272010360c925fb43b5554823dd57592f5e204`. Database-source organization PR #395 remains open/draft at `a2119f09ff32d398b8f1857459c5353ce893a652`. Their existence does not repair a live `/signup` 404 or prove safe database access.
+- At the time of review, PR #422's previous head `43fd8c694ddcb99d786c2ccaa11a5e640c9c70dd` had GitHub Actions CI run `41789179474` **completed with failure**. Its result is not a green validation; inspect failed jobs and rerun checks on the *new* commit before requesting merge.
+- Other open review-only changes cover Paddle lifecycle watermarks, fail-closed entitlements, retired Stripe UI assertions and offline mail-evidence parsing. These PRs are not release proof and must be integrated by the responsible owners without overlapping uncontrolled merges.
+
+### Mandatory P0 handoff decisions and proof requirements
+| Area | Current decision | Required proof before calling it complete |
+| --- | --- | --- |
+| Marketing / Cloudflare | Keep website in `emkanycom-hash/theepmo-website`, manually deployed only with approved account/project | Exact public/development account, source SHA, verified Pages deployment URL, HTTP/TLS and rollback evidence |
+| App registration | Do not describe public /signup as deployed; #388 is draft | Live route check, end-to-end registration/invitation, safe abuse controls, user/tenant authorization and mailbox delivery |
+| Database | Preserve migrations, RLS and non-public password material; #395 remains draft | Negative cross-tenant tests, role/grant audits and reviewed migration plan; no live destructive changes |
+| Paddle / Stripe retirement | Continue review-only, fail-closed Paddle cutover; eliminate executable Stripe checkout/settings where safely reviewed | Approved merchant configuration, sandbox signed webhooks, lifecycle and entitlement proofs; preserve historical ledger records for audit, never reactivate legacy Stripe billing |
+| Email | Treat externally refused SMTP/IMAP ports and unverified receipt as unresolved | Independent inbound/outbound mailbox and DNS authentication evidence; no Servitro support contact without explicit case-by-case owner approval |
+| Security and release | No production authorization from a docs PR | Successful scoped CI on exact release SHA, secrets/PII review, backup/restore, SSL, RLS, audit, accessibility and owner release sign-off |
+
+### Next integration order (without bypassing review)
+1. Triage PR #422's failed CI and publish failing job/step details; do not label documentation-only CI as full application verification.
+2. Assign owners for the existing signup, database, Paddle and mail PR families; consolidate overlapping work in controlled integration candidates after checking diff/CI, avoiding duplicate changes.
+3. Implement G1 website work in the existing marketing repository and G2 calculations/contracts in the application repository with a reviewed browser-safe integration boundary.
+4. Preserve a hard **NO-GO** for live checkout, outbound support contact, production DNS/SSL/mail mutations, merge/deploy and destructive database changes unless individually authorized with evidence.
+5. In every new handoff, report the latest exact HEADs, CI run IDs/conclusions, review PR URLs, verified environment status and remaining blockers; never represent stale SHA snapshots as live status.
