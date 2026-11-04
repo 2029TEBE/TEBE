@@ -39,6 +39,7 @@ test('old Stripe endpoints and UI are blocked for Paddle-selected deployments',(
  // not a stale error string; unknown/missing providers must also fail closed.
  assert.match(paid,/process\.env\.BILLING_PROVIDER !== 'stripe'/);
  assert.match(paid,/process\.env\.STRIPE_ENABLED !== 'true'/);
+ assert.match(paid,/process\.env\.PADDLE_ENABLED === 'true'/);
  assert.match(paid,/Provider-specific entitlements are not integrated or enabled/);
  assert.match(subscriptions,/Provider-managed cancellation is not configured/);
  assert.match(billing,/Renewal invoicing is disabled during Paddle migration/);
