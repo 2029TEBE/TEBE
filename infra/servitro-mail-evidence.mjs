@@ -24,7 +24,8 @@ export function validateMailEvidence(value, now=Date.now()) {
  if(!Array.isArray(value.receipts)||value.receipts.length!==TYPES.length) errors.push('incomplete receipts');
  if(!Number.isFinite(now)) errors.push('invalid clock');
  const seen=new Set();
- for(const receipt of Array.isArray(value.receipts)?value.receipts:[]) {
+ // Never iterate attacker-controlled oversized receipt collections. Eight distinct categories are required.
+ for(const receipt of Array.isArray(value.receipts)&&value.receipts.length===TYPES.length?value.receipts:[]) {
   if(!receipt||typeof receipt!=='object'||Array.isArray(receipt)){errors.push('invalid receipt');continue;}
   for(const key of Object.keys(receipt)) if(!['type','status','observedAt','reference','source','releaseSha'].includes(key)) errors.push('unexpected receipt field');
   if(!TYPES.includes(receipt.type)||seen.has(receipt.type)) errors.push('duplicate or unknown receipt');
