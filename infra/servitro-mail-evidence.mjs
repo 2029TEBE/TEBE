@@ -31,7 +31,7 @@ export function validateMailEvidence(value, now=Date.now()) {
   seen.add(receipt.type);
   if(receipt.status!=='pass') errors.push('failed receipt');
   if(receipt.releaseSha!==value.releaseSha) errors.push('release mismatch');
-  if(typeof receipt.reference!=='string'||!/^https:\/\/[^\s]+$/.test(receipt.reference)||receipt.reference.length>1024||/@/.test(receipt.reference)) errors.push('unsafe evidence reference');
+  if(!safeEvidenceUrl(receipt.reference)) errors.push('unsafe evidence reference');
   if(typeof receipt.source!=='string'||!['independent-runner','operator-attested','provider-attested'].includes(receipt.source)) errors.push('untrusted evidence source');
   const t=Date.parse(receipt.observedAt);
   if(!Number.isFinite(t)||t>now+60000||now-t>86400000) errors.push('stale evidence');
