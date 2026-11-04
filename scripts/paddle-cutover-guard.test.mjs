@@ -33,7 +33,9 @@ test('old Stripe endpoints and UI are blocked for Paddle-selected deployments',(
  assert.match(checkout,/process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(subscription,/process\.env\.BILLING_PROVIDER === 'paddle'/);
  assert.match(page,/const paddleMigration = process\.env\.BILLING_PROVIDER === 'paddle'/);
- assert.match(page,/!paddleMigration &&.*invoiceView\.canCheckout/);
+ assert.doesNotMatch(page,/invoiceView\.canCheckout/);
+ assert.doesNotMatch(page,/<form\b/);
+ assert.match(page,/Paddle checkout is not implemented/);
  assert.match(paid,/Paddle entitlements are not integrated/);
  assert.match(subscriptions,/Provider-managed cancellation is not configured/);
  assert.match(billing,/Renewal invoicing is disabled during Paddle migration/);
