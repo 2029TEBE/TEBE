@@ -46,7 +46,16 @@ export function evaluatePaddleLifecycle(event, binding, { signatureVerified=fals
   if (incoming===null) return deny('missing_ordering');
   // The persisted watermark must come from the locked tenant/provider row, never the request.
   // Equal timestamps cannot safely resolve conflicting lifecycle states.
-  if (binding.lastProviderUpdatedAt !== undefined && binding.lastProviderUpdatedAt !== null) {
+  // A persisted watermark is an indivisible tenant-scoped tuple. Reject partial,
+  // null or malformed tuples instead of treating them as a fresh subscription.
+  const watermarkKeys=['lastProviderUpdatedAt','lastProviderStatus','lastProviderEventId'];
+  const hasWatermark=watermarkKeys.some(key=>Object.hasOwn(binding,key));
+  if (hasWatermark && (watermarkKeys.some(key=>!Object.hasOwn(binding,key)) ||
+      providerTimestamp(binding.lastProviderUpdatedAt)===null ||
+      !['active','trialing','past_due','paused','canceled'].includes(binding.lastProviderStatus) ||
+      !/^evt_[a-z0-9]{20,}$/.test(binding.lastProviderEventId || '')))
+    return deny('invalid_watermark');
+  if (hasWatermark) {
     const last=providerTimestamp(binding.lastProviderUpdatedAt);
     if (last===null) return deny('invalid_watermark');
     if (incoming < last) return deny('stale_event');
