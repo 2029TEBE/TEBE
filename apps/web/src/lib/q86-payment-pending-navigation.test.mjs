@@ -9,7 +9,7 @@ const controller = readFileSync(new URL('../../../api/src/platform/paid-deployme
 test('Q86 retains safe payment-pending navigation without a legacy checkout return', () => {
   assert.doesNotMatch(billing, /checkoutReturn === 'awaiting-webhook'|name="action" value="first-checkout"/);
   assert.match(billing, /Paddle checkout is not implemented/);
-  assert.match(billing, /<Link href="\/billing\/payment-pending">/);
+  assert.match(billing, /<Link href="\/billing\/verification">/);
   assert.match(pending, /getLayoutSession\(\)/);
   assert.match(pending, /pmoa_admin/);
   assert.match(pending, /api\.subscriptionCurrent\(\)/);
