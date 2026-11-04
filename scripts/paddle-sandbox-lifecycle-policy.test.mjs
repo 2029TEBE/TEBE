@@ -67,7 +67,7 @@ test('subscription.updated accepts canceled status as an explicit lifecycle tran
 
 test('same timestamp and status requires the exact persisted provider event ID',()=>{
  const prior={...binding,lastProviderUpdatedAt:event.data.updated_at,lastProviderStatus:'active'};
- assert.equal(check(event,prior,{signatureVerified:true}).reason,'ambiguous_replay');
+ assert.equal(check(event,prior,{signatureVerified:true}).reason,'invalid_watermark');
  assert.equal(check(event,{...prior,lastProviderEventId:'evt_99999999999999999999'},{signatureVerified:true}).reason,'ambiguous_replay');
  const exact=check(event,{...prior,lastProviderEventId:event.event_id},{signatureVerified:true});
  assert.equal(exact.accepted,true);
