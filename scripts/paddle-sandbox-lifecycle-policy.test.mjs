@@ -43,7 +43,7 @@ test('persisted tenant watermark rejects out-of-order and conflicting events',()
  assert.equal(replay.grantEntitlement,false);
 });
 test('future lifecycle updates cannot be mistaken for paid settlement',()=>{
- const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:00:00Z',lastProviderStatus:'past_due'};
+ const prior={...binding,lastProviderUpdatedAt:'2026-11-03T19:00:00Z',lastProviderStatus:'past_due',lastProviderEventId:'evt_99999999999999999999'};
  const result=check(event,prior,{signatureVerified:true});
  assert.equal(result.accepted,true);
  assert.equal(result.isReplay,false);
@@ -119,4 +119,24 @@ test('valid timezone-offset provider timestamps retain ordering without payment 
  assert.equal(result.accepted,true);
  assert.equal(result.grantEntitlement,false);
  assert.equal(result.requiresVerifiedSettlementForAccess,true);
+});
+
+test('partial or null persisted Paddle watermarks cannot reset replay protection',()=>{
+ for(const patch of [
+  {lastProviderUpdatedAt:null},
+  {lastProviderUpdatedAt:event.data.updated_at},
+  {lastProviderStatus:'active'},
+  {lastProviderEventId:event.event_id},
+  {lastProviderUpdatedAt:event.data.updated_at,lastProviderStatus:'active'},
+  {lastProviderUpdatedAt:event.data.updated_at,lastProviderEventId:event.event_id},
+  {lastProviderUpdatedAt:event.data.updated_at,lastProviderStatus:'active',lastProviderEventId:null},
+  {lastProviderUpdatedAt:event.data.updated_at,lastProviderStatus:'unknown',lastProviderEventId:event.event_id}
+ ]) {
+  const result=check(event,{...binding,...patch},{signatureVerified:true});
+  assert.equal(result.reason,'invalid_watermark',JSON.stringify(patch));
+  assert.equal(result.grantEntitlement,false);
+ }
+ const clean=check(event,binding,{signatureVerified:true});
+ assert.equal(clean.accepted,true);
+ assert.equal(clean.grantEntitlement,false);
 });
