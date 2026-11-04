@@ -33,8 +33,11 @@ export function validateMailEvidence(value, now=Date.now()) {
   if(receipt.releaseSha!==value.releaseSha) errors.push('release mismatch');
   if(!safeEvidenceUrl(receipt.reference)) errors.push('unsafe evidence reference');
   if(typeof receipt.source!=='string'||!['independent-runner','operator-attested','provider-attested'].includes(receipt.source)) errors.push('untrusted evidence source');
-  const t=Date.parse(receipt.observedAt);
-  if(!Number.isFinite(t)||t>now+60000||now-t>86400000) errors.push('stale evidence');
+  // Require a canonical UTC timestamp. Date.parse coerces arbitrary objects and may throw on Symbols.
+  const timestamp=receipt.observedAt;
+  const canonical=typeof timestamp==='string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(timestamp);
+  const t=canonical?Date.parse(timestamp):NaN;
+  if(!Number.isFinite(t)||new Date(t).toISOString()!==timestamp||t>now+60000||now-t>86400000) errors.push('stale or invalid evidence timestamp');
  }
  for(const type of TYPES) if(!seen.has(type)) errors.push('missing '+type);
  return {accepted:errors.length===0,errors:[...new Set(errors)],operationallyVerified:false,deploymentAuthorized:false};
