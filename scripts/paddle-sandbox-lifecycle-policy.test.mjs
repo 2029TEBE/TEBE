@@ -74,3 +74,15 @@ test('same timestamp and status requires the exact persisted provider event ID',
  assert.equal(exact.isReplay,true);
  assert.equal(exact.grantEntitlement,false);
 });
+
+test('explicit malformed or empty tenant metadata cannot bypass server binding',()=>{
+ for(const custom_data of [{tenantId:''},{tenantId:null},{tenantId:0},{tenantId:'other-tenant'},'invalid',[],{tenantId:{}}]){
+  const incoming={...event,data:{...event.data,custom_data}};
+  const result=check(incoming,binding,{signatureVerified:true});
+  assert.equal(result.accepted,false,JSON.stringify(custom_data));
+  assert.equal(result.grantEntitlement,false);
+ }
+ const valid=check({...event,data:{...event.data,custom_data:{tenantId}}},binding,{signatureVerified:true});
+ assert.equal(valid.accepted,true);
+ assert.equal(valid.grantEntitlement,false);
+});
