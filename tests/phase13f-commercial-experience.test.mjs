@@ -44,7 +44,7 @@ test('plans are display-only, not secretly self-activating', () => {
 test('trial and cancellation instructions are bilingual', () => {
   assert.match(billing, /trialEndsAt/);
   assert.match(billing, /الفترة التجريبية/);
-  assert.match(billing, /الإلغاء عند نهاية الفترة/);
+  assert.match(billing, /تمت جدولة الإلغاء بنهاية الفترة الحالية/);
   assert.match(billing, /الاشتراك والفوترة/);
 });
 test('customer docs explicitly describe staging gap', () => {
