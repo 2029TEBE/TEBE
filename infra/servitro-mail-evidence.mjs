@@ -19,7 +19,7 @@ export function validateMailEvidence(value, now=Date.now()) {
  const errors=[];
  if (!value || typeof value!=='object' || Array.isArray(value)) return {accepted:false,errors:['invalid evidence'],operationallyVerified:false};
  for(const key of Object.keys(value)) if(!['releaseSha','domain','receipts'].includes(key)) errors.push('unexpected field');
- if(!SHA.test(value.releaseSha||'')) errors.push('invalid release SHA');
+ if(typeof value.releaseSha!=='string'||!SHA.test(value.releaseSha)) errors.push('invalid release SHA');
  if(value.domain!=='theepmo.com') errors.push('unexpected domain');
  if(!Array.isArray(value.receipts)||value.receipts.length!==TYPES.length) errors.push('incomplete receipts');
  if(!Number.isFinite(now)) errors.push('invalid clock');
