@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getLang } from '@/lib/i18n';
 
-export const metadata = { title: 'Request workspace access · The EPMO' };
+export const metadata = { title: 'Request workspace access · The EPMO', robots: { index: false, follow: false } };
 
 /**
  * Public access handoff while self-service account provisioning is not released.
@@ -11,6 +11,7 @@ export const metadata = { title: 'Request workspace access · The EPMO' };
 export default async function SignupPage() {
   const ar = (await getLang()) === 'ar';
   const email = 'info@theepmo.com';
+  const emailReady = process.env.EPMO_SIGNUP_EMAIL_READY === 'true';
   const requestAddress = 'mailto:info@theepmo.com?subject=The%20EPMO%20workspace%20access%20request';
 
   return (
@@ -27,18 +28,26 @@ export default async function SignupPage() {
             : 'New accounts are currently invitation-only. Self-service registration and first-subscription checkout are not available yet.'}
         </p>
         <div className="authform">
-          <a className="btn wide" href={requestAddress}>
-            {ar ? 'طلب دعوة عبر البريد الإلكتروني' : 'Email a workspace access request'}
-          </a>
+          {emailReady ? (
+            <a className="btn wide" href={requestAddress}>
+              {ar ? 'طلب دعوة عبر البريد الإلكتروني' : 'Email a workspace access request'}
+            </a>
+          ) : (
+            <p className="dim" role="status">
+              {ar ? 'طلبات الدعوة عبر البريد الإلكتروني غير متاحة مؤقتًا حتى التحقق من استقبال الرسائل.' : 'Email invitation requests are temporarily unavailable until inbox delivery is verified.'}
+            </p>
+          )}
           <p className="dim">
             {ar
               ? 'اذكر اسم المؤسسة والبريد الإلكتروني للتواصل. لا ترسل كلمات المرور أو معلومات البطاقة.'
               : 'Include your organization name and contact email. Never send a password or card information.'}
           </p>
-          <p className="dim">
-            {ar ? 'البريد الإلكتروني للتواصل:' : 'Contact address:'}{' '}
-            <a href={`mailto:${email}`}>{email}</a>
-          </p>
+          {emailReady && (
+            <p className="dim">
+              {ar ? 'البريد الإلكتروني للتواصل:' : 'Contact address:'}{' '}
+              <a href={`mailto:${email}`}>{email}</a>
+            </p>
+          )}
           <Link href="/login">{ar ? 'لديك حساب؟ سجّل الدخول' : 'Already have an account? Sign in'}</Link>
           <Link href="/forgot-password">{ar ? 'تحتاج إلى استعادة كلمة المرور؟' : 'Need to recover your password?'}</Link>
         </div>
