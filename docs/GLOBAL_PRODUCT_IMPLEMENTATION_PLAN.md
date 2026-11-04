@@ -8,10 +8,25 @@
 
 **Principles:** English-first, never delete RTL capability; user language choice rather than forced geo-redirect; separate legal-operator identity and data-hosting facts; minimize external AI API use; launch one valuable working conversion journey; avoid many isolated agents/services; demonstrate security, not merely claim it.
 
+## Verified architecture and launch-state correction — 2026-11-04
+
+The original direction remains a **proposal**, but two repositories already exist and must not be conflated:
+
+| Existing repository | Checked `main` SHA | Ownership and verified limitations |
+|---|---|---|
+| [`emkanycom-hash/theepmo-website`](https://github.com/emkanycom-hash/theepmo-website) | `bbfde5248da634c10453c7af8aea5b323999144d` | Static Cloudflare marketing pages, demo, SEO and public CTAs; manual Pages deployment workflow and passing source validation, **no verified latest Pages deployment or production cutover**. |
+| [`faisalwrokksa-hub/THEEPMOTEST`](https://github.com/faisalwrokksa-hub/THEEPMOTEST) | `5c37382bbf42459ca5752ed5685b731dafba947f` | Authenticated Next.js app and `/signup`, NestJS API, PostgreSQL, entitlements, payment, onboarding and release scripts. Multiple unmerged workstream PRs; do not assume the current `main` contains draft features. |
+
+**G1 public website changes belong in the first repository.** G2 can own computation contracts in the application repo; package and expose only browser-safe, versioned calculator assets to the public site through a reviewed integration. G3/G4/G5 application/platform/security work belongs in the second repository; G5 coordinates approved legal and trust content with G1. Never assume a one-repo architecture or merge into `apps/marketing` without explicit migration authorization.
+
+**Cloudflare intent versus proof:** user designates `alsaleemfaisal@outlook.com` for production Cloudflare ownership. `faisalsalsaleem@gmail.com` is a Gmail receiving destination, **not a verified or approved Cloudflare preview-account selection**. The marketing deployment workflow currently uses a scoped `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable, run manually. Separate protected GitHub Environments are a future proposal; do not assert they already exist or deploy by default.
+
+**Known release blockers:** app [PR #388](https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/388) (public bilingual invitation-only signup) and [PR #395](https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/395) (database source organization) are unmerged; the latter passed dedicated source tests but had separate full-CI blockers. Public mail TCP ports 25/465/587/993 were refused in a 2026-11-03 external test, so email confirmation is not proven. Existing Paddle reviews remain commercial NO-GO until actual provider/settlement/entitlement evidence. **Do not contact Servitro support without explicit case-by-case user confirmation.** No demo, successful CI or drafted PR implies production rollout.
+
 ## 1. Repository findings and gaps (observed in current main)
 | Area | Verified in source / repo | Gap or action |
 |---|---|---|
-| Web | Next.js 15/React 19, `apps/web/src/app/layout.tsx` root metadata is bilingual and `robots: {index:false,follow:false}`; `getLang()` uses `pmo_lang` cookie | Separate indexable public English marketing pages from the authenticated non-indexed private application; design route-specific metadata, sitemaps, canonical/hreflang. Do **not** simply flip global `robots` to true. |
+| Web | Existing static public marketing site is in `emkanycom-hash/theepmo-website`; `apps/web` in THEEPMOTEST is a separate Next.js 15/React 19 authenticated application with bilingual root `robots: {index:false,follow:false}`. | Build indexable English marketing pages only in the marketing repo when approved; preserve private-app noindex. Validate canonical/hreflang/sitemaps and URLs rather than flipping the authenticated app's global robots settings. |
 | Localization | `apps/web/src/lib/i18n.ts` supports `en/ar`; root dir applied on `html` | Keep existing language architecture and RTL. Create optional /sa localized site; no hard IP redirects; test SEO, accessible language switching, exported Arabic documents. |
 | Backend | `apps/api/src/app.module.ts` imports auth, platform, portfolio, governance, insights, Excel, exports, notifications, AskX, etc. | Map implementation completeness before reuse; add reusable public-tool, calculation, background-job, monitoring and entitlement APIs rather than clone modules. |
 | Data | `packages/db/src/schema.ts` defines tenant identities, memberships, sessions, portfolios, projects and governance structures; README states RLS and audit requirements | Preserve existing RLS, review migrations; add tenant-scoped saved tool runs, agent policies, findings, job/outbox ledger and quotas only if not already provided. |
@@ -29,7 +44,7 @@
 - `/agents` outcomes-focused monitoring service pages; no exaggeration about autonomous reasoning.
 - `/pricing`, `/solutions`, `/learn`, `/trust` and legal documents, `/contact`.
 - `/sa` optional Arabic/Saudi homepage and localized enterprise offering. Language chooser + hreflang, canonical, no mandatory geo redirects.
-- Keep application account and private tenant workspaces **non-indexed**, authenticated and separate from public crawled routes. Decide whether split app/marketing deployments or route groups is least disruptive after inspecting current routing, cookies and domain mapping.
+- Keep application account and private tenant workspaces **non-indexed**, authenticated and separate from public crawled routes. **Already split:** keep the existing static marketing repository and protected application deployments; any future consolidation is a separate reviewed architectural change.
 
 ### Reusable software components
 1. **Tool registry:** slug, version, schema, sample inputs, public/private eligibility, category, descriptions, outputs, available plan.
@@ -107,7 +122,7 @@ Pricing, quotas, AI credits, region coverage, taxes and checkout are **hypothese
 **Exit:** reviewed inventory + a dependency map + named owners; no source conflicts.
 
 ### Stage 1 — public-first architecture
-- Determine isolated public routes or separate marketing deployment; root private app remains noindex.
+- Extend the **existing independent marketing repository**, confirm its manual Cloudflare deployment target, source SHA and preview URL; keep the protected app's root private noindex.
 - Add English homepage, tools directory and route-level metadata; accessible /sa language option and hreflang; sitemap/robots apply to public routes only.
 - Design reusable tool UI, privacy notices, examples, validation, responsive mobile flow and optional save-to-workspace bridge.
 **Exit:** public anonymous entry works; private routes not indexed or exposed; Arabic enterprise unaffected.
@@ -209,7 +224,7 @@ Suggested PR text:
 ```
 
 ## 11. First concurrent contributor assignments
-1. **WEB:** audit current route tree and write public/private indexation and `/sa` design; implement separately after coordination.
+1. **WEB:** audit the independent `theepmo-website` static pages and the protected app route separation; own public indexation and optional `/sa` there, not in `apps/web` without explicit coordination.
 2. **TOOL:** implement and unit-test a pure risk matrix/health-check calculation package (no API/provider calls), with sample data.
 3. **REPORTS:** define editable report templates and QA fixtures using available export libraries; avoid making test content look like real results.
 4. **AGENT:** inspect notification/job infrastructure and draft bounded monitoring worker plus schema/contracts proposal; no always-on new service.
