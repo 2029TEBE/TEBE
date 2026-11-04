@@ -9,8 +9,8 @@ test('paid deployment resolves authenticated context inside generic denial bound
   const contextAt = controller.indexOf('currentContext()');
   const catchAt = controller.indexOf('} catch {');
   assert.ok(tryAt >= 0 && contextAt > tryAt && catchAt > contextAt);
-  assert.match(controller, /throw new ForbiddenException\\('Access unavailable'\\)/);
-  assert.doesNotMatch(controller, /@Req\\(|req\\.headers\\[['\"](?:x-tenant|x-deployment)/i);
+  assert.match(controller, /throw new ForbiddenException\('Access unavailable'\)/);
+  assert.doesNotMatch(controller, /@Req\(|req\.headers\[['\"](?:x-tenant|x-deployment)/i);
 });
 
 test('provider selection is checked before runtime deployment or database lookup', () => {
@@ -21,13 +21,13 @@ test('provider selection is checked before runtime deployment or database lookup
   const database = controller.indexOf('withTenant(tenantId');
   assert.ok(guard >= 0 && legacy > guard && paddle > legacy);
   assert.ok(runtime > paddle && database > runtime);
-  assert.match(controller, /p\\.provider = 'stripe'/);
-  assert.match(controller, /r\\.provider = 'stripe'/);
+  assert.match(controller, /p\.provider = 'stripe'/);
+  assert.match(controller, /r\.provider = 'stripe'/);
 });
 
 test('paid access cannot be cached and never exposes invoice or subscription identity', () => {
-  assert.match(controller, /@Header\\('Cache-Control', 'private, no-store, max-age=0'\\)/);
-  assert.match(controller, /@Header\\('Pragma', 'no-cache'\\)/);
+  assert.match(controller, /@Header\('Cache-Control', 'private, no-store, max-age=0'\)/);
+  assert.match(controller, /@Header\('Pragma', 'no-cache'\)/);
   const returned = controller.slice(controller.indexOf('return {'), controller.indexOf('};', controller.indexOf('return {')));
   assert.doesNotMatch(returned, /subscriptionId|invoiceId|paymentIntent|tenantId|userId/);
 });
