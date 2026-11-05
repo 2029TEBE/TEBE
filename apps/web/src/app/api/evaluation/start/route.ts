@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
   if (process.env.EVALUATION_ACCESS_ENABLED !== 'true' ||
-      process.env.DEPLOYMENT_ENV === 'production')
+      (process.env.DEPLOYMENT_ENV === 'production' ||
+       (process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_ENV !== 'staging')))
     return NextResponse.json({ error: 'Evaluation is not available' },
       { status: 503, headers: { 'Cache-Control': 'no-store' } });
   const token = req.cookies.get('pmo_session')?.value;

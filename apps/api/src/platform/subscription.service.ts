@@ -35,7 +35,8 @@ export class SubscriptionService {
   async startEvaluation() {
     requireCapability('pmoa_admin');
     if (process.env.EVALUATION_ACCESS_ENABLED !== 'true' ||
-        process.env.DEPLOYMENT_ENV === 'production')
+        (process.env.DEPLOYMENT_ENV === 'production' ||
+         (process.env.NODE_ENV === 'production' && process.env.DEPLOYMENT_ENV !== 'staging')))
       throw new ServiceUnavailableException('Evaluation signup is not enabled');
     const { tenantId, userId } = currentContext();
     if (!userId) throw new ForbiddenException('Authenticated tenant administrator required');

@@ -73,7 +73,9 @@ export function loadEnv(): Env {
     throw new Error('Paddle collection is disabled pending signed settlement and merchant acceptance.');
 
   // A separate staged rollout is mandatory: no public Evaluation activation in production.
-  if (env.EVALUATION_ACCESS_ENABLED === 'true' && env.DEPLOYMENT_ENV === 'production')
+  if (env.EVALUATION_ACCESS_ENABLED === 'true' &&
+      (env.DEPLOYMENT_ENV === 'production' ||
+       (env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV !== 'staging')))
     throw new Error('Evaluation activation is disabled in production pending staged acceptance.');
 
   // The reference HMAC adapter is for controlled integration testing, never real billing.

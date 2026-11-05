@@ -34,7 +34,8 @@ export default async function BillingPage() {
           </div>
         )}
         {!subscription && process.env.EVALUATION_ACCESS_ENABLED === 'true' &&
-         process.env.DEPLOYMENT_ENV !== 'production' && (
+         process.env.DEPLOYMENT_ENV !== 'production' &&
+         (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_ENV === 'staging') && (
           <div className="panel">
             <h3>{tx('Try THE EPMO Evaluation for 7 days', 'جرّب THE EPMO مجاناً لمدة 7 أيام')}</h3>
             <p>{tx('For a new, empty workspace only. No card, no automatic billing, and fictional sample projects.',
