@@ -118,7 +118,9 @@ export async function recordVerifiedPaddleSandboxSettlement(input: Input): Promi
     fail('invalid_amount');
 
   return withTenantSerializable(tenant, async tx => {
-    // Shared tenant lock with other billing paths, then explicit row locks.
+    // Shared tenant lock with other billing paths; the immutable intent is read
+    // under SERIALIZABLE, while only mutable invoice/subscription rows are row-locked.
+    // FOR UPDATE OF c would incorrectly require UPDATE privilege on an append-only table.
     await tx.execute(sql`SELECT pg_advisory_xact_lock(1212,hashtext(${tenant}))`);
     const intent=rows(await tx.execute(sql`
       SELECT c.id AS "intentId",c.tenant_id AS "tenantId",
@@ -133,7 +135,7 @@ export async function recordVerifiedPaddleSandboxSettlement(input: Input): Promi
       JOIN billing_invoices b ON b.tenant_id=c.tenant_id AND b.id=c.invoice_id
       JOIN tenant_subscriptions s ON s.tenant_id=c.tenant_id AND s.id=c.subscription_id
       WHERE c.tenant_id=${tenant} AND c.paddle_transaction_id=${transaction}
-      FOR UPDATE OF c,b,s`))[0];
+      FOR UPDATE OF b,s`))[0];
     if (!intent || !intent.invoiceId || intent.environment !== 'sandbox' ||
         intent.intentId !== event.data.custom_data.epmo_intent_id ||
         intent.priceId !== price || intent.planId !== intent.subscriptionPlanId ||
