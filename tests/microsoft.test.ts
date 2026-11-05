@@ -165,7 +165,9 @@ describe('before anything is connected', () => {
     // cannot enumerate reports, even with a synthetic configured OAuth app.
     const reports = await get('/api/v1/microsoft/reports', fatima);
     expect(reports.status).toBe(503);
-    expect(String(reports.body?.message)).toMatch(/per-user Microsoft authorization/i);
+    // Global exception filtering deliberately avoids leaking provider details.
+    expect(String(reports.body?.message)).toMatch(/service could not complete/i);
+    expect(JSON.stringify(reports.body)).not.toMatch(/accessToken|clientSecret|refreshToken/i);
   });
 
   it('has nothing to disconnect', async () => {
