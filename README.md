@@ -6,8 +6,9 @@ modules on one platform.
 
 | | |
 |---|---|
-| Production | https://align360.aetherixsystems.com |
-| Development | https://dev.3-111-66-127.sslip.io |
+| Intended production application | https://app.theepmo.com |
+| Intended staging application | https://staging.theepmo.com |
+| Public marketing website (separate repo) | https://theepmo.com |
 
 ## Stack
 
@@ -104,52 +105,29 @@ Writes are plain form POSTs to route handlers, not Server Actions: a route
 handler has a stable URL, so an open tab keeps working across a redeploy and the
 page still functions with JavaScript disabled.
 
-## Environments
+## Environments and deployment boundaries
 
-Both run on the same box, as two entirely separate stacks — separate compose
-project, separate containers, separate database volume, separate secrets.
+The authenticated application lives in `2029TEBE/TEBE`. The separate, static marketing website lives in `2029TEFE/TEFE` and is intended for `theepmo.com` / `www.theepmo.com`. Both repositories retain personal-account ownership; TEORG coordinates access without transferring either repository.
 
-| | Production | Development |
+| | Production target | Staging target |
 |---|---|---|
-| URL | https://align360.aetherixsystems.com | https://dev.3-111-66-127.sslip.io |
-| Directory | `/opt/align360` | `/opt/align360-dev` |
-| Compose project | `pmo-prod` | `align360-dev` |
-| Secrets | `.env.prod` | `.env.dev` |
-| Web port (loopback) | 3000 | 3001 |
-| Database volume | `pmo-prod_pgdata` | `align360-dev_pgdata`, also on `127.0.0.1:55432` |
+| Web URL | `https://app.theepmo.com` | `https://staging.theepmo.com` |
+| Public API URL (must verify routing) | `https://api.theepmo.com` | `https://api-staging.theepmo.com` |
+| Default on-host directory | `/opt/the-epmo` | `/opt/the-epmo-staging` |
+| Compose project | `pmo-prod` | `pmo-staging` |
+| Server-managed secrets | `.env.prod` | `.env.staging` |
+| Web bind | `127.0.0.1` behind trusted TLS proxy | `127.0.0.1` behind trusted TLS proxy |
 
-Deploy from a local checkout — the box holds no GitHub credentials, deliberately,
-so nothing on the server can push:
+These are **configuration targets, not a claim that live DNS, Cloudflare, host, certificates, routes, or services are running**. Do not change DNS, app deployment, production secrets, customer data, Stripe settings, mail delivery or database as part of a documentation-only update. The deployment script requires an explicit trusted SSH host, verified environment and safety preflight, and has no default host. Secrets and app database volumes must remain isolated between production and staging.
 
-```bash
-infra/deploy.sh dev           # rsync, rebuild, restart, wait for healthy
-infra/deploy.sh prod          # same, but runs `pnpm verify` first
-```
-
-Changing `MODULE_CATALOGUE` does nothing on a server by itself — the catalogue
-lives in the `modules` table. Push it:
+Deploy commands (only after environment review and authorization):
 
 ```bash
-infra/sync-catalogue.sh dev
+EPMO_DEPLOY_HOST=deploy@<verified-host> infra/deploy.sh staging
+EPMO_DEPLOY_HOST=deploy@<verified-host> infra/deploy.sh prod
 ```
 
-Schema changes are files in `packages/db/migrations/`, applied once each and
-recorded in a `schema_migrations` ledger:
-
-```bash
-ssh <box> 'cd /opt/align360-dev && infra/bootstrap-db.sh dev'
-```
-
-The development database is reachable on the box's loopback, so it can be seeded
-or inspected from your machine over a tunnel:
-
-```bash
-ssh -i ~/.ssh/align360-mumbai.pem -N -L 55432:127.0.0.1:55432 ubuntu@<box>
-DATABASE_URL_ADMIN='postgres://…@127.0.0.1:55432/pmo' pnpm --filter @pmo/db seed
-```
-
-The seed leaves `apps/web/.env.local` alone unless it is pointed at your own
-local database, and it never resets the owner account's password.
+For approved schema upgrades, use the checked migration ledger and mandatory backup procedures, not destructive development seeding. Microsoft redirects and external billing webhooks must be registered against actual, verified public endpoints before enabling integrations.
 
 ## Secrets
 
