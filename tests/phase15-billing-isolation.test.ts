@@ -146,7 +146,8 @@ describe.skipIf(!liveAcceptance)('Phase 15A: real billing API tenant isolation',
     const webhook = await fetch(`${API}/api/v1/billing/paddle-webhook`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
-    expect(webhook.status).toBe(503);
+    // Either the global unauthenticated guard or the disabled handler must deny the event.
+    expect([401, 403, 503]).toContain(webhook.status);
     const retiredWebhook = await fetch(`${API}/api/v1/billing/stripe-webhook`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
