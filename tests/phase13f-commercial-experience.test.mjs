@@ -1,69 +1,93 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const billing = read('apps/web/src/app/(app)/billing/page.tsx');
 const api = read('apps/web/src/lib/api.ts');
 const subscriptionService = read('apps/api/src/platform/subscription.service.ts');
 const proxy = read('apps/web/src/app/api/billing/subscription/route.ts');
+const checkout = read('apps/web/src/app/api/billing/checkout/route.ts');
+const controller = read('apps/api/src/platform/subscription.controller.ts');
 const doc = read('PHASE13F_COMMERCIAL_EXPERIENCE.md');
 
-test('billing page requires authenticated workspace administrator capability', () => {
+test('billing page requires an authenticated workspace administrator', () => {
   assert.match(billing, /!session\.authenticated/);
   assert.match(billing, /!session\.capabilities\.includes\('pmoa_admin'\)/);
 });
-test('plans and subscription are fetched through tenant-aware API', () => {
+
+test('subscription and billing history remain tenant-scoped', () => {
   assert.match(api, /subscriptionCurrent: \(\) => get<.*>\('\/api\/v1\/subscription\/current'\)/);
   assert.match(api, /subscriptionPlans: \(\) => get<.*>\('\/api\/v1\/subscription\/plans'\)/);
   assert.match(subscriptionService, /withTenant\(tenantId/);
 });
-test('subscription read includes pricing metadata', () => {
-  for (const field of ['planName', 'priceMinor', 'billingInterval']) assert.ok(subscriptionService.includes(`"${field}"`), field);
-  assert.match(subscriptionService, /p\.currency/);
+
+test('subscription reads preserve plan and billing history', () => {
+  for(const field of ['planName','priceMinor','billingInterval']) {
+    assert.ok(subscriptionService.includes('"' + field + '"'),field);
+  }
+  assert.match(subscriptionService,/p\.currency/);
+  assert.match(billing,/api\.billingInvoices/);
 });
-test('payment does not activate licenses on browser redirect', () => {
-  assert.match(billing, /verifies Stripe’s payment webhook/);
-  assert.doesNotMatch(billing, /confirmPaymentFromQuery/);
+
+test('browser return URL cannot confirm any payment or activate a license', () => {
+  assert.match(billing,/No payment is confirmed by a return link/);
+  assert.doesNotMatch(billing,/confirmPaymentFromQuery|billing === 'success'|<form/);
+  assert.match(checkout,/status: 503/);
+  assert.doesNotMatch(checkout,/fetch\(|NextResponse\.redirect\(/);
 });
-test('form actions use existing safe mutation proxy', () => {
-  assert.match(proxy, /rejectUnsafeBrowserMutation\(req\)/);
-  assert.match(proxy, /publicUrl\(req, '\/billing'\)/);
-  assert.match(proxy, /action === 'schedule-cancellation'/);
-  assert.match(proxy, /action === 'resume'/);
-  assert.match(proxy, /method: 'POST'/);
+
+test('billing mutation proxy preserves origin check and fails closed', () => {
+  assert.match(proxy,/rejectUnsafeBrowserMutation\(req\)/);
+  assert.match(proxy,/status: 503/);
+  assert.match(proxy,/Cache-Control.*no-store/);
+  assert.doesNotMatch(proxy,/fetch\(|NextResponse\.redirect\(/);
 });
-test('mutation proxy cannot accept caller-selected tenant ids or external URLs', () => {
-  assert.doesNotMatch(proxy, /tenantId|tenant_id|redirectUrl|returnUrl/);
-  assert.match(proxy, /const path = action ===/);
+
+test('mutation proxy rejects caller-selected tenant and return destinations', () => {
+  assert.doesNotMatch(proxy,/tenantId|tenant_id|redirectUrl|returnUrl/);
+  assert.doesNotMatch(proxy,/\/api\/v1\/subscription\/cancel-at-period-end|\/api\/v1\/subscription\/resume/);
 });
-test('plans are display-only, not secretly self-activating', () => {
-  assert.match(billing, /Selecting a plan here does not change your subscription/);
-  assert.doesNotMatch(billing, /\bactivatePlan\(/);
+
+test('plan and historical invoice details are read-only', () => {
+  assert.match(billing,/Paddle/);
+  assert.match(billing,/historical invoices/);
+  assert.doesNotMatch(billing,/<form|activatePlan\(|Pay securely with Stripe/);
 });
-test('trial and cancellation instructions are bilingual', () => {
-  assert.match(billing, /trialEndsAt/);
-  assert.match(billing, /الفترة التجريبية/);
-  assert.match(billing, /الإلغاء عند نهاية الفترة/);
-  assert.match(billing, /الاشتراك والفوترة/);
+
+test('subscription changes cannot be applied locally before Paddle verification', () => {
+  assert.match(controller,/ServiceUnavailableException/);
+  assert.doesNotMatch(controller,/setCancellation\(/);
+  assert.match(billing,/subscription changes are temporarily unavailable/);
 });
-test('customer docs explicitly describe staging gap', () => {
-  assert.match(doc, /not production verified/i);
-  assert.match(doc, /PostgreSQL/);
-  assert.match(doc, /Stripe/);
+
+test('billing help and the read-only notice remain bilingual', () => {
+  assert.match(billing,/الاشتراك والفوترة/);
+  assert.match(billing,/Paddle هو مزود الفوترة/);
+  assert.match(billing,/تغيير الاشتراكات غير متاحين/);
 });
+
+test('historic Phase 13F release limitations remain documented', () => {
+  assert.match(doc,/not production verified/i);
+  assert.match(doc,/PostgreSQL/);
+});
+
 const onboarding = read('apps/web/src/app/(app)/getting-started/page.tsx');
-test('getting started displays trial guidance only to authorized admins', () => {
-  assert.match(onboarding, /session\.capabilities\.includes\('pmoa_admin'\)/);
-  assert.match(onboarding, /licenseStatus === 'trialing'/);
-  assert.match(onboarding, /licenseStatus === 'expired'/);
-  assert.match(onboarding, /href="\/billing"/);
+test('getting started retains admin-only trial expiry guidance', () => {
+  assert.match(onboarding,/session\.capabilities\.includes\('pmoa_admin'\)/);
+  assert.match(onboarding,/licenseStatus === 'trialing'/);
+  assert.match(onboarding,/licenseStatus === 'expired'/);
+  assert.match(onboarding,/href="\/billing"/);
 });
-test('billing customer guides exist in both languages and clearly separate payments from invoice creation', () => {
+
+test('bilingual customer billing guides reject unsupported payment claims', () => {
   const english = read('docs/customer/billing-guide.en.md');
   const arabic = read('docs/customer/billing-guide.ar.md');
-  assert.match(english, /not proof.*payment/i);
-  assert.match(english, /Stripe/);
-  assert.match(arabic, /Stripe/);
-  assert.match(arabic, /لا.*تجدد/);
+  assert.match(english,/Paddle/);
+  assert.match(english,/never proves successful payment/);
+  assert.match(english,/not yet available/);
+  assert.match(arabic,/Paddle/);
+  assert.match(arabic,/لا تؤكد صفحة العودة/);
+  assert.match(arabic,/لا يمكن للتطبيق إنشاء دفعة جديدة/);
 });
