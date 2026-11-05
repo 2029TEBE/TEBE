@@ -36,7 +36,7 @@ export function evaluatePaddleSandboxSettlement(event, intent, { signatureVerifi
       data.subscription_id !== intent.subscriptionProviderId)
     return fail('subscription_mismatch');
   const items = data.details?.line_items;
-  if (!Array.isArray(items) || items.length !== 1 || items[0]?.price?.id !== intent.priceId ||
+  if (!Array.isArray(items) || items.length !== 1 || items[0]?.price_id !== intent.priceId ||
       !Number.isSafeInteger(items[0]?.quantity) || items[0].quantity !== 1)
     return fail('price_or_quantity_mismatch');
   const total = data.details?.totals?.grand_total;

@@ -16,7 +16,7 @@ const intent=()=>({provider:'paddle',environment:'sandbox',tenantId:tenant,
 const event=()=>({event_id:eventId,event_type:'transaction.completed',data:{
  id:'txn_abc123',status:'completed',subscription_id:'sub_abc123',currency_code:'SAR',
  custom_data:{tenantId:tenant},details:{
- line_items:[{price:{id:'pri_abc123'},quantity:1}],
+ line_items:[{price_id:'pri_abc123',quantity:1}],
  totals:{grand_total:'11500'}}}});
 const raw=value=>Buffer.from(JSON.stringify(value));
 const signature=buf=>'ts='+time+';h1='+createHmac('sha256',key).update(String(time)+':').update(buf).digest('hex');
@@ -45,7 +45,7 @@ test('scenario 3: cross-tenant and foreign transaction receipts cannot be accept
 test('scenario 4: wrong price, quantity, amount or currency cannot be settled',()=>{
  for(const field of ['price','quantity','amount','currency']){
   const e=event();
-  if(field==='price')e.data.details.line_items[0].price.id='pri_other';
+  if(field==='price')e.data.details.line_items[0].price_id='pri_other';
   if(field==='quantity')e.data.details.line_items[0].quantity=2;
   if(field==='amount')e.data.details.totals.grand_total='11499';
   if(field==='currency')e.data.currency_code='USD';

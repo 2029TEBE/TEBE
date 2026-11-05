@@ -13,7 +13,7 @@ const event = () => ({
   event_id: 'evt_abcdefghijklmnopqrstuvwxyz', event_type: 'transaction.completed',
   data: { id: 'txn_abc123', status: 'completed', subscription_id: 'sub_abc123',
     currency_code: 'SAR', details: {
-      line_items: [{ price: { id: 'pri_abc123' }, quantity: 1 }],
+      line_items: [{ price_id: 'pri_abc123', quantity: 1 }],
       totals: { grand_total: '11500' },
     },
   },
@@ -48,7 +48,7 @@ test('reject wrong currency, amount, price and quantity', () => {
   assert.equal(check(currency).accepted, false);
   const amount = event(); amount.data.details.totals.grand_total = '11499';
   assert.equal(check(amount).accepted, false);
-  const price = event(); price.data.details.line_items[0].price.id = 'pri_other';
+  const price = event(); price.data.details.line_items[0].price_id = 'pri_other';
   assert.equal(check(price).accepted, false);
   const quantity = event(); quantity.data.details.line_items[0].quantity = 2;
   assert.equal(check(quantity).accepted, false);
