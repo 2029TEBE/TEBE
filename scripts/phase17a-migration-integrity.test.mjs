@@ -11,9 +11,12 @@ const digest = text => createHash('sha256').update(text).digest('hex');
 const valid = { schemaVersion: 1, algorithm: 'sha256', files: { '0000_initial.sql': digest('CREATE TABLE t(id int);') } };
 const hashes = { '0000_initial.sql': digest('CREATE TABLE t(id int);') };
 
-test('existing 20 migration SQL sources match pinned release digests', () => {
+test('the expanded 24-migration chain preserves immutable release digests', () => {
   const result = verifyRepositoryMigrations();
-  assert.equal(result.count, 20);
+  assert.equal(result.count, 24);
+  assert.equal(result.latest, '0023_paddle_ledger');
+  const manifest = JSON.parse(readFileSync(join(source, 'meta/_sha256.json'), 'utf8'));
+  assert.equal(manifest.files['0019_password_recovery.sql'], '4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74');
   assert.equal(result.checksumsVerified, true);
 });
 test('matching SQL contents accepted', () => assert.deepEqual(checkMigrationHashes(valid, hashes), []));

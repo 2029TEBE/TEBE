@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { verifyRepositoryMigrations } from './verify-migration-chain.mjs';
 
 export const DISPOSABLE_ACK = 'YES_RESEED_DISPOSABLE_TEST_DATABASE';
 const LOCALHOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -73,9 +74,11 @@ export function runRestoreDrill(env = process.env) {
   const counts = db => JSON.parse(exec('psql', [...args, '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-d', db, '-c', DATA_CHECK_SQL]));
   let error;
   try {
+    // Exact, checksummed source inventory; never hardcode a historical count.
+    const expectedMigrationCount = verifyRepositoryMigrations().count;
     const before = counts(cfg.database);
     if (Number(before.users) < 2 || Number(before.tenants) < 2 ||
-        Number(before.memberships) < 2 || Number(before.migrations) !== 20)
+        Number(before.memberships) < 2 || Number(before.migrations) !== expectedMigrationCount)
       throw new Error('Blocked: CI source has not been migrated and seeded with the expected fixtures');
     exec('pg_dump', [...args, '-d', cfg.database, '--format=custom', '--no-owner', '--no-acl', '--file', archive]);
     if (statSync(archive).size < 100) throw new Error('Blocked: database backup is empty');
