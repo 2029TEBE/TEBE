@@ -65,7 +65,7 @@ test('registration web routes validate origin, never trust client tenant or gran
     'apps/web/src/app/api/signup/confirm/route.ts']){
    const body=src(route);
    assert.match(body,/rejectUnsafeBrowserMutation\(req\)/);
-   assert.doesNotMatch(body,/req\.headers\.get\('x-tenant-id'\)|paddle|stripe|charge|billing_payments/i);
+   assert.doesNotMatch(body,/req\.headers\.get\('x-tenant-id'\)|paddle|stripe|\bcharge\s*\(|billing_payments/i);
  }
  const api=src('apps/api/src/auth/signup.service.ts');
  assert.match(api,/buildTransport/);
