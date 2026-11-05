@@ -123,23 +123,19 @@ describe.skipIf(!liveAcceptance)('Phase 15A: real billing API tenant isolation',
     }
   });
 
-  it('canceling tenant A does not change tenant B; resuming restores A', async () => {
+  it('Paddle cutover denies local cancellation and resumption for both tenants', async () => {
     const post = (path: string, token: string) => fetch(`${API}${path}`, {
       method: 'POST', headers: { cookie: `pmo_session=${token}` },
     });
-    const cancel = await post('/api/v1/subscription/cancel-at-period-end', ownerA);
-    expect(cancel.status).toBe(201);
-    expect((await cancel.json()).cancelAtPeriodEnd).toBe(true);
-    expect((await get('/api/v1/subscription/current', ownerA)).body.cancelAtPeriodEnd).toBe(true);
-    expect((await get('/api/v1/subscription/current', ownerB)).body.cancelAtPeriodEnd).toBe(false);
-    // A repeated cancellation must not create a second preference change.
-    const repeated = await post('/api/v1/subscription/cancel-at-period-end', ownerA);
-    expect(repeated.status).toBe(201);
-    expect((await repeated.json()).unchanged).toBe(true);
-    const resume = await post('/api/v1/subscription/resume', ownerA);
-    expect(resume.status).toBe(201);
-    expect((await get('/api/v1/subscription/current', ownerA)).body.cancelAtPeriodEnd).toBe(false);
-    expect((await get('/api/v1/subscription/current', ownerB)).body.cancelAtPeriodEnd).toBe(false);
+    for (const path of ['/api/v1/subscription/cancel-at-period-end','/api/v1/subscription/resume']) {
+      for (const token of [ownerA,ownerB]) {
+        const response = await post(path,token);
+        expect(response.status).toBe(503);
+      }
+    }
+    expect((await get('/api/v1/subscription/current',ownerA)).body.cancelAtPeriodEnd).toBe(false);
+    expect((await get('/api/v1/subscription/current',ownerB)).body.cancelAtPeriodEnd).toBe(false);
+    expect((await post('/api/v1/subscription/cancel-at-period-end',consultant)).status).toBe(403);
   });
 
   it('refuses billing mutation from an unprivileged user and unsigned webhook', async () => {
@@ -147,11 +143,14 @@ describe.skipIf(!liveAcceptance)('Phase 15A: real billing API tenant isolation',
       method: 'POST', headers: { cookie: `pmo_session=${consultant}` },
     });
     expect(response.status).toBe(403);
-    const webhook = await fetch(`${API}/api/v1/billing/stripe-webhook`, {
+    const webhook = await fetch(`${API}/api/v1/billing/paddle-webhook`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
-    // Stripe is intentionally disabled in CI; no unverified request may settle payment.
-    expect([400, 403, 503]).toContain(webhook.status);
+    expect(webhook.status).toBe(503);
+    const retiredWebhook = await fetch(`${API}/api/v1/billing/stripe-webhook`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+    });
+    expect(retiredWebhook.status).toBe(404);
   });
 });
 
