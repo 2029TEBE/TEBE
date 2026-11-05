@@ -14,8 +14,10 @@ const post=()=>fetch(API+'/api/v1/subscription/evaluation/start',{
 beforeAll(async()=>{
   if(!enabled)return;
   assertDisposableAcceptanceConfig({...process.env,PHASE15_BILLING_ACCEPTANCE:'true'});
-  tenant=psql(`INSERT INTO tenants(name,slug)
-     VALUES('Synthetic Evaluation ${suffix}','${slug}') RETURNING id`);
+  tenant=psql(`WITH new_tenant AS (
+    INSERT INTO tenants(name,slug)
+    VALUES('Synthetic Evaluation ${suffix}','${slug}') RETURNING id
+  ) SELECT id FROM new_tenant`);
   const owner=psql("SELECT id FROM users WHERE email='fatima@al-nakheel.test' LIMIT 1");
   expect(tenant).toMatch(/^[a-f0-9-]{36}$/i);
   expect(owner).toMatch(/^[a-f0-9-]{36}$/i);
