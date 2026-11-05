@@ -156,12 +156,16 @@ describe('finishing the handshake', () => {
 
 describe('before anything is connected', () => {
   it('says so, rather than failing, on every route that needs a connection', async () => {
-    for (const path of ['/api/v1/microsoft/places', '/api/v1/microsoft/files',
-                        '/api/v1/microsoft/reports']) {
+    for (const path of ['/api/v1/microsoft/places', '/api/v1/microsoft/files']) {
       const r = await get(path, fatima);
       expect(r.status, `${path} should refuse politely`).toBe(409);
       expect(String(r.body?.message)).toMatch(/not connected/i);
     }
+    // Deliberate security change: workspace-wide delegated Power BI tokens
+    // cannot enumerate reports, even with a synthetic configured OAuth app.
+    const reports = await get('/api/v1/microsoft/reports', fatima);
+    expect(reports.status).toBe(503);
+    expect(String(reports.body?.message)).toMatch(/per-user Microsoft authorization/i);
   });
 
   it('has nothing to disconnect', async () => {
