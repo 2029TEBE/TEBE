@@ -80,6 +80,17 @@ REVOKE UPDATE, DELETE ON billing_stripe_recurring_checkout_sessions,
 
 -- Global tables: readable, never writable by the app role. (Closes the gap
 -- where pmo_app could update or delete any user in the system.)
+-- Pending signup requests contain unverified PII and token hashes.
+-- Only scoped SECURITY DEFINER entry points may touch this global table.
+REVOKE ALL ON public.signup_requests FROM pmo_app;
+REVOKE ALL ON public.signup_requests FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pmo_issue_signup_request(text,text,text,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pmo_revoke_signup_request(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pmo_complete_signup_request(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.pmo_issue_signup_request(text,text,text,text) TO pmo_app;
+GRANT EXECUTE ON FUNCTION public.pmo_revoke_signup_request(text) TO pmo_app;
+GRANT EXECUTE ON FUNCTION public.pmo_complete_signup_request(text,text) TO pmo_app;
+
 REVOKE INSERT, UPDATE, DELETE ON tenants FROM pmo_app;
 REVOKE INSERT, UPDATE, DELETE ON users   FROM pmo_app;
 

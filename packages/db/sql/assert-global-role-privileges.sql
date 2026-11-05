@@ -63,6 +63,25 @@ BEGIN
         AND a.grantee=0 AND a.privilege_type='EXECUTE') THEN
     RAISE EXCEPTION 'P0: password reset function must not be public';
   END IF;
+  IF has_table_privilege('pmo_app','public.signup_requests','SELECT') OR
+     has_table_privilege('pmo_app','public.signup_requests','INSERT') OR
+     has_table_privilege('pmo_app','public.signup_requests','UPDATE') OR
+     has_table_privilege('pmo_app','public.signup_requests','DELETE') THEN
+    RAISE EXCEPTION 'P0: signup request PII/token hashes must remain inaccessible to app role';
+  END IF;
+  IF NOT has_function_privilege('pmo_app','public.pmo_issue_signup_request(text,text,text,text)','EXECUTE') OR
+     NOT has_function_privilege('pmo_app','public.pmo_revoke_signup_request(text)','EXECUTE') OR
+     NOT has_function_privilege('pmo_app','public.pmo_complete_signup_request(text,text)','EXECUTE') THEN
+    RAISE EXCEPTION 'P0: scoped signup function privileges missing';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p,
+        LATERAL aclexplode(COALESCE(p.proacl, acldefault('f',p.proowner))) a
+      WHERE p.oid IN ('public.pmo_issue_signup_request(text,text,text,text)'::regprocedure,
+                      'public.pmo_revoke_signup_request(text)'::regprocedure,
+                      'public.pmo_complete_signup_request(text,text)'::regprocedure)
+        AND a.grantee=0 AND a.privilege_type='EXECUTE') THEN
+    RAISE EXCEPTION 'P0: signup functions must not be executable by PUBLIC';
+  END IF;
   RAISE NOTICE 'PASS P0 application role column-level privilege boundary';
 END
 $check$;

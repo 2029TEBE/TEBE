@@ -11,10 +11,10 @@ const digest = text => createHash('sha256').update(text).digest('hex');
 const valid = { schemaVersion: 1, algorithm: 'sha256', files: { '0000_initial.sql': digest('CREATE TABLE t(id int);') } };
 const hashes = { '0000_initial.sql': digest('CREATE TABLE t(id int);') };
 
-test('the expanded 27-migration chain preserves immutable release digests', () => {
+test('the expanded 28-migration chain preserves immutable release digests', () => {
   const result = verifyRepositoryMigrations();
-  assert.equal(result.count, 27);
-  assert.equal(result.latest, '0026_evaluation_seven_day');
+  assert.equal(result.count, 28);
+  assert.equal(result.latest, '0027_email_verified_signup');
   const manifest = JSON.parse(readFileSync(join(source, 'meta/_sha256.json'), 'utf8'));
   assert.equal(manifest.files['0019_password_recovery.sql'], '4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74');
   assert.equal(result.checksumsVerified, true);
