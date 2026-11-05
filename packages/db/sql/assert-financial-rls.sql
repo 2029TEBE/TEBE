@@ -26,7 +26,8 @@ BEGIN
     'billing_paddle_settlements',
     'billing_paddle_adjustment_receipts',
     'billing_stripe_recurring_checkout_sessions',
-    'billing_stripe_recurring_bindings'
+    'billing_stripe_recurring_bindings',
+    'tenant_evaluation_trials'
   ] LOOP
     SELECT c.relrowsecurity, c.relforcerowsecurity
     INTO rls_on, rls_forced
@@ -56,12 +57,13 @@ BEGIN
     'billing_paddle_checkout_intents',
     'billing_paddle_webhook_receipts',
     'billing_paddle_settlements',
-    'billing_paddle_adjustment_receipts'
+    'billing_paddle_adjustment_receipts',
+    'tenant_evaluation_trials'
   ] LOOP
     IF has_table_privilege('pmo_app', 'public.' || table_name, 'UPDATE')
        OR has_table_privilege('pmo_app', 'public.' || table_name, 'DELETE') THEN
-      RAISE EXCEPTION 'Paddle ledger is not append-only for pmo_app: %', table_name;
+      RAISE EXCEPTION 'Append-only billing/evaluation ledger grants are unsafe for pmo_app: %', table_name;
     END IF;
   END LOOP;
-  RAISE NOTICE 'PASS financial RLS catalog: thirteen tables have forced tenant isolation';
+  RAISE NOTICE 'PASS financial RLS catalog: fourteen tables have forced tenant isolation';
 END $audit$;
