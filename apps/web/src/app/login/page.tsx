@@ -42,6 +42,8 @@ export default async function LoginPage({ searchParams }:
           {error && <p className="formerr" role="alert">{t(error)}</p>}
           <button className="btn wide" type="submit">{ar ? 'تسجيل الدخول' : 'Sign in'}</button>
           <Link href="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
+          {process.env.SIGNUP_ENABLED === 'true' && process.env.DEPLOYMENT_ENV === 'staging' &&
+            <Link href="/signup">{ar ? 'إنشاء حساب للتجربة المجانية' : 'Create your free Evaluation workspace'}</Link>}
         </form>
 
         {showHint && (

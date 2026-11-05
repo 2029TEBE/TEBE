@@ -46,6 +46,7 @@ services:
       BILLING_PROVIDER: paddle
       PADDLE_ENABLED: 'false'
       EVALUATION_ACCESS_ENABLED: 'false'
+      SIGNUP_ENABLED: 'false'
       PADDLE_ENV: ${PADDLE_ENV:-production}
       # Phase 13A: SES invitation email is API-only. IAM credentials must be
       # supplied through the host's workload role, never through the web app.
