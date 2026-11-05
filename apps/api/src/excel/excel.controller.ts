@@ -3,6 +3,7 @@ import { Body, Controller, Get, Post, Query, Res, UploadedFile, UseInterceptors,
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { RequiresModule } from '../platform/module.guard';
+import { requireCapability } from '../common/require-capability';
 import { ExcelService } from './excel.service';
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -30,6 +31,9 @@ export class ExcelController {
   @RequiresModule('pmo360') @Post('preview')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 12 * 1024 * 1024 } }))
   async preview(@UploadedFile() file?: { buffer: Buffer; originalname: string }) {
+    // Deny unauthorized users before returning workbook-format diagnostics.
+    requireCapability('pmoa_manage_projects');
+    requireCapability('pmoa_manage_finance');
     if (!file?.buffer?.length || !/\.xlsx$/i.test(file.originalname ?? ''))
       throw new BadRequestException('Upload a valid .xlsx workbook.');
     return this.svc.previewWorkbook(file.buffer);
@@ -39,6 +43,10 @@ export class ExcelController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 12 * 1024 * 1024 } }))
   async load(@UploadedFile() file?: { buffer: Buffer; originalname: string },
              @Body('mode') mode?: string) {
+    // Finance authorization is mandatory even when the upload is malformed.
+    // ExcelService repeats these checks as defense in depth.
+    requireCapability('pmoa_manage_projects');
+    requireCapability('pmoa_manage_finance');
     if (!file?.buffer?.length) throw new BadRequestException('No file was uploaded.');
     if (!/\.xlsx$/i.test(file.originalname ?? '')) {
       throw new BadRequestException('Upload the .xlsx workbook, not .xls or .csv.');
