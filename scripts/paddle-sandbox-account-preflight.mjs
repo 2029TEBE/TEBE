@@ -78,8 +78,8 @@ export async function verifyPaddleSandboxAccount({
   // The account ID is an optional independent check, never a claim about
   // email verification or account approval.
   const expectedSeller=env.PADDLE_SANDBOX_ACCOUNT_ID || '';
-  if (expectedSeller && !sellerPattern.test(expectedSeller))
-    return report('invalid_expected_account_identifier');
+  if (!sellerPattern.test(expectedSeller))
+    return report('explicit_expected_account_identifier_required');
 
   let root;
   try { root=await readJson(fetchImpl,'/',key); }

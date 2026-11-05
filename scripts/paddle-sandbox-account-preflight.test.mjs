@@ -60,6 +60,14 @@ test('read-only identity, catalog and webhook proof returns booleans and no cred
   assert.equal(JSON.stringify(result).includes(secret),false);
   assert.equal(JSON.stringify(result).includes(seller),false);
 });
+test('a valid sandbox key is insufficient without an independently supplied EPMO seller ID',async()=>{
+  const e={...env(),PADDLE_SANDBOX_ACCOUNT_ID:''};
+  const calls=[];
+  const result=await verify({env:e,fetchImpl:mock(calls)});
+  assert.equal(result.accountVerified,false);
+  assert.equal(result.sandboxSetupComplete,false);
+  assert.equal(calls.length,0);
+});
 test('a live API identity can never qualify',async()=>{
   const result=await verify({env:env(),fetchImpl:mock([],{environment:'production'})});
   assert.equal(result.accountVerified,false);
