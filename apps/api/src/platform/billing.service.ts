@@ -23,6 +23,23 @@ export class BillingService {
       ORDER BY created_at DESC, id DESC LIMIT 100`)));
   }
 
+  /** Read-only, tenant-scoped queue of signed Paddle refund/dispute events.
+   * Never treat a provider adjustment as proof of a new payment or auto-cancel.
+   */
+  async paddleAdjustments() {
+    requireCapability('pmoa_admin');
+    const {tenantId}=currentContext();
+    return withTenant(tenantId,async tx => rows(await tx.execute(sql`
+      SELECT a.id,a.paddle_adjustment_id AS "adjustmentId",
+             a.paddle_event_id AS "eventId", a.event_type AS "eventType",
+             a.paddle_transaction_id AS "transactionId",
+             a.action,a.adjustment_status AS "status",
+             a.received_at AS "receivedAt"
+      FROM billing_paddle_adjustment_receipts a
+      WHERE a.tenant_id=${tenantId}
+      ORDER BY a.received_at DESC,a.id DESC LIMIT 100`)));
+  }
+
   async payments() {
     requireCapability('pmoa_admin');
     const { tenantId } = currentContext();

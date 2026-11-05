@@ -10,6 +10,7 @@ export class BillingController {
   constructor(private readonly billing: BillingService) {}
   @Get('invoices') invoices() { return this.billing.invoices(); }
   @Get('payments') payments() { return this.billing.payments(); }
+  @Get('paddle-adjustments') paddleAdjustments() { return this.billing.paddleAdjustments(); }
   @Get('exceptions') exceptions() { return this.billing.exceptions(); }
   @Get('reconciliation') reconciliation() { return this.billing.reconciliation(); }
   @Post('renewal-invoice') renewalInvoice() {
