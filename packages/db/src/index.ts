@@ -1,2 +1,2 @@
 export * from './schema';
-export { db, schema, withTenant, closeDb, type Db } from './client';
+export { db, schema, withTenant, withTenantSerializable, closeDb, type Db } from './client';

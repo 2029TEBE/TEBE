@@ -30,4 +30,20 @@ export async function withTenant<T>(
   });
 }
 
+/**
+ * Transaction-local tenant context under SERIALIZABLE isolation, used for
+ * immutable payment receipt insertion. Do not retry blindly: provider callbacks
+ * are deliberately replay-safe and failed transactions remain unacknowledged.
+ */
+export async function withTenantSerializable<T>(
+  tenantId: string,
+  fn: (tx: Parameters<Parameters<Db['transaction']>[0]>[0]) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async tx => {
+    await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`);
+    await tx.execute(sql`select set_config('app.tenant_id', ${tenantId}, true)`);
+    return fn(tx);
+  });
+}
+
 export async function closeDb() { await queryClient.end({ timeout: 5 }); }
