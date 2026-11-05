@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { Page, Loaded } from '@/components/Page';
 import { api, getSession } from '@/lib/api';
 import { getLang } from '@/lib/i18n';
-import { effectiveSubscriptionStatus, formatBillingMoney, formatBillingDate } from '@/lib/subscription-display.mjs';
+import { effectiveSubscriptionStatus, formatBillingMoney, formatBillingDate, daysUntil } from '@/lib/subscription-display.mjs';
 
 /** Paddle-only billing status. No checkout or subscription mutation until signed settlement is live. */
 export default async function BillingPage() {
@@ -22,6 +22,28 @@ export default async function BillingPage() {
         <h2>{tx('Current subscription', 'الاشتراك الحالي')}</h2>
         <p>{tx('Plan', 'الخطة')}: {subscription?.planName ?? subscription?.planCode ?? tx('Not assigned','غير محددة')}</p>
         <p>{tx('Status', 'الحالة')}: {effectiveSubscriptionStatus(subscription)}</p>
+        {subscription?.planCode === 'evaluation_7day' && (
+          <div className="panel">
+            <strong>{tx('7-day Evaluation · Free', 'تجربة مجانية لمدة 7 أيام')}</strong>
+            <p>{tx('No credit card. No automatic renewal. Fictional demo data only.',
+              'دون بطاقة ائتمانية أو تجديد تلقائي. البيانات التجريبية افتراضية فقط.')}</p>
+            {effectiveSubscriptionStatus(subscription) === 'expired'
+              ? <p role="status">{tx('Your Evaluation has expired. Contact us about an optional upgrade.',
+                  'انتهت الفترة التجريبية. تواصل معنا للترقية الاختيارية.')}</p>
+              : <p role="status">{tx('Days remaining', 'الأيام المتبقية')}: {daysUntil(subscription.trialEndsAt)}</p>}
+          </div>
+        )}
+        {!subscription && process.env.EVALUATION_ACCESS_ENABLED === 'true' &&
+         process.env.DEPLOYMENT_ENV !== 'production' && (
+          <div className="panel">
+            <h3>{tx('Try THE EPMO Evaluation for 7 days', 'جرّب THE EPMO مجاناً لمدة 7 أيام')}</h3>
+            <p>{tx('For a new, empty workspace only. No card, no automatic billing, and fictional sample projects.',
+              'لمساحة عمل جديدة وفارغة فقط. دون بطاقة أو فوترة تلقائية، وبمشاريع افتراضية.')}</p>
+            <form action="/api/evaluation/start" method="post">
+              <button type="submit">{tx('Start free Evaluation', 'ابدأ التجربة المجانية')}</button>
+            </form>
+          </div>
+        )}
         {subscription?.priceMinor != null && subscription.currency &&
           <p>{tx('Price', 'السعر')}: {formatBillingMoney(subscription.priceMinor,subscription.currency,ar?'ar':'en')}</p>}
         {subscription?.periodEndsAt &&
