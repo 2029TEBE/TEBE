@@ -41,15 +41,11 @@ services:
       WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
       ALLOW_HEADER_AUTH: 'false'
       API_PORT: '4000'
-      # Stripe runs only in the API container; do not put secret keys in the
-      # web container or NEXT_PUBLIC_* variables. Compose does NOT pass through
-      # variables from --env-file unless each is explicitly mapped here.
+      # Paddle is the only selected provider; real collection is NOT enabled.
       DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-production}
-      STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION: ${STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:-false}
-      STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      STRIPE_WEBHOOK_PUBLIC_URL: ${STRIPE_WEBHOOK_PUBLIC_URL:-}
+      BILLING_PROVIDER: paddle
+      PADDLE_ENABLED: 'false'
+      PADDLE_ENV: ${PADDLE_ENV:-production}
       # Phase 13A: SES invitation email is API-only. IAM credentials must be
       # supplied through the host's workload role, never through the web app.
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-none}
