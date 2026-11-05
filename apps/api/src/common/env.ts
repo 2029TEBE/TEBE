@@ -20,6 +20,7 @@ const schema = z.object({
   PADDLE_ENABLED: z.enum(['true', 'false']).default('false'),
   PADDLE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
   EVALUATION_ACCESS_ENABLED: z.enum(['true', 'false']).default('false'),
+  SIGNUP_ENABLED: z.enum(['true', 'false']).default('false'),
   LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(8),
   /*
    * Two independent session limits, both enforced on the server.
@@ -71,6 +72,15 @@ export function loadEnv(): Env {
   // Collection cannot be activated until a signed, durable webhook writer is accepted.
   if (env.PADDLE_ENABLED === 'true')
     throw new Error('Paddle collection is disabled pending signed settlement and merchant acceptance.');
+
+  // Public account creation is a separate, email-verified staged release.
+  // A mis-set production switch must not create customer tenants.
+  if (env.SIGNUP_ENABLED === 'true' &&
+      !(env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV === 'staging') &&
+      !(env.NODE_ENV === 'test' && process.env.CI === 'true' &&
+        process.env.GITHUB_ACTIONS === 'true' &&
+        process.env.PHASE15_ACCEPT_DISPOSABLE_DB === 'YES_RESEED_DISPOSABLE_TEST_DATABASE'))
+    throw new Error('Customer registration requires explicitly approved staging or disposable GitHub CI.');
 
   // A separate staged rollout is mandatory: no public Evaluation activation in production.
   if (env.EVALUATION_ACCESS_ENABLED === 'true' &&

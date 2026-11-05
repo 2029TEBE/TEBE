@@ -5,6 +5,8 @@ import { ZodPipe } from '../common/zod.pipe';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService, SESSION_COOKIE } from './auth.service';
 import { RecoveryService } from './recovery.service';
+import { SignupService } from './signup.service';
+import { signupRequestInput, signupConfirmInput } from './signup.schemas';
 import { requiresSecureTransport } from '../common/deployment-policy';
 
 /** Accepts `identifier` (email or username). `email` stays valid as an alias. */
@@ -28,7 +30,8 @@ const recoveryReset = z.object({
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly recovery: RecoveryService) {}
+  constructor(private readonly auth: AuthService, private readonly recovery: RecoveryService,
+    private readonly signup: SignupService) {}
 
   /**
    * Tighter than the global limit: 8 sign-in attempts a minute per IP.
@@ -49,6 +52,21 @@ export class AuthController {
       expires: out.expiresAt,
     });
     res.json({ ok: true, tenants: out.tenants });
+  }
+
+  /** Public only in a reviewed staging environment; no account until email verified. */
+  @Throttle({ default: { ttl: 900_000, limit: 3 } })
+  @Post('signup/request')
+  @HttpCode(200)
+  requestSignup(@Body(new ZodPipe(signupRequestInput)) body: any) {
+    return this.signup.request(body);
+  }
+
+  @Throttle({ default: { ttl: 900_000, limit: 6 } })
+  @Post('signup/confirm')
+  @HttpCode(200)
+  confirmSignup(@Body(new ZodPipe(signupConfirmInput)) body: any) {
+    return this.signup.confirm(body);
   }
 
   /** Public recovery initiation: response does not disclose account existence. */
