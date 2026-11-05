@@ -38,18 +38,18 @@ SELECT set_config('app.tenant_id', tenant_a::text, true) FROM epmo_paddle_ci_fix
 INSERT INTO public.billing_paddle_checkout_intents
   (id,tenant_id,subscription_id,plan_id,paddle_transaction_id,paddle_price_id,environment,expires_at)
 SELECT checkout_a,tenant_a,subscription_a,plan_id,
-  'txn_paddle_ci_test_a','pri_paddle_ci_test_a','sandbox',now()+interval '15 minutes'
+  'txn_paddlecitesta','pri_paddlecitesta','sandbox',now()+interval '15 minutes'
 FROM epmo_paddle_ci_fixture;
 INSERT INTO public.billing_paddle_webhook_receipts
   (id,tenant_id,checkout_intent_id,paddle_event_id,event_type,payload_sha256)
-SELECT receipt_a,tenant_a,checkout_a,'evt_paddle_ci_test_a',
+SELECT receipt_a,tenant_a,checkout_a,'evt_paddlecitesta',
   'transaction.completed',repeat('a',64)
 FROM epmo_paddle_ci_fixture;
 INSERT INTO public.billing_paddle_settlements
   (tenant_id,subscription_id,invoice_id,checkout_intent_id,receipt_id,
    paddle_transaction_id,amount_minor,currency)
 SELECT tenant_a,subscription_a,invoice_a,checkout_a,receipt_a,
-  'txn_paddle_ci_test_a',11500,'SAR'
+  'txn_paddlecitesta',11500,'SAR'
 FROM epmo_paddle_ci_fixture;
 
 DO $assert$
@@ -78,7 +78,7 @@ BEGIN
   BEGIN
     INSERT INTO public.billing_paddle_checkout_intents
       (tenant_id,subscription_id,plan_id,paddle_transaction_id,paddle_price_id,environment,expires_at)
-    VALUES (a,s,p,'txn_paddle_ci_foreign','pri_paddle_ci_test_a','sandbox',now()+interval '15 minutes');
+    VALUES (a,s,p,'txn_paddleciforeign','pri_paddlecitesta','sandbox',now()+interval '15 minutes');
     RAISE EXCEPTION 'Paddle cross-tenant insert unexpectedly allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
@@ -94,7 +94,7 @@ BEGIN
   BEGIN
     INSERT INTO public.billing_paddle_webhook_receipts
       (tenant_id,checkout_intent_id,paddle_event_id,event_type,payload_sha256)
-    VALUES (a,checkout,'evt_paddle_ci_test_a','transaction.completed',repeat('a',64));
+    VALUES (a,checkout,'evt_paddlecitesta','transaction.completed',repeat('a',64));
     RAISE EXCEPTION 'Duplicate Paddle event accepted';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
