@@ -13,7 +13,7 @@ const event = () => ({
   event_id:'evt_'+'a'.repeat(26),event_type:'transaction.completed',
   data:{id:'txn_abc123',status:'completed',subscription_id:'sub_abc123',currency_code:'SAR',
     custom_data:{tenantId},
-    details:{line_items:[{price:{id:'pri_abc123'},quantity:1}],totals:{grand_total:'11500'}}}
+    details:{line_items:[{price_id:'pri_abc123',quantity:1}],totals:{grand_total:'11500'}}}
 });
 const intent=()=>({provider:'paddle',environment:'sandbox',tenantId,subscriptionId,
  transactionId:'txn_abc123',priceId:'pri_abc123',amountMinor:11500,
