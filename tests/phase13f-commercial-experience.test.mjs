@@ -9,6 +9,8 @@ const api = read('apps/web/src/lib/api.ts');
 const subscriptionService = read('apps/api/src/platform/subscription.service.ts');
 const proxy = read('apps/web/src/app/api/billing/subscription/route.ts');
 const checkout = read('apps/web/src/app/api/billing/checkout/route.ts');
+const freeEvalForm = /<form action="\/api\/evaluation\/start" method="post">[\s\S]*?<\/form>/g;
+const billingWithoutEvaluationForm = billing.replace(freeEvalForm,'');
 const controller = read('apps/api/src/platform/subscription.controller.ts');
 const doc = read('PHASE13F_COMMERCIAL_EXPERIENCE.md');
 
@@ -33,7 +35,8 @@ test('subscription reads preserve plan and billing history', () => {
 
 test('browser return URL cannot confirm any payment or activate a license', () => {
   assert.match(billing,/No payment is confirmed by a return link/);
-  assert.doesNotMatch(billing,/confirmPaymentFromQuery|billing === 'success'|<form/);
+  assert.match(billing,freeEvalForm);
+  assert.doesNotMatch(billingWithoutEvaluationForm,/confirmPaymentFromQuery|billing === 'success'|<form/);
   assert.match(checkout,/status: 503/);
   assert.doesNotMatch(checkout,/fetch\(|NextResponse\.redirect\(/);
 });
@@ -53,7 +56,7 @@ test('mutation proxy rejects caller-selected tenant and return destinations', ()
 test('plan and historical invoice details are read-only', () => {
   assert.match(billing,/Paddle/);
   assert.match(billing,/historical invoices/);
-  assert.doesNotMatch(billing,/<form|activatePlan\(|Pay securely with Stripe/);
+  assert.doesNotMatch(billingWithoutEvaluationForm,/<form|activatePlan\(|Pay securely with Stripe/);
 });
 
 test('subscription changes cannot be applied locally before Paddle verification', () => {

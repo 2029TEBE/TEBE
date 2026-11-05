@@ -53,7 +53,13 @@ test('P0: browser cannot redirect to checkout or locally change subscription', (
   }
   const ui=file('apps/web/src/app/(app)/billing/page.tsx');
   assert.match(ui,/Paddle/);
-  assert.doesNotMatch(ui,/<form|Pay securely with Stripe|checkout\.stripe\.com/);
+  // Evaluation has exactly one approved free-access form; paid checkout is still forbidden.
+  assert.match(ui,/<form action="\/api\/evaluation\/start" method="post">/);
+  const readOnlyBilling=ui.replace(/<form action="\/api\/evaluation\/start" method="post">[\s\S]*?<\/form>/g,'');
+  assert.doesNotMatch(readOnlyBilling,/<form|Pay securely with Stripe|checkout\.stripe\.com/);
+  const evaluationProxy=file('apps/web/src/app/api/evaluation/start/route.ts');
+  assert.match(evaluationProxy,/rejectUnsafeBrowserMutation/);
+  assert.doesNotMatch(evaluationProxy,/paddle|stripe|checkout/);
 });
 
 test('P0: historical financial migrations are preserved', () => {
