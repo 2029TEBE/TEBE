@@ -160,6 +160,7 @@ jobs:
       - name: Email verified registration, empty tenant and optional Evaluation in disposable CI
         env:
           SIGNUP_LIVE_ACCEPTANCE: 'true'
+          SIGNUP_ENABLED: 'true'
         run: |
           test "$CI" = true && test "$GITHUB_ACTIONS" = true
           test "$PHASE15_ACCEPT_DISPOSABLE_DB" = YES_RESEED_DISPOSABLE_TEST_DATABASE
