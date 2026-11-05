@@ -28,7 +28,7 @@ export default async function BillingPage() {
           <p>{tx('Period end', 'نهاية الفترة')}: {formatBillingDate(subscription.periodEndsAt,ar?'ar':'en')}</p>}
       </section>
     }</Loaded>
-    <Loaded load={api.billingInvoices} renderEmpty>{invoices =>
+    <Loaded load={api.billingInvoices} empty={tx("No invoices found","لا توجد فواتير")}>{invoices =>
       <section className="panel">
         <h2>{tx('Invoice history', 'سجل الفواتير')}</h2>
         <p className="dim">{tx('Historical records remain available for accounting.', 'السجلات المالية السابقة محفوظة للمراجعة.')}</p>
