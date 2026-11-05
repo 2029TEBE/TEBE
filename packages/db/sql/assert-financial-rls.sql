@@ -20,7 +20,12 @@ BEGIN
     'billing_payments',
     'billing_webhook_receipts',
     'billing_stripe_checkout_sessions',
-    'billing_payment_exceptions'
+    'billing_payment_exceptions',
+    'billing_paddle_checkout_intents',
+    'billing_paddle_webhook_receipts',
+    'billing_paddle_settlements',
+    'billing_stripe_recurring_checkout_sessions',
+    'billing_stripe_recurring_bindings'
   ] LOOP
     SELECT c.relrowsecurity, c.relforcerowsecurity
     INTO rls_on, rls_forced
@@ -44,5 +49,17 @@ BEGIN
       RAISE EXCEPTION 'Financial tenant isolation USING and WITH CHECK policy missing: %', table_name;
     END IF;
   END LOOP;
-  RAISE NOTICE 'PASS financial RLS catalog: seven tables have forced tenant isolation';
+  -- Privilege audit is independent of RLS; even a valid policy must not allow
+  -- the app role to mutate append-only provider receipts or settlements.
+  FOREACH table_name IN ARRAY ARRAY[
+    'billing_paddle_checkout_intents',
+    'billing_paddle_webhook_receipts',
+    'billing_paddle_settlements'
+  ] LOOP
+    IF has_table_privilege('pmo_app', 'public.' || table_name, 'UPDATE')
+       OR has_table_privilege('pmo_app', 'public.' || table_name, 'DELETE') THEN
+      RAISE EXCEPTION 'Paddle ledger is not append-only for pmo_app: %', table_name;
+    END IF;
+  END LOOP;
+  RAISE NOTICE 'PASS financial RLS catalog: twelve tables have forced tenant isolation';
 END $audit$;

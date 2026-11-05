@@ -742,6 +742,7 @@ export const TENANT_SCOPED = [
   'documents', 'updates', 'stakeholders', 'integrations',
   'integration_connections', 'oauth_states', 'tenant_modules',
   'tenant_subscriptions', 'subscription_events', 'billing_invoices', 'billing_payments', 'billing_webhook_receipts', 'billing_stripe_checkout_sessions', 'billing_payment_exceptions',
+  'billing_paddle_checkout_intents', 'billing_paddle_webhook_receipts', 'billing_paddle_settlements',
 ] as const;
 
 export { sql };
@@ -858,3 +859,43 @@ export const billingPaymentExceptions = pgTable('billing_payment_exceptions', {
   tenantIdx: index('billing_payment_exceptions_tenant_created_idx').on(t.tenantId, t.createdAt),
   eventUnique: uniqueIndex('billing_exception_event_unique').on(t.provider, t.providerEventId),
 }));
+
+/* Q91: Paddle forward-looking settlement ledger; original Stripe financial
+ * records keep their provider identity for refunds, tax and reconciliation. */
+export const billingPaddleCheckoutIntents = pgTable('billing_paddle_checkout_intents', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  subscriptionId: uuid('subscription_id').notNull().references(() => tenantSubscriptions.id),
+  planId: uuid('plan_id').notNull().references(() => subscriptionPlans.id),
+  paddleTransactionId: text('paddle_transaction_id').notNull(),
+  paddlePriceId: text('paddle_price_id').notNull(),
+  environment: text('environment').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: createdAt(),
+}, t => ({ tenantIdx: index('billing_paddle_checkout_tenant_idx').on(t.tenantId, t.subscriptionId, t.createdAt),
+  transactionUnique: uniqueIndex('billing_paddle_checkout_transaction_unique').on(t.paddleTransactionId) }));
+export const billingPaddleWebhookReceipts = pgTable('billing_paddle_webhook_receipts', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  checkoutIntentId: uuid('checkout_intent_id').notNull().references(() => billingPaddleCheckoutIntents.id),
+  paddleEventId: text('paddle_event_id').notNull(),
+  eventType: text('event_type').notNull(),
+  payloadSha256: text('payload_sha256').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+}, t => ({ tenantIdx: index('billing_paddle_receipts_tenant_idx').on(t.tenantId, t.receivedAt),
+  eventUnique: uniqueIndex('billing_paddle_event_unique').on(t.paddleEventId) }));
+export const billingPaddleSettlements = pgTable('billing_paddle_settlements', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  subscriptionId: uuid('subscription_id').notNull().references(() => tenantSubscriptions.id),
+  invoiceId: uuid('invoice_id').notNull().references(() => billingInvoices.id),
+  checkoutIntentId: uuid('checkout_intent_id').notNull().references(() => billingPaddleCheckoutIntents.id),
+  receiptId: uuid('receipt_id').notNull().references(() => billingPaddleWebhookReceipts.id),
+  paddleTransactionId: text('paddle_transaction_id').notNull(),
+  amountMinor: integer('amount_minor').notNull(),
+  currency: text('currency').notNull(),
+  createdAt: createdAt(),
+}, t => ({ tenantIdx: index('billing_paddle_settlements_tenant_idx').on(t.tenantId, t.subscriptionId, t.createdAt),
+  invoiceUnique: uniqueIndex('billing_paddle_invoice_unique').on(t.invoiceId),
+  receiptUnique: uniqueIndex('billing_paddle_receipt_unique').on(t.receiptId),
+  transactionUnique: uniqueIndex('billing_paddle_transaction_unique').on(t.paddleTransactionId) }));
