@@ -6,11 +6,11 @@ import { tr, getLang } from '@/lib/i18n';
 export const metadata = { title: 'Sign in · The EPMO' };
 
 export default async function LoginPage({ searchParams }:
-  { searchParams: Promise<{ error?: string }> }) {
+  { searchParams: Promise<{ error?: string; verified?: string }> }) {
   const s = await getSession();
   if (s.authenticated) redirect('/');
 
-  const { error } = await searchParams;
+  const { error, verified } = await searchParams;
   const t = await tr();
   const ar = (await getLang()) === 'ar';
   const showHint = process.env.NODE_ENV === 'development' &&
@@ -28,6 +28,10 @@ export default async function LoginPage({ searchParams }:
         </p>
 
         {/* A plain POST: works without JavaScript and cannot go stale. */}
+        {verified === '1' && <p role="status" className="panel">
+          {ar ? 'تم التحقق من بريدك الإلكتروني. سجّل الدخول ثم فعّل التجربة المجانية.'
+              : 'Email verified. Sign in, then activate your free Evaluation.'}
+        </p>}
         <form className="authform" method="post" action="/api/session">
           <label>
             {ar ? 'اسم المستخدم أو البريد الإلكتروني' : 'Username or email'}

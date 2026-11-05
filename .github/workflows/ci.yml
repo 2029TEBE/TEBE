@@ -126,6 +126,7 @@ jobs:
           PADDLE_LEDGER_WRITE_MODE: ci_disposable_only
           PADDLE_WEBHOOK_SECRET: pdl_synthetic_webhook_ci_secret_not_a_real_destination_secret
           EVALUATION_ACCESS_ENABLED: 'true'
+          SIGNUP_ENABLED: 'true'
           MS_CLIENT_ID: ci-synthetic-oauth-client
           MS_CLIENT_SECRET: ci-synthetic-oauth-secret-not-for-production
           MS_REDIRECT_URI: http://localhost:4000/integrations/microsoft/callback
@@ -156,6 +157,13 @@ jobs:
           test "$CI" = true && test "$GITHUB_ACTIONS" = true
           test "$PHASE15_ACCEPT_DISPOSABLE_DB" = YES_RESEED_DISPOSABLE_TEST_DATABASE
           pnpm exec vitest run tests/evaluation-seven-day.test.ts
+      - name: Email verified registration, empty tenant and optional Evaluation in disposable CI
+        env:
+          SIGNUP_LIVE_ACCEPTANCE: 'true'
+        run: |
+          test "$CI" = true && test "$GITHUB_ACTIONS" = true
+          test "$PHASE15_ACCEPT_DISPOSABLE_DB" = YES_RESEED_DISPOSABLE_TEST_DATABASE
+          pnpm exec vitest run tests/signup-email-verified.test.ts
       - name: Live authenticated billing, project and workspace-switch isolation
         run: pnpm exec vitest run tests/phase15-billing-isolation.test.ts
         env:
