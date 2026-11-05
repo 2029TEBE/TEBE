@@ -744,6 +744,7 @@ export const TENANT_SCOPED = [
   'tenant_subscriptions', 'subscription_events', 'billing_invoices', 'billing_payments', 'billing_webhook_receipts', 'billing_stripe_checkout_sessions', 'billing_payment_exceptions',
   'billing_paddle_checkout_intents', 'billing_paddle_webhook_receipts', 'billing_paddle_settlements',
   'billing_paddle_adjustment_receipts',
+  'tenant_evaluation_trials',
 ] as const;
 
 export { sql };
@@ -770,6 +771,18 @@ export const tenantSubscriptions = pgTable('tenant_subscriptions', {
   canceledAt: timestamp('canceled_at', { withTimezone: true }),
   createdAt: createdAt(), updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => ({ tenantIdx: index('tenant_subscriptions_tenant_idx').on(t.tenantId) }));
+
+/** Immutable, one-time evaluation grant. Composite FK is enforced by SQL migration 0026. */
+export const tenantEvaluationTrials = pgTable('tenant_evaluation_trials', {
+  tenantId: uuid('tenant_id').primaryKey().references(() => tenants.id),
+  subscriptionId: uuid('subscription_id').notNull().references(() => tenantSubscriptions.id),
+  startedBy: uuid('started_by').notNull().references(() => users.id),
+  startedAt: timestamp('started_at', {withTimezone: true}).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', {withTimezone: true}).notNull(),
+}, t => ({
+  subscriptionUnique: uniqueIndex('tenant_evaluation_trials_subscription_id_key').on(t.subscriptionId),
+  expiry: index('tenant_evaluation_trials_expiry_idx').on(t.expiresAt),
+}));
 
 export const subscriptionEvents = pgTable('subscription_events', {
   id: id(), tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),

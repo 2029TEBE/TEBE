@@ -19,6 +19,7 @@ const schema = z.object({
   BILLING_PROVIDER: z.literal('paddle').default('paddle'),
   PADDLE_ENABLED: z.enum(['true', 'false']).default('false'),
   PADDLE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  EVALUATION_ACCESS_ENABLED: z.enum(['true', 'false']).default('false'),
   LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(8),
   /*
    * Two independent session limits, both enforced on the server.
@@ -70,6 +71,10 @@ export function loadEnv(): Env {
   // Collection cannot be activated until a signed, durable webhook writer is accepted.
   if (env.PADDLE_ENABLED === 'true')
     throw new Error('Paddle collection is disabled pending signed settlement and merchant acceptance.');
+
+  // A separate staged rollout is mandatory: no public Evaluation activation in production.
+  if (env.EVALUATION_ACCESS_ENABLED === 'true' && env.DEPLOYMENT_ENV === 'production')
+    throw new Error('Evaluation activation is disabled in production pending staged acceptance.');
 
   // The reference HMAC adapter is for controlled integration testing, never real billing.
   if (secureDeployment && env.BILLING_REFERENCE_WEBHOOK_ENABLED === 'true')

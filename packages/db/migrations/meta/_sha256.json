@@ -27,6 +27,7 @@
     "0022_microsoft_user_owner_rls.sql": "84e2a1c90349c27eecf65f2b43bfc505fc2559db5c13a12f95d6faf5e8435f29",
     "0023_paddle_ledger.sql": "f5614e5532baef3bdfc6e764dc3cb9bd3eb08f175dc73eb409a9a3e22c2a167c",
     "0024_paddle_checkout_invoice_binding.sql": "49827f128edf316558acea8addc36f79bb24edd5bb3f2d49eb0735b66d21b34e",
-    "0025_paddle_notification_intake.sql": "403a51e9694d7be3345de50a4750e8b543dfb0d38386c8fc645199984c71d9dd"
+    "0025_paddle_notification_intake.sql": "403a51e9694d7be3345de50a4750e8b543dfb0d38386c8fc645199984c71d9dd",
+    "0026_evaluation_seven_day.sql": "32e516b942a13a9cc8a5216129ca10297df66c235d815e9ee1c974d0c5d4cfba"
   }
 }
