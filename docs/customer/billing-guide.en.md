@@ -1,14 +1,13 @@
-# The EPMO — Subscription and billing guide
+# THE EPMO — Subscription and billing (Paddle cutover)
 
-**Who can manage billing?** Workspace administrators with the `pmoa_platform` permission can open **Billing & Renewals**. If you cannot see it, ask your administrator.
+**Status: read-only.** Paddle is the intended payment provider. New online checkout, renewal invoicing, cancellation, and resumption are not yet available. Do not attempt to pay or send card details through this application until an approved Paddle checkout is announced.
 
-1. **Check your plan.** Open Billing & Renewals to see the current plan, effective status, billing dates, and remaining trial time. Trial access is time-limited; a plan catalogue listing is not a license grant.
-2. **Compare plans.** Prices and trial lengths reflect the current published catalogue. Ask the platform owner to confirm module entitlements, taxes, and commercial terms. Plan upgrades are not yet self-service.
-3. **Create a renewal invoice.** If eligible, use **Create renewal invoice**. This step does not charge you or renew the subscription.
-4. **Pay securely.** Click **Pay securely with Stripe** on the open invoice. Card details are entered on Stripe's hosted checkout, not in The EPMO.
-5. **Verify payment.** Returning from Stripe is **not proof** of payment. The EPMO waits for a signed Stripe webhook before recording the payment and renewing the subscription. Refresh Billing & Renewals to see the final status.
-6. **Cancel or resume.** An authorized administrator can schedule cancellation for the end of the current period and reverse that schedule before the period expires. Canceling does not automatically refund an invoice.
+1. Open **Subscription and billing** with an authorized workspace administrator account.
+2. Review the existing subscription status, plan details and available historical invoices. These records remain accessible for reconciliation and audit.
+3. Existing prices shown in saved records are historical information, not a current binding checkout offer.
+4. The platform cannot initiate a new payment or independently extend a subscription during the cutover.
+5. A future Paddle payment will be considered verified only after the backend accepts a valid, signed provider webhook, matches it to a server-owned tenant/subscription checkout intent, and durably records a non-replayed settlement.
+6. Returning from a payment provider, an invoice URL, or a browser success page never proves successful payment or activates access.
+7. For renewals, plan changes, cancellations, refunds or disputes, contact your platform administrator for a verified manual review until the provider-backed workflow is approved.
 
-For billing disagreements or missing subscriptions, contact your workspace administrator or The EPMO platform owner. Never send payment card details or Stripe API secrets by email or chat.
-
-**Release status:** These workflows have offline tests, but live Stripe, PostgreSQL, and staging validation remain pending.
+**Release boundary:** Paddle merchant approval, sandbox credentials/price IDs, native provider transport, tenant-isolated ledger settlement, webhook replay protection, operational evidence and staging acceptance remain required. No live billing is enabled by this code change.
