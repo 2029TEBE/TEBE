@@ -10,6 +10,7 @@ export class SubscriptionController {
   @Get('history') history() { return this.subscriptions.history(); }
   @Get('events') events() { return this.subscriptions.events(); }
   @Get('plans') plans() { return this.subscriptions.plans(); }
+  @Post('evaluation/start') startEvaluation() { return this.subscriptions.startEvaluation(); }
   @Post('cancel-at-period-end') cancelAtPeriodEnd() { requireCapability('pmoa_admin'); throw new ServiceUnavailableException('Paddle-managed cancellation is unavailable'); }
   @Post('resume') resume() { requireCapability('pmoa_admin'); throw new ServiceUnavailableException('Paddle-managed subscription changes are unavailable'); }
 }

@@ -118,6 +118,9 @@ export class SuperAdminService {
 
   /** Manual commercial grant is NOT proof of payment. Log the human reason. */
   async provision(tenantId: string, body: ManualGrant) {
+    // The single Evaluation grant cannot be bypassed by a generic paid-plan API.
+    if (body.planCode === 'evaluation_7day')
+      throw new ForbiddenException('Use the one-time Evaluation activation flow');
     const actor = await this.vendorId();
     await this.existingTenant(tenantId);
     return withTenant(tenantId, async tx => {
