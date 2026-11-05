@@ -8,6 +8,7 @@ import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
 import { BillingController, BillingWebhookController } from './billing.controller';
 import { BillingService } from './billing.service';
+import { PaddleWebhookIntake } from './paddle-webhook-intake';
 
 /**
  * The module catalogue is licensing data. The application role can read it but
@@ -17,7 +18,7 @@ import { BillingService } from './billing.service';
 @Global()
 @Module({
   controllers: [PlatformController, SubscriptionController, SuperAdminController, BillingController, BillingWebhookController],
-  providers: [PlatformService, ModuleGuard, SubscriptionService, SuperAdminService, BillingService],
+  providers: [PlatformService, ModuleGuard, SubscriptionService, SuperAdminService, BillingService, PaddleWebhookIntake],
   exports: [PlatformService, ModuleGuard],
 })
 export class PlatformModule {}

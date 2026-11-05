@@ -43,7 +43,8 @@ export class AppModule implements NestModule {
     consumer.apply(TenantMiddleware)
       .exclude({ path: 'api/v1/onboarding/invitation/accept', method: RequestMethod.POST },
                { path: 'api/v1/billing/reference-webhook', method: RequestMethod.POST },
-               { path: 'api/v1/billing/stripe-webhook', method: RequestMethod.POST })
+               { path: 'api/v1/billing/stripe-webhook', method: RequestMethod.POST },
+               { path: 'api/v1/billing/paddle-webhook', method: RequestMethod.POST })
       .forRoutes('api/*');
   }
 }

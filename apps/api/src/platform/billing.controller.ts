@@ -1,4 +1,6 @@
-import { Controller, Get, Post, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, Post, HttpCode, Req, ServiceUnavailableException } from '@nestjs/common';
+import type { Request } from 'express';
+import { PaddleWebhookIntake } from './paddle-webhook-intake';
 import { BillingService } from './billing.service';
 import { requireCapability } from '../common/require-capability';
 
@@ -19,7 +21,11 @@ export class BillingController {
 /** Unpersisted callbacks must never receive a successful response. */
 @Controller('api/v1/billing')
 export class BillingWebhookController {
-  @Post('paddle-webhook') paddleWebhook() {
-    throw new ServiceUnavailableException('Paddle signed webhook settlement is not yet enabled');
+  constructor(private readonly intake: PaddleWebhookIntake) {}
+  @Post('paddle-webhook')
+  @HttpCode(200)
+  async paddleWebhook(@Req() req: Request & { rawBody?: Buffer }) {
+    const result = await this.intake.accept(req.rawBody,req.header('paddle-signature'));
+    return { received:result.received, duplicate:result.duplicate };
   }
 }

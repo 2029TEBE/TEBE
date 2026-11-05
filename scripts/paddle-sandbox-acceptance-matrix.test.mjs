@@ -81,7 +81,10 @@ test('scenario 8: refund/adjustment and duplicate receipts must not be marked pa
  assert.equal(paddleEventIdentity(refund,signature(refund),key,time),null);
  const controller=readFileSync(new URL('../apps/api/src/platform/billing.controller.ts',import.meta.url),'utf8');
  assert.match(controller,/ServiceUnavailableException/);
- assert.doesNotMatch(controller,/@HttpCode\(200\)|@HttpCode\(201\)/);
+ assert.match(controller,/@HttpCode\(200\)/);
+ const intake=readFileSync(new URL('../apps/api/src/platform/paddle-webhook-intake.ts',import.meta.url),'utf8');
+ assert.match(intake,/ensureDisposableWriter/);
+ assert.match(intake,/grantEntitlement:false/);
  const docs=readFileSync(new URL('../docs/billing/P0_PADDLE_SANDBOX_ACCEPTANCE.md',import.meta.url),'utf8');
  assert.match(docs,/idempotent|replay/i);
 });

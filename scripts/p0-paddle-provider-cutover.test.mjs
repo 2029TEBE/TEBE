@@ -32,7 +32,12 @@ test('P0: API billing has no reachable retired checkout or acknowledgement', () 
   assert.doesNotMatch(module,/StripeBillingService|stripe\.service/);
   assert.match(ctrl,/ServiceUnavailableException/);
   assert.match(ctrl,/@Post\('paddle-webhook'\)/);
-  assert.doesNotMatch(ctrl,/@HttpCode\(200\)/);
+  assert.match(ctrl,/@HttpCode\(200\)/);
+  const intake=file('apps/api/src/platform/paddle-webhook-intake.ts');
+  assert.match(intake,/ensureDisposableWriter/);
+  assert.match(intake,/verifyRawPaddleSignature/);
+  assert.match(intake,/pmo_paddle_tenant_for_transaction/);
+  assert.match(intake,/grantEntitlement:false/);
   const subscription=file('apps/api/src/platform/subscription.controller.ts');
   assert.doesNotMatch(subscription,/setCancellation\(/);
   assert.match(subscription,/ServiceUnavailableException/);
