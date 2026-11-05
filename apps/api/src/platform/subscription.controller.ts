@@ -1,4 +1,4 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, ServiceUnavailableException } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 
 /** Tenant-scoped self-service. Never accepts a tenant ID from the request. */
@@ -9,6 +9,6 @@ export class SubscriptionController {
   @Get('history') history() { return this.subscriptions.history(); }
   @Get('events') events() { return this.subscriptions.events(); }
   @Get('plans') plans() { return this.subscriptions.plans(); }
-  @Post('cancel-at-period-end') cancelAtPeriodEnd() { return this.subscriptions.setCancellation(true); }
-  @Post('resume') resume() { return this.subscriptions.setCancellation(false); }
+  @Post('cancel-at-period-end') cancelAtPeriodEnd() { throw new ServiceUnavailableException('Paddle-managed cancellation is unavailable'); }
+  @Post('resume') resume() { throw new ServiceUnavailableException('Paddle-managed subscription changes are unavailable'); }
 }
