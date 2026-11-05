@@ -867,6 +867,7 @@ export const billingPaddleCheckoutIntents = pgTable('billing_paddle_checkout_int
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
   subscriptionId: uuid('subscription_id').notNull().references(() => tenantSubscriptions.id),
   planId: uuid('plan_id').notNull().references(() => subscriptionPlans.id),
+  invoiceId: uuid('invoice_id').references(() => billingInvoices.id),
   paddleTransactionId: text('paddle_transaction_id').notNull(),
   paddlePriceId: text('paddle_price_id').notNull(),
   environment: text('environment').notNull(),

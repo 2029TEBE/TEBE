@@ -169,6 +169,13 @@
       "when": 1789238220559,
       "tag": "0023_paddle_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789238221559,
+      "tag": "0024_paddle_checkout_invoice_binding",
+      "breakpoints": true
     }
   ]
 }
