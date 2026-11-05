@@ -91,6 +91,13 @@ jobs:
         run: pnpm db:modules
       - name: Seed disposable tenant fixtures
         run: pnpm db:seed
+      - name: Prove Paddle RLS with disposable tenant A/B and replay fixtures
+        run: |
+          test "$CI" = 'true' && test "$GITHUB_ACTIONS" = 'true'
+          test "$PHASE15_ACCEPT_DISPOSABLE_DB" = 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+          node scripts/verify-ci-services.mjs
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 \
+            -f packages/db/sql/assert-paddle-tenant-fixture.sql
       - name: Restore seeded PostgreSQL into an isolated CI database
         run: node scripts/verify-ci-database-restore.mjs
       - name: Record PostgreSQL restore evidence
