@@ -40,7 +40,7 @@ export class TenantMiddleware implements NestMiddleware {
       }>;
     if (records[0] &&
         effectiveEvaluationStatus(records[0]) !== 'trialing' &&
-        !isEvaluationRecoveryRead(req.method, req.path))
+        !isEvaluationRecoveryRead(req.method, (req.originalUrl || req.path).split('?')[0]))
       throw new ForbiddenException('Evaluation access expired. Review your subscription to upgrade.');
   }
 
