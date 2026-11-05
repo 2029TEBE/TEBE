@@ -70,6 +70,9 @@ REVOKE UPDATE, DELETE ON billing_stripe_checkout_sessions FROM pmo_app;
 -- Historical recurring Stripe tables remain immutable accounting evidence.
 REVOKE UPDATE, DELETE ON billing_paddle_checkout_intents,
   billing_paddle_webhook_receipts, billing_paddle_settlements FROM pmo_app;
+REVOKE UPDATE, DELETE ON billing_paddle_adjustment_receipts FROM pmo_app;
+REVOKE ALL ON FUNCTION public.pmo_paddle_tenant_for_transaction(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.pmo_paddle_tenant_for_transaction(text) TO pmo_app;
 REVOKE UPDATE, DELETE ON billing_stripe_recurring_checkout_sessions,
   billing_stripe_recurring_bindings FROM pmo_app;
 

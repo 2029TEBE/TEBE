@@ -24,6 +24,7 @@ BEGIN
     'billing_paddle_checkout_intents',
     'billing_paddle_webhook_receipts',
     'billing_paddle_settlements',
+    'billing_paddle_adjustment_receipts',
     'billing_stripe_recurring_checkout_sessions',
     'billing_stripe_recurring_bindings'
   ] LOOP
@@ -54,12 +55,13 @@ BEGIN
   FOREACH table_name IN ARRAY ARRAY[
     'billing_paddle_checkout_intents',
     'billing_paddle_webhook_receipts',
-    'billing_paddle_settlements'
+    'billing_paddle_settlements',
+    'billing_paddle_adjustment_receipts'
   ] LOOP
     IF has_table_privilege('pmo_app', 'public.' || table_name, 'UPDATE')
        OR has_table_privilege('pmo_app', 'public.' || table_name, 'DELETE') THEN
       RAISE EXCEPTION 'Paddle ledger is not append-only for pmo_app: %', table_name;
     END IF;
   END LOOP;
-  RAISE NOTICE 'PASS financial RLS catalog: twelve tables have forced tenant isolation';
+  RAISE NOTICE 'PASS financial RLS catalog: thirteen tables have forced tenant isolation';
 END $audit$;

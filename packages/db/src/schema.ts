@@ -743,6 +743,7 @@ export const TENANT_SCOPED = [
   'integration_connections', 'oauth_states', 'tenant_modules',
   'tenant_subscriptions', 'subscription_events', 'billing_invoices', 'billing_payments', 'billing_webhook_receipts', 'billing_stripe_checkout_sessions', 'billing_payment_exceptions',
   'billing_paddle_checkout_intents', 'billing_paddle_webhook_receipts', 'billing_paddle_settlements',
+  'billing_paddle_adjustment_receipts',
 ] as const;
 
 export { sql };

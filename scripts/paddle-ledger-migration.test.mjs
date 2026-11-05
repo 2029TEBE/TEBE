@@ -9,9 +9,9 @@ const rls=read('packages/db/sql/rls.sql');
 const schema=read('packages/db/src/schema.ts');
 test('Paddle native settlement migration has pinned ordered source bytes',()=>{
  const evidence=verifyRepositoryMigrations();
- assert.equal(evidence.latest,'0024_paddle_checkout_invoice_binding');
+ assert.equal(evidence.latest,'0025_paddle_notification_intake');
  assert.equal(evidence.checksumsVerified,true);
- assert.equal(evidence.count,25);
+ assert.equal(evidence.count,26);
 });
 test('Paddle ledger is FORCE RLS, tenant scoped, and append-only',()=>{
  for(const name of ['billing_paddle_checkout_intents','billing_paddle_webhook_receipts','billing_paddle_settlements']){
