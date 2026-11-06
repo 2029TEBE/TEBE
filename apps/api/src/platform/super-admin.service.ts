@@ -4,6 +4,7 @@ import { db, tenants, users, withTenant } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
 import type { PlanCreate, PlanUpdate, ManualGrant, AdminCancel } from './super-admin.schemas';
+import { accountDirectoryQuery } from './account-directory-policy';
 
 const rows = (value: unknown) => value as any[];
 const planCode = /^[a-z][a-z0-9_-]{2,39}$/;
@@ -19,6 +20,45 @@ export class SuperAdminService {
       .from(users).where(eq(users.id, userId)).limit(1);
     if (!vendor?.isPlatformAdmin) throw new ForbiddenException('Platform administrator authorization revoked');
     return userId;
+  }
+
+  /** Read-only global directory. Never select credentials or use an RLS-bypass connection. */
+  async accounts(rawLimit?: string, rawCursor?: string, rawQuery?: string) {
+    await this.vendorId();
+    let query: ReturnType<typeof accountDirectoryQuery>;
+    try { query = accountDirectoryQuery(rawLimit, rawCursor, rawQuery); }
+    catch { throw new BadRequestException('Invalid account directory query'); }
+    const { limit, cursor, q } = query;
+    const found = rows(await db.execute(sql`
+      SELECT id, email, username, display_name AS "displayName",
+             is_active AS "isActive", is_platform_admin AS "isPlatformAdmin",
+             created_at AS "createdAt", last_login_at AS "lastLoginAt"
+      FROM users
+      WHERE (${q} = '' OR strpos(lower(email || ' ' || coalesce(username, '') || ' ' || display_name), lower(${q})) > 0)
+        AND (${cursor}::uuid IS NULL OR id > ${cursor}::uuid)
+      ORDER BY id LIMIT ${limit + 1}`));
+    const page = found.slice(0, limit);
+    const workspaces = new Map<string, { id: string; name: string; slug: string; role: string; isActive: boolean }[]>();
+    if (page.length) {
+      const ids = sql.join(page.map(u => sql`${u.id}::uuid`), sql`, `);
+      const allTenants = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug })
+        .from(tenants).orderBy(tenants.name, tenants.id);
+      for (const tenant of allTenants) {
+        // Each tenant is scoped separately, including inactive memberships.
+        const members = await withTenant(tenant.id, async tx => rows(await tx.execute(sql`
+          SELECT user_id AS "userId", role, is_active AS "isActive"
+          FROM memberships WHERE user_id IN (${ids})`)));
+        for (const m of members) {
+          const list = workspaces.get(m.userId) ?? [];
+          list.push({ ...tenant, role: m.role, isActive: m.isActive });
+          workspaces.set(m.userId, list);
+        }
+      }
+    }
+    return {
+      items: page.map(u => ({ ...u, workspaces: workspaces.get(u.id) ?? [] })),
+      limit, q, nextCursor: found.length > limit ? page[page.length - 1].id : null,
+    };
   }
 
   async plans() {
@@ -176,3 +216,4 @@ export class SuperAdminService {
     });
   }
 }
+

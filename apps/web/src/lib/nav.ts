@@ -49,8 +49,10 @@ export const NAV: NavGroup[] = [
     { key: 'workspace-settings', label: 'Settings', ar: 'إعدادات مساحة العمل', href: '/settings', cap: 'read' },
     { key: 'platform', label: 'Modules', ar: 'المنصة والوحدات', href: '/platform', cap: 'pmoa_platform' },
     { key: 'billing', label: 'Billing & Renewals', ar: 'الفوترة والتجديدات', href: '/billing', cap: 'pmoa_admin' },
+    { key: 'super-admin-users', label: 'All Accounts', ar: 'جميع الحسابات', href: '/super-admin/users', cap: 'pmoa_platform' },
     { key: 'super-admin', label: 'Subscriptions', ar: 'إدارة الاشتراكات', href: '/super-admin', cap: 'pmoa_platform' },
   ]},
 ];
 
 export const ALL_ITEMS = NAV.flatMap((g) => g.items.map((i) => ({ ...i, group: g.label })));
+

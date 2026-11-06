@@ -20,6 +20,7 @@ export default async function SuperAdmin({ searchParams }: {
     <Page title={tx('Super Admin — Licensing', 'الإدارة العليا — التراخيص')}
       sub={tx('Manage customer subscriptions and plans. Manual license grants do not verify payment.',
         'إدارة اشتراكات العملاء والباقات. منح التراخيص يدويًا لا يعني التحقق من الدفع.')}>
+      <p><a href="/super-admin/users">{tx('View all accounts and workspace memberships', 'عرض جميع الحسابات وعضويات مساحات العمل')}</a></p>
       {done && <p className="okmsg" role="status">{tx('Change saved and audited.', 'تم حفظ التغيير وتسجيله.')}</p>}
       {error && <p className="err" role="alert">{error}</p>}
       <section className="panel" style={{marginBlockEnd:24}}>
@@ -98,3 +99,4 @@ export default async function SuperAdmin({ searchParams }: {
     </Page>
   );
 }
+

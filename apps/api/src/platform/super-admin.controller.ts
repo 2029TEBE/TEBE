@@ -8,6 +8,9 @@ import { planCreate, planUpdate, manualGrant, adminCancel } from './super-admin.
 export class SuperAdminController {
   constructor(private readonly admin: SuperAdminService) {}
 
+  @Get('users') accounts(@Query('limit') limit?: string, @Query('cursor') cursor?: string, @Query('q') q?: string) {
+    return this.admin.accounts(limit, cursor, q);
+  }
   @Get('plans') plans() { return this.admin.plans(); }
   @Get('audit') audit() { return this.admin.audit(); }
   @Post('plans') createPlan(@Body(new ZodPipe(planCreate)) body: any) { return this.admin.createPlan(body); }
@@ -30,3 +33,4 @@ export class SuperAdminController {
     @Body(new ZodPipe(adminCancel)) body: any,
   ) { return this.admin.cancel(tenantId, subscriptionId, body); }
 }
+

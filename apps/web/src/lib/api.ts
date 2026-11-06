@@ -55,7 +55,19 @@ export type OnboardingStatus = {
   }[];
 };
 
+export type PlatformAccount = {
+  id: string; email: string; username: string | null; displayName: string;
+  isActive: boolean; isPlatformAdmin: boolean; createdAt: string; lastLoginAt: string | null;
+  workspaces: { id: string; name: string; slug: string; role: string; isActive: boolean }[];
+};
+
 export const api = {
+  superAdminAccounts: (q = '', cursor?: string) => {
+    const params = new URLSearchParams({ q });
+    if (cursor) params.set('cursor', cursor);
+    return get<{ items: PlatformAccount[]; limit: number; q: string; nextCursor: string | null }>(
+      `/api/v1/super-admin/users?${params}`);
+  },
   workspaceProfile: () => get<{id:string;slug:string;displayName:string;nameAr:string|null;contactEmail:string|null}>('/api/v1/onboarding/profile'),
   workspaceInvitations: () => get<{id:string;email:string;role:string;deliveryStatus:string;expiresAt:string;consumedAt:string|null;revokedAt:string|null}[]>('/api/v1/onboarding/invitations'),
   onboarding: () => get<OnboardingStatus>('/api/v1/onboarding/status'),
@@ -109,3 +121,4 @@ export const api = {
   createOptions: () => get<any>('/api/v1/create-options'),
   projectGovernance: (id: string) => get<any>(`/api/v1/projects/${id}/governance`),
 };
+
