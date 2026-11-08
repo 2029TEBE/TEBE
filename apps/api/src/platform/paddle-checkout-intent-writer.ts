@@ -16,7 +16,7 @@ const refuse=(why:string):never=>{throw new Error('Paddle checkout binding refus
 
 type Input={
  source:'locked-tenant-record'; provider:'paddle'; environment:'sandbox';
- tenantId:string; intentId:string; invoiceId:string;
+ tenantId:string; intentId:string; attemptId:string; invoiceId:string;
  subscriptionId:string; planId:string; expiresAt:number;
  transactionId:string; verifiedPriceId:string; verifiedProductId:string;
  transportValidated:true; requiresAtomicTenantPersistence:true;
@@ -29,7 +29,7 @@ export async function persistDisposablePaddleCheckout(input:Input):Promise<{
  ensureDisposableWriter(process.env);
  if(!input||input.source!=='locked-tenant-record'||
    input.provider!=='paddle'||input.environment!=='sandbox'||
-   ![input.tenantId,input.intentId,input.invoiceId,input.subscriptionId,input.planId]
+   ![input.tenantId,input.intentId,input.attemptId,input.invoiceId,input.subscriptionId,input.planId]
       .every(x=>typeof x==='string'&&UUID.test(x))||
    !TXN.test(input.transactionId||'')||
    input.verifiedPriceId!==PRICE||input.verifiedProductId!==PRODUCT||
@@ -69,6 +69,23 @@ export async function persistDisposablePaddleCheckout(input:Input):Promise<{
      invoice.cancelAtPeriodEnd===true)
      refuse('untrusted_invoice_or_subscription_terms');
 
+   // Verify the previously COMMITTED, immutable pre-provider reservation.
+   // The attempt ID is never chosen by a browser or obtained from callback data.
+   const attempts=rows(await tx.execute(sql`
+     SELECT id,invoice_id AS "invoiceId",
+       subscription_id AS "subscriptionId",plan_id AS "planId",
+       paddle_price_id AS "priceId",environment,
+       amount_minor AS "amountMinor",currency,expires_at AS "expiresAt"
+     FROM billing_paddle_checkout_attempts
+     WHERE tenant_id=${tenant} AND id=${input.attemptId}`));
+   const attempt=attempts[0];
+   if(!attempt||attempt.invoiceId!==input.invoiceId||
+     attempt.subscriptionId!==input.subscriptionId||
+     attempt.planId!==input.planId||attempt.priceId!==PRICE||
+     attempt.environment!=='sandbox'||attempt.amountMinor!==4900||
+     attempt.currency!=='USD'||new Date(attempt.expiresAt).getTime()!==input.expiresAt)
+     refuse('missing_or_mismatched_precreate_reservation');
+
    const duplicate=rows(await tx.execute(sql`
      SELECT id FROM billing_paddle_checkout_intents
      WHERE tenant_id=${tenant} AND
@@ -79,10 +96,10 @@ export async function persistDisposablePaddleCheckout(input:Input):Promise<{
 
    const inserted=rows(await tx.execute(sql`
      INSERT INTO billing_paddle_checkout_intents
-       (id,tenant_id,subscription_id,plan_id,invoice_id,
+       (id,tenant_id,subscription_id,plan_id,invoice_id,attempt_id,
         paddle_transaction_id,paddle_price_id,environment,expires_at)
      VALUES (${input.intentId},${tenant},${input.subscriptionId},
-       ${input.planId},${input.invoiceId},${input.transactionId},
+       ${input.planId},${input.invoiceId},${input.attemptId},${input.transactionId},
        ${PRICE},'sandbox',${new Date(input.expiresAt).toISOString()}::timestamptz)
      RETURNING id`))[0];
    if(inserted?.id!==input.intentId) refuse('checkout_intent_not_persisted');
