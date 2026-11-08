@@ -12,6 +12,16 @@ export default async function Reports() {
       <Loaded load={api.reports} empty="No report definitions yet.">
         {(list) => (
           <>
+            <section className="design-context" aria-label={t('Reporting overview')}>
+              <div className="design-context-head"><span className="design-kicker">{t('Reporting overview')}</span>
+                <h2>{t('Report catalogue')}</h2>
+                <p>{t('Definitions and most recent generation records from the workspace API. Scheduling and exports keep their existing behavior.')}</p></div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{t('Report definitions')}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{t('Previously generated')}</small><strong>{list.filter((r: any) => Boolean(r.lastRunAt)).length}</strong></div>
+                <div className="design-metric"><small>{t('Not yet generated')}</small><strong>{list.filter((r: any) => !r.lastRunAt).length}</strong></div>
+              </div>
+            </section>
             <table>
               <thead><tr><th>{t('Report')}</th><th>{t('Audience')}</th><th>{t('Schedule')}</th><th>{t('Last generated')}</th><th></th></tr></thead>
               <tbody>
