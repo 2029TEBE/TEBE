@@ -133,10 +133,29 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   invalid.paddleSignature='ts=1700000000;h1='+'a'.repeat(64);
   await expect(recordVerifiedPaddleSandboxSettlement(invalid))
     .rejects.toThrow(/invalid_paddle_signature/);
-  const wrong={...event,data:{...event.data,details:{
-    ...event.data.details,totals:{grand_total:'4901'}}}};
-  await expect(recordVerifiedPaddleSandboxSettlement(signed(wrong)))
+  // Signed notifications are still insufficient if the provider's final
+  // customer total differs from the server-owned open invoice. This covers
+  // tax-included surcharges, discounted totals and mismatched currency.
+  for(const [grandTotal,currency] of [
+    ['4901','USD'], // additional cent / tax difference
+    ['5880','USD'], // tax-inclusive amount above the approved invoice
+    ['4899','USD'], // discount or underpayment
+    ['4900','SAR'], // different settlement currency
+  ]){
+    const wrong={...event,data:{...event.data,currency_code:currency,
+      details:{...event.data.details,totals:{grand_total:grandTotal}}}};
+    await expect(recordVerifiedPaddleSandboxSettlement(signed(wrong)))
+      .rejects.toThrow(/untrusted_invoice_intent_or_provider_totals/);
+  }
+  // A signed notification claiming another workspace is not sufficient to
+  // change the trusted database tenant binding.
+  const foreign={...event,data:{...event.data,
+    custom_data:{epmo_intent_id:intent,tenantId:foreignTenant}}};
+  await expect(recordVerifiedPaddleSandboxSettlement(signed(foreign)))
+    .rejects.toThrow(/provider_tenant_mismatch/);
+  await expect(recordVerifiedPaddleSandboxSettlement(signed(event,foreignTenant)))
     .rejects.toThrow(/untrusted_invoice_intent_or_provider_totals/);
+  expect(psql(`SELECT COUNT(*) FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
   expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
   const result=await recordVerifiedPaddleSandboxSettlement(signed(event));
   expect(result.recorded).toBe(true);
