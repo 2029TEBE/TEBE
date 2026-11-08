@@ -47,6 +47,7 @@ export async function readPaddleSandboxSubscriptionEvidence({
   try{
     const transaction=await get('/transactions/'+transactionId);
     if(transaction.id!==transactionId||transaction.status!=='completed'||
+       transaction.collection_mode!=='automatic'||
        transaction.subscription_id!==subscriptionId||
        transaction.currency_code!=='USD'||
        !Array.isArray(transaction.details?.line_items)||
