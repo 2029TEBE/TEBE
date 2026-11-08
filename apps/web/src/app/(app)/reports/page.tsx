@@ -22,7 +22,7 @@ export default async function Reports() {
                 <div className="design-metric"><small>{t('Not yet generated')}</small><strong>{list.filter((r: any) => !r.lastRunAt).length}</strong></div>
               </div>
             </section>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={t('Reporting overview')} tabIndex={0}><table>
               <thead><tr><th>{t('Report')}</th><th>{t('Audience')}</th><th>{t('Schedule')}</th><th>{t('Last generated')}</th><th></th></tr></thead>
               <tbody>
                 {list.map((r: any) => (
@@ -35,7 +35,7 @@ export default async function Reports() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <h2 className="sec">{t('Take the board pack away')}</h2>
             <div className="xlgrid">
               <section className="panel">
