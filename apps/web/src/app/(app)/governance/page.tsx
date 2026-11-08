@@ -9,7 +9,18 @@ export default async function GovernancePage() {
     <Page title="Stage Gates" sub="Which projects are stuck, at which gate, and why. Open one to tick criteria, sign approvals and pass the gate.">
       <Loaded load={api.gates} empty="No projects have an active gate.">
         {(gates) => (
-          <table>
+          <>
+            <section className="design-context" aria-label={t('Stage gate overview')}>
+              <div className="design-context-head"><span className="design-kicker">{t('Stage gates')}</span>
+                <h2>{t('Governance readiness')}</h2>
+                <p>{t('Gate readiness comes from the authorized checklist and stage decision conditions. Review the source before passing a gate.')}</p></div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{t('Active gates')}</small><strong>{gates.length}</strong></div>
+                <div className="design-metric"><small>{t('Ready to pass')}</small><strong>{gates.filter(g => g.mayPass).length}</strong></div>
+                <div className="design-metric"><small>{t('Not ready')}</small><strong>{gates.filter(g => !g.mayPass).length}</strong></div>
+              </div>
+            </section>
+            <table>
             <thead>
               <tr><th>{t('Project')}</th><th>{t('Current gate')}</th><th>{t('Checklist')}</th>
                   <th>{t('Signatures')}</th><th>{t('Accountable')}</th><th>{t('Blocked by')}</th>
@@ -45,6 +56,7 @@ export default async function GovernancePage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </Loaded>
     </Page>
