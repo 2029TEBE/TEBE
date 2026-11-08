@@ -35,6 +35,20 @@ export default async function Resources({ searchParams }:
       <Loaded load={api.resources}>
         {(d) => (
           <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص طاقة الموارد' : 'Resource capacity snapshot'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'طاقة التنفيذ' : 'DELIVERY CAPACITY'}</span>
+                <h2>{lang === 'ar' ? 'ملخص طاقة الأفراد' : 'People capacity overview'}</h2>
+                <p>{lang === 'ar'
+                  ? 'المؤشرات مأخوذة من سجلات الموارد المعادة من واجهة البيانات المصرح بها؛ ولا تمثل بالضرورة جميع أفراد المؤسسة.'
+                  : 'Metrics describe only resource records returned by the authorized API, not necessarily the entire organization.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'الأفراد المعروضون' : 'Returned people'}</small><strong>{d.people.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تجاوزوا 100% تخصيصا' : 'Allocated above 100%'}</small><strong>{d.people.filter((p: { allocatedPct: number }) => p.allocatedPct > 100).length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'سجلات التخصيص المعروضة' : 'Returned allocations'}</small><strong>{d.byProject.length}</strong></div>
+              </div>
+            </section>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Capacity')}</h2>
             <div className="design-table-scroll" role="region" aria-label={t('Capacity')} tabIndex={0}><table>
               <thead><tr><th scope="col">{t('Person')}</th><th scope="col">{t('Projects')}</th><th scope="col">{t('Allocated')}</th><th scope="col">{t('Load')}</th><th scope="col">{t('Hours, 7 days')}</th></tr></thead>
