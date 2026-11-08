@@ -10,8 +10,23 @@ export default async function Decisions() {
     <Page title={lang === 'ar' ? 'سجل القرارات' : 'Decisions'} sub={lang === 'ar' ? 'القرارات الموثقة وأصحابها ومراحل الاعتماد المرتبطة بها لسهولة المراجعة والتدقيق.' : 'The decision log. Every recorded decision, who owned it, and which gate it was taken at — the record auditors ask for first.'}>
       <Loaded load={api.decisions} empty={lang === 'ar' ? 'لا توجد قرارات مسجلة بعد. تُوثق القرارات عند إغلاق مراحل الاعتماد.' : 'No decisions recorded yet. They are logged as you close gates.'}>
         {(list) => (
-          <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'جدول القرارات' : 'Decision register'} tabIndex={0}><table>
-            <thead><tr><th>{t('Decision')}</th><th>{t('Project')}</th><th>{t('Taken at')}</th><th>{t('Owner')}</th><th>{t('Date')}</th><th>{t('State')}</th></tr></thead>
+          <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص سجل القرارات' : 'Decision register summary'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'حوكمة القرارات' : 'DECISION GOVERNANCE'}</span>
+                <h2>{lang === 'ar' ? 'نظرة عامة على القرارات المسجلة' : 'Recorded decisions overview'}</h2>
+                <p>{lang === 'ar'
+                  ? 'تعكس المؤشرات القرارات المسترجعة من واجهة البيانات المصرح بها فقط، وليس بالضرورة جميع قرارات المؤسسة.'
+                  : 'Counts reflect only the decisions returned by the authorized API, not necessarily every decision across the organization.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'القرارات المعروضة' : 'Returned decisions'}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'مرتبطة ببوابة اعتماد' : 'Linked to a gate'}</small><strong>{list.filter((d: { atGate?: string | null }) => Boolean(d.atGate)).length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'ذات مسؤول محدد' : 'With an owner'}</small><strong>{list.filter((d: { owner?: string | null }) => Boolean(d.owner)).length}</strong></div>
+              </div>
+            </section>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'جدول القرارات' : 'Decision register'} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Decision')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Taken at')}</th><th scope="col">{t('Owner')}</th><th scope="col">{t('Date')}</th><th scope="col">{t('State')}</th></tr></thead>
             <tbody>{list.map((d: any) => (
               <tr key={d.id}>
                 <td><strong>{d.title}</strong>{d.detail && <div className="dim">{d.detail}</div>}</td>
@@ -22,6 +37,7 @@ export default async function Decisions() {
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>
           </table></div>
+          </>
         )}
       </Loaded>
     </Page>
