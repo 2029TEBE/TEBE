@@ -1708,3 +1708,41 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
   font-size:clamp(1rem,2.2vw,1.4rem);
   font-weight:750;line-height:1.35;overflow-wrap:anywhere;
 }
+
+
+/* v3.3 - native tables preserved inside keyboard-accessible scroll regions. */
+.design-table-scroll {
+  max-inline-size:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line-2) transparent;
+  border-radius:var(--r);
+  margin-block-end:var(--sp-4);
+  scroll-padding-inline:var(--sp-3);
+}
+.design-table-scroll > table {
+  margin:0;
+  min-inline-size:660px;
+  inline-size:100%;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.design-table-scroll:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+@media(max-width:700px){
+  .design-table-scroll > table{min-inline-size:760px}
+}
+@media print{
+  .design-table-scroll{
+    overflow:visible;
+    max-inline-size:none;
+    border:0;
+  }
+  .design-table-scroll > table{
+    min-inline-size:0;
+    inline-size:100%;
+  }
+}
