@@ -37,7 +37,7 @@ export default async function OperationsPreview() {
     <nav className="ops-study-nav" aria-label="Operations prototype sections">
       <a href="#ops-overview">Overview</a><a href="#ops-tenants">Customers</a>
       <a href="#ops-workflows">Workflow</a><a href="#ops-agents">AI control center</a>
-      <a href="#ops-states">Design states</a>
+      <a href="#ops-entitlements">Entitlements</a><a href="#ops-design-review">Review journey</a><a href="#ops-states">Design states</a>
     </nav>
     <section id="ops-overview" aria-labelledby="ops-overview-title">
       <div className="ops-study-sectionhead"><div><span>01 / OPERATIONS</span><h2 id="ops-overview-title">Overview at a glance</h2></div><small>Data source: synthetic fixture</small></div>
@@ -85,8 +85,31 @@ export default async function OperationsPreview() {
         <p className="ops-study-note">No vendor-wide access or data action can be inferred from this example.</p>
       </article></div>
     </section>
+    <section id="ops-entitlements" aria-labelledby="ops-entitlements-title">
+      <div className="ops-study-sectionhead"><div><span>05 / ENTITLEMENTS</span><h2 id="ops-entitlements-title">Plan and access concept</h2></div><small>Illustrative plan names · no billing data</small></div>
+      <div className="ops-study-grid">
+        <article className="ops-study-card"><h3>Sample capability matrix</h3><p>Proposed presentation of licensed capabilities. No entitlements are read or changed here.</p>
+          <div className="ops-study-tablewrap"><table><caption className="ops-study-visuallyhidden">Synthetic entitlement comparison</caption><thead><tr><th scope="col">Capability example</th><th scope="col">Team sample</th><th scope="col">Enterprise sample</th></tr></thead><tbody>
+            <tr><td>Portfolio overview</td><td>Illustrative</td><td>Illustrative</td></tr>
+            <tr><td>Approval workflow</td><td>Requires verification</td><td>Requires verification</td></tr>
+            <tr><td>AI assistant execution</td><td>Not configured</td><td>Not configured</td></tr>
+          </tbody></table></div>
+        </article>
+        <article className="ops-study-card"><h3>Safe configuration preview</h3><p>Example tenant entitlement request with no real controls, persistence, or price assumptions.</p>
+          <dl className="ops-study-dl"><div><dt>Workspace</dt><dd>Demo Tenant Alpha</dd></div><div><dt>Requested change</dt><dd>Example only</dd></div><div><dt>Approval state</dt><dd>Not submitted</dd></div><div><dt>Audit event</dt><dd>Not created</dd></div></dl>
+          <button disabled type="button" title="Prototype only; no entitlement service connected">Apply entitlement — unavailable</button>
+        </article>
+      </div>
+    </section>
+    <section id="ops-design-review" aria-labelledby="ops-design-review-title">
+      <div className="ops-study-sectionhead"><div><span>06 / REVIEW JOURNEY</span><h2 id="ops-design-review-title">From request to accountable action</h2></div><small>Design-only interaction model</small></div>
+      <div className="ops-study-flow ops-study-flow-review" aria-label="Illustrative workflow: request, policy, human review, proposed action, audit">
+        {['Request intake','Policy and tenant check','Human review','Proposed action','Audit evidence'].map((label,i)=><div className="ops-study-node" key={label}><small>CONCEPT {String(i+1).padStart(2,'0')}</small><strong>{label}</strong><span>{['No live submission','No authorization evaluated','No approval issued','No changes executed','No event recorded'][i]}</span></div>)}
+      </div>
+      <p className="ops-study-note">These nodes are a visualization, not an execution engine. The real system remains authoritative for access and actions.</p>
+    </section>
     <section id="ops-states" aria-labelledby="ops-states-title">
-      <div className="ops-study-sectionhead"><div><span>05 / COMPONENT STUDY</span><h2 id="ops-states-title">Status and access states</h2></div></div>
+      <div className="ops-study-sectionhead"><div><span>07 / COMPONENT STUDY</span><h2 id="ops-states-title">Status and access states</h2></div></div>
       <div className="ops-study-card"><div className="ops-study-states">
         <span className="ops-study-indicator teal">Success · sample</span>
         <span className="ops-study-indicator amber">Warning · sample</span>
