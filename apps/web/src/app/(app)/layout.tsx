@@ -4,7 +4,8 @@ import { getSession, api, SESSION_COOKIE } from '@/lib/api';
 import { NAV } from '@/lib/nav';
 import { can, NAV_MODULE, type Capability } from '@pmo/contracts';
 import { TenantSwitcher } from '@/components/TenantSwitcher';
-import { LangToggle } from '@/components/LangToggle';
+import { UniversalLocaleSwitch } from '@/components/UniversalLocaleSwitch';
+import { getFrontendLocale } from '@/lib/i18n';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Cursor } from '@/components/Cursor';
 import { AskWidget } from '@/components/AskWidget';
@@ -32,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : '/login');
   }
 
+  const locale = await getFrontendLocale();
   const ar = jar.get('pmo_lang')?.value === 'ar';
   const caps = (session.capabilities ?? ['read']) as Capability[];
 
@@ -78,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Crumbs ar={ar} />
           <div className="spacer" />
           <CommandPalette commands={commands} lang={ar ? 'ar' : 'en'} />
-          <LangToggle ar={ar} />
+          <UniversalLocaleSwitch locale={locale} />
           <ThemeToggle lang={ar ? 'ar' : 'en'} />
           <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} />
         </header>
