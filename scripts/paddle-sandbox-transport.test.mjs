@@ -7,7 +7,8 @@ const id=uuid('1'),price='pri_'+'a'.repeat(26),txn='txn_'+'b'.repeat(26);
 const now=1800000000000;
 const prepared=()=>preparePaddleSandboxCheckout({
  source:'locked-tenant-record',provider:'paddle',environment:'sandbox',
- intentId:id,tenantId:uuid('2'),subscriptionId:uuid('3'),planId:uuid('4'),expiresAt:now+300000
+ intentId:id,tenantId:uuid('2'),invoiceId:uuid('5'),attemptId:uuid('6'),
+ subscriptionId:uuid('3'),planId:uuid('4'),expiresAt:now+300000
 },{source:'server-approved-catalogue',environment:'sandbox',planId:uuid('4'),
  paddlePriceId:price,amountMinor:10000,currency:'USD',isActive:true},{now});
 const key='pdl_sdbx_apikey_'+'a'.repeat(36);
@@ -15,7 +16,8 @@ const fake=(capture,override={})=>async(url,req)=>{
  capture.push({url,req});
  return {ok:true,status:201,headers:{get:()=> 'application/json'},
  json:async()=>({data:{id:txn,status:'draft',collection_mode:'automatic',
-  items:[{price:{id:price},quantity:1}],custom_data:{epmo_intent_id:id},...override}})};
+  items:[{price:{id:price},quantity:1}],custom_data:{epmo_intent_id:id,
+   epmo_attempt_id:uuid('6'),epmo_invoice_id:uuid('5'),epmo_tenant_id:uuid('2')},...override}})};
 };
 test('network is refused by default even with valid sandbox credentials',async()=>{
  let contacted=false;
@@ -41,10 +43,15 @@ test('approved injected sandbox transport uses exact fixed HTTPS route and valid
  assert.equal(calls[0].req.headers['Paddle-Version'],'1');
  assert.equal(calls[0].req.redirect,'error');
  assert.deepEqual(JSON.parse(calls[0].req.body).items,[{price_id:price,quantity:1}]);
+ assert.deepEqual(JSON.parse(calls[0].req.body).custom_data,{
+   epmo_intent_id:id,epmo_attempt_id:uuid('6'),epmo_invoice_id:uuid('5'),
+   epmo_tenant_id:uuid('2')});
 });
 test('non-201 and malformed provider response do not confirm payment',async()=>{
  for(const f of [
   async()=>({status:400,ok:false}),fake([],{id:'txn_other'}),
+  fake([],{custom_data:{epmo_intent_id:id,epmo_attempt_id:uuid('9'),
+    epmo_invoice_id:uuid('5'),epmo_tenant_id:uuid('2')}}),
   async()=>{throw new Error('secret_internal_error')},
  ]) {
   const result=await createSandboxPaddleTransaction(prepared(),{
