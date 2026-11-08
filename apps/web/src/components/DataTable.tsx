@@ -64,7 +64,7 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
           </svg>
           <input value={q} onChange={(e) => setQ(e.target.value)}
                  placeholder={t(filterPlaceholder ?? 'Filter…')} aria-label={t('Filter rows')} dir="auto" />
-          {q && <button className="clear" onClick={() => setQ('')} aria-label={t('Clear filter')}>×</button>}
+          {q && <button type="button" className="clear" onClick={() => setQ('')} aria-label={t('Clear filter')}>×</button>}
         </div>
         <span className="dim" aria-live="polite">
           {view.length === rows.length
@@ -87,12 +87,12 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
                   const on = sort?.key === c.key;
                   const can = c.sortable !== false && !!c.value;
                   return (
-                    <th key={c.key} style={{ textAlign: c.align ?? 'start' }}
+                    <th key={c.key} scope="col" style={{ textAlign: c.align ?? 'start' }}
                         aria-sort={can ? (on ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}>
                       {can ? (
-                        <button className={`sortbtn${on ? ' on' : ''}`} onClick={() => toggle(c.key)}>
+                        <button type="button" className={`sortbtn${on ? ' on' : ''}`} onClick={() => toggle(c.key)}>
                           {t(c.head)}
-                          <span className="arrow">{on ? (sort!.dir === 'asc' ? '↑' : '↓') : '↕'}</span>
+                          <span className="arrow" aria-hidden="true">{on ? (sort!.dir === 'asc' ? '↑' : '↓') : '↕'}</span>
                         </button>
                       ) : t(c.head)}
                     </th>
