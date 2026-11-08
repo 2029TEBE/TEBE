@@ -41,7 +41,7 @@ export default async function DecisionCockpit() {
             </section>}
             {queue.items.length === 0 ?
               <p className="quietempty">{t('No exceptions returned. Confirm data freshness before interpreting this as no risk.')}</p> :
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Priority queue')} tabIndex={0}><table>
                 <thead><tr><th>{t('Priority')}</th><th>{t('Project')}</th><th>{t('Evidence')}</th><th>{t('Recommended action')}</th><th>{t('Source')}</th></tr></thead>
                 <tbody>{queue.items.map(item => <tr key={item.projectId}>
                   <td><span className={`pill ${item.severity === 'critical' ? 'critical' : item.severity === 'high' ? 'at_risk' : ''}`}>{t(item.severity)}</span></td>
@@ -50,15 +50,15 @@ export default async function DecisionCockpit() {
                   <td>{t(item.recommendation)}<div className="dim">{t('Decision support only — confirm with the accountable owner.')}</div></td>
                   <td><a className="btn ghost" href={item.source}>{t('Review source')}</a></td>
                 </tr>)}</tbody>
-              </table>}
+              </table></div>}
             <section aria-label="Portfolio historical intelligence">
               <h2>{t('Portfolio historical intelligence')}</h2>
               <Loaded load={api.trends}>{(trendData: any) => {
                 const intelligence = portfolioSignals(trendData.history ?? []);
                 return <>
                   <p className="dim">{t('Observed portfolio changes only; no predictive claims or cross-customer benchmarking.')} {intelligence.sampleDays} {t('daily snapshots')} · {t(intelligence.confidence)}</p>
-                  <table><thead><tr><th>{t('Indicator')}</th><th>{t('Direction')}</th><th>{t('Observed change')}</th><th>{t('Evidence')}</th></tr></thead>
-                  <tbody>{intelligence.signals.map(signal => <tr key={signal.key}><td>{t(signal.key)}</td><td>{t(signal.direction)}</td><td>{signal.change === null ? '—' : signal.change > 0 ? `+${signal.change}` : signal.change}</td><td>{t(signal.explanation)} <a href={signal.source}>{t('Review snapshots')}</a></td></tr>)}</tbody></table>
+                  <div className="design-table-scroll" role="region" aria-label={t('Portfolio historical intelligence')} tabIndex={0}><table><thead><tr><th>{t('Indicator')}</th><th>{t('Direction')}</th><th>{t('Observed change')}</th><th>{t('Evidence')}</th></tr></thead>
+                  <tbody>{intelligence.signals.map(signal => <tr key={signal.key}><td>{t(signal.key)}</td><td>{t(signal.direction)}</td><td>{signal.change === null ? '—' : signal.change > 0 ? `+${signal.change}` : signal.change}</td><td>{t(signal.explanation)} <a href={signal.source}>{t('Review snapshots')}</a></td></tr>)}</tbody></table></div>
                   <p className="dim">{t(intelligence.note)}</p>
                 </>;
               }}</Loaded>
