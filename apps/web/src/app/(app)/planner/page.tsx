@@ -7,6 +7,10 @@ import { fill } from '@pmo/contracts';
 
 const day = 86400000;
 
+/** Limit visual fill only; keep the actual progress value in tooltips and tables. */
+const progressFill = (value: number) =>
+  Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+
 export default async function Planner({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -35,7 +39,7 @@ export default async function Planner({ searchParams }:
                 { name: 'progressPct', label: 'Progress %', type: 'number', min: 0, max: 100, step: 1 },
                 { name: 'isCritical', label: 'On the critical path', type: 'checkbox' },
               ]} />
-      <Loaded load={api.schedule} empty="No schedule items yet.">
+      <Loaded load={api.schedule} empty={lang === 'ar' ? 'لا توجد عناصر في الجدول الزمني بعد.' : 'No schedule items yet.'}>
         {(items) => {
           const dated = items.filter((i: any) => i.startDate && i.endDate);
           const min = Math.min(...dated.map((i: any) => +new Date(i.startDate)));
@@ -79,7 +83,7 @@ export default async function Planner({ searchParams }:
                         <span key={k} className="gline" style={{ left: `${t.at}%` }} />
                       ))}
                       {i.baselineStart && i.baselineEnd && (
-                        <span className="gbase" title={`Baseline: ${when(i.baselineStart, lang)} → ${when(i.baselineEnd, lang)}`}
+                        <span className="gbase" title={`${lang === 'ar' ? 'الخطة الأساسية' : 'Baseline'}: ${when(i.baselineStart, lang)} → ${when(i.baselineEnd, lang)}`}
                               style={{ left: `${left(i.baselineStart)}%`, width: `${width(i.baselineStart, i.baselineEnd)}%` }} />
                       )}
                       {i.startDate && i.endDate && (
@@ -88,9 +92,9 @@ export default async function Planner({ searchParams }:
                                   title={`${i.name} — ${when(i.startDate, lang)}`}
                                   style={{ left: `${left(i.startDate)}%` }} />
                           : <span className={`gbar${i.slipDays > 0 ? ' slipped' : ''}`}
-                                  title={`${when(i.startDate, lang)} → ${when(i.endDate, lang)} · ${i.progressPct}% done${i.slipDays > 0 ? ` · ${i.slipDays} days late` : ''}`}
+                                  title={`${when(i.startDate, lang)} → ${when(i.endDate, lang)} · ${lang === 'ar' ? 'الإنجاز' : 'progress'} ${i.progressPct}%${i.slipDays > 0 ? ` · ${fill(t('{n} days late'), { n: i.slipDays })}` : ''} `}
                                   style={{ left: `${left(i.startDate)}%`, width: `${width(i.startDate, i.endDate)}%` }}>
-                              <i style={{ width: `${i.progressPct}%` }} />
+                              <i aria-hidden="true" style={{ width: `${progressFill(i.progressPct)}%` }} />
                             </span>
                       )}
                     </div>
@@ -104,8 +108,10 @@ export default async function Planner({ searchParams }:
               </div>
 
               <h2 className="sec">{t('Slippage against baseline')}</h2>
-              <table>
-                <thead><tr><th>{t('Project')}</th><th>{t('Item')}</th><th>{t('Planned finish')}</th><th>{t('Now finishing')}</th><th>{t('Slip')}</th><th>{t('Progress')}</th></tr></thead>
+              <div className="design-table-scroll" role="region"
+                   aria-label={lang === 'ar' ? 'جدول الانحرافات عن الخطة الأساسية' : 'Baseline slippage table'} tabIndex={0}>
+                <table>
+                <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Item')}</th><th scope="col">{t('Planned finish')}</th><th scope="col">{t('Now finishing')}</th><th scope="col">{t('Slip')}</th><th scope="col">{t('Progress')}</th></tr></thead>
                 <tbody>
                   {items.filter((i: any) => i.baselineEnd).map((i: any) => (
                     <tr key={i.id}>
@@ -122,6 +128,7 @@ export default async function Planner({ searchParams }:
                   ))}
                 </tbody>
               </table>
+              </div>
             </>
           );
         }}
