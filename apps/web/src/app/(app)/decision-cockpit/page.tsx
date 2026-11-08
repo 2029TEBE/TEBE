@@ -22,6 +22,23 @@ export default async function DecisionCockpit() {
               <div className="tile"><span>{t('Overdue register items')}</span><strong>{d.register?.overdue ?? '—'}</strong></div>
             </div>
             <p className="dim">{t('Priority severity is derived from project health, gate signals and RAID status. Open a source record before acting.')} {queue.total > queue.shown && `${t('Showing')} ${queue.shown} ${t('of')} ${queue.total}.`}</p>
+            {queue.items.length > 0 && <section className="design-focus" aria-label={t('Priority actions')}>
+              <div className="design-section-intro">
+                <div><span className="design-kicker">{t('Decision support')}</span>
+                  <h2>{t('First decisions to investigate')}</h2></div>
+                <span className="design-micro">{t('Rules-based signals · Verify source records')}</span>
+              </div>
+              <div className="design-focus-grid">
+                {queue.items.slice(0, 3).map((item) =>
+                  <article className="design-focus-card" key={item.projectId}>
+                    <div className="design-focus-head"><span className={`pill ${item.severity === 'critical' ? 'critical' : item.severity === 'high' ? 'at_risk' : ''}`}>{t(item.severity)}</span><small>{item.code}</small></div>
+                    <h3>{item.name}</h3>
+                    <p>{t(item.recommendation)}</p>
+                    <a href={item.source} className="btn ghost">{t('Review source')}</a>
+                  </article>)}
+              </div>
+              <p className="design-micro">{t('Suggestions are not approvals or forecasts. Confirm the source and accountable owner before acting.')}</p>
+            </section>}
             {queue.items.length === 0 ?
               <p className="quietempty">{t('No exceptions returned. Confirm data freshness before interpreting this as no risk.')}</p> :
               <table>
