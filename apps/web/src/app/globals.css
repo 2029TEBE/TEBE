@@ -1746,3 +1746,17 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
     inline-size:100%;
   }
 }
+
+/* v3.6: Focus treatment for existing shared table-scroller regions. */
+.scrollx[role="region"]{
+  max-inline-size:100%;
+  overscroll-behavior-inline:contain;
+  scroll-padding-inline:var(--sp-3);
+}
+.scrollx[role="region"]:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+@media print{
+  .scrollx[role="region"]{overflow:visible;max-inline-size:none}
+}
