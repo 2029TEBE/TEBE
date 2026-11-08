@@ -79,7 +79,7 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
           {q && <p>{t('Try a shorter search, or clear the filter.')}</p>}
         </div>
       ) : (
-        <div className="scrollx">
+        <div className="scrollx" role="region" aria-label={locale === 'ar' ? 'نتائج الجدول' : 'Table results'} tabIndex={0}>
           <table>
             <thead>
               <tr>
