@@ -5,6 +5,10 @@ import { tr, term, getLang } from '@/lib/i18n';
 import { TrendPanel, HealthDonut, type TrendPoint } from '@/components/SimCharts';
 import { attentionReasons, attentionLink } from '@/lib/executive-attention';
 
+/** Geometry only: text and underlying API metrics retain their real values. */
+const boundedBarFill = (pct: number) =>
+  Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+
 export default async function Home() {
   const lang = await getLang();
   const t = await tr();
@@ -38,7 +42,7 @@ export default async function Home() {
                 <div className="tile">
                   <span>{t('Average progress')}</span>
                   <strong>{pct(d.health.avg_progress)}</strong>
-                  <div className="bar"><i style={{ width: `${d.health.avg_progress}%` }} /></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${boundedBarFill(d.health.avg_progress)}%` }} /></div>
                 </div>
                 <div className={`tile${d.gates.blocked > 0 ? ' alarm' : ''}`}>
                   <span>{t('Gates blocked')}</span>
@@ -48,7 +52,7 @@ export default async function Home() {
                 {d.money && <div className="tile">
                   <span>{t('Budget drawn')}</span>
                   <strong>{pct(spend)}</strong>
-                  <div className="bar"><i style={{ width: `${Math.min(100, spend)}%` }} /></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${boundedBarFill(spend)}%` }} /></div>
                   <div className="split"><i className="dim">{money(d.money.actual)} {t('of')} {money(d.money.budget)} {t('SAR')}</i></div>
                 </div>}
                 <div className={`tile${d.register.critical > 0 ? ' alarm' : ''}`}>
