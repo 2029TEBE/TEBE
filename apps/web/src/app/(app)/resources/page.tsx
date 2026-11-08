@@ -13,8 +13,8 @@ export default async function Resources({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Resources"
-          sub="Who is working on what, and who is over-committed. Over-allocation is the earliest warning of slippage.">
+    <Page title={lang === 'ar' ? 'الموارد' : 'Resources'}
+          sub={lang === 'ar' ? 'توزيع الأفراد على المشاريع ورصد الحمل الزائد قبل أن يؤثر في التنفيذ.' : 'Who is working on what, and who is over-committed. Over-allocation is the earliest warning of slippage.'}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="allocation" title="New allocation" cta="Allocate" returnTo="/resources"
         intro="Allocating the same person past 100% across projects is what over-commitment looks like before anyone feels it."
@@ -32,7 +32,7 @@ export default async function Resources({ searchParams }:
         {(d) => (
           <>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Capacity')}</h2>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={t('Capacity')} tabIndex={0}><table>
               <thead><tr><th>{t('Person')}</th><th>{t('Projects')}</th><th>{t('Allocated')}</th><th>{t('Load')}</th><th>{t('Hours, 7 days')}</th></tr></thead>
               <tbody>
                 {d.people.map((p: any) => {
@@ -48,17 +48,17 @@ export default async function Resources({ searchParams }:
                           <i className={over ? 'over' : undefined}
                              style={{ width: `${Math.min(100, p.allocatedPct)}%` }} />
                         </div>
-                        {over && <div className="crit">over-committed by {p.allocatedPct - 100}%</div>}
+                        {over && <div className="crit">{lang === 'ar' ? 'تجاوز الطاقة بنسبة' : 'over-committed by'} {p.allocatedPct - 100}%</div>}
                       </td>
                       <td className="num">{num(p.hoursLast7, 1)}</td>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
 
             <h2 className="sec">{t('Allocations by project')}</h2>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={t('Allocations by project')} tabIndex={0}><table>
               <thead><tr><th>{t('Project')}</th><th>{t('Person')}</th><th>{t('Role')}</th><th>{t('Allocation')}</th></tr></thead>
               <tbody>
                 {d.byProject.map((a: any, i: number) => (
@@ -70,7 +70,7 @@ export default async function Resources({ searchParams }:
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
       </Loaded>
