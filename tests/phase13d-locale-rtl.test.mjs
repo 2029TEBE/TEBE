@@ -40,7 +40,13 @@ test('mobile navigation supports locale and route-aware closing', () => {
 test('navigation passes selected locale and translates command groups', () => {
   const s = read('apps/web/src/app/(app)/layout.tsx');
   assert.match(s, /<MobileNav ar=\{ar\}>/);
-  assert.match(s, /group: ar \? g\.ar : g\.label/);
+  // The nav label is translated through the frontend-only catalog, preserving
+  // Arabic names and stable links instead of branching on language at each use.
+  assert.match(s, /group: uiLabel\\(g\\.label, locale, g\\.ar\\)/);
+  assert.match(s, /label: uiLabel\\(i\\.label, locale, i\\.ar\\)/);
+  const catalog = read('apps/web/src/lib/ui-labels.mjs');
+  assert.match(catalog, /if \\(locale === 'ar-SA'\\) return legacyArabic \\|\\| english/);
+  assert.match(catalog, /return row\\?\\.\\[locale\\] \\?\\? english/);
   assert.match(s, /const commands = groups\.flatMap/);
 });
 test('tables use locale helpers and bidi isolation for raw values', () => {
