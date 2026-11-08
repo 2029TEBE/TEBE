@@ -316,3 +316,28 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - Direct GitHub source read-back: **25/25 assertions passed** (11 decisions, 7 benefits and 7 resources), including API read/format/data invariants, both capacity/allocation tables, native header counts, no newly introduced writes and current keyboard-scroll affordances.
 - Baseline CI before these changes: TEFE [42473111742](https://github.com/2029TEFE/TEFE/actions/runs/42473111742) succeeded. TEBE [42486568486](https://github.com/2029TEBE/TEBE/actions/runs/42486568486) passed Types, tenant isolation and offline tests but **failed full integration tests and dependency security audit**. Do not mark TEBE releasable until independently remediated and retested. Check this v5.6 head's current CI separately.
 - GitHub read-back assertions are **not** full browser screenshots/390px responsive RTL, keyboard or screen-reader testing. Existing draft [PR #442](https://github.com/2029TEBE/TEBE/pull/442) is review-only; no API, backend, RLS, permissions, finance, dependency, CI, main merge or deployment edits.
+
+
+## Task 05 — Independent final frontend integration review (2026-11-08, 17:52–18:00 Asia/Riyadh)
+
+**Decision: REVIEW COMPLETE; RELEASE NOT APPROVED.** Review-only PRs remain draft and unmerged. No production deployment, browser certification or backend/security remediation occurred.
+
+### Five-task evidence consolidation
+1. **Task 01 — foundation:** Executive-hybrid visual direction and shared token *spec* documented in both repositories. This is not a shared runtime package. Six-locale frontend resolver/test added in TEBE as an independent, unconnected foundation; existing EN/AR behavior remains the active implementation.
+2. **Task 02 — TEFE public:** Static homepage, features, pricing, FAQ, policy-page navigation, bilingual controls and synthetic showcase inspected. The current-head marketing validation passed.
+3. **Task 03 — TEBE executive/delivery:** API-backed executive, projects, governance and decisions files re-read; presentation/accessibility enhancements exist. Runtime project-workflow, RTL and mobile acceptance still pending.
+4. **Task 04 — TEBE operations:** Super-admin and related operational presentation source inspected; existing forms and API references remain in place. Privileged actions, tenant isolation and permissions were not changed by the PR file inventory. This is source-scope evidence, not a production authorization proof.
+5. **Task 05 — independent QA/integration:** Current PR HEADs, complete changed-file lists, selected source files, and current-head CI jobs independently checked. No overlapping file paths across the two repositories. TEBE PR changed files are limited to `apps/web/` and `docs/design/`; TEFE PR changed files are public static site and design documentation only. No backend/API/auth/RLS/storage/finance/CI config/dependencies/DNS files were changed in either PR inventory.
+
+### Exact verified revisions and CI
+- TEFE PR #19 reviewed HEAD `d8888fa9edeb1cf33263b36f0967d7f63c3f2fb5`: marketing workflow [42488841072](https://github.com/2029TEFE/TEFE/actions/runs/42488841072) **SUCCESS** on this HEAD.
+- TEBE PR #442 reviewed HEAD `8ef19bcedefbe4bc1f7de2ca02676654eff5f8a2`: workflow [42491388881](https://github.com/2029TEBE/TEBE/actions/runs/42491388881) **FAIL** overall. **PASS:** dependency-free offline checks, migration-chain source check, package build, SQL-ledger migrations, TypeScript, tenant isolation/data integrity and financial PostgreSQL RLS visibility. **FAIL:** full tests, dependency audit and current-run CI acceptance gate. **SKIPPED:** production build and Docker image builds. A green source check is not a green full CI run.
+- TEBE previous PR evidence reported **101 passed, 8 failed, 20 skipped** in an earlier integration run and **67 dependency findings (2 critical, 25 high, 31 moderate, 9 low)**; those are historical figures, not independently re-counted for the latest run. Current CI still fails the corresponding test and audit jobs.
+
+### Source review limits and release blockers
+- Source re-read: TEFE `index.html`, `app.js`, `features.html`, `pricing.html`, `faq.html`, `styles.css`, `pages.css`, `docs/design/showcase.html`; TEBE `(app)/page.tsx`, projects, governance, super-admin, documents, decisions, `LangToggle.tsx`, `frontend-locale.mjs` and its test.
+- Static source inspection cannot prove behavior in a real browser, full Arabic translation, responsive layout at 1440/768/390, authenticated RTL interaction, keyboard/screen-reader usability, WCAG compliance, full integration, or live links. **All remain unverified for this final review.**
+- **Hard release blockers:** TEBE full tests FAIL, dependency security audit FAIL, required CI acceptance FAIL, production builds SKIPPED, and authenticated browser/mobile/RTL/accessibility end-to-end acceptance missing. No bypass or waiver.
+- Frontend six-language locale resolver is not connected to the app and no German/Chinese/French/Japanese language packs or IP redirects are live; no unsupported translation or backend export claims.
+- Follow-up owner: backend/security expert for pre-existing tests and dependency findings; frontend expert for real authenticated EN/AR mobile/RTL/browser/accessibility QA and future localization integration. Re-run complete CI on any later code changes before release consideration.
+- Safe rollback: close draft PRs or revert review-branch commits. No deployed artifact to roll back.
