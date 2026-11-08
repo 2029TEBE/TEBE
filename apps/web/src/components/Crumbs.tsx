@@ -8,7 +8,16 @@ const matchesNavPath = (path: string, href: string) =>
 
 export function Crumbs({ ar }: { ar: boolean }) {
   const path = usePathname();
-  let group = '', label = ar ? 'النظرة التنفيذية' : 'Executive Overview';
+  // A few signed-in pages are intentionally outside the licensed NAV groups.
+  // Never describe an unlisted page as the Executive Overview by default.
+  const standalone: Record<string, [string, string]> = {
+    '/decision-cockpit': ['Executive Decision Cockpit', 'مركز القرارات التنفيذي'],
+    '/operations-preview': ['Operations preview', 'معاينة عمليات المنصة'],
+  };
+  let group = '';
+  let label = path === '/'
+    ? (ar ? 'النظرة التنفيذية' : 'Executive Overview')
+    : (standalone[path]?.[ar ? 1 : 0] ?? (ar ? 'الصفحة الحالية' : 'Current page'));
   for (const g of NAV) {
     for (const i of g.items) {
       const hit = matchesNavPath(path, i.href);
