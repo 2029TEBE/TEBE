@@ -40,6 +40,20 @@ export default async function Benefits({ searchParams }:
       <Loaded load={api.benefits} empty={lang === 'ar' ? 'لم يتم تسجيل أي منافع بعد.' : 'No benefits defined yet.'}>
         {(list) => (
           <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المنافع' : 'Benefits snapshot'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'تحقق المنافع' : 'BENEFIT REALIZATION'}</span>
+                <h2>{lang === 'ar' ? 'حالة المنافع المسجلة' : 'Recorded benefit status'}</h2>
+                <p>{lang === 'ar'
+                  ? 'تحسب المؤشرات المنافع المعادة من واجهة البيانات المصرح بها بحسب حالتها المسجلة، وليس بحسب تقدير تلقائي للقيمة المتحققة.'
+                  : 'These counts reflect the status of benefits returned by the authorized API, not an independently calculated assessment of value realized.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'المنافع المعروضة' : 'Returned benefits'}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'مسجلة كمتحققة' : 'Marked realized'}</small><strong>{list.filter((b: { status: string }) => b.status === 'realized').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'مسجلة كغير متحققة' : 'Marked missed'}</small><strong>{list.filter((b: { status: string }) => b.status === 'missed').length}</strong></div>
+              </div>
+            </section>
             <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المنافع' : 'Benefits register'} tabIndex={0}><table>
               <thead><tr>
                 <th scope="col">{t('Benefit')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Measure')}</th><th scope="col">{t('Baseline')}</th>
