@@ -18,11 +18,12 @@ const price='pri_01m6x7w5zy16nktzjwg2ezas2d';
 const product='pro_01m6x789k8kmvez6zk7cm17wdz';
 let tenant='',foreignTenant='',plan='',subscription='',invoice='';
 const intent=randomUUID();
+const attempt=randomUUID();
 const expiry=Date.now()+10*60*1000;
 const input=()=>({
  source:'locked-tenant-record' as const,
  provider:'paddle' as const,environment:'sandbox' as const,
- tenantId:tenant,intentId:intent,invoiceId:invoice,
+ tenantId:tenant,intentId:intent,attemptId:attempt,invoiceId:invoice,
  subscriptionId:subscription,planId:plan,expiresAt:expiry,
  transactionId:txn,verifiedPriceId:price,verifiedProductId:product,
  transportValidated:true as const,requiresAtomicTenantPersistence:true as const,
@@ -54,12 +55,18 @@ beforeAll(()=>{
  [tenant,foreignTenant,plan,subscription,invoice]=ids.split('|');
  for(const x of [tenant,foreignTenant,plan,subscription,invoice])
    expect(x).toMatch(/^[a-f0-9-]{36}$/i);
+ psql(`INSERT INTO billing_paddle_checkout_attempts
+ (id,tenant_id,invoice_id,subscription_id,plan_id,paddle_price_id,environment,amount_minor,currency,expires_at)
+ VALUES ('${attempt}'::uuid,'${tenant}'::uuid,'${invoice}'::uuid,
+ '${subscription}'::uuid,'${plan}'::uuid,'${price}','sandbox',4900,'USD',
+ '${new Date(expiry).toISOString()}'::timestamptz)`);
 });
 
 afterAll(()=>{
  if(!enabled||!tenant)return;
  psql(`
  DELETE FROM billing_paddle_checkout_intents WHERE tenant_id='${tenant}'::uuid;
+ DELETE FROM billing_paddle_checkout_attempts WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM billing_invoices WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM tenant_subscriptions WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM tenants WHERE id IN ('${tenant}'::uuid,'${foreignTenant}'::uuid)
@@ -78,6 +85,8 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
     .rejects.toThrow(/untrusted_invoice_or_subscription_terms/);
   await expect(persistDisposablePaddleCheckout({...input(),invoiceId:randomUUID()}))
     .rejects.toThrow(/untrusted_invoice_or_subscription_terms/);
+  await expect(persistDisposablePaddleCheckout({...input(),attemptId:randomUUID()}))
+    .rejects.toThrow(/missing_or_mismatched_precreate_reservation/);
   expect(count()).toBe('0');
  });
  it('saves exactly one intent bound to the correct invoice, tenant and transaction',async()=>{
@@ -87,9 +96,9 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   expect(saved.entitlementGranted).toBe(false);
   const record=psql(`SELECT tenant_id||'|'||invoice_id||'|'||
    subscription_id||'|'||plan_id||'|'||paddle_transaction_id||'|'||
-   paddle_price_id||'|'||environment
+   paddle_price_id||'|'||environment||'|'||attempt_id
    FROM billing_paddle_checkout_intents WHERE id='${intent}'::uuid`);
-  expect(record).toBe([tenant,invoice,subscription,plan,txn,price,'sandbox'].join('|'));
+  expect(record).toBe([tenant,invoice,subscription,plan,txn,price,'sandbox',attempt].join('|'));
   expect(count()).toBe('1');
   expect(psql(`SELECT status FROM billing_invoices WHERE id='${invoice}'::uuid`)).toBe('open');
   expect(psql(`SELECT status FROM tenant_subscriptions WHERE id='${subscription}'::uuid`)).toBe('trialing');
