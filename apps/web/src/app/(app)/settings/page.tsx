@@ -61,16 +61,16 @@ export default async function Settings({ searchParams }:
           <button type="submit">{lang === 'ar' ? 'إرسال الدعوة' : 'Send invitation'}</button>
         </form>
         <Loaded load={api.workspaceInvitations}>
-          {(invites) => invites.length ? <div style={{ overflowX: 'auto', marginTop: 18 }}>
+          {(invites) => invites.length ? <div style={{ marginTop: 18 }}>
             <h3>{lang === 'ar' ? 'الدعوات الأخيرة' : 'Recent invitations'}</h3>
-            <table><thead><tr><th>{lang === 'ar' ? 'البريد' : 'Email'}</th><th>{lang === 'ar' ? 'الدور' : 'Role'}</th><th>{lang === 'ar' ? 'الحالة' : 'Status'}</th><th>{lang === 'ar' ? 'الإجراء' : 'Action'}</th></tr></thead>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'الدعوات الأخيرة' : 'Recent invitations'} tabIndex={0}><table><thead><tr><th>{lang === 'ar' ? 'البريد' : 'Email'}</th><th>{lang === 'ar' ? 'الدور' : 'Role'}</th><th>{lang === 'ar' ? 'الحالة' : 'Status'}</th><th>{lang === 'ar' ? 'الإجراء' : 'Action'}</th></tr></thead>
               <tbody>{invites.map(i => <tr key={i.id}><td>{i.email}</td>
                 <td>{(lang === 'ar' ? ROLE_LABELS[i.role]?.ar : ROLE_LABELS[i.role]?.en) ?? i.role}</td>
                 <td>{i.consumedAt ? (lang === 'ar' ? 'مقبولة' : 'Accepted') : i.revokedAt ? (lang === 'ar' ? 'ملغاة' : 'Revoked') : i.deliveryStatus}</td>
                 <td>{!i.revokedAt && !i.consumedAt ? <form action="/api/onboarding" method="post">
                   <input type="hidden" name="action" value="revoke" /><input type="hidden" name="id" value={i.id} />
                   <button type="submit">{lang === 'ar' ? 'إلغاء' : 'Revoke'}</button>
-                </form> : null}</td></tr>)}</tbody></table>
+                </form> : null}</td></tr>)}</tbody></table></div>
           </div> : <p className="dim">{lang === 'ar' ? 'لا توجد دعوات بعد.' : 'No invitations yet.'}</p>}
         </Loaded>
       </section> : <p className="dim">{lang === 'ar' ? 'فقط مسؤولو مساحة العمل يمكنهم إرسال الدعوات.' :
@@ -87,19 +87,19 @@ export default async function Settings({ searchParams }:
             </div>
 
             <h2 className="sec">{t('Workspace')}</h2>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'بيانات مساحة العمل' : 'Workspace details'} tabIndex={0}><table>
               <tbody>
-                <tr><td style={{ width: 200 }}><strong>Name</strong></td><td>{d.tenant.name}</td></tr>
+                <tr><td style={{ width: 200 }}><strong>{lang === 'ar' ? 'الاسم' : 'Name'}</strong></td><td>{d.tenant.name}</td></tr>
                 <tr><td><strong>{t('Identifier')}</strong></td><td><code>{d.tenant.slug}</code></td></tr>
                 <tr><td><strong>{t('Created')}</strong></td><td>{when(d.tenant.createdAt, lang)}</td></tr>
                 <tr><td><strong>{t('Data isolation')}</strong></td>
-                    <td><span className="pill on_track">enforced by the database</span>
+                    <td><span className="pill on_track">{lang === 'ar' ? 'مفروض على مستوى قاعدة البيانات' : 'enforced by the database'}</span>
                       <div className="dim">{t('No query from this workspace can return another workspace’s rows.')}</div></td></tr>
               </tbody>
-            </table>
+            </table></div>
 
             <h2 className="sec">{t('Members')}</h2>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'أعضاء مساحة العمل' : 'Workspace members'} tabIndex={0}><table>
               <thead><tr><th>{t('Name')}</th><th>{t('Email')}</th><th>{t('Role')}</th></tr></thead>
               <tbody>{d.members.map((m: any) => (
                 <tr key={m.email}>
@@ -111,14 +111,14 @@ export default async function Settings({ searchParams }:
                     {(lang === 'ar' ? ROLE_LABELS[m.role]?.ar : ROLE_LABELS[m.role]?.en)
                       ?? m.role.replace(/_/g, ' ')}</span></td>
                 </tr>))}</tbody>
-            </table>
+            </table></div>
 
             <h2 className="sec">{t('What your role can do')}</h2>
             <p className="dim" style={{ marginTop: '-8px' }}>
-              {t('You are signed in as')} <strong>{d.yourRole.replace(/_/g, ' ')}</strong>. Permissions are checked
+              {t('You are signed in as')} <strong>{(lang === 'ar' ? ROLE_LABELS[d.yourRole]?.ar : ROLE_LABELS[d.yourRole]?.en) ?? d.yourRole.replace(/_/g, ' ')}</strong>. Permissions are checked
               per capability, never per role — which is why adding a role never means rewriting a permission check.
             </p>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'صلاحيات الدور الحالي' : 'Current role capabilities'} tabIndex={0}><table>
               <thead><tr><th>{t('Capability')}</th><th>{t('What it allows')}</th><th>{t('You')}</th></tr></thead>
               <tbody>{Object.entries(CAP_MEANING).map(([cap, meaning]) => {
                 const has = d.yourCapabilities.includes(cap);
@@ -130,7 +130,7 @@ export default async function Settings({ searchParams }:
                              : <span className="pill s-closed">{t('no')}</span>}</td>
                   </tr>);
               })}</tbody>
-            </table>
+            </table></div>
           </>
         )}
       </Loaded>
