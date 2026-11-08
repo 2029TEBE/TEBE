@@ -108,6 +108,17 @@ describe.skipIf(!enabled)('Paddle CI HTTP signed webhook gateway',()=>{
   expect((await send(forged)).status).toBeGreaterThanOrEqual(400);
   expect(counts()).toBe('0|0|0|open|trialing');
  });
+ it('refuses missing or foreign signed attempt, invoice and workspace identifiers',async()=>{
+  for(const field of ['epmo_attempt_id','epmo_invoice_id','epmo_tenant_id'] as const){
+    const missing={...completed().data.custom_data};
+    delete (missing as Record<string,unknown>)[field];
+    const noField=completed({custom_data:missing});
+    expect((await send(noField)).status).toBeGreaterThanOrEqual(400);
+    const changed={...completed().data.custom_data,[field]:randomUUID()};
+    expect((await send(completed({custom_data:changed}))).status).toBeGreaterThanOrEqual(400);
+  }
+  expect(counts()).toBe('0|0|0|open|trialing');
+ });
  it('persists signed transaction once but never marks invoice paid or grants access',async()=>{
   const r=await send(completed(),{'x-tenant-id':randomUUID()});
   expect(r.status).toBe(200);
@@ -119,6 +130,15 @@ describe.skipIf(!enabled)('Paddle CI HTTP signed webhook gateway',()=>{
   const r=await send(completed());
   expect(r.status).toBe(200);
   expect(r.body?.duplicate).toBe(true);
+  expect(counts()).toBe('1|1|0|open|trialing');
+ });
+ it('refuses changed signed replay and second event for same transaction',async()=>{
+  const changed=completed({extra_test_marker:'not_the_original_payload'});
+  const changedResponse=await send(changed);
+  expect(changedResponse.status).toBeGreaterThanOrEqual(400);
+  const second=completed();
+  second.event_id='evt_'+'f'.repeat(26);
+  expect((await send(second)).status).toBeGreaterThanOrEqual(400);
   expect(counts()).toBe('1|1|0|open|trialing');
  });
  it('records signed refund and chargeback notices for manual review only',async()=>{
