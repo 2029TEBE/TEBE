@@ -66,6 +66,40 @@ export default async function Home() {
                 </div>
               </div>
 
+              <section className="design-journey" aria-label={lang === 'ar' ? 'مسار القرار التنفيذي' : 'Executive decision journey'}>
+                <div className="design-journey-intro">
+                  <span className="design-kicker">{lang === 'ar' ? 'من المؤشرات إلى القرار' : 'FROM SIGNALS TO DECISIONS'}</span>
+                  <h2>{lang === 'ar' ? 'حوّل الانحرافات إلى مراجعة موثقة' : 'Turn delivery signals into accountable reviews'}</h2>
+                  <p>{lang === 'ar'
+                    ? 'بيانات مساحة العمل الحالية فقط. الأرقام المعروضة لا تعني اعتماد قرار أو تنفيذ إجراء.'
+                    : 'These are the current workspace API signals, not automated decisions or approvals.'}</p>
+                </div>
+                <div className="design-journey-steps">
+                  <div className="design-journey-step">
+                    <span className="design-step-index">01</span>
+                    <small>{lang === 'ar' ? 'رصد' : 'OBSERVE'}</small>
+                    <strong>{d.register.overdue}</strong>
+                    <span>{lang === 'ar' ? 'عناصر سجل متأخرة' : 'Overdue register items'}</span>
+                  </div>
+                  <div className="design-journey-step">
+                    <span className="design-step-index">02</span>
+                    <small>{lang === 'ar' ? 'تحقق' : 'VERIFY'}</small>
+                    <strong>{d.gates.blocked}</strong>
+                    <span>{lang === 'ar' ? 'بوابات متعثرة تتطلب التحقق من الأدلة' : 'Blocked gates needing evidence review'}</span>
+                  </div>
+                  <div className="design-journey-step">
+                    <span className="design-step-index">03</span>
+                    <small>{lang === 'ar' ? 'قرار بشري' : 'HUMAN DECISION'}</small>
+                    <strong>{d.attention.length}</strong>
+                    <span>{lang === 'ar' ? 'مشاريع ضمن قائمة الانتباه المسترجعة' : 'Projects returned in the attention queue'}</span>
+                  </div>
+                </div>
+                <div className="design-journey-footer">
+                  <span>{lang === 'ar' ? 'يجب مراجعة السجل الأصلي وصاحب الصلاحية قبل اتخاذ القرار.' : 'Check the source evidence and accountable owner before acting.'}</span>
+                  <a href="/decision-cockpit" className="btn ghost">{t('Open decision cockpit')}</a>
+                </div>
+              </section>
+
               <div className="simgrid2">
                 <TrendPanel t={t} eyebrow="Delivery trend" title="Portfolio performance"
                   note={trend?.historyNote?.enough ? undefined : 'Cumulative, by month'}
