@@ -27,6 +27,10 @@ export default async function Activity() {
                 <div className="design-metric">
                   <small>{lang === 'ar' ? 'الأحداث المعادة' : 'Returned audit entries'}</small><strong>{d.feed.length}</strong>
                 </div>
+                <div className="design-metric">
+                  <small>{lang === 'ar' ? 'بنود لها تاريخ استحقاق' : 'Items with due dates'}</small>
+                  <strong>{d.needs.filter((item) => Boolean(item.due)).length}</strong>
+                </div>
               </div>
             </section>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Needs a decision')}</h2>
