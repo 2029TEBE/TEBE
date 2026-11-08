@@ -5,10 +5,13 @@ const uuid=x=>x.repeat(8)+'-'+x.repeat(4)+'-4'+x.repeat(3)+'-8'+x.repeat(3)+'-'+
 const env=()=>({deploymentEnv:'staging',paddleEnv:'sandbox',paddleEnabled:'false',billingProvider:'paddle'});
 const intent=()=>({source:'committed-tenant-sql',environment:'sandbox',
  id:uuid('1'),tenantId:uuid('2'),invoiceId:uuid('3'),
+ attemptId:uuid('4'),amountMinor:4900,currency:'USD',
  paddlePriceId:'pri_01m6x7w5zy16nktzjwg2ezas2d',
  status:'reconciliation_required'});
 const evidence=()=>({source:'trusted-server-reconciliation',environment:'sandbox',
  intentId:uuid('1'),tenantId:uuid('2'),invoiceId:uuid('3'),
+ attemptId:uuid('4'),amountMinor:4900,currency:'USD',
+ sourceVerifiedByProviderApi:true,providerMatchedByCustomData:true,
  priceId:'pri_01m6x7w5zy16nktzjwg2ezas2d',foundExactlyOne:true,
  transactionId:'txn_'+'a'.repeat(26),collectionMode:'automatic',
  status:'draft',quantity:1});
@@ -30,6 +33,9 @@ test('only matched independent reconciliation can propose persistence',()=>{
 test('foreign tenant, invoice, price, duplicate or malformed provider evidence refused',()=>{
  for(const patch of [
   {tenantId:uuid('9')}, {invoiceId:uuid('9')},
+  {attemptId:uuid('9')},{amountMinor:5880},{amountMinor:4899},
+  {currency:'SAR'},{sourceVerifiedByProviderApi:false},
+  {providerMatchedByCustomData:false},
   {priceId:'pri_'+'b'.repeat(26)}, {foundExactlyOne:false},
   {transactionId:'txn_bad'}, {quantity:2},{status:'completed'},
   {collectionMode:'manual'}
@@ -49,5 +55,14 @@ test('production and payment-enabled contexts fail closed',()=>{
   {paddleEnabled:'true'},{billingProvider:'stripe'}]){
   const r=decide(intent(),evidence(),{...env(),...patch});
   assert.equal(r.ok,false);assert.equal(r.canRetryCreate,false);
+ }
+});
+
+test('tampered local attempt terms never permit reconciliation',()=>{
+ for(const patch of [{attemptId:'unknown'},{currency:'SAR'},
+  {amountMinor:5880},{amountMinor:4900.5}]){
+   const r=decide({...intent(),...patch},evidence(),env());
+   assert.equal(r.ok,false);
+   assert.equal(r.canRetryCreate,false);
  }
 });
