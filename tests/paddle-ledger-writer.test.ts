@@ -220,15 +220,17 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
   const transactionId='txn_'+'a'.repeat(26);
   const subscriptionId='sub_'+'b'.repeat(26);
   const priceId='pri_01m6x7w5zy16nktzjwg2ezas2d';
+  const customerId='ctm_'+'c'.repeat(26);
   const env=()=>({
     PADDLE_ENV:'sandbox',PADDLE_ENABLED:'false',BILLING_PROVIDER:'paddle',
     PADDLE_SUBSCRIPTION_READONLY:'true',DEPLOYMENT_ENV:'staging',
     PADDLE_SANDBOX_API_KEY:'pdl_sdbx_apikey_'+'z'.repeat(28)
   });
   const txn=()=>({id:transactionId,status:'completed',subscription_id:subscriptionId,
+    customer_id:customerId,
     currency_code:'USD',details:{line_items:[{price_id:priceId,quantity:1}],
     totals:{grand_total:'4900'}}});
-  const sub=()=>({id:subscriptionId,status:'active',
+  const sub=()=>({id:subscriptionId,status:'active',customer_id:customerId,
     items:[{price:{id:priceId},quantity:1}]});
   const mock=(t=txn(),s=sub(),calls:string[]=[])=>async(url:string,options:any)=>{
     calls.push(url);
@@ -264,6 +266,9 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
     const cases=[
       [ {...txn(),subscription_id:'sub_'+'c'.repeat(26)},sub()],
       [ {...txn(),currency_code:'SAR'},sub()],
+      [ {...txn(),customer_id:'ctm_'+'d'.repeat(26)},sub()],
+      [ {...txn(),customer_id:''},sub()],
+      [ txn(),{...sub(),customer_id:'ctm_'+'e'.repeat(26)}],
       [ {...txn(),details:{line_items:[{price_id:priceId,quantity:1}],totals:{grand_total:'4901'}}},sub()],
       [ txn(),{...sub(),status:'paused'}],
       [ txn(),{...sub(),items:[{price:{id:priceId},quantity:2}]}],
