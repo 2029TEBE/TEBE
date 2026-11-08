@@ -35,5 +35,5 @@ export function requirePaddleSandboxStagingConfig(env: NodeJS.ProcessEnv): Stagi
       db.hostname === 'localhost' || db.hostname === '127.0.0.1' ||
       db.search || db.hash)
     refuse();
-  return {environment:'sandbox',webhookSecret:secret,databaseHost:db.hostname};
+  return {environment:'sandbox',webhookSecret:secret!,databaseHost:db.hostname};
 }
