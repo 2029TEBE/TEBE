@@ -21,3 +21,9 @@ Real sandbox transaction and notification lifecycle, durable reconciliation afte
 Developer API references:
 - https://developer.paddle.com/api-reference/prices/get-price/
 - https://developer.paddle.com/api-reference/products/get-product/
+
+## Tax and total protection
+
+The catalog API reports the base recurring price, not a customer's final payable amount. The read-only verifier now returns a sanitized `taxMode` and always sets `finalCustomerTotalVerified:false`; tax mode can be `account_setting`, `external`, `internal`, or `location`. Regional overrides must be absent for the strict USD $49 base-price assertion. Even with no regional override, VAT/tax, discounts and Paddle transaction calculations can change the amount the customer actually pays. Do not equate this catalog preflight with an authorized settlement amount, and do not grant entitlements until independently verified provider settlement is reconciled to the agreed invoice terms.
+
+The existing synthetic settlement writer matches its fixed test invoice amount. Real taxes and the commercial invoice/checkout tax treatment still need explicit product/legal review and provider integration tests; this read-only workflow does not solve that.
