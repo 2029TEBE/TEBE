@@ -176,13 +176,14 @@ describe('Paddle provider subscription reconciliation never authorizes payment',
   const tId=randomUUID(),iId=randomUUID(),sId=randomUUID();
   const transactionId='txn_'+'q'.repeat(26), providerSub='sub_'+'z'.repeat(26);
   const priceId='pri_01m6x7w5zy16nktzjwg2ezas2d';
+  const customerId='ctm_'+'q'.repeat(26);
   const trusted=()=>({source:'locked-tenant-database' as const,tenantId:tId,
-    invoiceId:iId,subscriptionId:sId,transactionId,priceId,
+    invoiceId:iId,subscriptionId:sId,transactionId,priceId,paddleCustomerId:customerId,
     amountMinor:4900,currency:'USD',environment:'sandbox' as const});
   const signed=()=>({transactionId,paddleSubscriptionId:providerSub,
     tenantId:tId,invoiceId:iId,priceId,amountMinor:4900,currency:'USD'});
   const provider=()=>({source:'authenticated-paddle-sandbox-get' as const,
-    transactionId,subscriptionId:providerSub,priceId,status:'completed' as const,
+    transactionId,subscriptionId:providerSub,customerId,priceId,status:'completed' as const,
     amountMinor:4900,currency:'USD'});
   it('reports matching evidence as consistency only, never entitlement or invoice-paid authorization',()=>{
     const result=assessPaddleSubscriptionReconciliation({
@@ -199,6 +200,10 @@ describe('Paddle provider subscription reconciliation never authorizes payment',
     const variants=[
       {signed:{...signed(),paddleSubscriptionId:'sub_'+'x'.repeat(26)}},
       {provider:{...provider(),transactionId:'txn_'+'a'.repeat(26)}},
+      {provider:{...provider(),customerId:'ctm_'+'a'.repeat(26)}},
+      {trusted:{...trusted(),paddleCustomerId:'ctm_'+'b'.repeat(26)}},
+      {trusted:{...trusted(),paddleCustomerId:''}},
+      {provider:{...provider(),customerId:''}},
       {signed:{...signed(),invoiceId:randomUUID()}},
       {signed:{...signed(),tenantId:randomUUID()}},
       {provider:{...provider(),priceId:'pri_'+'a'.repeat(26)}},
