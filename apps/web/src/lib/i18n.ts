@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { normalizeFrontendLocale } from './frontend-locale.mjs';
+import { uiLabel } from './ui-labels.mjs';
 import { translator, type Lang, type T } from './i18n-dict';
 
 export { translator, term, type Lang, type T } from './i18n-dict';
@@ -11,7 +12,12 @@ export async function getLang(): Promise<Lang> {
 
 /** The common case in a server component: read the cookie, get the function. */
 export async function tr(): Promise<T> {
-  return translator(await getLang());
+  // Preserve the original shared EN/AR contract used by backend exports.
+  // For additional UI locales, translate only catalogued frontend strings;
+  // unavailable translations deliberately fall back to English.
+  const [locale, lang] = await Promise.all([getFrontendLocale(), getLang()]);
+  const legacy = translator(lang);
+  return (english: string) => uiLabel(english, locale, legacy(english));
 }
 
 /**
