@@ -347,6 +347,29 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
       expect(JSON.stringify(result)).not.toContain(env().PADDLE_SANDBOX_API_KEY);
     }
   });
+  it('fails closed on malformed JSON and a second provider GET failure',async()=>{
+    const invalidJson=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId,env:env(),
+      fetchImpl:(async()=>({status:200,ok:true,
+        headers:{get:()=> 'application/json'},
+        json:async()=>{throw new SyntaxError('invalid JSON');}})) as any});
+    expect(invalidJson.verified).toBe(false);
+    expect(invalidJson.invoiceMarkedPaid).toBe(false);
+    expect(invalidJson.entitlementGranted).toBe(false);
+    let requests=0;
+    const secondUnavailable=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId,env:env(),
+      fetchImpl:(async()=>{requests++;
+        if(requests===1)return {status:200,ok:true,
+          headers:{get:()=> 'application/json'},json:async()=>({data:txn()})};
+        throw new Error('provider timeout');
+      }) as any});
+    expect(requests).toBe(2);
+    expect(secondUnavailable.verified).toBe(false);
+    expect(secondUnavailable.invoiceMarkedPaid).toBe(false);
+    expect(secondUnavailable.entitlementGranted).toBe(false);
+    expect(JSON.stringify(secondUnavailable)).not.toContain(env().PADDLE_SANDBOX_API_KEY);
+  });
   it('never includes a sensitive API key or provider error in result',async()=>{
     const result=await readPaddleSandboxSubscriptionEvidence({
       transactionId,subscriptionId,env:env(),
