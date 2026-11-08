@@ -15,8 +15,8 @@ const COLS = [
  * phone, on a touchpad, with a keyboard and with the client bundle broken —
  * and it goes through the same audited write path as every other change.
  */
-function Move({ id, to, label, glyph, lang }:
-  { id: string; to: string; label: string; glyph: string; lang: 'ar' | 'en' }) {
+function Move({ id, to, label, glyph, lang, taskTitle }:
+  { id: string; to: string; label: string; glyph: string; lang: 'ar' | 'en'; taskTitle: string }) {
   return (
     <form method="post" action="/api/govern">
       <input type="hidden" name="intent" value="task" />
@@ -25,7 +25,7 @@ function Move({ id, to, label, glyph, lang }:
       <input type="hidden" name="returnTo" value="/board" />
       <button type="submit" className="movebtn"
               title={lang === 'ar' ? `نقل إلى ${label}` : `Move to ${label}`}
-              aria-label={lang === 'ar' ? `نقل إلى ${label}` : `Move to ${label}`}>{glyph}</button>
+              aria-label={lang === 'ar' ? `نقل المهمة ${taskTitle} إلى ${label}` : `Move ${taskTitle} to ${label}`}>{glyph}</button>
     </form>
   );
 }
@@ -77,10 +77,10 @@ export default async function BoardPage({ searchParams }:
                           </div>
                           <div className="moverow">
                             {prev ? <Move id={t.id} to={prev[0]} label={lang === 'ar' ? prev[2] : prev[1]}
-                                          glyph={lang === 'ar' ? '→' : '←'} lang={lang} />
+                                          glyph={lang === 'ar' ? '→' : '←'} lang={lang} taskTitle={t.title} />
                                   : <span />}
                             {next ? <Move id={t.id} to={next[0]} label={lang === 'ar' ? next[2] : next[1]}
-                                          glyph={lang === 'ar' ? '←' : '→'} lang={lang} />
+                                          glyph={lang === 'ar' ? '←' : '→'} lang={lang} taskTitle={t.title} />
                                   : <span />}
                           </div>
                         </article>
