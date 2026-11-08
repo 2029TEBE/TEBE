@@ -18,7 +18,6 @@ jobs:
       PADDLE_ENV: sandbox
       PADDLE_ENABLED: 'false'
       DEPLOYMENT_ENV: staging
-      PADDLE_SANDBOX_API_KEY: ${{ secrets.PADDLE_SANDBOX_READONLY_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,13 +25,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Require configured sandbox-only secret
+      - name: Verify sandbox catalog with step-scoped secret (read-only)
         shell: bash
+        env:
+          PADDLE_SANDBOX_API_KEY: ${{ secrets.PADDLE_SANDBOX_READONLY_API_KEY }}
         run: |
+          set -euo pipefail
           if [ -z "$PADDLE_SANDBOX_API_KEY" ]; then
-            echo 'BLOCKED: configure PADDLE_SANDBOX_READONLY_API_KEY using GitHub Actions secret settings.'
+            echo 'BLOCKED: missing PADDLE_SANDBOX_READONLY_API_KEY repository secret.'
             exit 2
           fi
           echo "::add-mask::$PADDLE_SANDBOX_API_KEY"
-      - name: Verify fixed product and price against Paddle Sandbox API (read-only)
-        run: node scripts/paddle-verified-sandbox-api-preflight.mjs
+          node scripts/paddle-verified-sandbox-api-preflight.mjs
