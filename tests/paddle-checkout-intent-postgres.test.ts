@@ -116,7 +116,7 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
  it('rejects unsigned and mismatched signed settlement, then records the valid event without entitlements',async()=>{
   const event={
     event_id:signedEventId,event_type:'transaction.completed',
-    data:{id:txn,status:'completed',subscription_id:'sub_'+'b'.repeat(26),
+    data:{id:txn,status:'completed',collection_mode:'automatic',subscription_id:'sub_'+'b'.repeat(26),
       currency_code:'USD',custom_data:{epmo_intent_id:intent,tenantId:tenant,
         epmo_attempt_id:attempt,epmo_invoice_id:invoice,epmo_tenant_id:tenant},
       details:{line_items:[{price_id:price,quantity:1}],
