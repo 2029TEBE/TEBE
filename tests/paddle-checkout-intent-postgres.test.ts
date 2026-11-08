@@ -169,6 +169,10 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
     await expect(recordVerifiedPaddleSandboxSettlement(signed(tampered)))
       .rejects.toThrow(/untrusted_precreate_attempt_or_webhook_binding/);
   }
+  // A legacy checkout-intent that predates the required pre-provider attempt
+  // must never be accepted into a settlement by a valid provider signature.
+  // This is enforced by the writer guard and remains a release migration gate.
+  // Keep the original test fixture's attempt untouched for subsequent success.
   await expect(recordVerifiedPaddleSandboxSettlement(signed(event,foreignTenant)))
     .rejects.toThrow(/untrusted_invoice_intent_or_provider_totals/);
   expect(psql(`SELECT COUNT(*) FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
