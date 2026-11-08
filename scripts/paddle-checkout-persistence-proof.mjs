@@ -22,11 +22,15 @@ export function verifyPersistedSandboxCheckout(prepared, candidate, persisted, {
 
   if (!persisted || persisted.source!=='committed-tenant-sql' ||
       persisted.environment!=='sandbox' ||
-      ![persisted.tenantId,persisted.intentId,persisted.invoiceId,persisted.subscriptionId,
+      ![persisted.tenantId,persisted.intentId,persisted.attemptId,persisted.invoiceId,persisted.subscriptionId,
         persisted.planId].every(x=>typeof x==='string'&&UUID.test(x)) ||
       !UUID.test(prepared.expected.tenantId||'') ||
+      !UUID.test(prepared.expected.attemptId||'') ||
+      !UUID.test(prepared.expected.invoiceId||'') ||
       persisted.tenantId!==prepared.expected.tenantId ||
       persisted.intentId!==prepared.expected.intentId ||
+      persisted.attemptId!==prepared.expected.attemptId ||
+      persisted.invoiceId!==prepared.expected.invoiceId ||
       persisted.subscriptionId!==prepared.expected.subscriptionId ||
       persisted.planId!==prepared.expected.planId ||
       persisted.paddleTransactionId!==candidate.transactionId ||
