@@ -13,8 +13,8 @@ export default async function Benefits({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Benefits"
-          sub="Did the project deliver the value it promised? Tracked after handover — the step most tools skip.">
+    <Page title={lang === 'ar' ? 'المنافع' : 'Benefits'}
+          sub={lang === 'ar' ? 'تتبع القيمة المتحققة بعد التسليم مقارنة بالمستهدفات وخط الأساس.' : 'Did the project deliver the value it promised? Tracked after handover — the step most tools skip.'}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="benefit" title="New benefit" cta="Add benefit" returnTo="/benefits"
         intro="A benefit is the value the project promised. Recording the measure and its baseline now is what makes it checkable after handover."
@@ -33,10 +33,10 @@ export default async function Benefits({ searchParams }:
                 { name: 'ownerId', label: 'Owner', type: 'select',
                   options: o.people.map((p: any) => ({ value: p.id, label: p.name })) },
               ]} />
-      <Loaded load={api.benefits} empty="No benefits defined yet.">
+      <Loaded load={api.benefits} empty={lang === 'ar' ? 'لم يتم تسجيل أي منافع بعد.' : 'No benefits defined yet.'}>
         {(list) => (
           <>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المنافع' : 'Benefits register'} tabIndex={0}><table>
               <thead><tr>
                 <th>{t('Benefit')}</th><th>{t('Project')}</th><th>{t('Measure')}</th><th>{t('Baseline')}</th>
                 <th>{t('Target')}</th><th>{t('Actual')}</th><th>{t('Progress')}</th><th>{t('Review')}</th><th>{t('Status')}</th>
@@ -48,20 +48,20 @@ export default async function Benefits({ searchParams }:
                       {b.owner && <div className="dim">{b.owner}</div>}</td>
                     <td className="num">{b.projectCode ?? '—'}</td>
                     <td className="dim">{b.measure}
-                      {b.direction === 'decrease' && <div className="kind">lower is better</div>}</td>
+                      {b.direction === 'decrease' && <div className="kind">{lang === 'ar' ? 'القيمة الأقل أفضل' : 'lower is better'}</div>}</td>
                     <td className="num">{num(b.baseline)}</td>
                     <td className="num">{num(b.target)}</td>
                     <td className="num">{num(b.actual)}</td>
                     <td>{b.pctOfTarget == null ? <span className="dim">—</span> : (
                       <><div className="bar" style={{ inlineSize: 110 }}>
                         <i style={{ width: `${b.pctOfTarget}%` }} /></div>
-                        <span className="dim">{b.pctOfTarget}% of the way from baseline to target</span></>)}</td>
+                        <span className="dim">{lang === 'ar' ? `${b.pctOfTarget}% من المسافة بين خط الأساس والمستهدف` : `${b.pctOfTarget}% of the way from baseline to target`}</span></>)}</td>
                     <td>{when(b.reviewDate, lang)}</td>
-                    <td><span className={`pill b-${b.status}`}>{b.status.replace('_', ' ')}</span></td>
+                    <td><span className={`pill b-${b.status}`}>{lang === 'ar' ? (({ planned: 'مخطط', in_progress: 'قيد التنفيذ', realized: 'متحقق', missed: 'لم يتحقق' } as Record<string, string>)[b.status] ?? b.status) : b.status.replace('_', ' ')}</span></td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <details className="explain">
               <summary>{t('Why benefits are tracked separately from delivery')}</summary>
               <p>{t('A project can finish on time and on budget and still deliver nothing of value. Benefits have their own owner and their own review date — often a year or more after handover — so the question &ldquo;was this worth doing?&rdquo; still gets asked once the delivery team has moved on. Baseline is where you started, target is what you promised, actual is where you are.')}</p>
