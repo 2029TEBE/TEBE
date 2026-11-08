@@ -6,6 +6,7 @@ const uuid=x=>x.repeat(8)+'-'+x.repeat(4)+'-4'+x.repeat(3)+'-8'+x.repeat(3)+'-'+
 const now=1800000000000;
 const b=()=>({source:'locked-tenant-record',provider:'paddle',environment:'sandbox',
  planKey:'team_workspace_monthly',intentId:uuid('1'),tenantId:uuid('2'),
+ invoiceId:uuid('5'),attemptId:uuid('6'),
  subscriptionId:uuid('3'),planId:uuid('4'),expiresAt:now+600000,
  planAmountMinor:4900,planCurrency:'USD',planInterval:'month',planFrequency:1});
 const prepared=()=>prepareVerifiedTeamWorkspaceCheckout(b(),
