@@ -24,6 +24,8 @@ export function decideSandboxCheckoutRecovery(intent, providerEvidence, {
      intent.environment!=='sandbox' ||
      !UUID.test(intent.id||'') || !UUID.test(intent.tenantId||'') ||
      !UUID.test(intent.invoiceId||'') ||
+     !UUID.test(intent.attemptId||'') ||
+     intent.amountMinor!==4900 || intent.currency!=='USD' ||
      intent.paddlePriceId!==PRICE ||
      !['creating','reconciliation_required','bound'].includes(intent.status))
     return deny('untrusted_checkout_intent');
@@ -43,6 +45,9 @@ export function decideSandboxCheckoutRecovery(intent, providerEvidence, {
      providerEvidence.intentId!==intent.id ||
      providerEvidence.tenantId!==intent.tenantId ||
      providerEvidence.invoiceId!==intent.invoiceId ||
+     providerEvidence.attemptId!==intent.attemptId ||
+     providerEvidence.amountMinor!==intent.amountMinor ||
+     providerEvidence.currency!==intent.currency ||
      providerEvidence.priceId!==PRICE)
     return Object.freeze({ok:true,action:'manual_reconciliation_required',
       canRetryCreate:false,checkoutAllowed:false,entitlementGranted:false});
@@ -51,7 +56,9 @@ export function decideSandboxCheckoutRecovery(intent, providerEvidence, {
      TXN.test(providerEvidence.transactionId||'') &&
      providerEvidence.collectionMode==='automatic' &&
      ['draft','ready'].includes(providerEvidence.status) &&
-     providerEvidence.quantity===1)
+     providerEvidence.quantity===1 &&
+     providerEvidence.sourceVerifiedByProviderApi===true &&
+     providerEvidence.providerMatchedByCustomData===true)
     return Object.freeze({ok:true,action:'persist_reconciled_transaction',
       transactionId:providerEvidence.transactionId,canRetryCreate:false,
       checkoutAllowed:false,entitlementGranted:false});
