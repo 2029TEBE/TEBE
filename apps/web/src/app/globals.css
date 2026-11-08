@@ -1652,3 +1652,53 @@ html[dir="rtl"] .design-kicker{letter-spacing:0}
 @media print{
   .design-context,.design-focus-card{box-shadow:none;break-inside:avoid}
 }
+
+
+/* Design-first v3.2: source-linked executive journey and studio summary. */
+.design-journey{
+  margin-block:var(--sp-5) var(--sp-6);
+  border-radius:var(--r-xl);
+  border:1px solid var(--line-2);
+  padding:clamp(18px,3vw,30px);
+  background:linear-gradient(140deg,var(--surface-2),var(--surface));
+  box-shadow:var(--shadow-sm);
+}
+.design-journey-intro h2{
+  font-weight:730;font-size:clamp(1.2rem,2.5vw,1.65rem);
+  letter-spacing:-.02em;margin:0 0 var(--sp-2);
+}
+.design-journey-intro p{color:var(--ink-3);font-size:var(--fs-sm);line-height:1.6;max-width:76ch;margin:0}
+.design-journey-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-block:var(--sp-5);gap:var(--sp-3);
+}
+.design-journey-step{
+  min-width:0;padding:var(--sp-4);
+  display:flex;flex-direction:column;gap:7px;
+  border-radius:var(--r);background:var(--surface);
+  border:1px solid var(--line);
+}
+.design-step-index{display:grid;place-items:center;border-radius:9px;
+  color:var(--accent-ink);background:var(--accent-soft);
+  font-size:var(--fs-xs);font-weight:850;inline-size:34px;block-size:34px;
+}
+.design-journey-step small{
+  color:var(--ink-3);font-size:var(--fs-2xs);font-weight:800;letter-spacing:.08em;
+}
+.design-journey-step strong{
+  font-size:clamp(1.55rem,3vw,2.2rem);font-weight:770;
+  line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ink);
+}
+.design-journey-step>span:last-child{font-size:var(--fs-sm);color:var(--ink-2);line-height:1.5}
+.design-journey-footer{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);
+  flex-wrap:wrap;padding-block-start:var(--sp-3);border-block-start:1px solid var(--line);
+}
+.design-journey-footer>span{color:var(--ink-3);font-size:var(--fs-xs);line-height:1.6}
+.design-journey-footer .btn{white-space:normal;text-align:center}
+.design-summary-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+html[dir='rtl'] .design-journey-step small{letter-spacing:0}
+@media(max-width:900px){.design-summary-four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.design-journey-steps{grid-template-columns:1fr}}
+@media(max-width:420px){.design-summary-four{grid-template-columns:1fr}}
+@media print{.design-journey{box-shadow:none;break-inside:avoid}}
