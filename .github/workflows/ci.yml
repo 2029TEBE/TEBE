@@ -105,6 +105,13 @@ jobs:
           test "$CI" = true && test "$GITHUB_ACTIONS" = true
           test "$PHASE15_ACCEPT_DISPOSABLE_DB" = YES_RESEED_DISPOSABLE_TEST_DATABASE
           pnpm exec vitest run tests/paddle-ledger-writer.test.ts
+      - name: Test CI-only Paddle checkout intent writer in disposable PostgreSQL
+        env:
+          PADDLE_LEDGER_WRITE_MODE: ci_disposable_only
+        run: |
+          test "$CI" = true && test "$GITHUB_ACTIONS" = true
+          test "$PHASE15_ACCEPT_DISPOSABLE_DB" = YES_RESEED_DISPOSABLE_TEST_DATABASE
+          pnpm exec vitest run tests/paddle-checkout-intent-postgres.test.ts
       - name: Restore seeded PostgreSQL into an isolated CI database
         run: node scripts/verify-ci-database-restore.mjs
       - name: Record PostgreSQL restore evidence
