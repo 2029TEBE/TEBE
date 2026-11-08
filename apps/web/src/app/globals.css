@@ -1555,3 +1555,13 @@ html.rail-narrow .rail > div + div {
 .shell[dir='rtl'] .page h1,.shell[dir='rtl'] .page h2{letter-spacing:0}
 @media (max-width:940px){.rail{scrollbar-gutter:auto}.topbar{padding-inline:var(--sp-3)}}
 @media (prefers-reduced-motion:reduce){.tile{transition:none}}
+
+/* Design-first v3: accessible, data-preserving shared customer presentation polish. */
+:root{--executive-card-radius:16px;--executive-focus-width:3px}
+.page :is(a,button,input,select,textarea,summary):focus-visible{outline:var(--executive-focus-width) solid var(--accent);outline-offset:3px}
+.page :is(.tile,.simpanel){border-radius:var(--executive-card-radius)}
+.page :is(.tile,.simpanel) :is(strong,b){overflow-wrap:anywhere}
+.page .scrollx{overscroll-behavior-inline:contain}
+html[dir='rtl'] .page :is(.tile,.simpanel){text-align:start}
+@media(max-width:650px){.page{padding-inline:clamp(12px,4vw,24px)}.page .tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}}
+@media(prefers-reduced-motion:reduce){.page :is(.tile,.simpanel){scroll-behavior:auto}}
