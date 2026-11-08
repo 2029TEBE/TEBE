@@ -37,7 +37,7 @@ export default async function Resources({ searchParams }:
           <>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Capacity')}</h2>
             <div className="design-table-scroll" role="region" aria-label={t('Capacity')} tabIndex={0}><table>
-              <thead><tr><th>{t('Person')}</th><th>{t('Projects')}</th><th>{t('Allocated')}</th><th>{t('Load')}</th><th>{t('Hours, 7 days')}</th></tr></thead>
+              <thead><tr><th scope="col">{t('Person')}</th><th scope="col">{t('Projects')}</th><th scope="col">{t('Allocated')}</th><th scope="col">{t('Load')}</th><th scope="col">{t('Hours, 7 days')}</th></tr></thead>
               <tbody>
                 {d.people.map((p: any) => {
                   const over = p.allocatedPct > 100;
@@ -63,7 +63,7 @@ export default async function Resources({ searchParams }:
 
             <h2 className="sec">{t('Allocations by project')}</h2>
             <div className="design-table-scroll" role="region" aria-label={t('Allocations by project')} tabIndex={0}><table>
-              <thead><tr><th>{t('Project')}</th><th>{t('Person')}</th><th>{t('Role')}</th><th>{t('Allocation')}</th></tr></thead>
+              <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Person')}</th><th scope="col">{t('Role')}</th><th scope="col">{t('Allocation')}</th></tr></thead>
               <tbody>
                 {d.byProject.map((a: any, i: number) => (
                   <tr key={i}>
