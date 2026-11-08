@@ -205,3 +205,10 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - GitHub read-back checks verified **2/2 native tables and scroll regions**, `tabIndex={0}` and accessible labels, unchanged portfolio API source loaders and project-creation capability check, and unchanged workbook template/import component.
 - Latest TEBE GitHub workflow for code head `f245be40ecf8c7078664d76bb9f3c18d3d2115ce` was in progress when checked ([run 42469359443](https://github.com/2029TEBE/TEBE/actions/runs/42469359443)). Earlier run [42469109552](https://github.com/2029TEBE/TEBE/actions/runs/42469109552) failed existing integration and dependency-audit checks. Do not mark current revision passed without GitHub confirmation.
 - Actual authenticated browser testing, RTL scroll keyboard use, screenshot contrast and WCAG checks still required. No merge, deployment, backend, RLS, CI settings, database, Cloudflare or billing changes.
+
+## Follow-through v4.2 — route-safe, accessible breadcrumbs (2026-11-08)
+- `apps/web/src/components/Crumbs.tsx` now resolves navigation links at complete path-segment boundaries, avoiding false matches when routes share text prefixes (e.g. `/projects-extra` must never be treated as `/projects`). Root and true nested routes remain correctly handled.
+- Breadcrumb markup is now a named landmark (`nav`, EN/AR accessible label); separators are decorative (`aria-hidden`) and the current item is explicitly marked with `aria-current="page"`.
+- Two authenticated standalone pages not in `NAV` now get their correct EN/AR names: `/decision-cockpit`, `/operations-preview`. Unknown pages use an honest generic current-page label rather than incorrectly asserting Executive Overview.
+- GitHub read-back static checks: **7/7 structural** assertions passed and **10/10 pure route-matching cases** passed; no compiled, authenticated browser, keyboard or screen-reader runtime certification is claimed.
+- Existing capability-filtered navigation, route content, API calls, tenant isolation, production and backend remain unchanged. CI and release blockers are tracked separately; do not merge/deploy from this draft PR.
