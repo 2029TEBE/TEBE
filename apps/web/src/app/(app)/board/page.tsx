@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { Flash } from '@/components/NewRecord';
 import { getLang } from '@/lib/i18n';
+import { when } from '@/lib/fmt';
 
 const COLS = [
   ['todo', 'To do', 'للعمل'], ['in_progress', 'In progress', 'قيد التنفيذ'],
@@ -64,16 +65,16 @@ export default async function BoardPage({ searchParams }:
               const next = COLS[i + 1];
               return (
                 <section key={state} className="col" aria-label={lang === 'ar' ? labelAr : label}>
-                  <header>{lang === 'ar' ? labelAr : label} <span className="count">{col.length}</span></header>
+                  <header>{lang === 'ar' ? labelAr : label} <span className="count" aria-label={lang === 'ar' ? `عدد المهام: ${col.length}` : `${col.length} tasks`}>{col.length}</span></header>
                   {col.length === 0
                     ? <p className="dim" style={{ padding: '8px 2px' }}>—</p>
                     : col.map((t) => (
                         <article key={t.id} className={`tcard${state === 'blocked' ? ' blocked' : ''}`}>
-                          <div className="num dim">{t.projectCode}</div>
-                          <strong>{t.title}</strong>
+                          <div className="num dim"><bdi>{t.projectCode}</bdi></div>
+                          <strong><bdi>{t.title}</bdi></strong>
                           <div className="dim">
-                            {t.assignee ?? (lang === 'ar' ? 'غير معين' : 'unassigned')}
-                            {t.dueDate ? ` · ${lang === 'ar' ? 'الاستحقاق' : 'due'} ${t.dueDate}` : ''}
+                            <bdi>{t.assignee ?? (lang === 'ar' ? 'غير معين' : 'unassigned')}</bdi>
+                            {t.dueDate && <> {' · '}{lang === 'ar' ? 'الاستحقاق' : 'due'} <time dateTime={t.dueDate}>{when(t.dueDate, lang)}</time></>}
                           </div>
                           <div className="moverow">
                             {prev ? <Move id={t.id} to={prev[0]} label={lang === 'ar' ? prev[2] : prev[1]}
