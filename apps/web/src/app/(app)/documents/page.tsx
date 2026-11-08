@@ -8,6 +8,12 @@ import { DocumentUpload } from '@/components/DocumentUpload';
 const size = (kb: number | null) =>
   kb == null ? '—' : kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
 
+/** Labels only; preserve the original status values for classes and API data. */
+const statusLabel = (status: string, lang: string) =>
+  lang === 'ar'
+    ? ({ draft: 'مسودة', in_review: 'قيد المراجعة', approved: 'معتمد', superseded: 'مستبدل' } as Record<string, string>)[status] ?? status.replace(/_/g, ' ')
+    : status.replace(/_/g, ' ');
+
 export default async function Documents({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -17,7 +23,10 @@ export default async function Documents({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Documents" sub="Deliverables and gate evidence. A document linked to a gate criterion is what turns a tick into proof.">
+    <Page title={lang === 'ar' ? 'المستندات' : 'Documents'}
+          sub={lang === 'ar'
+            ? 'المخرجات وأدلة الاعتماد. يربط المستند المسجل بمعيار البوابة لتوثيق استيفائه.'
+            : 'Deliverables and gate evidence. A document linked to a gate criterion is what turns a tick into proof.'}>
       <Flash error={error} done={done} lang={lang} />
       <DocumentUpload lang={lang} projects={o.projects ?? []} />
       <NewRecord lang={lang} kind="document" title="Register a document" cta="Register" returnTo="/documents"
@@ -35,7 +44,7 @@ export default async function Documents({ searchParams }:
                 { name: 'ownerId', label: 'Owner', type: 'select',
                   options: o.people.map((p: any) => ({ value: p.id, label: p.name })) },
               ]} />
-      <Loaded load={api.documents} empty="No documents yet.">
+      <Loaded load={api.documents} empty={lang === 'ar' ? 'لا توجد مستندات بعد.' : 'No documents yet.'}>
         {(list) => (
           <>
             <section className="design-context" aria-label={t('Document overview')}>
@@ -48,8 +57,8 @@ export default async function Documents({ searchParams }:
                 <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
               </div>
             </section>
-            <div className="design-table-scroll" role="region" aria-label={t('Document overview')} tabIndex={0}><table>
-              <thead><tr><th>{t('Document')}</th><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Ver')}</th><th>{t('Evidence for')}</th><th>{t('Size')}</th><th>{t('Updated')}</th><th>{t('Status')}</th></tr></thead>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المستندات' : 'Document register'} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Document')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Type')}</th><th scope="col">{t('Ver')}</th><th scope="col">{t('Evidence for')}</th><th scope="col">{t('Size')}</th><th scope="col">{t('Updated')}</th><th scope="col">{t('Status')}</th></tr></thead>
               <tbody>{list.map((d: any) => (
                 <tr key={d.id}>
                   {/* A document held in their Microsoft tenant opens through
@@ -76,12 +85,14 @@ export default async function Documents({ searchParams }:
                   <td>{when(d.updatedAt, lang)}</td>
                   <td><span className={`pill ${d.status === 'approved' ? 'on_track'
                     : d.status === 'in_review' ? 'at_risk' : 's-closed'}`}>
-                    {d.status.replace('_', ' ')}</span></td>
+                    {statusLabel(d.status, lang)}</span></td>
                 </tr>))}</tbody>
             </table></div>
             <details className="explain">
               <summary>{t('How documents connect to governance')}</summary>
-              <p>{t('Two of the documents above are attached to a specific gate criterion. That link is the difference between a checklist someone ticked and a checklist someone can prove — when an auditor asks &ldquo;what evidence did you have when you approved this?&rdquo;, the answer is a file with a version number, an owner and a date.')}</p>
+              <p>{lang === 'ar'
+                ? 'يساعد ربط المستند بمعيار محدد في بوابة المشروع على إثبات استيفاء المتطلبات عند المراجعة أو التدقيق. ويوضح سجل المستندات اسم الدليل وإصداره ومالكه وتاريخ تحديثه متى توفرت هذه البيانات، دون افتراض عدد ثابت للمستندات المرتبطة.'
+                : 'Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.'}</p>
             </details>
           </>
         )}
