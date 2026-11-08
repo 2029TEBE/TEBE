@@ -125,3 +125,9 @@ Gallery static inspection (on the committed file, source checks only): seven tab
 - Offline galleries: `TEFE/docs/design/showcase.html` and `TEBE/docs/design/customer-showcase.html` on their respective review branches.
 - For real UI verification, download the galleries and inspect at 1440, 768 and 390 px, theme modes and RTL; independently run authenticated app build and security checks. Do not merge while TEBE CI is failing.
 - Reversion: close draft PR or revert the relevant review-only commits. Production is unchanged.
+
+### Baseline CI comparison (pre-existing blockers)
+The unmodified `main` baseline SHA `6471523278521b22ac63a41785ddd084e5d86a4f` also failed GitHub Actions [run 42010586057](https://github.com/2029TEBE/TEBE/actions/runs/42010586057) on 2026-11-05:
+- The baseline's audit output also shows **67 vulnerabilities**, with the same 2 critical / 25 high / 31 moderate / 9 low severity distribution.
+- The baseline's verify job also failed exactly **8 tests** in the same two files (`tests/microsoft.test.ts` and `tests/p0-financial-ai-privacy.test.ts`) and had a failed acceptance-evidence step.
+Thus these *observed CI blockers pre-date this design PR*, although the safety implications remain and must be resolved separately before any merge or release. This comparison does not prove all modified UI runtime behavior correct.
