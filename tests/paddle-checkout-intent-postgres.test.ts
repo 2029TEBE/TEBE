@@ -183,7 +183,24 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   const replay=await recordVerifiedPaddleSandboxSettlement(signed(event));
   expect(replay.duplicate).toBe(true);
   expect(replay.entitlementGranted).toBe(false);
+  // Replay with same provider event ID but an altered (validly signed) body
+  // cannot be accepted as the original immutable receipt.
+  const changedBody={...event,data:{...event.data,extra_test_marker:'different_bytes'}};
+  await expect(recordVerifiedPaddleSandboxSettlement(signed(changedBody)))
+    .rejects.toThrow(/replayed_or_incomplete_receipt/);
+
+  // A DIFFERENT valid event ID for the SAME Paddle transaction cannot settle
+  // the same invoice twice even when its signature, amount and tenant match.
+  const alternateEvent={...event,event_id:'evt_'+randomUUID().replace(/-/g,'').slice(0,26)};
+  await expect(recordVerifiedPaddleSandboxSettlement(signed(alternateEvent)))
+    .rejects.toThrow(/invoice_or_transaction_already_settled/);
+
+  // Both attack classes must leave exactly the original receipt and settlement,
+  // without marking the invoice paid or granting a subscription.
+  expect(psql(`SELECT COUNT(*) FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid`)).toBe('1');
   expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('1');
+  expect(psql(`SELECT status FROM billing_invoices WHERE id='${invoice}'::uuid`)).toBe('open');
+  expect(psql(`SELECT status FROM tenant_subscriptions WHERE id='${subscription}'::uuid`)).toBe('trialing');
  });
 
 });
