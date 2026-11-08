@@ -12,8 +12,8 @@ export default async function Reports() {
       <Loaded load={api.reports} empty={lang === 'ar' ? 'لا توجد تعريفات تقارير بعد.' : 'No report definitions yet.'}>
         {(list) => (
           <>
-            <section className="design-context" aria-label={t('Reporting overview')}>
-              <div className="design-context-head"><span className="design-kicker">{t('Reporting overview')}</span>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص التقارير' : 'Reporting overview'}>
+              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'التقارير التنفيذية' : 'REPORTING OVERVIEW'}</span>
                 <h2>{t('Report catalogue')}</h2>
                 <p>{t('Definitions and most recent generation records from the workspace API. Scheduling and exports keep their existing behavior.')}</p></div>
               <div className="design-summary">
@@ -27,9 +27,9 @@ export default async function Reports() {
               <tbody>
                 {list.map((r: any) => (
                   <tr key={r.id}>
-                    <td><strong>{r.name}</strong><div className="dim">{r.kind.replace(/_/g, ' ')}</div></td>
-                    <td>{r.audience}</td>
-                    <td className="dim">{r.schedule ?? (lang === 'ar' ? 'عند الطلب' : 'On demand')}</td>
+                    <td><strong><bdi>{r.name}</bdi></strong><div className="dim">{r.kind.replace(/_/g, ' ')}</div></td>
+                    <td><bdi>{r.audience}</bdi></td>
+                    <td className="dim"><bdi>{r.schedule ?? (lang === 'ar' ? 'عند الطلب' : 'On demand')}</bdi></td>
                     <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{lang === 'ar' ? 'لم يصدر بعد' : 'Never generated'}</span>}</td>
                     <td><a className="btn" href="/reports/board-pack"
                       aria-label={lang === 'ar' ? 'فتح حزمة مجلس الإدارة المشتركة' : 'Open shared board pack'}>
