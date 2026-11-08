@@ -16,7 +16,7 @@ const catalog=()=>({source:'server-approved-catalogue',environment:'sandbox',
 const env={deploymentEnv:'staging',paddleEnv:'sandbox',paddleEnabled:'false',billingProvider:'paddle'};
 const transaction=prepared=>({id:TXN,collection_mode:'automatic',status:'draft',
  currency_code:'USD',items:[{price:{id:PRICE},quantity:1}],
- custom_data:prepared.request.custom_data});
+ custom_data:{...prepared.request.custom_data}});
 const list=transactions=>({environment:'sandbox',source:'server-provider-list-read',
  allPagesExhausted:true,filtersVerified:true,transactions});
 const commit=()=>({source:'committed-tenant-sql',environment:'sandbox',
