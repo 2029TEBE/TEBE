@@ -6,6 +6,7 @@ import { randomUUID, createHmac } from 'node:crypto';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { psql } from './helpers';
 import { assessPaddleSubscriptionReconciliation } from '../apps/api/src/platform/paddle-subscription-reconciliation';
+import { readPaddleSandboxSubscriptionEvidence } from '../apps/api/src/platform/paddle-sandbox-subscription-reader';
 import { assertDisposableAcceptanceConfig } from '../scripts/phase15c-acceptance-safety.mjs';
 import {
   recordVerifiedPaddleSandboxSettlement, ensureDisposableWriter, verifyRawPaddleSignature,
@@ -212,6 +213,75 @@ describe('Paddle provider subscription reconciliation never authorizes payment',
       expect(result.entitlementGranted).toBe(false);
       expect(result.invoiceMarkedPaid).toBe(false);
     }
+  });
+});
+
+describe('Paddle backend authenticated Sandbox read-only subscription verification',()=>{
+  const transactionId='txn_'+'a'.repeat(26);
+  const subscriptionId='sub_'+'b'.repeat(26);
+  const priceId='pri_01m6x7w5zy16nktzjwg2ezas2d';
+  const env=()=>({
+    PADDLE_ENV:'sandbox',PADDLE_ENABLED:'false',BILLING_PROVIDER:'paddle',
+    PADDLE_SUBSCRIPTION_READONLY:'true',DEPLOYMENT_ENV:'staging',
+    PADDLE_SANDBOX_API_KEY:'pdl_sdbx_apikey_'+'z'.repeat(28)
+  });
+  const txn=()=>({id:transactionId,status:'completed',subscription_id:subscriptionId,
+    currency_code:'USD',details:{line_items:[{price_id:priceId,quantity:1}],
+    totals:{grand_total:'4900'}}});
+  const sub=()=>({id:subscriptionId,status:'active',
+    items:[{price:{id:priceId},quantity:1}]});
+  const mock=(t=txn(),s=sub(),calls:string[]=[])=>async(url:string,options:any)=>{
+    calls.push(url);
+    expect(options.method).toBe('GET');
+    expect(options.redirect).toBe('error');
+    return {status:200,ok:true,headers:{get:()=> 'application/json'},
+      json:async()=>({data:url.includes('/transactions/')?t:s})};
+  };
+  it('GETs exact IDs at the Sandbox origin and never authorizes entitlements',async()=>{
+    const calls:string[]=[];
+    const result=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId,env:env(),fetchImpl:mock(txn(),sub(),calls) as any});
+    expect(result.verified).toBe(true);
+    expect(result.provider?.subscriptionId).toBe(subscriptionId);
+    expect(result.invoiceMarkedPaid).toBe(false);
+    expect(result.entitlementGranted).toBe(false);
+    expect(calls).toEqual([
+      'https://sandbox-api.paddle.com/transactions/'+transactionId,
+      'https://sandbox-api.paddle.com/subscriptions/'+subscriptionId]);
+  });
+  it('refuses production or missing credential before touching the network',async()=>{
+    for(const patch of [{PADDLE_ENV:'production'},{PADDLE_ENABLED:'true'},
+      {PADDLE_SUBSCRIPTION_READONLY:undefined},{PADDLE_SANDBOX_API_KEY:undefined}]){
+      let called=false;
+      const result=await readPaddleSandboxSubscriptionEvidence({
+        transactionId,subscriptionId,env:{...env(),...patch},
+        fetchImpl:(async()=>{called=true;throw Error('network should not be called');}) as any});
+      expect(result.verified).toBe(false);
+      expect(called).toBe(false);
+    }
+  });
+  it('refuses mismatched provider subscription, price, total, status and quantity',async()=>{
+    const cases=[
+      [ {...txn(),subscription_id:'sub_'+'c'.repeat(26)},sub()],
+      [ {...txn(),currency_code:'SAR'},sub()],
+      [ {...txn(),details:{line_items:[{price_id:priceId,quantity:1}],totals:{grand_total:'4901'}}},sub()],
+      [ txn(),{...sub(),status:'paused'}],
+      [ txn(),{...sub(),items:[{price:{id:priceId},quantity:2}]}],
+      [ txn(),{...sub(),items:[{price:{id:'pri_'+'c'.repeat(26)},quantity:1}]}],
+    ] as const;
+    for(const [t,s] of cases){
+      const r=await readPaddleSandboxSubscriptionEvidence({
+        transactionId,subscriptionId,env:env(),fetchImpl:mock(t,s) as any});
+      expect(r.verified).toBe(false);
+      expect(r.entitlementGranted).toBe(false);
+    }
+  });
+  it('never includes a sensitive API key or provider error in result',async()=>{
+    const result=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId,env:env(),
+      fetchImpl:(async()=>{throw Error('secret_'+env().PADDLE_SANDBOX_API_KEY);}) as any});
+    expect(result.verified).toBe(false);
+    expect(JSON.stringify(result)).not.toContain(env().PADDLE_SANDBOX_API_KEY);
   });
 });
 
