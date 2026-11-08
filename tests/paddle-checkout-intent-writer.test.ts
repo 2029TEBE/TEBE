@@ -11,7 +11,7 @@ const uuid=(c:string)=>c.repeat(8)+'-'+c.repeat(4)+'-4'+c.repeat(3)+'-8'+c.repea
 const binding=()=>({
   source:'locked-tenant-record' as const,
   provider:'paddle' as const,environment:'sandbox' as const,
-  tenantId:uuid('1'),intentId:uuid('2'),invoiceId:uuid('3'),
+  tenantId:uuid('1'),intentId:uuid('2'),attemptId:uuid('6'),invoiceId:uuid('3'),
   subscriptionId:uuid('4'),planId:uuid('5'),
   expiresAt:Date.now()+5*60*1000,
   transactionId:'txn_'+'a'.repeat(26),
