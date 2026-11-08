@@ -232,7 +232,7 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
     PADDLE_SANDBOX_API_KEY:'pdl_sdbx_apikey_'+'z'.repeat(28)
   });
   const txn=()=>({id:transactionId,status:'completed',subscription_id:subscriptionId,
-    customer_id:customerId,
+    customer_id:customerId,collection_mode:'automatic',
     currency_code:'USD',details:{line_items:[{price_id:priceId,quantity:1}],
     totals:{grand_total:'4900'}}});
   const sub=()=>({id:subscriptionId,status:'active',customer_id:customerId,
@@ -301,6 +301,8 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
     const cases=[
       [ {...txn(),subscription_id:'sub_'+'c'.repeat(26)},sub()],
       [ {...txn(),currency_code:'SAR'},sub()],
+      [ {...txn(),collection_mode:'manual'},sub()],
+      [ {...txn(),collection_mode:undefined},sub()],
       [ {...txn(),customer_id:'ctm_'+'d'.repeat(26)},sub()],
       [ {...txn(),customer_id:''},sub()],
       [ txn(),{...sub(),customer_id:'ctm_'+'e'.repeat(26)}],
