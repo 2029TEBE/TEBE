@@ -316,6 +316,37 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
       expect(r.entitlementGranted).toBe(false);
     }
   });
+  it('refuses malformed identifiers without issuing any Paddle request',async()=>{
+    let contacted=false;
+    const blocked=await readPaddleSandboxSubscriptionEvidence({
+      transactionId:'../transactions/private',subscriptionId,env:env(),
+      fetchImpl:(async()=>{contacted=true;throw Error('unexpected request');}) as any});
+    expect(blocked.verified).toBe(false);
+    expect(contacted).toBe(false);
+    const blockedSub=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId:'sub_invalid',env:env(),
+      fetchImpl:(async()=>{contacted=true;throw Error('unexpected request');}) as any});
+    expect(blockedSub.verified).toBe(false);
+    expect(contacted).toBe(false);
+  });
+  it('fails closed on API errors, redirects, invalid content type and missing provider data',async()=>{
+    const scenarios=[
+      {status:401,ok:false,headers:{get:()=> 'application/json'},json:async()=>({data:txn()})},
+      {status:302,ok:false,headers:{get:()=> 'text/html'},json:async()=>({data:txn()})},
+      {status:200,ok:true,headers:{get:()=> 'text/plain'},json:async()=>({data:txn()})},
+      {status:200,ok:true,headers:{get:()=> 'application/json'},json:async()=>({})},
+      {status:200,ok:true,headers:{get:()=> 'application/json'},json:async()=>({data:[]})},
+    ];
+    for(const response of scenarios){
+      const result=await readPaddleSandboxSubscriptionEvidence({
+        transactionId,subscriptionId,env:env(),
+        fetchImpl:(async()=>response) as any});
+      expect(result.verified).toBe(false);
+      expect(result.invoiceMarkedPaid).toBe(false);
+      expect(result.entitlementGranted).toBe(false);
+      expect(JSON.stringify(result)).not.toContain(env().PADDLE_SANDBOX_API_KEY);
+    }
+  });
   it('never includes a sensitive API key or provider error in result',async()=>{
     const result=await readPaddleSandboxSubscriptionEvidence({
       transactionId,subscriptionId,env:env(),
