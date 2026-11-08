@@ -34,7 +34,7 @@ export default async function Approvals() {
                 </div>
               </section>
               <h2 className="sec">{t('Queue')}</h2>
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Queue')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Approver')}</th><th>{t('Role')}</th><th>{t('Ready?')}</th><th>{t('Decision')}</th></tr></thead>
                 <tbody>{list.map((a: any) => {
                   const blocked = a.criteriaOutstanding > 0 || a.blockers > 0;
@@ -60,7 +60,7 @@ export default async function Approvals() {
                             <div className="dim">{when(a.decidedAt, lang)}</div></>}</td>
                     </tr>);
                 })}</tbody>
-              </table>
+              </table></div>
               <details className="explain">
                 <summary>{t('Why an approval can be “pending” but not signable')}</summary>
                 <p>{t('A signature is only meaningful once the evidence exists. The platform will not let an approver sign a gate whose checklist is incomplete or which has an open blocker pointed at it — so “pending” and “ready” are different states, and this queue tells the approver which of the two they are looking at.')}</p>
