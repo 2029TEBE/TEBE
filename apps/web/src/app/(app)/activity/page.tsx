@@ -29,7 +29,7 @@ export default async function Activity() {
                 </div>
                 <div className="design-metric">
                   <small>{lang === 'ar' ? 'بنود لها تاريخ استحقاق' : 'Items with due dates'}</small>
-                  <strong>{d.needs.filter((item) => Boolean(item.due)).length}</strong>
+                  <strong>{d.needs.filter((item: { due?: string | null }) => Boolean(item.due)).length}</strong>
                 </div>
               </div>
             </section>
