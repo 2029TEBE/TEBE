@@ -12,3 +12,13 @@ Updated 2026-11-08
 | Screenshots, typecheck, accessibility, tenant security | No local runtime/test evidence in this task | Execute targeted checks in QA task; report skipped if environment unavailable |
 | TEFE /sa routing | Design-only localization concept | Preserve existing language switch and defer routing |
 | Existing theme defaults | TEBE currently dark-first and stores preference under pmo-theme-v2 | Preserve preference; consider alternate default only with UX evidence |
+
+
+## CI blockers newly verified on TEBE PR #442 (2026-11-08)
+| Item | Evidence | Safe disposition |
+|---|---|---|
+| Dependency audit failed | GitHub Actions run 42455007874, audit job: 67 vulnerabilities — 2 critical, 25 high, 31 moderate, 9 low | Preserve lockfile during design-only phase; commission separate dependency/security investigation and patch review before merge |
+| Eight integration/security test failures | GitHub Actions run 42455007874: 7 Microsoft integration test failures and 1 financial import authorization-status mismatch (400 vs 403) | No bypass or weakening assertions; distinguish missing CI environment configuration from actual API logic defect, then rerun security regression |
+| CI acceptance evidence gate failed | CI run 42455007874, verify job | Resolve root tests and rerun full gate; no release sign-off |
+| Final browser/visual checks | Offline static showcase source can be inspected, but hosted browser and screenshot evidence for latest commit not verified | Download in local browser; record 1440/768/390, dark/light, Arabic RTL, keyboard focus, overflow and accessibility results |
+| Full Arabic localization of design gallery | Gallery provides RTL geometry switch only, English labels remain | Localize the gallery only if necessary; existing app Arabic behavior must still be regression-tested |
