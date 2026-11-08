@@ -169,3 +169,9 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - `apps/web/src/app/globals.css`: added focus-outline, inline overscroll containment and print overflow fallback for the existing reusable `scrollx` region.
 - Source read-back assertions: **10/10 passed** covering native table preservation, existing sorting/filter callbacks, localized labels, accessibility hooks, both financial tables, existing calculation paths and focus/print CSS. These are static checks only; authenticated mobile and screen-reader testing remains unverified.
 - The unchanged TEBE `main` branch had the same eight failing tests and 67 dependency-audit findings previously recorded. Do not interpret static design checks as a waiver of current GitHub Actions failures. No merge/deploy; only draft PR #442.
+
+## Design follow-up v3.7 — shared sortable table semantics (8 November 2026)
+- `apps/web/src/components/DataTable.tsx`: add `scope="col"` to generated header cells, `type="button"` to the table sort and clear-filter controls, and `aria-hidden="true"` to the visual sort-arrow glyph. Existing `aria-sort`, sort callback, filter state, native table, keyboard-scroll region, source data and localization remain unchanged.
+- Verified through branch source read-back: **9/9 static checks pass** for semantic headers, decorative glyph isolation, non-submitting button types, sorting/filter preservation, ARIA sort, focusable region and table retention.
+- These checks do **not** replace real keyboard/screen-reader, WCAG, English/Arabic RTL, authenticated E2E, screenshot or browser testing.
+- No backend, permissions, tenant isolation, dependency, API, billing, infrastructure, CI config, main branch or production changes. Pre-existing full-suite and dependency audit failures remain release blockers.
