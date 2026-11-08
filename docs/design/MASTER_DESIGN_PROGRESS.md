@@ -175,3 +175,9 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - Verified through branch source read-back: **9/9 static checks pass** for semantic headers, decorative glyph isolation, non-submitting button types, sorting/filter preservation, ARIA sort, focusable region and table retention.
 - These checks do **not** replace real keyboard/screen-reader, WCAG, English/Arabic RTL, authenticated E2E, screenshot or browser testing.
 - No backend, permissions, tenant isolation, dependency, API, billing, infrastructure, CI config, main branch or production changes. Pre-existing full-suite and dependency audit failures remain release blockers.
+
+## Design follow-up v3.8 — translated table sorting action names (2026-11-08)
+- Enhanced `apps/web/src/components/DataTable.tsx` sortable header buttons with `aria-label` text that explicitly announces **Sort by [column]** in English and **ترتيب حسب [العمود]** in Arabic. Existing `aria-sort` on the native table heading remains authoritative for direction and state.
+- Read-back source checks passed **4/4** for translated action labels, existing sort ARIA and callback, filter/search preservation and native table retention (combined cross-repo source assertions **11/11**).
+- Latest GitHub Actions run for the code revision `53a640ad322db3caa5dfaad6997aff35b3726198`: [42467450759](https://github.com/2029TEBE/TEBE/actions/runs/42467450759) (in progress when inspected). Earlier runs still failed the integration/security test and package audit jobs; these were previously observed on unchanged main. Do not waive or merge with failing CI.
+- No backend, RLS, data mutation, access control, dependencies, production release or workflows changed. Actual browser accessibility, RTL geometry, authenticated testing and WCAG checks remain **unverified**.
