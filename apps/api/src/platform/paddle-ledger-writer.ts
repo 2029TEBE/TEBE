@@ -153,23 +153,21 @@ export async function recordVerifiedPaddleSandboxSettlement(input: Input): Promi
         !['active','trialing','past_due'].includes(intent.subscriptionStatus) ||
         intent.cancelAtPeriodEnd)
       fail('untrusted_invoice_intent_or_provider_totals');
-    // New checkout transactions are bound to an immutable pre-POST journal.
-    // For them, the signed callback must carry the same four identifiers that
-    // were sent to Paddle, and SQL must independently confirm the reservation.
-    // Older historical checkout rows have no attempt_id; do not rewrite them.
-    if (intent.attemptId !== null && intent.attemptId !== undefined) {
-      if (intent.attemptInvoiceId !== intent.invoiceId ||
-          intent.attemptSubscriptionId !== intent.subscriptionId ||
-          intent.attemptPlanId !== intent.planId ||
-          intent.attemptPriceId !== intent.priceId ||
-          intent.attemptEnvironment !== intent.environment ||
-          intent.attemptAmountMinor !== intent.amountMinor ||
-          intent.attemptCurrency !== intent.currency ||
-          event.data.custom_data.epmo_attempt_id !== intent.attemptId ||
-          event.data.custom_data.epmo_invoice_id !== intent.invoiceId ||
-          event.data.custom_data.epmo_tenant_id !== tenant)
-        fail('untrusted_precreate_attempt_or_webhook_binding');
-    }
+    // ALL sandbox settlements require the committed pre-POST attempt, even
+    // if the legacy checkout-intent row has a NULL attempt_id. A valid HMAC
+    // alone must never bypass a missing reservation or tenant binding.
+    if (!uuid.test(intent.attemptId ?? '') ||
+        intent.attemptInvoiceId !== intent.invoiceId ||
+        intent.attemptSubscriptionId !== intent.subscriptionId ||
+        intent.attemptPlanId !== intent.planId ||
+        intent.attemptPriceId !== intent.priceId ||
+        intent.attemptEnvironment !== intent.environment ||
+        intent.attemptAmountMinor !== intent.amountMinor ||
+        intent.attemptCurrency !== intent.currency ||
+        event.data.custom_data.epmo_attempt_id !== intent.attemptId ||
+        event.data.custom_data.epmo_invoice_id !== intent.invoiceId ||
+        event.data.custom_data.epmo_tenant_id !== tenant)
+      fail('untrusted_precreate_attempt_or_webhook_binding');
     if (event.data.custom_data.tenantId &&
         event.data.custom_data.tenantId !== tenant) fail('provider_tenant_mismatch');
 
