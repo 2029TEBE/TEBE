@@ -48,7 +48,7 @@ export default async function Documents({ searchParams }:
                 <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
               </div>
             </section>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={t('Document overview')} tabIndex={0}><table>
               <thead><tr><th>{t('Document')}</th><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Ver')}</th><th>{t('Evidence for')}</th><th>{t('Size')}</th><th>{t('Updated')}</th><th>{t('Status')}</th></tr></thead>
               <tbody>{list.map((d: any) => (
                 <tr key={d.id}>
@@ -78,7 +78,7 @@ export default async function Documents({ searchParams }:
                     : d.status === 'in_review' ? 'at_risk' : 's-closed'}`}>
                     {d.status.replace('_', ' ')}</span></td>
                 </tr>))}</tbody>
-            </table>
+            </table></div>
             <details className="explain">
               <summary>{t('How documents connect to governance')}</summary>
               <p>{t('Two of the documents above are attached to a specific gate criterion. That link is the difference between a checklist someone ticked and a checklist someone can prove — when an auditor asks &ldquo;what evidence did you have when you approved this?&rdquo;, the answer is a file with a version number, an owner and a date.')}</p>
