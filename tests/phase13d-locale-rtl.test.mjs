@@ -42,11 +42,11 @@ test('navigation passes selected locale and translates command groups', () => {
   assert.match(s, /<MobileNav ar=\{ar\}>/);
   // The nav label is translated through the frontend-only catalog, preserving
   // Arabic names and stable links instead of branching on language at each use.
-  assert.match(s, /group: uiLabel\\(g\\.label, locale, g\\.ar\\)/);
-  assert.match(s, /label: uiLabel\\(i\\.label, locale, i\\.ar\\)/);
+  assert.ok(s.includes('group: uiLabel(g.label, locale, g.ar)'));
+  assert.ok(s.includes('label: uiLabel(i.label, locale, i.ar)'));
   const catalog = read('apps/web/src/lib/ui-labels.mjs');
-  assert.match(catalog, /if \\(locale === 'ar-SA'\\) return legacyArabic \\|\\| english/);
-  assert.match(catalog, /return row\\?\\.\\[locale\\] \\?\\? english/);
+  assert.ok(catalog.includes("if (locale === 'ar-SA') return legacyArabic || english"));
+  assert.ok(catalog.includes('return row?.[locale] ?? english'));
   assert.match(s, /const commands = groups\.flatMap/);
 });
 test('tables use locale helpers and bidi isolation for raw values', () => {
