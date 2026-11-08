@@ -34,8 +34,22 @@ export default async function Stakeholders({ searchParams }:
       <Loaded load={api.stakeholders} empty={lang === 'ar' ? 'لم يتم تسجيل أصحاب مصلحة بعد.' : 'No stakeholders recorded yet.'}>
         {(list) => (
           <>
-            <div className="design-table-scroll" role="region" aria-label={t('Stakeholders')} tabIndex={0}><table>
-              <thead><tr><th>{t('Stakeholder')}</th><th>{t('Organisation')}</th><th>{t('Role')}</th><th>{t('Project')}</th><th>{t('Influence')}</th><th>{t('Interest')}</th><th>{t('Handling')}</th></tr></thead>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص أصحاب المصلحة' : 'Stakeholder overview'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'إدارة أصحاب المصلحة' : 'STAKEHOLDER ENGAGEMENT'}</span>
+                <h2>{lang === 'ar' ? 'ملخص أصحاب المصلحة المسجلين' : 'Registered stakeholder snapshot'}</h2>
+                <p>{lang === 'ar'
+                  ? 'تستند المؤشرات إلى أصحاب المصلحة المعادين من واجهة البيانات المصرح بها فقط، ولا تعني أنها تشمل جميع الأطراف في المؤسسة.'
+                  : 'This snapshot covers only stakeholders returned by the authorized API; it may not represent every party across the organization.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'المسجلون' : 'Returned stakeholders'}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تأثير واهتمام مرتفعان' : 'High influence and interest'}</small><strong>{list.filter((s: { influence?: number | null; interest?: number | null }) => Number(s.influence) >= 4 && Number(s.interest) >= 4).length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'جهات خارجية' : 'External stakeholders'}</small><strong>{list.filter((s: { isExternal?: boolean }) => s.isExternal === true).length}</strong></div>
+              </div>
+            </section>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل أصحاب المصلحة' : 'Stakeholder register'} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Stakeholder')}</th><th scope="col">{t('Organisation')}</th><th scope="col">{t('Role')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Influence')}</th><th scope="col">{t('Interest')}</th><th scope="col">{t('Handling')}</th></tr></thead>
               <tbody>{list.map((s: any) => {
                 const b = s.influence && s.interest ? band(s.influence, s.interest) : null;
                 return (
