@@ -90,7 +90,9 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
                     <th key={c.key} scope="col" style={{ textAlign: c.align ?? 'start' }}
                         aria-sort={can ? (on ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}>
                       {can ? (
-                        <button type="button" className={`sortbtn${on ? ' on' : ''}`} onClick={() => toggle(c.key)}>
+                        <button type="button" className={`sortbtn${on ? ' on' : ''}`}
+                                aria-label={locale === 'ar' ? `ترتيب حسب ${t(c.head)}` : `Sort by ${t(c.head)}`}
+                                onClick={() => toggle(c.key)}>
                           {t(c.head)}
                           <span className="arrow" aria-hidden="true">{on ? (sort!.dir === 'asc' ? '↑' : '↓') : '↕'}</span>
                         </button>
