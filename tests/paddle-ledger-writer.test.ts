@@ -7,7 +7,7 @@ import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { psql } from './helpers';
 import { assertDisposableAcceptanceConfig } from '../scripts/phase15c-acceptance-safety.mjs';
 import {
-  recordVerifiedPaddleSandboxSettlement, ensureDisposableWriter,
+  recordVerifiedPaddleSandboxSettlement, ensureDisposableWriter, verifyRawPaddleSignature,
 } from '../apps/api/src/platform/paddle-ledger-writer';
 
 const enabled=process.env.PADDLE_LEDGER_WRITE_MODE==='ci_disposable_only';
@@ -147,6 +147,29 @@ describe.skipIf(!enabled)('Paddle P0 atomic CI-only settlement writer',()=>{
     expect(state()).toBe('1|1|open');
   });
 });
+describe('Paddle raw-body HMAC signature validation (backend only)',()=>{
+  const raw=Buffer.from('{"event_id":"evt_test","amount":"4900"}','utf8');
+  const ts=1700000000;
+  const h1=createHmac('sha256',secret).update(String(ts)+':').update(raw).digest('hex');
+  it('accepts only exact signed bytes with a bounded timestamp',()=>{
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1,secret,ts)).toBe(true);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1,secret,ts+5)).toBe(true);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1,secret,ts+6)).toBe(false);
+    expect(verifyRawPaddleSignature(Buffer.from(raw.toString().replace('4900','4901')),
+      'ts='+ts+';h1='+h1,secret,ts)).toBe(false);
+  });
+  it('rejects duplicate timestamps, forged MAC and unexpected header fields',()=>{
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';ts='+ts+';h1='+h1,secret,ts)).toBe(false);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1+';extra=1',secret,ts)).toBe(false);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+'0'.repeat(64),secret,ts)).toBe(false);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1=nothex',secret,ts)).toBe(false);
+  });
+  it('rejects oversized body and untrusted endpoint secret',()=>{
+    expect(verifyRawPaddleSignature(Buffer.alloc(65537), 'ts='+ts+';h1='+h1,secret,ts)).toBe(false);
+    expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1,'too-short',ts)).toBe(false);
+  });
+});
+
 describe('Paddle CI gate must be impossible to enable accidentally',()=>{
   it('blocks production, staging and unapproved database targets',()=>{
     expect(()=>ensureDisposableWriter({...process.env,CI:'false'})).toThrow(/writer_disabled/);
