@@ -4,6 +4,10 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { num } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 
+/** Visual bar width only; over-allocated totals remain visible in text. */
+const capacityBarFill = (pct: number) =>
+  Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+
 export default async function Resources({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -46,7 +50,7 @@ export default async function Resources({ searchParams }:
                       <td>
                         <div className="bar" style={{ inlineSize: 180 }}>
                           <i className={over ? 'over' : undefined}
-                             style={{ width: `${Math.min(100, p.allocatedPct)}%` }} />
+                             aria-hidden="true" style={{ width: `${capacityBarFill(p.allocatedPct)}%` }} />
                         </div>
                         {over && <div className="crit">{lang === 'ar' ? 'تجاوز الطاقة بنسبة' : 'over-committed by'} {p.allocatedPct - 100}%</div>}
                       </td>
