@@ -4,6 +4,10 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { num, when } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 
+/** Clamp only the bar fill: a benefit can legitimately exceed its target. */
+const benefitBarWidth = (pct: number) =>
+  Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+
 export default async function Benefits({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -54,7 +58,7 @@ export default async function Benefits({ searchParams }:
                     <td className="num">{num(b.actual)}</td>
                     <td>{b.pctOfTarget == null ? <span className="dim">—</span> : (
                       <><div className="bar" style={{ inlineSize: 110 }}>
-                        <i style={{ width: `${b.pctOfTarget}%` }} /></div>
+                        <i aria-hidden="true" style={{ width: `${benefitBarWidth(Number(b.pctOfTarget))}%` }} /></div>
                         <span className="dim">{lang === 'ar' ? `${b.pctOfTarget}% من المسافة بين خط الأساس والمستهدف` : `${b.pctOfTarget}% of the way from baseline to target`}</span></>)}</td>
                     <td>{when(b.reviewDate, lang)}</td>
                     <td><span className={`pill b-${b.status}`}>{lang === 'ar' ? (({ planned: 'مخطط', in_progress: 'قيد التنفيذ', realized: 'متحقق', missed: 'لم يتحقق' } as Record<string, string>)[b.status] ?? b.status) : b.status.replace('_', ' ')}</span></td>
