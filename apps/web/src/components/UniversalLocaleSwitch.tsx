@@ -1,8 +1,8 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
+import { chooseFrontendLocale, type FrontendLocale } from '@/lib/frontend-locale.mjs';
 
 /**
  * One locale selector for the one authenticated app.
@@ -24,6 +24,22 @@ export function UniversalLocaleSwitch({ locale }: { locale: FrontendLocale }) {
   const fallback = locale !== 'en' && locale !== 'ar-SA';
   const arabic = locale === 'ar-SA';
   const label = arabic ? 'لغة الواجهة' : 'Interface language';
+
+  // First visit only: browser preference. An existing explicit or legacy
+  // choice always wins. Country hints are deliberately not inferred here.
+  useEffect(() => {
+    const hasPreference = document.cookie.split(';').some((part) =>
+      /^\\s*(pmo_locale|pmo_lang)=/.test(part));
+    if (hasPreference) return;
+    const browserLanguages = navigator.languages?.length
+      ? Array.from(navigator.languages)
+      : [navigator.language];
+    const detected = chooseFrontendLocale({ browserLanguages });
+    if (detected === 'en') return;
+    document.cookie = `pmo_locale=${encodeURIComponent(detected)}; path=/; max-age=31536000; samesite=lax`;
+    document.cookie = `pmo_lang=${detected === 'ar-SA' ? 'ar' : 'en'}; path=/; max-age=31536000; samesite=lax`;
+    router.refresh();
+  }, [router]);
 
   function setLocale(next: string) {
     if (!OPTIONS.some((option) => option.value === next)) return;
