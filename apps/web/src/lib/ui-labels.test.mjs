@@ -18,6 +18,8 @@ test('four additional locales render catalogued terms', () => {
 test('missing translations safely fall back to English', () => {
   assert.equal(uiLabel('Project certification', 'de-DE'), 'Project certification');
   assert.equal(uiLabel('Missing Arabic', 'ar-SA'), 'Missing Arabic');
+  assert.equal(uiLabel('Executive decision journey', 'ar-SA'), 'مسار القرار التنفيذي');
+  assert.equal(uiLabel('Executive decision journey', 'ar-SA', 'مسار القرار التنفيذي'), 'مسار القرار التنفيذي');
 });
 test('coverage enumerates untranslated strings without duplication', () => {
   assert.deepEqual(uiLabelCoverage(['Projects','Projects','Unknown'], 'fr-FR'), {
@@ -42,4 +44,26 @@ test('every shared dashboard navigation label has a catalog entry in four new lo
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
     assert.deepEqual(uiLabelCoverage(labels, locale).missing, [], `missing ${locale} nav labels`);
   }
+});
+
+test('shared executive journey has all six translations without separate dashboards', () => {
+  const keys = [
+    'Executive decision journey', 'FROM SIGNALS TO DECISIONS',
+    'Turn delivery signals into accountable reviews',
+    'These are the current workspace API signals, not automated decisions or approvals.',
+    'OBSERVE', 'Overdue register items', 'VERIFY',
+    'Blocked gates needing evidence review', 'HUMAN DECISION',
+    'Projects returned in the attention queue',
+    'Check the source evidence and accountable owner before acting.',
+    'Delivery trend', 'Portfolio performance', 'Portfolio mix', 'Project health',
+  ];
+  for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
+    assert.deepEqual(uiLabelCoverage(keys, locale).missing, [], locale);
+  }
+  const page = readFileSync(new URL('../app/(app)/page.tsx', import.meta.url), 'utf8');
+  assert.ok(page.includes("t('Executive decision journey')"));
+  assert.ok(page.includes("t('Turn delivery signals into accountable reviews')"));
+  assert.ok(!page.includes("lang === 'ar' ? 'حوّل الانحرافات"));
+  assert.ok(page.includes('await api.overview()'));
+  assert.ok(page.includes('await api.trends()'));
 });
