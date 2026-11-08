@@ -54,7 +54,7 @@ export default async function Financials({ searchParams }:
               </div>
 
               <h2 className="sec">{t('By project')}</h2>
-              <div className="scrollx">
+              <div className="scrollx" role="region" aria-label={t('By project')} tabIndex={0}>
                 <table>
                   <thead><tr>
                     <th>{t('Project')}</th><th>{t('Budget')}</th><th>{t('Committed')}</th><th>{t('Actual')}</th>
@@ -98,7 +98,7 @@ export default async function Financials({ searchParams }:
               </details>
 
               <h2 className="sec">{t('By category')}</h2>
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('By category')} tabIndex={0}><table>
                 <thead><tr><th>{t('Category')}</th><th>{t('Budget')}</th><th>{t('Actual')}</th><th>{t('Drawn')}</th></tr></thead>
                 <tbody>
                   {d.byCategory.map((c: any) => (
@@ -112,7 +112,7 @@ export default async function Financials({ searchParams }:
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </>
           );
         }}
