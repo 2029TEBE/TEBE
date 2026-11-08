@@ -26,7 +26,7 @@ export default async function MyWork() {
 
             <h2 className="sec">{t('Approvals waiting on you')}</h2>
             {d.approvals.length === 0 ? <p className="quietempty">{t('Nothing to sign.')}</p> : (
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Approvals')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Your role')}</th><th>{t('Blocking')}</th></tr></thead>
                 <tbody>{d.approvals.map((a: any) => (
                   <tr key={a.id}>
@@ -38,22 +38,22 @@ export default async function MyWork() {
                       ? <span className="warnt">{a.criteriaOutstanding} criteria outstanding</span>
                       : <span className="good">ready to sign</span>}</td>
                   </tr>))}</tbody>
-              </table>
+              </table></div>
             )}
 
             <h2 className="sec">{t('Evidence you owe')}</h2>
             {d.criteria.length === 0 ? <p className="quietempty">{t('Nothing outstanding.')}</p> : (
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Outstanding criteria')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Criterion')}</th></tr></thead>
                 <tbody>{d.criteria.map((c: any) => (
                   <tr key={c.id}><td className="num">{c.projectCode}</td><td>{c.gate}</td>
                     <td>{c.label}</td></tr>))}</tbody>
-              </table>
+              </table></div>
             )}
 
             <h2 className="sec">{t('Tasks')}</h2>
             {d.tasks.length === 0 ? <p className="quietempty">{t('No open tasks.')}</p> : (
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Tasks')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Task')}</th><th>{t('State')}</th><th>{t('Due')}</th></tr></thead>
                 <tbody>{d.tasks.map((t: any) => (
                   <tr key={t.id}>
@@ -62,7 +62,7 @@ export default async function MyWork() {
                       {t.state.replace('_', ' ')}</span></td>
                     <td className={t.overdue ? 'crit' : undefined}>{when(t.dueDate, lang)}</td>
                   </tr>))}</tbody>
-              </table>
+              </table></div>
             )}
           </>
         )}
