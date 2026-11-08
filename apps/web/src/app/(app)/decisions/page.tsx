@@ -29,10 +29,10 @@ export default async function Decisions() {
               <thead><tr><th scope="col">{t('Decision')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Taken at')}</th><th scope="col">{t('Owner')}</th><th scope="col">{t('Date')}</th><th scope="col">{t('State')}</th></tr></thead>
             <tbody>{list.map((d: any) => (
               <tr key={d.id}>
-                <td><strong>{d.title}</strong>{d.detail && <div className="dim">{d.detail}</div>}</td>
-                <td className="num">{d.projectCode}</td>
-                <td>{d.atGate ?? <span className="dim">{lang === 'ar' ? 'غير مرتبط بمرحلة' : 'not gate-linked'}</span>}</td>
-                <td>{d.owner ?? <span className="dim">{lang === 'ar' ? 'غير معين' : 'unassigned'}</span>}</td>
+                <td><strong><bdi>{d.title}</bdi></strong>{d.detail && <div className="dim"><bdi>{d.detail}</bdi></div>}</td>
+                <td className="num"><bdi>{d.projectCode}</bdi></td>
+                <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim">{lang === 'ar' ? 'غير مرتبط بمرحلة' : 'not gate-linked'}</span>}</td>
+                <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim">{lang === 'ar' ? 'غير معين' : 'unassigned'}</span>}</td>
                 <td>{when(d.decidedAt, lang)}</td>
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>
