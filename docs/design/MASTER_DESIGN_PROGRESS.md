@@ -88,3 +88,40 @@ Rail/topbar, breadcrumbs, command palette, KPI tiles, filters, table, badge, tab
 Open the GitHub branch files for `apps/web/src/app/(app)/operations-preview/page.tsx`, `preview.css` and `apps/web/src/app/globals.css`. A real UI preview requires an authorized local development environment with a session containing `pmoa_platform`. This is intentionally not accessible in production.
 ### Rollback
 Revert the branch-only commits, or close the draft PR; do not merge until independent browser/security review. No production rollback is needed because nothing was deployed.
+
+
+## Design follow-through — 8 November 2026 (screen-level revision)
+
+### Real customer-facing frontend refinements
+Seven existing authenticated screens have review-only presentational enhancements, preserving their existing API loaders, role/module gates, record identifiers, links and real actions:
+- `apps/web/src/app/(app)/decision-cockpit/page.tsx` — ranked source-linked decision cards; rule-based, no predictive claim.
+- `apps/web/src/app/(app)/projects/page.tsx` — scoped KPI strip derived from returned project records, explicitly not necessarily portfolio totals.
+- `apps/web/src/app/(app)/portfolios/page.tsx` — program and portfolio coverage summary from authorized API data.
+- `apps/web/src/app/(app)/governance/page.tsx` — gate readiness, no new approval action.
+- `apps/web/src/app/(app)/approvals/page.tsx` — pending versus signable legend with link to existing stage gates.
+- `apps/web/src/app/(app)/reports/page.tsx` — report inventory and generated-state summary, retains original export endpoints.
+- `apps/web/src/app/(app)/documents/page.tsx` — evidence/document summary; existing SharePoint and document access untouched.
+- `apps/web/src/app/globals.css` — responsive design-context and decision-card surfaces using existing dark/light, RTL and semantic tokens.
+
+### Offline visual inspection package
+`docs/design/customer-showcase.html` is a separate *seven-screen* synthetic design study: executive overview, decision cockpit, portfolios/projects, approvals/governance, documents/reports, vendor operations, and proposed AI-agent control center. The standalone HTML has a theme switch, RTL geometry switch, screen navigation, local synthetic filter and disabled privileged controls. It has no customer API access. Download/open locally to inspect; this file is **not** a deployed or authenticated production route. The real operations-preview remains development-only and capability-gated.
+
+Gallery static inspection (on the committed file, source checks only): seven tabs correspond to seven views; viewport metadata present; responsive CSS at 1160/860/620/375 px; light/dark and RTL geometry controls present; prominent synthetic labeling; no network/request API invocation; no HTML forms; nine disabled controls. These are source checks, **not** proof of actual browser rendering, WCAG conformance or Arabic translation. The gallery's RTL toggle checks layout direction, not a fully localized Arabic content experience.
+
+### GitHub Actions CI evidence
+- TEFE PR #19 marketing workflow: **PASS** (run 42452762865).
+- TEBE PR #442 run **42455007874** on app-style commit: overall **FAIL**.
+  - Dependency-free source guards: PASS.
+  - Workspace packages build, TypeScript check, tenant isolation, data integrity, authenticated billing/workspace-switch isolation, financial PostgreSQL RLS: those named CI steps PASS.
+  - Test stage: FAIL — 101 passed, 8 failed, 20 skipped. Seven failures in Microsoft integration tests when the Microsoft provider is unconfigured; one failed financial import permission test expected HTTP 403 but received 400. Investigate these as security-sensitive, not waived.
+  - Dependency audit: FAIL — 67 findings (2 critical, 25 high, 31 moderate, 9 low) reported. The reported vulnerabilities must be triaged in a separately authorized dependency/security update.
+  - CI acceptance evidence gate: FAIL after test failure.
+- Browser behavior on the newly committed `customer-showcase.html`, visual snapshots at 1440/768/390, automated WCAG, TEBE end-to-end regression, and product shell localization: **UNVERIFIED** until inspected in a suitable browser environment. Do not equate CSS breakpoints with responsive test passes.
+- No manual deploy, main merge, Cloudflare/DNS or backend/DB source edits. The draft PR remains the review boundary.
+
+### Final review instructions
+- Public site: https://github.com/2029TEFE/TEFE/pull/19
+- Customer/admin: https://github.com/2029TEBE/TEBE/pull/442
+- Offline galleries: `TEFE/docs/design/showcase.html` and `TEBE/docs/design/customer-showcase.html` on their respective review branches.
+- For real UI verification, download the galleries and inspect at 1440, 768 and 390 px, theme modes and RTL; independently run authenticated app build and security checks. Do not merge while TEBE CI is failing.
+- Reversion: close draft PR or revert the relevant review-only commits. Production is unchanged.
