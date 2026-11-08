@@ -66,3 +66,25 @@ Rail/topbar, breadcrumbs, command palette, KPI tiles, filters, table, badge, tab
 | RTL/light-dark accessibility audit | NOT RUN |
 | Security and tenant isolation regression | NOT RUN |
 | CI and deploy workflows | NOT TRIGGERED by this task |
+
+## Workstreams 3–5 final review (2026-11-08)
+- Workstream 3: presentation-only customer app styling in `apps/web/src/app/globals.css`: stronger keyboard focus, compact responsive KPI grid, logical RTL alignment and overflow resilience. Existing API-bound pages and their behavior were not rewritten.
+- Workstream 4: authenticated, development-only `operations-preview` extended with illustrative entitlements, human approval journey and audit concept. Fixtures are explicitly synthetic; all simulated mutations disabled. No actual agent, license or tenant API integration.
+- Workstream 5: source comparison against main and file-by-file scope inspection performed via GitHub. Both review branches remain ahead of main without backend changes in their compare file inventories. No browser session, local Next.js dependency tree, test runner or screenshot tool was attached to this GitHub-only run. Thus no runtime claim is made.
+### Evidence matrix
+| Check | Result | Evidence |
+|---|---|---|
+| Branch compare vs main | PASS | GitHub compare metadata; changed-path inventory |
+| Vendor development-only guard | PASS (static source) | `NODE_ENV !== 'development'` calls `notFound()` |
+| Vendor capability check | PASS (static source) | `session.capabilities.includes('pmoa_platform')` |
+| Synthetic/no-mutation labels | PASS (static source) | page copy and disabled buttons |
+| No backend/Cloudflare files changed | PASS (compare paths only) | GitHub compare inventory |
+| Next.js typecheck/build | UNVERIFIED | No local checkout or installed dependencies |
+| Browser behavior and responsive 1440/768/390 | UNVERIFIED | No rendered screenshots |
+| EN/AR RTL and dark/light | UNVERIFIED | CSS reviewed, not rendered |
+| WCAG, tenant/RLS and security regression | UNVERIFIED | No test environment |
+| CI execution | UNVERIFIED | No workflow result read |
+### Review guidance
+Open the GitHub branch files for `apps/web/src/app/(app)/operations-preview/page.tsx`, `preview.css` and `apps/web/src/app/globals.css`. A real UI preview requires an authorized local development environment with a session containing `pmoa_platform`. This is intentionally not accessible in production.
+### Rollback
+Revert the branch-only commits, or close the draft PR; do not merge until independent browser/security review. No production rollback is needed because nothing was deployed.
