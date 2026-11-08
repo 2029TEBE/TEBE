@@ -1565,3 +1565,90 @@ html.rail-narrow .rail > div + div {
 html[dir='rtl'] .page :is(.tile,.simpanel){text-align:start}
 @media(max-width:650px){.page{padding-inline:clamp(12px,4vw,24px)}.page .tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}}
 @media(prefers-reduced-motion:reduce){.page :is(.tile,.simpanel){scroll-behavior:auto}}
+
+
+/* ── Design-first v3.1: source-backed customer workspace hierarchy ───────
+   Presentational only. Shared across customer dashboards; no event handlers,
+   links, permission checks, data access or execution routes are changed.
+   Both themes use the established semantic color tokens. */
+.design-kicker{
+  display:block;color:var(--accent-ink);font-size:var(--fs-2xs);font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;margin-block-end:8px;
+}
+.design-context{
+  background:linear-gradient(110deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line-2);border-radius:var(--r-lg);
+  padding:var(--sp-6);margin-block:var(--sp-4) var(--sp-6);
+  box-shadow:var(--shadow-sm);
+}
+.design-context-head{max-width:78ch}
+.design-context-head h2{font-size:clamp(1.125rem,2.6vw,1.65rem);font-weight:700;margin:0 0 var(--sp-2)}
+.design-context-head p{color:var(--ink-3);font-size:var(--fs-sm);line-height:1.6;margin:0}
+.design-summary{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--sp-3);margin-block-start:var(--sp-5);
+}
+.design-metric{
+  padding:var(--sp-4);background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);display:flex;flex-direction:column;gap:var(--sp-1);
+  min-inline-size:0;
+}
+.design-metric small{
+  font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);
+  line-height:1.5;overflow-wrap:anywhere;
+}
+.design-metric strong{
+  color:var(--ink);font-size:clamp(1.55rem,3vw,2.3rem);font-weight:760;
+  line-height:1.22;font-variant-numeric:tabular-nums;
+}
+.design-context-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3);
+  border-block-start:1px solid var(--line);margin-block-start:var(--sp-4);
+  padding-block-start:var(--sp-4);
+}
+.design-context-actions>.btn{margin-inline-start:auto}
+.design-key{display:inline-flex;align-items:center;gap:var(--sp-2);color:var(--ink-2);font-size:var(--fs-sm)}
+.design-key-dot{inline-size:9px;block-size:9px;border-radius:50%;flex:none}
+.design-key-dot.good{background:var(--good)}
+.design-key-dot.warn{background:var(--warn)}
+.design-focus{margin-block:var(--sp-6)}
+.design-section-intro{display:flex;align-items:end;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--sp-3)}
+.design-section-intro h2{font-weight:720;font-size:clamp(1.15rem,2.6vw,1.5rem)}
+.design-micro{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.55}
+.design-focus-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);
+  margin-block:var(--sp-3);
+}
+.design-focus-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);
+  background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r);
+  padding:var(--sp-5);min-inline-size:0;
+}
+.design-focus-head{
+  inline-size:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+}
+.design-focus-head small{color:var(--ink-3);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
+.design-focus-card h3{
+  font-weight:710;font-size:var(--fs-lg);line-height:1.38;
+  overflow-wrap:anywhere;letter-spacing:0;
+}
+.design-focus-card p{
+  font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2);margin:0 0 var(--sp-3);
+}
+.design-focus-card .btn{margin-block-start:auto}
+html[dir="rtl"] .design-kicker{letter-spacing:0}
+@media(max-width:1000px){
+  .design-focus-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .design-context{padding:var(--sp-4);margin-block:var(--sp-3) var(--sp-5)}
+  .design-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .design-focus-grid{grid-template-columns:1fr}
+  .design-context-actions>.btn{margin-inline-start:0}
+}
+@media(max-width:420px){
+  .design-summary{grid-template-columns:1fr}
+}
+@media print{
+  .design-context,.design-focus-card{box-shadow:none;break-inside:avoid}
+}
