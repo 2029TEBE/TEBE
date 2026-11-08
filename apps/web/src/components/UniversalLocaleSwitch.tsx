@@ -29,7 +29,7 @@ export function UniversalLocaleSwitch({ locale }: { locale: FrontendLocale }) {
   // choice always wins. Country hints are deliberately not inferred here.
   useEffect(() => {
     const hasPreference = document.cookie.split(';').some((part) =>
-      /^\\s*(pmo_locale|pmo_lang)=/.test(part));
+      /^\s*(pmo_locale|pmo_lang)=/.test(part));
     if (hasPreference) return;
     const browserLanguages = navigator.languages?.length
       ? Array.from(navigator.languages)
