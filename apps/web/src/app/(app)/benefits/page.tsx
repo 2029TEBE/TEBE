@@ -42,8 +42,8 @@ export default async function Benefits({ searchParams }:
           <>
             <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المنافع' : 'Benefits register'} tabIndex={0}><table>
               <thead><tr>
-                <th>{t('Benefit')}</th><th>{t('Project')}</th><th>{t('Measure')}</th><th>{t('Baseline')}</th>
-                <th>{t('Target')}</th><th>{t('Actual')}</th><th>{t('Progress')}</th><th>{t('Review')}</th><th>{t('Status')}</th>
+                <th scope="col">{t('Benefit')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Measure')}</th><th scope="col">{t('Baseline')}</th>
+                <th scope="col">{t('Target')}</th><th scope="col">{t('Actual')}</th><th scope="col">{t('Progress')}</th><th scope="col">{t('Review')}</th><th scope="col">{t('Status')}</th>
               </tr></thead>
               <tbody>
                 {list.map((b: any) => (
