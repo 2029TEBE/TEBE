@@ -24,7 +24,7 @@ const slug='paddle-ci-writer-'+suffix;
 
 function event(eventId=firstEvent,extra:Record<string,unknown>={}) {
   return {event_id:eventId,event_type:'transaction.completed',
-    data:{id:transaction,status:'completed',subscription_id:'sub_'+'e'.repeat(26),
+    data:{id:transaction,status:'completed',collection_mode:'automatic',subscription_id:'sub_'+'e'.repeat(26),
       currency_code:'SAR',custom_data:{epmo_intent_id:intentId,epmo_attempt_id:attemptId,
         epmo_invoice_id:invoiceId,epmo_tenant_id:tenantId,tenantId,...extra},
       details:{line_items:[{price_id:price,quantity:1}],
@@ -111,6 +111,15 @@ describe.skipIf(!enabled)('Paddle P0 atomic CI-only settlement writer',()=>{
     await expect(recordVerifiedPaddleSandboxSettlement(unsig)).rejects.toThrow(/invalid_paddle_signature/);
     const wrong=event();wrong.data.details.totals.grand_total='11499';
     await expect(recordVerifiedPaddleSandboxSettlement(signed(wrong))).rejects.toThrow(/untrusted_invoice_intent/);
+    expect(state()).toBe('0|0|open');
+  });
+  it('rejects manual or missing transaction collection mode before any ledger writes',async()=>{
+    const manual=event();manual.data.collection_mode='manual';
+    await expect(recordVerifiedPaddleSandboxSettlement(signed(manual)))
+      .rejects.toThrow(/not_a_completed_subscription_transaction/);
+    const missing=event();(missing.data as Record<string,unknown>).collection_mode=undefined;
+    await expect(recordVerifiedPaddleSandboxSettlement(signed(missing)))
+      .rejects.toThrow(/not_a_completed_subscription_transaction/);
     expect(state()).toBe('0|0|open');
   });
   it('rejects signed cross-tenant and foreign-intent attempts',async()=>{
