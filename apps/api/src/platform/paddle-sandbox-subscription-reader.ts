@@ -8,7 +8,7 @@ const TXN=/^txn_[a-z0-9]{26}$/;
 const SUB=/^sub_[a-z0-9]{26}$/;
 const PRICE='pri_01m6x7w5zy16nktzjwg2ezas2d';
 type Evidence={source:'authenticated-paddle-sandbox-get';transactionId:string;
-  subscriptionId:string;priceId:string;status:'completed';
+  subscriptionId:string;customerId:string;priceId:string;status:'completed';
   amountMinor:number;currency:'USD'};
 type Result={verified:boolean;reason:string;provider?:Evidence;
   invoiceMarkedPaid:false;entitlementGranted:false};
@@ -65,7 +65,8 @@ export async function readPaddleSandboxSubscriptionEvidence({
       return deny('provider_subscription_mismatch');
     return {verified:true,reason:'provider_read_only_consistency_only',
       provider:{source:'authenticated-paddle-sandbox-get',transactionId,
-        subscriptionId,priceId:PRICE,status:'completed',amountMinor:4900,currency:'USD'},
+        subscriptionId,customerId:transaction.customer_id as string,
+        priceId:PRICE,status:'completed',amountMinor:4900,currency:'USD'},
       invoiceMarkedPaid:false,entitlementGranted:false};
   }catch{
     // Never leak API secrets, provider responses, or customer metadata.
