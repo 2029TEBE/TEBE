@@ -5,6 +5,7 @@
 import { randomUUID, createHmac } from 'node:crypto';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { psql } from './helpers';
+import { assessPaddleSubscriptionReconciliation } from '../apps/api/src/platform/paddle-subscription-reconciliation';
 import { assertDisposableAcceptanceConfig } from '../scripts/phase15c-acceptance-safety.mjs';
 import {
   recordVerifiedPaddleSandboxSettlement, ensureDisposableWriter, verifyRawPaddleSignature,
@@ -167,6 +168,50 @@ describe('Paddle raw-body HMAC signature validation (backend only)',()=>{
   it('rejects oversized body and untrusted endpoint secret',()=>{
     expect(verifyRawPaddleSignature(Buffer.alloc(65537), 'ts='+ts+';h1='+h1,secret,ts)).toBe(false);
     expect(verifyRawPaddleSignature(raw,'ts='+ts+';h1='+h1,'too-short',ts)).toBe(false);
+  });
+});
+
+describe('Paddle provider subscription reconciliation never authorizes payment',()=>{
+  const tId=randomUUID(),iId=randomUUID(),sId=randomUUID();
+  const transactionId='txn_'+'q'.repeat(26), providerSub='sub_'+'z'.repeat(26);
+  const priceId='pri_01m6x7w5zy16nktzjwg2ezas2d';
+  const trusted=()=>({source:'locked-tenant-database' as const,tenantId:tId,
+    invoiceId:iId,subscriptionId:sId,transactionId,priceId,
+    amountMinor:4900,currency:'USD',environment:'sandbox' as const});
+  const signed=()=>({transactionId,paddleSubscriptionId:providerSub,
+    tenantId:tId,invoiceId:iId,priceId,amountMinor:4900,currency:'USD'});
+  const provider=()=>({source:'authenticated-paddle-sandbox-get' as const,
+    transactionId,subscriptionId:providerSub,priceId,status:'completed' as const,
+    amountMinor:4900,currency:'USD'});
+  it('reports matching evidence as consistency only, never entitlement or invoice-paid authorization',()=>{
+    const result=assessPaddleSubscriptionReconciliation({
+      trusted:trusted(),signed:signed(),provider:provider()});
+    expect(result.consistent).toBe(true);
+    expect(result.invoiceMarkedPaid).toBe(false);
+    expect(result.entitlementGranted).toBe(false);
+  });
+  it('requires independent records rather than a signed webhook alone',()=>{
+    expect(assessPaddleSubscriptionReconciliation({
+      trusted:trusted(),signed:signed(),provider:null as any}).consistent).toBe(false);
+  });
+  it('rejects wrong provider subscription, transaction, invoice, tenant, price and totals',()=>{
+    const variants=[
+      {signed:{...signed(),paddleSubscriptionId:'sub_'+'x'.repeat(26)}},
+      {provider:{...provider(),transactionId:'txn_'+'a'.repeat(26)}},
+      {signed:{...signed(),invoiceId:randomUUID()}},
+      {signed:{...signed(),tenantId:randomUUID()}},
+      {provider:{...provider(),priceId:'pri_'+'a'.repeat(26)}},
+      {provider:{...provider(),amountMinor:4901}},
+      {provider:{...provider(),currency:'SAR'}},
+      {provider:{...provider(),status:'pending' as any}},
+    ];
+    for(const variant of variants){
+      const result=assessPaddleSubscriptionReconciliation({
+        trusted:trusted(),signed:signed(),provider:provider(),...variant});
+      expect(result.consistent).toBe(false);
+      expect(result.entitlementGranted).toBe(false);
+      expect(result.invoiceMarkedPaid).toBe(false);
+    }
   });
 });
 
