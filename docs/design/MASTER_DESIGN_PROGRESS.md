@@ -188,3 +188,13 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - GitHub read-back static audit: **4/4 pages** retain original API loads, calculation/source markers and labels, and **5/5 table regions** have matched starts and closing tags; original input forms remain on the three record-creation pages.
 - No full authenticated browser, 390px overflow, RTL scroll initial position, translation completeness, assistive-tech or WCAG-AA audit was run. Do not infer runtime support or complete localisation from this source review.
 - [TEBE review PR #442](https://github.com/2029TEBE/TEBE/pull/442) remains draft, unmerged and undeployed. Previous independent CI audit and integration/test failures on main remain hard release blockers; do not waive or alter backend, RLS, payments, dependencies or CI in this design branch.
+
+## Design follow-up v4.0 — bounded visual progress fills (2026-11-08)
+- Four authenticated customer pages updated, without modifying source records, actual numeric labels or business logic:
+  - `(app)/financials/page.tsx`: committed-spend, actual-spend and category drawdown bars now guard zero/invalid budgets and clamp display width to 0–100%.
+  - `(app)/benefits/page.tsx`: benefit progress fill stays within its container even when the *real* percent exceeds 100%. The numeric percent remains visible and unchanged.
+  - `(app)/page.tsx`: average completion and budget-drawn visual bars bounded; original overview totals and decision actions preserved.
+  - `(app)/resources/page.tsx`: capacity fill bounded without hiding actual over-allocation percentage/warning.
+- Decorative bar fills use `aria-hidden="true"` because adjacent numeric labels report the full metric without visual truncation.
+- GitHub source read-back passed for **4/4 files, 7/7 updated bar usages**, guards for non-finite values, and retention of existing API loaders/actions. A pure mathematical helper check covered **8 edge scenarios** (zero/negative budget, over-budget, normal, negative actual, NaN, over-target benefit, negative benefit); it was not a compiled or browser unit test.
+- CI is tracked separately. Existing TEBE full-suite and dependency-audit release blockers must not be bypassed. Authenticated 390px/browser/RTL/WCAG checks remain unverified; no deployment or merge.
