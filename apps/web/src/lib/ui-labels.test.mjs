@@ -37,7 +37,7 @@ test('all shared nav group headings have four catalogue translations', () => {
 
 test('every shared dashboard navigation label has a catalog entry in four new locales', () => {
   const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
-  const labels = [...new Set([...nav.matchAll(/label:\\s*'([^']+)'/g)].map((m) => m[1]))];
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map((m) => m[1]))];
   assert.ok(labels.length >= 30, 'expected full navigation inventory');
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
     assert.deepEqual(uiLabelCoverage(labels, locale).missing, [], `missing ${locale} nav labels`);
