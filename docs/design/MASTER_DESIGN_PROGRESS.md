@@ -219,3 +219,9 @@ Thus these *observed CI blockers pre-date this design PR*, although the safety i
 - `apps/web/src/app/globals.css`: updated existing hover selector to target the direct anchor, and defined a visible inset keyboard focus treatment for the bar segments. No changes to APIs, access controls, business logic or back-end rendering.
 - GitHub source read-back checks: **12/12 passed**, verifying actual links, inert non-links, original fill geometry and legends, aria labels, and CSS hover/focus selectors. Actual browser rendering, screen reader announcement, mobile click targets, RTL, contrast and end-to-end interactions remain unverified.
 - Design changes reside only on existing draft PR #442, unmerged and undeployed. Do not treat static checks as release evidence; existing integration and dependency audit CI failures remain blockers.
+
+## Design follow-up v4.4 — actual theme token for chart focus (2026-11-08)
+- Reviewed the previous StackedBar keyboard focus CSS after GitHub CI check. Found a concrete styling defect introduced by v4.3: the focus rule used `var(--paper)`, but `--paper` does **not** exist in the app's stylesheet. This could invalidate the visible outline property.
+- Replaced only that missing token with existing `var(--surface)`, defined in both dark and light theme palettes, while keeping `var(--ink)` for inset focus contrast. The semantic clickable anchors and their labels are unchanged.
+- GitHub source read-back checks: **9/9 passed**, validating theme token definitions, focus contrast selectors, removal of the bad variable and preserved chart links/labels/widths. Actual screenshot contrast and browser keyboard testing remain unverified.
+- Prior TEBE GitHub full-suite tests and dependency-audit fail; they remain mandatory release blockers, separate from this CSS-only fix. No API/backend/authorization/RLS/database/CI workflow or production changes; draft PR #442 remains unmerged.
