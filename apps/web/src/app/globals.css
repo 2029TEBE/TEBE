@@ -1702,3 +1702,9 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
 @media(max-width:650px){.design-journey-steps{grid-template-columns:1fr}}
 @media(max-width:420px){.design-summary-four{grid-template-columns:1fr}}
 @media print{.design-journey{box-shadow:none;break-inside:avoid}}
+
+/* Vendor safety step titles are words, not metric quantities. */
+.design-metric .design-vendor-word{
+  font-size:clamp(1rem,2.2vw,1.4rem);
+  font-weight:750;line-height:1.35;overflow-wrap:anywhere;
+}
