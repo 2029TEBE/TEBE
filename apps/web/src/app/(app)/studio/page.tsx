@@ -20,7 +20,7 @@ export default async function Studio() {
                   ? 'مؤشرات من الإعدادات المسترجعة من المنصة فقط. هذه الصفحة لا تنشئ عمليات تشغيل جديدة.'
                   : 'Counts reflect the currently returned configuration records. No automation is started from this summary.'}</p>
               </div>
-              <div className="design-summary">
+              <div className="design-summary design-summary-four">
                 <div className="design-metric"><small>{t('Automations')}</small><strong>{d.automations.length}</strong></div>
                 <div className="design-metric"><small>{lang === 'ar' ? 'الأتمتة النشطة' : 'Active automations'}</small><strong>{d.automations.filter((a: any) => a.isActive).length}</strong></div>
                 <div className="design-metric"><small>{t('Custom fields')}</small><strong>{d.fields.length}</strong></div>
