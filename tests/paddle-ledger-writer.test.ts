@@ -256,6 +256,36 @@ describe('Paddle backend authenticated Sandbox read-only subscription verificati
       'https://sandbox-api.paddle.com/transactions/'+transactionId,
       'https://sandbox-api.paddle.com/subscriptions/'+subscriptionId]);
   });
+  it('requires tenant-owned Paddle customer mapping when reconciling a provider read',async()=>{
+    const read=await readPaddleSandboxSubscriptionEvidence({
+      transactionId,subscriptionId,env:env(),fetchImpl:mock() as any});
+    expect(read.verified).toBe(true);
+    expect(read.provider?.customerId).toBe(customerId);
+    const tenantId=randomUUID(),invoiceId=randomUUID(),tenantSubscriptionId=randomUUID();
+    const trusted=()=>({
+      source:'locked-tenant-database' as const,tenantId,invoiceId,
+      subscriptionId:tenantSubscriptionId,transactionId,priceId,
+      paddleCustomerId:customerId,amountMinor:4900,currency:'USD',
+      environment:'sandbox' as const
+    });
+    const signed=()=>({tenantId,invoiceId,transactionId,
+      paddleSubscriptionId:subscriptionId,priceId,amountMinor:4900,currency:'USD'});
+    const accepted=assessPaddleSubscriptionReconciliation({
+      trusted:trusted(),signed:signed(),provider:read.provider!});
+    expect(accepted.consistent).toBe(true);
+    expect(accepted.invoiceMarkedPaid).toBe(false);
+    expect(accepted.entitlementGranted).toBe(false);
+    const foreignCustomer=assessPaddleSubscriptionReconciliation({
+      trusted:{...trusted(),paddleCustomerId:'ctm_'+'f'.repeat(26)},
+      signed:signed(),provider:read.provider!});
+    expect(foreignCustomer.consistent).toBe(false);
+    expect(foreignCustomer.invoiceMarkedPaid).toBe(false);
+    expect(foreignCustomer.entitlementGranted).toBe(false);
+    const foreignTenant=assessPaddleSubscriptionReconciliation({
+      trusted:trusted(),signed:{...signed(),tenantId:randomUUID()},provider:read.provider!});
+    expect(foreignTenant.consistent).toBe(false);
+    expect(foreignTenant.entitlementGranted).toBe(false);
+  });
   it('refuses production or missing credential before touching the network',async()=>{
     for(const patch of [{PADDLE_ENV:'production'},{PADDLE_ENABLED:'true'},
       {PADDLE_SUBSCRIPTION_READONLY:undefined},{PADDLE_SANDBOX_API_KEY:undefined}]){
