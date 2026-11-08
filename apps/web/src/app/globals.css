@@ -1525,3 +1525,33 @@ html.rail-narrow .rail > div + div {
    motion should not be given a chasing ring. */
 @media (pointer: coarse) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
 @media (prefers-reduced-motion: reduce) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
+
+
+/* THEEPMO design-first v3: safe app-wide treatment. Inherit the existing
+   authorization-aware shell, language direction, preference storage and routes.
+   No API, permissions or data-contract changes are required. */
+:root{
+  --ds-navy:#0B2630;--ds-teal:#087F80;--ds-amber:#D7A94B;
+  --ds-slate:#F5F7F9;--ds-white:#FFFFFF;
+}
+.shell>div:last-child{min-width:0}
+.page{min-width:0}
+.page h1{font-weight:760;letter-spacing:-.035em}
+.page h2{letter-spacing:-.018em}
+.rail{scrollbar-gutter:stable}
+.rail a[aria-current='page']{border-inline-start:3px solid var(--accent)}
+.topbar{min-width:0}
+.tile,.panel,.simpanel{border-radius:16px}
+.tile{transition:border-color .16s ease,transform .16s ease}
+.tile:hover{border-color:var(--line-3)}
+.page table{font-variant-numeric:tabular-nums}
+.page table th{font-size:var(--fs-xs);letter-spacing:.01em;white-space:normal}
+.page table td{vertical-align:middle}
+.page table a:focus-visible,.page button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.page .btn{min-height:36px}
+:root[data-theme='light'] .tile,:root[data-theme='light'] .panel,:root[data-theme='light'] .simpanel{box-shadow:0 1px 3px rgba(11,38,48,.025),0 12px 30px rgba(11,38,48,.035)}
+:root[data-theme='light'] .topbar{background:rgba(255,255,255,.93)}
+:root[data-theme='light'] .rail{box-shadow:2px 0 20px rgba(11,38,48,.025)}
+.shell[dir='rtl'] .page h1,.shell[dir='rtl'] .page h2{letter-spacing:0}
+@media (max-width:940px){.rail{scrollbar-gutter:auto}.topbar{padding-inline:var(--sp-3)}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
