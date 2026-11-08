@@ -20,7 +20,7 @@ export default async function GovernancePage() {
                 <div className="design-metric"><small>{t('Not ready')}</small><strong>{gates.filter(g => !g.mayPass).length}</strong></div>
               </div>
             </section>
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={t('Stage gates')} tabIndex={0}><table>
             <thead>
               <tr><th>{t('Project')}</th><th>{t('Current gate')}</th><th>{t('Checklist')}</th>
                   <th>{t('Signatures')}</th><th>{t('Accountable')}</th><th>{t('Blocked by')}</th>
@@ -55,7 +55,7 @@ export default async function GovernancePage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           </>
         )}
       </Loaded>
