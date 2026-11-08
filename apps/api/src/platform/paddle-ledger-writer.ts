@@ -126,12 +126,21 @@ export async function recordVerifiedPaddleSandboxSettlement(input: Input): Promi
       SELECT c.id AS "intentId",c.tenant_id AS "tenantId",
              c.invoice_id AS "invoiceId", c.subscription_id AS "subscriptionId",
              c.plan_id AS "planId",c.environment,c.expires_at AS "expiresAt",
+             c.attempt_id AS "attemptId",
+             a.invoice_id AS "attemptInvoiceId",
+             a.subscription_id AS "attemptSubscriptionId",
+             a.plan_id AS "attemptPlanId",
+             a.paddle_price_id AS "attemptPriceId",
+             a.environment AS "attemptEnvironment",
+             a.amount_minor AS "attemptAmountMinor",
+             a.currency AS "attemptCurrency",
              c.paddle_price_id AS "priceId",b.amount_minor AS "amountMinor",
              b.currency,b.status AS "invoiceStatus",
              b.subscription_id AS "invoiceSubscriptionId",
              s.plan_id AS "subscriptionPlanId",s.status AS "subscriptionStatus",
              s.cancel_at_period_end AS "cancelAtPeriodEnd"
       FROM billing_paddle_checkout_intents c
+      LEFT JOIN billing_paddle_checkout_attempts a ON a.tenant_id=c.tenant_id AND a.id=c.attempt_id
       JOIN billing_invoices b ON b.tenant_id=c.tenant_id AND b.id=c.invoice_id
       JOIN tenant_subscriptions s ON s.tenant_id=c.tenant_id AND s.id=c.subscription_id
       WHERE c.tenant_id=${tenant} AND c.paddle_transaction_id=${transaction}
@@ -144,6 +153,23 @@ export async function recordVerifiedPaddleSandboxSettlement(input: Input): Promi
         !['active','trialing','past_due'].includes(intent.subscriptionStatus) ||
         intent.cancelAtPeriodEnd)
       fail('untrusted_invoice_intent_or_provider_totals');
+    // New checkout transactions are bound to an immutable pre-POST journal.
+    // For them, the signed callback must carry the same four identifiers that
+    // were sent to Paddle, and SQL must independently confirm the reservation.
+    // Older historical checkout rows have no attempt_id; do not rewrite them.
+    if (intent.attemptId !== null && intent.attemptId !== undefined) {
+      if (intent.attemptInvoiceId !== intent.invoiceId ||
+          intent.attemptSubscriptionId !== intent.subscriptionId ||
+          intent.attemptPlanId !== intent.planId ||
+          intent.attemptPriceId !== intent.priceId ||
+          intent.attemptEnvironment !== intent.environment ||
+          intent.attemptAmountMinor !== intent.amountMinor ||
+          intent.attemptCurrency !== intent.currency ||
+          event.data.custom_data.epmo_attempt_id !== intent.attemptId ||
+          event.data.custom_data.epmo_invoice_id !== intent.invoiceId ||
+          event.data.custom_data.epmo_tenant_id !== tenant)
+        fail('untrusted_precreate_attempt_or_webhook_binding');
+    }
     if (event.data.custom_data.tenantId &&
         event.data.custom_data.tenantId !== tenant) fail('provider_tenant_mismatch');
 
