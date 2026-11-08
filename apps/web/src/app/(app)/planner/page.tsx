@@ -92,7 +92,7 @@ export default async function Planner({ searchParams }:
                                   title={`${i.name} — ${when(i.startDate, lang)}`}
                                   style={{ left: `${left(i.startDate)}%` }} />
                           : <span className={`gbar${i.slipDays > 0 ? ' slipped' : ''}`}
-                                  title={`${when(i.startDate, lang)} → ${when(i.endDate, lang)} · ${lang === 'ar' ? 'الإنجاز' : 'progress'} ${i.progressPct}%${i.slipDays > 0 ? ` · ${fill(t('{n} days late'), { n: i.slipDays })}` : ''} `}
+                                  title={`${when(i.startDate, lang)} → ${when(i.endDate, lang)} · ${lang === 'ar' ? 'الإنجاز' : 'progress'} ${i.progressPct}%${i.slipDays > 0 ? ` · ${fill(t('{n} days late'), { n: i.slipDays })}` : ''}`}
                                   style={{ left: `${left(i.startDate)}%`, width: `${width(i.startDate, i.endDate)}%` }}>
                               <i aria-hidden="true" style={{ width: `${progressFill(i.progressPct)}%` }} />
                             </span>
@@ -111,7 +111,7 @@ export default async function Planner({ searchParams }:
               <div className="design-table-scroll" role="region"
                    aria-label={lang === 'ar' ? 'جدول الانحرافات عن الخطة الأساسية' : 'Baseline slippage table'} tabIndex={0}>
                 <table>
-                <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Item')}</th><th scope="col">{t('Planned finish')}</th><th scope="col">{t('Now finishing')}</th><th scope="col">{t('Slip')}</th><th scope="col">{t('Progress')}</th></tr></thead>
+                  <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Item')}</th><th scope="col">{t('Planned finish')}</th><th scope="col">{t('Now finishing')}</th><th scope="col">{t('Slip')}</th><th scope="col">{t('Progress')}</th></tr></thead>
                 <tbody>
                   {items.filter((i: any) => i.baselineEnd).map((i: any) => (
                     <tr key={i.id}>
@@ -127,7 +127,7 @@ export default async function Planner({ searchParams }:
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
               </div>
             </>
           );
