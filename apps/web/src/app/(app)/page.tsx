@@ -120,7 +120,7 @@ export default async function Home() {
                 : (
                   <>
                     <p className="dim">{t('Priority queue includes gate blockers, critical risks and overdue items.')}</p>
-                    <table>
+                    <div className="design-table-scroll" role="region" aria-label={t('Needs attention')} tabIndex={0}><table>
                       <thead><tr><th>{t('Project')}</th><th>{t('Health')}</th><th>{t('Current gate')}</th><th>{t('Why')}</th><th>{t('Action')}</th></tr></thead>
                       <tbody>
                         {d.attention.map((a: any) => (
@@ -139,7 +139,7 @@ export default async function Home() {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
                     {d.attention[0]?.totalAttention > d.attention.length && (
                       <p className="dim">{lang === 'ar'
                         ? `عرض أول ${d.attention.length.toLocaleString('ar-SA')} من أصل ${d.attention[0].totalAttention.toLocaleString('ar-SA')} مشروعًا يحتاج إلى مراجعة.`
