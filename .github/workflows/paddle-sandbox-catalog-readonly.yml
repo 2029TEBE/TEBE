@@ -1,0 +1,38 @@
+name: Paddle Sandbox Catalog — read-only verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: paddle-sandbox-catalog-readonly
+  cancel-in-progress: false
+jobs:
+  verify-sandbox-catalog:
+    name: Verify exact approved Paddle sandbox catalog (GET only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # No pull_request, push, production environment, deploy or payment jobs.
+    env:
+      PADDLE_CATALOG_PREFLIGHT: READ_ONLY
+      BILLING_PROVIDER: paddle
+      PADDLE_ENV: sandbox
+      PADDLE_ENABLED: 'false'
+      DEPLOYMENT_ENV: staging
+      PADDLE_SANDBOX_API_KEY: ${{ secrets.PADDLE_SANDBOX_READONLY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require configured sandbox-only secret
+        shell: bash
+        run: |
+          if [ -z "$PADDLE_SANDBOX_API_KEY" ]; then
+            echo 'BLOCKED: configure PADDLE_SANDBOX_READONLY_API_KEY using GitHub Actions secret settings.'
+            exit 2
+          fi
+          echo "::add-mask::$PADDLE_SANDBOX_API_KEY"
+      - name: Verify fixed product and price against Paddle Sandbox API (read-only)
+        run: node scripts/paddle-verified-sandbox-api-preflight.mjs
