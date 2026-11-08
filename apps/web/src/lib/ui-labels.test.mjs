@@ -26,7 +26,9 @@ test('coverage enumerates untranslated strings without duplication', () => {
 test('all shared nav group headings have four catalogue translations', () => {
   for (const title of ['Home','Plan & Deliver','Govern','Analyse','Collaborate','Configure']) {
     for (const locale of ['de-DE','zh-CN','fr-FR','ja-JP']) {
-      assert.notEqual(uiLabel(title, locale), title === 'Govern' ? '' : undefined);
+      assert.deepEqual(uiLabelCoverage([title], locale), {
+        total: 1, translated: 1, missing: [],
+      });
       assert.ok(uiLabel(title, locale).length > 0);
     }
   }
