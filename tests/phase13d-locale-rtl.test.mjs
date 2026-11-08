@@ -45,7 +45,9 @@ test('navigation passes selected locale and translates command groups', () => {
   assert.ok(s.includes('group: uiLabel(g.label, locale, g.ar)'));
   assert.ok(s.includes('label: uiLabel(i.label, locale, i.ar)'));
   const catalog = read('apps/web/src/lib/ui-labels.mjs');
-  assert.ok(catalog.includes("if (locale === 'ar-SA') return legacyArabic || english"));
+  assert.ok(catalog.includes("if (locale === 'ar-SA')"));
+  assert.ok(catalog.includes("legacyArabic && legacyArabic !== english"));
+  assert.ok(catalog.includes("row?.['ar-SA'] ?? english"));
   assert.ok(catalog.includes('return row?.[locale] ?? english'));
   assert.match(s, /const commands = groups\.flatMap/);
 });
