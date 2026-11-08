@@ -11,14 +11,15 @@ const event1='evt_'+'c'.repeat(26), event2='evt_'+'d'.repeat(26), event3='evt_'+
 const adjustmentId='adj_'+'f'.repeat(26);
 const suffix=randomUUID().replace(/-/g,'').slice(0,16);
 const slug='paddle-ci-http-'+suffix;
-let tenant='',intent='',invoice='',subscription='',plan='';
+let tenant='',intent='',attempt='',invoice='',subscription='',plan='';
 
 const completed=(extra: Record<string,unknown>={})=>({
  event_id:event1,event_type:'transaction.completed',
  data:{id:transaction,status:'completed',
   subscription_id:'sub_'+'a'.repeat(26),
   currency_code:'SAR',
-  custom_data:{epmo_intent_id:intent,tenantId:tenant},
+  custom_data:{epmo_intent_id:intent,epmo_attempt_id:attempt,
+   epmo_invoice_id:invoice,epmo_tenant_id:tenant,tenantId:tenant},
   details:{line_items:[{price_id:price,quantity:1}],
    totals:{grand_total:'11500'}},...extra}
 });
@@ -60,13 +61,20 @@ beforeAll(()=>{
   i AS(INSERT INTO billing_invoices(tenant_id,subscription_id,period_starts_at,period_ends_at,amount_minor,currency)
         SELECT tenant_id,id,now()+interval '30 days',now()+interval '60 days',11500,'SAR' FROM s
         RETURNING id,tenant_id),
-  c AS(INSERT INTO billing_paddle_checkout_intents
-       (tenant_id,subscription_id,plan_id,invoice_id,paddle_transaction_id,paddle_price_id,environment,expires_at)
+  a AS(INSERT INTO billing_paddle_checkout_attempts
+       (tenant_id,subscription_id,plan_id,invoice_id,paddle_price_id,
+        environment,amount_minor,currency,expires_at)
        SELECT s.tenant_id,s.id,s.plan_id,i.id,
+         '${price}','sandbox',11500,'SAR',now()+interval '15 minutes'
+       FROM s JOIN i ON s.tenant_id=i.tenant_id
+       RETURNING id,tenant_id,subscription_id,plan_id,invoice_id),
+  c AS(INSERT INTO billing_paddle_checkout_intents
+       (tenant_id,subscription_id,plan_id,invoice_id,attempt_id,paddle_transaction_id,paddle_price_id,environment,expires_at)
+       SELECT a.tenant_id,a.subscription_id,a.plan_id,a.invoice_id,a.id,
          '${transaction}','${price}','sandbox',now()+interval '15 minutes'
-       FROM s JOIN i ON s.tenant_id=i.tenant_id RETURNING id)
-  SELECT t.id||'|'||c.id||'|'||i.id||'|'||s.id||'|'||p.id FROM t,p,s,i,c`);
- [tenant,intent,invoice,subscription,plan]=out.split('|');
+       FROM a RETURNING id,attempt_id)
+  SELECT t.id||'|'||c.id||'|'||c.attempt_id||'|'||i.id||'|'||s.id||'|'||p.id FROM t,p,s,i,c`);
+ [tenant,intent,attempt,invoice,subscription,plan]=out.split('|');
  expect(tenant).toMatch(/^[0-9a-f-]{36}$/i);
 });
 afterAll(()=>{
@@ -77,6 +85,7 @@ afterAll(()=>{
   DELETE FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid;
   DELETE FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid;
   DELETE FROM billing_paddle_checkout_intents WHERE tenant_id='${tenant}'::uuid;
+  DELETE FROM billing_paddle_checkout_attempts WHERE tenant_id='${tenant}'::uuid;
   DELETE FROM billing_invoices WHERE tenant_id='${tenant}'::uuid;
   DELETE FROM tenant_subscriptions WHERE tenant_id='${tenant}'::uuid;
   DELETE FROM tenants WHERE id='${tenant}'::uuid AND slug='${slug}';
