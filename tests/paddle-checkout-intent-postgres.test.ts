@@ -117,7 +117,8 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   const event={
     event_id:signedEventId,event_type:'transaction.completed',
     data:{id:txn,status:'completed',subscription_id:'sub_'+'b'.repeat(26),
-      currency_code:'USD',custom_data:{epmo_intent_id:intent,tenantId:tenant},
+      currency_code:'USD',custom_data:{epmo_intent_id:intent,tenantId:tenant,
+        epmo_attempt_id:attempt,epmo_invoice_id:invoice,epmo_tenant_id:tenant},
       details:{line_items:[{price_id:price,quantity:1}],
         totals:{grand_total:'4900'}}}
   };
@@ -150,9 +151,24 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   // A signed notification claiming another workspace is not sufficient to
   // change the trusted database tenant binding.
   const foreign={...event,data:{...event.data,
-    custom_data:{epmo_intent_id:intent,tenantId:foreignTenant}}};
+    custom_data:{...event.data.custom_data,tenantId:foreignTenant}}};
   await expect(recordVerifiedPaddleSandboxSettlement(signed(foreign)))
     .rejects.toThrow(/provider_tenant_mismatch/);
+  // Even correctly HMAC-signed provider metadata cannot override the
+  // immutable pre-Paddle attempt journal for this exact tenant invoice.
+  for(const [field,value] of [
+    ['epmo_attempt_id',randomUUID()],
+    ['epmo_invoice_id',randomUUID()],
+    ['epmo_tenant_id',foreignTenant],
+    ['epmo_attempt_id',undefined],
+    ['epmo_invoice_id',undefined],
+    ['epmo_tenant_id',undefined],
+  ] as const) {
+    const tampered={...event,data:{...event.data,
+      custom_data:{...event.data.custom_data,[field]:value}}};
+    await expect(recordVerifiedPaddleSandboxSettlement(signed(tampered)))
+      .rejects.toThrow(/untrusted_precreate_attempt_or_webhook_binding/);
+  }
   await expect(recordVerifiedPaddleSandboxSettlement(signed(event,foreignTenant)))
     .rejects.toThrow(/untrusted_invoice_intent_or_provider_totals/);
   expect(psql(`SELECT COUNT(*) FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
