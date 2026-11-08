@@ -41,6 +41,11 @@ export async function verifyTeamWorkspaceSandboxCatalog({
      price.type==='standard'&&price.billing_cycle?.interval==='month'&&
      price.billing_cycle?.frequency===1&&price.trial_period===null&&
      price.unit_price?.amount==='4900'&&price.unit_price?.currency_code==='USD'&&
+     // Country-specific price overrides can silently alter the $49 advertised
+     // amount. Refuse catalog verification unless this plan has none.
+     Array.isArray(price.unit_price_overrides)&&price.unit_price_overrides.length===0&&
+     price.quantity?.minimum===1&&
+     Number.isSafeInteger(price.quantity?.maximum)&&price.quantity.maximum>=1&&
      product.id===PRODUCT&&product.status==='active'&&product.type==='standard'&&
      product.name==='THE EPMO — Team Workspace';
    return valid
