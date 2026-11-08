@@ -53,8 +53,8 @@ export default async function BoardPage({ searchParams }:
               </div>
               <div className="design-summary">
                 <div className="design-metric"><small>{lang === 'ar' ? 'المهام المعروضة' : 'Returned tasks'}</small><strong>{tasks.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام متعثرة' : 'Blocked tasks'}</small><strong>{tasks.filter((task) => task.state === 'blocked').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام مكتملة' : 'Completed tasks'}</small><strong>{tasks.filter((task) => task.state === 'done').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'مهام متعثرة' : 'Blocked tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'blocked').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'مهام مكتملة' : 'Completed tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'done').length}</strong></div>
               </div>
             </section>
             <div className="board">
