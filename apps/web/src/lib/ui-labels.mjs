@@ -58,6 +58,8 @@ export const UI_LABELS = Object.freeze({
   "Portfolio performance": { 'ar-SA': "أداء المحفظة", 'de-DE': "Portfolioleistung", 'zh-CN': "项目组合绩效", 'fr-FR': "Performance du portefeuille", 'ja-JP': "ポートフォリオ実績" },
   "Portfolio mix": { 'ar-SA': "توزيع المحفظة", 'de-DE': "Portfoliozusammensetzung", 'zh-CN': "项目组合构成", 'fr-FR': "Composition du portefeuille", 'ja-JP': "ポートフォリオ構成" },
   "Project health": { 'ar-SA': "حالة المشاريع", 'de-DE': "Projektstatus", 'zh-CN': "项目健康状况", 'fr-FR': "Santé des projets", 'ja-JP': "プロジェクトの健全性" },
+  "Showing the first {shown} of {total} projects needing review.": { 'ar-SA': "عرض أول {shown} من أصل {total} مشروعًا يحتاج إلى مراجعة.", 'de-DE': "Die ersten {shown} von {total} Projekten mit Prüfbedarf werden angezeigt.", 'zh-CN': "显示需要审查的 {total} 个项目中的前 {shown} 个。", 'fr-FR': "Affichage des {shown} premiers projets sur {total} nécessitant un examen.", 'ja-JP': "要確認のプロジェクト {total} 件のうち最初の {shown} 件を表示しています。" },
+  "Cumulative, by month": { 'ar-SA': "تراكمي، حسب الشهر", 'de-DE': "Kumuliert, nach Monat", 'zh-CN': "按月累计", 'fr-FR': "Cumulé, par mois", 'ja-JP': "月別累計" },
   'Skip to content': { 'de-DE': 'Zum Inhalt springen', 'zh-CN': '跳转到内容', 'fr-FR': 'Aller au contenu', 'ja-JP': '本文へスキップ' },
   'Modules': { 'de-DE': 'Module', 'zh-CN': '模块', 'fr-FR': 'Modules', 'ja-JP': 'モジュール' },
   'The EPMO': { 'de-DE': 'The EPMO', 'zh-CN': 'The EPMO', 'fr-FR': 'The EPMO', 'ja-JP': 'The EPMO' },
