@@ -143,7 +143,7 @@ export function BarChart({ labels, values, colour = 'var(--accent)', height = 19
           const href = hrefs?.[i];
           return (
             <g key={i}>
-              {href ? <a href={href}>{bar}</a> : bar}
+              {href ? <a href={href} aria-label={`${labels[i]} · ${format(v)}`}>{bar}</a> : bar}
               {i % every === 0 && (
                 <text x={cx} y={h - 10} className="axis" textAnchor="middle">{labels[i]}</text>
               )}
@@ -165,13 +165,15 @@ export function StackedBar({ segments, total }: {
     <div className="stackbar">
       <div className="track">
         {segments.filter((s) => s.value > 0).map((s) => {
-          const seg = (
-            <span className="seg" style={{ width: `${(s.value / sum) * 100}%`, background: s.colour }}
-                  title={`${s.value} ${s.label}`} />
-          );
+          const style = { width: `${(s.value / sum) * 100}%`, background: s.colour };
+          const accessibleLabel = `${s.value} ${s.label}`;
+          // Use real box-generating links: display:contents removes the
+          // clickable segment's own focus rectangle in some browsers/AT.
           return s.href
-            ? <a key={s.label} href={s.href} style={{ display: 'contents' }}>{seg}</a>
-            : <span key={s.label} style={{ display: 'contents' }}>{seg}</span>;
+            ? <a key={s.label} className="seg" href={s.href} style={style}
+                 title={accessibleLabel} aria-label={accessibleLabel} />
+            : <span key={s.label} className="seg" style={style}
+                    title={accessibleLabel} />;
         })}
       </div>
       <div className="legend">
