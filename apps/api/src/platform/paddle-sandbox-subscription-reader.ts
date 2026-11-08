@@ -32,17 +32,17 @@ export async function readPaddleSandboxSubscriptionEvidence({
     return deny('sandbox_credentials_unavailable');
   const get=async(path:string)=>{
     const response=await fetchImpl('https://sandbox-api.paddle.com'+path,{
-      method:'GET',redirect:'error',cache:'no-store',
+      method:'GET',redirect:'error',
       headers:{Authorization:'Bearer '+key,Accept:'application/json'},
       signal:AbortSignal.timeout(8000)
     });
     if(!response||response.status!==200||response.ok!==true||
        !String(response.headers?.get('content-type')||'').toLowerCase().includes('application/json'))
       throw new Error('provider_read_failed');
-    const body=await response.json();
+    const body=(await response.json()) as {data?:unknown};
     if(!body?.data||typeof body.data!=='object'||Array.isArray(body.data))
       throw new Error('invalid_provider_data');
-    return body.data;
+    return body.data as Record<string,any>;
   };
   try{
     const transaction=await get('/transactions/'+transactionId);
