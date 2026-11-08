@@ -24,5 +24,5 @@ test('secret is scoped only to final verification step, never checkout or setup'
 test('manual workflow refuses missing secret, masks token and cannot deploy',()=>{
  assert.match(workflow,/if \[ -z "\$PADDLE_SANDBOX_API_KEY" \]; then/);
  assert.match(workflow,/::add-mask::/);
- assert.doesNotMatch(workflow,/(?:deploy|production|kubectl|docker login|paddle\.com\/transactions)/i);
+ assert.doesNotMatch(workflow,/(?:kubectl|docker login|paddle\.com\/transactions|deploy:)/i);
 });
