@@ -46,10 +46,13 @@ export async function verifyTeamWorkspaceSandboxCatalog({
      Array.isArray(price.unit_price_overrides)&&price.unit_price_overrides.length===0&&
      price.quantity?.minimum===1&&
      Number.isSafeInteger(price.quantity?.maximum)&&price.quantity.maximum>=1&&
+     ['account_setting','external','internal','location'].includes(price.tax_mode)&&
      product.id===PRODUCT&&product.status==='active'&&product.type==='standard'&&
      product.name==='THE EPMO — Team Workspace';
    return valid
-     ? {ok:true,verified:true,reason:'exact_sandbox_catalog_verified',realPaymentsEnabled:false}
+     ? {ok:true,verified:true,reason:'exact_sandbox_catalog_verified',
+       basePriceMinor:4900,currency:'USD',taxMode:price.tax_mode,
+       finalCustomerTotalVerified:false,realPaymentsEnabled:false}
      : deny('catalog_product_price_or_terms_mismatch');
  } catch {
    return deny('sandbox_catalog_api_not_verified');
