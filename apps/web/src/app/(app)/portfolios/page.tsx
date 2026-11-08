@@ -79,14 +79,14 @@ export default async function PortfoliosPage({ searchParams }:
                   ? (lang === 'ar' ? 'ابدأ بإنشاء محفظة أعلاه، ثم أضف برنامجاً ومشاريع.' : 'Create your first portfolio above, then add a programme and projects.')
                   : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء المحفظة الأولى.' : 'Ask an authorized administrator to create the first portfolio.')}</p></div>
             ) : (
-            <table>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'جدول المحافظ' : 'Portfolio register'} tabIndex={0}><table>
               <thead><tr><th>{t('Portfolio')}</th><th>{t('Health')}</th><th>{t('Programs')}</th></tr></thead>
               <tbody>
                 {p.map((pf: any) => (
                   <tr key={pf.id}>
                     <td><strong>{pf.name}</strong>
                       {pf.description && <div className="dim">{pf.description}</div>}</td>
-                    <td><span className={`pill ${pf.health}`}>{pf.health.replace('_', ' ')}</span></td>
+                    <td><span className={`pill ${pf.health}`}>{lang === 'ar' ? (({ on_track: 'وفق الخطة', at_risk: 'يحتاج انتباها', critical: 'حرج' } as Record<string, string>)[pf.health] ?? pf.health.replace('_', ' ')) : pf.health.replace('_', ' ')}</span></td>
                     <td>{g.filter((pg: any) => pg.portfolioId === pf.id).length ?
                       g.filter((pg: any) => pg.portfolioId === pf.id).map((pg: any) =>
                         <div key={pg.id}><Link href={`/projects?program=${encodeURIComponent(pg.id)}`}>
@@ -97,7 +97,7 @@ export default async function PortfoliosPage({ searchParams }:
                   </tr>
                 ))}
               </tbody>
-            </table>)}
+            </table></div>)}
           </>
         )}
       </Loaded>
