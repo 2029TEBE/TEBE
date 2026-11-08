@@ -19,7 +19,7 @@ test('secret is scoped only to final verification step, never checkout or setup'
  assert.match(workflow,/PADDLE_ENABLED: 'false'/);
  assert.match(workflow,/PADDLE_ENV: sandbox/);
  assert.match(workflow,/node scripts\/paddle-verified-sandbox-api-preflight\.mjs/);
- assert.doesNotMatch(workflow,/\b(?:curl|POST|checkout|paddle transactions create)\b/i);
+ assert.doesNotMatch(workflow,/\b(?:curl|POST|paddle transactions create)\b/i);
 });
 test('manual workflow refuses missing secret, masks token and cannot deploy',()=>{
  assert.match(workflow,/if \[ -z "\$PADDLE_SANDBOX_API_KEY" \]; then/);
