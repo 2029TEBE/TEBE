@@ -86,6 +86,7 @@ function parseCompleted(raw: Buffer) {
       !ids.event.test(event.event_id ?? '') ||
       !event.data || typeof event.data !== 'object' || Array.isArray(event.data) ||
       event.data.status !== 'completed' ||
+      event.data.collection_mode !== 'automatic' ||
       !ids.transaction.test(event.data.id ?? '') ||
       !ids.subscription.test(event.data.subscription_id ?? ''))
     fail('not_a_completed_subscription_transaction');
