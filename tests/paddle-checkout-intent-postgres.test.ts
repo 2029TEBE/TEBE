@@ -2,12 +2,12 @@
  * No customer records, no Paddle calls, no checkout URLs, no entitlements.
  * CI-only switch and explicit disposable-database acknowledgement are required.
  */
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHmac} from 'node:crypto';
 import {beforeAll,afterAll,describe,expect,it} from 'vitest';
 import {psql} from './helpers';
 import {assertDisposableAcceptanceConfig} from '../scripts/phase15c-acceptance-safety.mjs';
 import {persistDisposablePaddleCheckout} from '../apps/api/src/platform/paddle-checkout-intent-writer';
-import {ensureDisposableWriter} from '../apps/api/src/platform/paddle-ledger-writer';
+import {ensureDisposableWriter,recordVerifiedPaddleSandboxSettlement} from '../apps/api/src/platform/paddle-ledger-writer';
 
 const enabled=process.env.PADDLE_LEDGER_WRITE_MODE==='ci_disposable_only';
 const suffix=randomUUID().replace(/-/g,'').slice(0,18);
@@ -19,6 +19,8 @@ const product='pro_01m6x789k8kmvez6zk7cm17wdz';
 let tenant='',foreignTenant='',plan='',subscription='',invoice='';
 const intent=randomUUID();
 const attempt=randomUUID();
+const signedEventId='evt_'+randomUUID().replace(/-/g,'').slice(0,26);
+const signingSecret='ci_dummy_only_paddle_notification_signature_secret_not_for_live_use';
 const expiry=Date.now()+10*60*1000;
 const input=()=>({
  source:'locked-tenant-record' as const,
@@ -65,6 +67,8 @@ beforeAll(()=>{
 afterAll(()=>{
  if(!enabled||!tenant)return;
  psql(`
+ DELETE FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid;
+ DELETE FROM billing_paddle_webhook_receipts WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM billing_paddle_checkout_intents WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM billing_paddle_checkout_attempts WHERE tenant_id='${tenant}'::uuid;
  DELETE FROM billing_invoices WHERE tenant_id='${tenant}'::uuid;
@@ -109,4 +113,42 @@ describe.skipIf(!enabled)('Paddle checkout intent writer, disposable PostgreSQL'
   expect(count()).toBe('1');
   expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
  });
+ it('rejects unsigned and mismatched signed settlement, then records the valid event without entitlements',async()=>{
+  const event={
+    event_id:signedEventId,event_type:'transaction.completed',
+    data:{id:txn,status:'completed',subscription_id:'sub_'+'b'.repeat(26),
+      currency_code:'USD',custom_data:{epmo_intent_id:intent,tenantId:tenant},
+      details:{line_items:[{price_id:price,quantity:1}],
+        totals:{grand_total:'4900'}}}
+  };
+  const signed=(body:unknown,tenantId=tenant)=>{
+    const rawBody=Buffer.from(JSON.stringify(body));
+    const nowSeconds=Math.floor(Date.now()/1000);
+    const paddleSignature='ts='+nowSeconds+';h1='+
+      createHmac('sha256',signingSecret)
+        .update(String(nowSeconds)+':').update(rawBody).digest('hex');
+    return {tenantId,rawBody,paddleSignature,endpointSecret:signingSecret,nowSeconds};
+  };
+  const invalid=signed(event);
+  invalid.paddleSignature='ts=1700000000;h1='+'a'.repeat(64);
+  await expect(recordVerifiedPaddleSandboxSettlement(invalid))
+    .rejects.toThrow(/invalid_paddle_signature/);
+  const wrong={...event,data:{...event.data,details:{
+    ...event.data.details,totals:{grand_total:'4901'}}}};
+  await expect(recordVerifiedPaddleSandboxSettlement(signed(wrong)))
+    .rejects.toThrow(/untrusted_invoice_intent_or_provider_totals/);
+  expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('0');
+  const result=await recordVerifiedPaddleSandboxSettlement(signed(event));
+  expect(result.recorded).toBe(true);
+  expect(result.invoiceMarkedPaid).toBe(false);
+  expect(result.entitlementGranted).toBe(false);
+  expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('1');
+  expect(psql(`SELECT status FROM billing_invoices WHERE id='${invoice}'::uuid`)).toBe('open');
+  expect(psql(`SELECT status FROM tenant_subscriptions WHERE id='${subscription}'::uuid`)).toBe('trialing');
+  const replay=await recordVerifiedPaddleSandboxSettlement(signed(event));
+  expect(replay.duplicate).toBe(true);
+  expect(replay.entitlementGranted).toBe(false);
+  expect(psql(`SELECT COUNT(*) FROM billing_paddle_settlements WHERE tenant_id='${tenant}'::uuid`)).toBe('1');
+ });
+
 });
