@@ -42,7 +42,7 @@ export default async function RaidPage({ searchParams }:
                 <p>{t('Add risks, issues and dependencies above. Pointing one at a gate is what turns a register entry into a control.')}</p>
               </div>
             ) : (
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Risk and issue register')} tabIndex={0}><table>
                 <thead>
                   <tr><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Item')}</th><th>{t('Risk')}</th>
                       <th>{t('Owner')}</th><th>{t('Blocks')}</th><th>{t('Status')}</th></tr>
@@ -65,7 +65,7 @@ export default async function RaidPage({ searchParams }:
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </>
         )}
