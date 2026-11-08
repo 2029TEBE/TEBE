@@ -9,7 +9,8 @@ const runtime = () => ({deploymentEnv:'staging', paddleEnv:'sandbox',
 const binding = () => ({
   source:'locked-tenant-record', provider:'paddle', environment:'sandbox',
   planKey:'team_workspace_monthly',
-  intentId:uuid('1'), tenantId:uuid('2'), subscriptionId:uuid('3'),
+  intentId:uuid('1'), tenantId:uuid('2'), invoiceId:uuid('5'),
+  attemptId:uuid('6'), subscriptionId:uuid('3'),
   planId:uuid('4'), expiresAt:now+600000,
   planAmountMinor:4900, planCurrency:'USD', planInterval:'month', planFrequency:1,
 });
@@ -24,7 +25,12 @@ test('prepares only verified $49 monthly Paddle sandbox transaction',()=>{
   assert.equal(p.expected.currency,'USD');
   assert.equal(p.apiOrigin,'https://sandbox-api.paddle.com');
   assert.deepEqual(p.request.items,[{price_id:p.expected.priceId,quantity:1}]);
-  assert.deepEqual(p.request.custom_data,{epmo_intent_id:binding().intentId});
+  assert.deepEqual(p.request.custom_data,{
+    epmo_intent_id:binding().intentId,
+    epmo_attempt_id:binding().attemptId,
+    epmo_invoice_id:binding().invoiceId,
+    epmo_tenant_id:binding().tenantId,
+  });
   assert.equal(p.collectionEnabled,false);
   assert.equal(p.entitlementGranted,false);
 });
@@ -40,7 +46,8 @@ test('rejects browser origins, forged price selectors and tenantless intents',()
   for(const patch of [
     {source:'browser'}, {provider:'stripe'}, {environment:'production'},
     {planKey:'enterprise'}, {planKey:'pri_01m6x7w5zy16nktzjwg2ezas2d'},
-    {tenantId:''}, {planId:'foreign'}, {expiresAt:now-1}
+    {tenantId:''}, {planId:'foreign'}, {expiresAt:now-1},
+    {invoiceId:undefined}, {attemptId:undefined}
   ]) assert.equal(run({...binding(),...patch}).ok,false);
 });
 
