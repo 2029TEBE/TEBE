@@ -4,6 +4,12 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { money, num } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 
+/** Display-only width. Preserve the original amounts and variance in text. */
+const financialBarWidth = (amount: number, budget: number) => {
+  const ratio = budget > 0 ? (amount / budget) * 100 : 0;
+  return Number.isFinite(ratio) ? Math.max(0, Math.min(100, ratio)) : 0;
+};
+
 export default async function Financials({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -44,9 +50,9 @@ export default async function Financials({ searchParams }:
                 <div className="tile"><span>{t('Approved budget')}</span><strong>{money(tot.budget)}</strong>
                   <div className="split"><i className="dim">SAR</i></div></div>
                 <div className="tile"><span>{t('Committed')}</span><strong>{money(tot.committed)}</strong>
-                  <div className="bar"><i style={{ width: `${(tot.committed / tot.budget) * 100}%` }} /></div></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.committed, tot.budget)}%` }} /></div></div>
                 <div className="tile"><span>{t('Actual spend')}</span><strong>{money(tot.actual)}</strong>
-                  <div className="bar"><i style={{ width: `${(tot.actual / tot.budget) * 100}%` }} /></div></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.actual, tot.budget)}%` }} /></div></div>
                 <div className={`tile${over > 0 ? ' alarm' : ''}`}>
                   <span>{t('Forecast variance')}</span>
                   <strong className={over > 0 ? 'crit' : 'good'}>{over > 0 ? '+' : ''}{money(over)}</strong>
@@ -107,7 +113,7 @@ export default async function Financials({ searchParams }:
                       <td className="num">{money(c.budget)}</td>
                       <td className="num">{money(c.actual)}</td>
                       <td><div className="bar" style={{ inlineSize: 140 }}>
-                        <i style={{ width: `${c.budget ? Math.min(100, (c.actual / c.budget) * 100) : 0}%` }} />
+                        <i aria-hidden="true" style={{ width: `${financialBarWidth(c.actual, c.budget)}%` }} />
                       </div></td>
                     </tr>
                   ))}
