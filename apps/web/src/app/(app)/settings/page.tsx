@@ -115,8 +115,12 @@ export default async function Settings({ searchParams }:
 
             <h2 className="sec">{t('What your role can do')}</h2>
             <p className="dim" style={{ marginTop: '-8px' }}>
-              {t('You are signed in as')} <strong>{(lang === 'ar' ? ROLE_LABELS[d.yourRole]?.ar : ROLE_LABELS[d.yourRole]?.en) ?? d.yourRole.replace(/_/g, ' ')}</strong>. Permissions are checked
-              per capability, never per role — which is why adding a role never means rewriting a permission check.
+              {t('You are signed in as')} <strong>{(lang === 'ar'
+                ? ROLE_LABELS[d.yourRole as keyof typeof ROLE_LABELS]?.ar
+                : ROLE_LABELS[d.yourRole as keyof typeof ROLE_LABELS]?.en) ?? d.yourRole.replace(/_/g, ' ')}</strong>.
+              {' '}{lang === 'ar'
+                ? 'تُفحص الصلاحيات حسب الإذن المحدد، وليس باسم الدور وحده. لذلك لا يعني إضافة دور تغيير قواعد التحقق من الأذونات.'
+                : 'Permissions are checked per capability, never per role — which is why adding a role never means rewriting a permission check.'}
             </p>
             <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'صلاحيات الدور الحالي' : 'Current role capabilities'} tabIndex={0}><table>
               <thead><tr><th>{t('Capability')}</th><th>{t('What it allows')}</th><th>{t('You')}</th></tr></thead>
