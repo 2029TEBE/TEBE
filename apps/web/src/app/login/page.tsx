@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/api';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
+import { UniversalLocaleSwitch } from '@/components/UniversalLocaleSwitch';
 
 export const metadata = { title: 'Sign in · The EPMO' };
 
@@ -13,6 +14,7 @@ export default async function LoginPage({ searchParams }:
   const { error } = await searchParams;
   const t = await tr();
   const ar = (await getLang()) === 'ar';
+  const locale = await getFrontendLocale();
   const showHint = process.env.NODE_ENV === 'development' &&
     (!process.env.DEPLOYMENT_ENV || process.env.DEPLOYMENT_ENV === 'development');
 
@@ -22,6 +24,7 @@ export default async function LoginPage({ searchParams }:
         <div className="brand" style={{ padding: 0, marginBlockEnd: 26 }}>
           <span className="glyph">E</span><span className="wordmark">{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span>
         </div>
+        <div className="locale-login-control"><UniversalLocaleSwitch locale={locale} /></div>
         <h1>{ar ? 'تسجيل الدخول' : 'Sign in'}</h1>
         <p className="sub" style={{ marginBlockEnd: 22 }}>
           {ar ? 'حوكمة المحافظ والبرامج والمشاريع.' : 'Governance for portfolios, programmes and projects.'}
