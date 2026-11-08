@@ -52,7 +52,7 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
       const body = new FormData(); body.append('file',file,file.name);
       const response = await fetch('/api/excel/preview', {method:'POST',body,headers:{accept:'application/json'}});
       const payload = await response.json();
-      if (!response.ok) {setError(String(payload.error ?? payload.message ?? 'Preview failed')); return;}
+      if (!response.ok) {setError(String(payload.error ?? payload.message ?? (lang === 'ar' ? 'فشلت المعاينة' : 'Preview failed'))); return;}
       setPreflight(payload);
     } catch {setError(t('Could not reach the server. Check your connection and try again.'));}
     finally {setBusy(false);}
@@ -92,7 +92,7 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
               onSubmit={(e) => { e.preventDefault(); void send('create'); }}>
           <input ref={fileRef} type="file" name="file" accept=".xlsx" required
                  onChange={() => { setReport(null); setPreflight(null); setError(''); }} />
-          <button className="btn ghost" type="button" disabled={busy} onClick={() => void preview()}>Preview (no changes)</button>
+          <button className="btn ghost" type="button" disabled={busy} onClick={() => void preview()}>{lang === 'ar' ? 'معاينة دون تعديل البيانات' : 'Preview (no changes)'}</button>
           <button className="btn" type="submit" disabled={busy || !!preflight && !preflight.ok}>
             {busy ? t('Reading…') : t('Import')}
           </button>
@@ -101,9 +101,11 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
       </section>
 
       {preflight && <section className="panel wide" role="status">
-        <h3>Workbook validation preview — no data changed</h3>
-        <p>{preflight.ok ? 'Basic workbook checks passed. Import may still fail server-side validation.' : 'Fix the problems before importing.'}</p>
-        <ul>{preflight.sheets.map(s => <li key={s.sheet}>{s.sheet}: {s.records} records</li>)}</ul>
+        <h3>{lang === 'ar' ? 'معاينة التحقق من ملف العمل - لم تتغير أي بيانات' : 'Workbook validation preview — no data changed'}</h3>
+        <p>{preflight.ok
+          ? (lang === 'ar' ? 'اجتاز الملف الفحوص الأولية. قد يرفض الخادم الاستيراد بعد إجراء التحقق الكامل.' : 'Basic workbook checks passed. Import may still fail server-side validation.')
+          : (lang === 'ar' ? 'صحح المشكلات قبل الاستيراد.' : 'Fix the problems before importing.')}</p>
+        <ul>{preflight.sheets.map(s => <li key={s.sheet}>{s.sheet}: {s.records} {lang === 'ar' ? 'سجل' : 'records'}</li>)}</ul>
         {preflight.problems.map((p,i) => <p className="crit" key={i}>{p}</p>)}
         {preflight.warnings.map((w,i) => <p className="dim" key={i}>{w}</p>)}
       </section>}
