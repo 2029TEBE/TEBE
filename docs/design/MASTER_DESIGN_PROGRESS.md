@@ -131,3 +131,14 @@ The unmodified `main` baseline SHA `6471523278521b22ac63a41785ddd084e5d86a4f` al
 - The baseline's audit output also shows **67 vulnerabilities**, with the same 2 critical / 25 high / 31 moderate / 9 low severity distribution.
 - The baseline's verify job also failed exactly **8 tests** in the same two files (`tests/microsoft.test.ts` and `tests/p0-financial-ai-privacy.test.ts`) and had a failed acceptance-evidence step.
 Thus these *observed CI blockers pre-date this design PR*, although the safety implications remain and must be resolved separately before any merge or release. This comparison does not prove all modified UI runtime behavior correct.
+
+## Follow-through v3.2 — executive overview / Studio / vendor safety (8 November 2026)
+- `apps/web/src/app/(app)/page.tsx`: read-only executive journey showing overdue register items, blocked stage gates and the count of returned attention records. All values originate from existing `api.overview()`. The current cockpit review link was preserved. This is not a prediction, approval or cross-tenant metric.
+- `apps/web/src/app/(app)/studio/page.tsx`: read-only four-item configuration summary (automation inventory, active automation count, custom fields, gate templates) from existing `api.studio`, keeping all underlying tables.
+- `apps/web/src/app/(app)/super-admin/page.tsx`: bilingual operational safety and audit context before existing real plan/license forms; session and `pmoa_platform` checks and API endpoints unchanged.
+- `apps/web/src/app/globals.css`: responsive RTL-logical three-step journey, 4/2/1 studio metric layout and status-word typography; both original themes retained.
+- New static source checks: **15/15 PASS** — API loaders and source-bound values, existing route links, studio source data, admin auth and platform capability guards, original license forms, bilingual text, dev-only operations route, licensed nav filtering, CSS tokens/responsiveness and no additional direct API mutation.
+- The latest GitHub run was still **in progress** when the source checks were recorded. [Follow current CI](https://github.com/2029TEBE/TEBE/actions).
+- Prior TEBE PR CI: TypeScript/tenant isolation/database checks passed, while full suite and audit failed. Those same eight test failures and 67 dependency findings were observed on unmodified `main`; they are **pre-existing**, not waived. Separate authorized security/dependency remediation is required before release.
+- **Unverified on this revision:** real authenticated browser rendering, WCAG AA, live EN/AR regression, screenshots and actual network/tenant permission tests of new UI. Synthetic offline gallery is not production validation.
+- PR #442 remains open, draft, unmerged and undeployed; no database/API, CI, hosting or production files modified.
