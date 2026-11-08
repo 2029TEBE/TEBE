@@ -15,7 +15,7 @@ let tenant='',intent='',attempt='',invoice='',subscription='',plan='';
 
 const completed=(extra: Record<string,unknown>={})=>({
  event_id:event1,event_type:'transaction.completed',
- data:{id:transaction,status:'completed',
+ data:{id:transaction,status:'completed',collection_mode:'automatic',
   subscription_id:'sub_'+'a'.repeat(26),
   currency_code:'SAR',
   custom_data:{epmo_intent_id:intent,epmo_attempt_id:attempt,
