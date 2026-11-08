@@ -21,7 +21,18 @@ export default async function PortfoliosPage({ searchParams }:
       <Loaded load={async () => ({ p: await api.portfolios(), g: await api.programs() })}>
         {({ p, g }) => (
           <>
-            {p.length === 0 && <section className="panel" style={{ marginBottom: 16 }}>
+            {p.length > 0 && <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المحفظة' : 'Portfolio snapshot'}>
+              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'هيكل المحفظة' : 'PORTFOLIO STRUCTURE'}</span>
+                <h2>{lang === 'ar' ? 'المحافظ والبرامج في مساحة العمل' : 'Portfolio and programme coverage'}</h2>
+                <p>{lang === 'ar' ? 'ملخص من المحافظ والبرامج المعادة من واجهة البرمجة المصرح بها.' : 'Snapshot of portfolios and programmes returned by the authorized workspace API.'}</p></div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'المحافظ' : 'Portfolios'}</small><strong>{p.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'البرامج' : 'Programmes'}</small><strong>{g.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'محافظ تتطلب الانتباه' : 'Portfolios requiring attention'}</small>
+                  <strong>{p.filter((pf: any) => pf.health === 'at_risk' || pf.health === 'critical').length}</strong></div>
+              </div>
+            </section>}
+            {p.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
               <h2 className="sec" style={{ marginTop: 0 }}>
                 {lang === 'ar' ? 'ابدأ بمحفظتك الأولى' : 'Start with your first portfolio'}
               </h2>
