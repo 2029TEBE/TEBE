@@ -16,6 +16,7 @@ const candidate=()=>({ok:true,transactionId:txn,intentId:b().intentId,
  requiresAtomicTenantPersistence:true,collectionEnabled:false,entitlementGranted:false});
 const row=()=>({source:'committed-tenant-sql',environment:'sandbox',
  tenantId:b().tenantId,intentId:b().intentId,invoiceId:uuid('5'),
+ attemptId:uuid('6'),
  subscriptionId:b().subscriptionId,planId:b().planId,
  paddleTransactionId:txn,paddlePriceId:'pri_01m6x7w5zy16nktzjwg2ezas2d',
  invoiceStatus:'open',invoiceAmountMinor:4900,invoiceCurrency:'USD',
@@ -27,7 +28,8 @@ test('requires exact committed tenant invoice and Paddle transaction binding',()
 });
 test('rejects absent, spoofed, cross-tenant, foreign transaction and incorrect invoice rows',()=>{
  for(const patch of [null,{source:'browser'},{tenantId:uuid('9')},
- {intentId:uuid('9')},{invoiceId:'bad'},{subscriptionId:uuid('9')},
+ {intentId:uuid('9')},{invoiceId:'bad'},{invoiceId:uuid('9')},
+ {attemptId:uuid('9')},{subscriptionId:uuid('9')},
  {planId:uuid('9')},{paddleTransactionId:'txn_'+'b'.repeat(26)},
  {paddlePriceId:'pri_'+'b'.repeat(26)},{invoiceAmountMinor:1},
  {invoiceCurrency:'SAR'},{invoiceStatus:'paid'},{expiresAt:now-1}]){
