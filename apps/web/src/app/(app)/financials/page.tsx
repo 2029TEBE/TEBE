@@ -93,7 +93,7 @@ export default async function Financials({ searchParams }:
                               ? 'الفئات التي لا تتوفر لها توقعات مستقلة تستخدم الميزانية كقيمة بديلة'
                               : 'Categories without their own forecast fall back to budget'}>
                               {Math.round(r.forecastCoverage * 100)}% {lang === 'ar'
-                                ? 'من الفئات لها توقعات والباقي على الميزانية'
+                                ? 'ضمن التوقعات، والباقي وفق الميزانية'
                                 : 'forecast, rest at budget'}
                             </div>)}</td>
                         <td className="num">{r.variance > 0
