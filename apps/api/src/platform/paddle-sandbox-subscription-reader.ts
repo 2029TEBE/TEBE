@@ -56,7 +56,9 @@ export async function readPaddleSandboxSubscriptionEvidence({
        transaction.details?.totals?.grand_total!=='4900')
       return deny('provider_transaction_mismatch');
     const subscription=await get('/subscriptions/'+subscriptionId);
-    if(subscription.id!==subscriptionId||subscription.status!=='active'||
+    if(typeof transaction.customer_id!=='string'||!/^ctm_[a-z0-9]{26}$/.test(transaction.customer_id)||
+       subscription.customer_id!==transaction.customer_id||
+       subscription.id!==subscriptionId||subscription.status!=='active'||
        !Array.isArray(subscription.items)||subscription.items.length!==1||
        subscription.items[0]?.price?.id!==PRICE||
        subscription.items[0]?.quantity!==1)
