@@ -1792,3 +1792,8 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
 @media(max-width:560px){
   .locale-picker select{max-inline-size:104px;min-inline-size:76px;font-size:11px}
 }
+
+/* Language selection is available before authentication as well as in the app. */
+.locale-login-control{display:flex;justify-content:flex-end;margin-block:0 16px;max-inline-size:100%}
+.locale-login-control .locale-picker{flex-wrap:wrap;justify-content:flex-end}
+.locale-login-control .locale-picker select{max-inline-size:155px}
