@@ -12,9 +12,28 @@ export default async function Activity() {
       <Loaded load={api.activity}>
         {(d) => (
           <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص النشاط والانتباه' : 'Activity and attention snapshot'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'المتابعة التنفيذية' : 'EXECUTIVE ATTENTION'}</span>
+                <h2>{lang === 'ar' ? 'ما يحتاج إلى قرار وما تم توثيقه' : 'Decisions and recorded activity'}</h2>
+                <p>{lang === 'ar'
+                  ? 'تعكس المؤشرات السجلات التي أعادتها واجهة البيانات الحالية، ولا تمثل إجمالي جميع الأحداث بالضرورة.'
+                  : 'These figures reflect the records returned by the current API response, not necessarily all historical events.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric">
+                  <small>{t('Needs a decision')}</small><strong>{d.needs.length}</strong>
+                </div>
+                <div className="design-metric">
+                  <small>{lang === 'ar' ? 'الأحداث المعادة' : 'Returned audit entries'}</small><strong>{d.feed.length}</strong>
+                </div>
+              </div>
+            </section>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Needs a decision')}</h2>
             {d.needs.length === 0 ? <p className="quietempty">{t('Nothing outstanding.')}</p> : (
-              <table>
+              <div className="design-table-scroll" role="region"
+                   aria-label={lang === 'ar' ? 'سجل البنود التي تحتاج إلى قرار' : 'Items requiring a decision'} tabIndex={0}>
+                <table>
                 <thead><tr><th>{t('Type')}</th><th>{t('Project')}</th><th>{t('Detail')}</th><th>{t('Due')}</th></tr></thead>
                 <tbody>{d.needs.map((n: any, i: number) => (
                   <tr key={i}>
@@ -27,7 +46,8 @@ export default async function Activity() {
                     <td className={n.due && new Date(n.due) < new Date() ? 'crit' : undefined}>
                       {when(n.due, lang)}</td>
                   </tr>))}</tbody>
-              </table>
+                </table>
+              </div>
             )}
 
             <h2 className="sec">{t('Audit trail')}</h2>
