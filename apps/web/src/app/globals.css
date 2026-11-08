@@ -1771,7 +1771,7 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
 /* Universal locale selector — frontend-only, shared across the app shell. */
 .locale-picker{display:flex;align-items:center;gap:6px;position:relative;min-width:0}
 .locale-picker select{
-  min-height:36px;max-inline-size:155px;min-inline-size:95px;
+  min-height:44px;max-inline-size:155px;min-inline-size:95px;
   border:1px solid var(--line);border-radius:8px;
   padding-inline:8px;background:var(--surface-2);color:var(--ink);
   font:inherit;font-size:12px;cursor:pointer
