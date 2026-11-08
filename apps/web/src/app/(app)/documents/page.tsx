@@ -38,6 +38,16 @@ export default async function Documents({ searchParams }:
       <Loaded load={api.documents} empty="No documents yet.">
         {(list) => (
           <>
+            <section className="design-context" aria-label={t('Document overview')}>
+              <div className="design-context-head"><span className="design-kicker">{t('Document overview')}</span>
+                <h2>{t('Evidence inventory')}</h2>
+                <p>{t('Document status and evidence linkage shown from authorized workspace records. File access remains governed by its existing integration.')}</p></div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{t('Documents')}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{t('Approved')}</small><strong>{list.filter((d: any) => d.status === 'approved').length}</strong></div>
+                <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
+              </div>
+            </section>
             <table>
               <thead><tr><th>{t('Document')}</th><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Ver')}</th><th>{t('Evidence for')}</th><th>{t('Size')}</th><th>{t('Updated')}</th><th>{t('Status')}</th></tr></thead>
               <tbody>{list.map((d: any) => (
