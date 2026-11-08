@@ -1,7 +1,8 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { money, pct } from '@/lib/fmt';
-import { tr, term, getLang } from '@/lib/i18n';
+import { tr, term, getFrontendLocale } from '@/lib/i18n';
+import { fill } from '@pmo/contracts';
 import { TrendPanel, HealthDonut, type TrendPoint } from '@/components/SimCharts';
 import { attentionReasons, attentionLink } from '@/lib/executive-attention';
 
@@ -10,7 +11,7 @@ const boundedBarFill = (pct: number) =>
   Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
 
 export default async function Home() {
-  const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   return (
     <Page title="Executive Overview"
@@ -134,7 +135,7 @@ export default async function Home() {
                               : `SG${a.gateSeq} ${t(a.gateName ?? '')}`}</td>
                             <td>{attentionReasons(a).map((reason, i) => (
                               <span key={`${reason.key}-${i}`} className={reason.key === 'health flag, no blocker recorded' ? 'dim' : 'crit'}>
-                                {i > 0 ? ' · ' : ''}{reason.count !== undefined ? `${reason.count.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')} ` : ''}{t(reason.key)}
+                                {i > 0 ? ' · ' : ''}{reason.count !== undefined ? `${reason.count.toLocaleString(locale)} ` : ''}{t(reason.key)}
                               </span>
                             ))}</td>
                             <td><a className="btn ghost" href={attentionLink(a)}>{t('Review')}</a></td>
@@ -143,9 +144,10 @@ export default async function Home() {
                       </tbody>
                     </table></div>
                     {d.attention[0]?.totalAttention > d.attention.length && (
-                      <p className="dim">{lang === 'ar'
-                        ? `عرض أول ${d.attention.length.toLocaleString('ar-SA')} من أصل ${d.attention[0].totalAttention.toLocaleString('ar-SA')} مشروعًا يحتاج إلى مراجعة.`
-                        : `Showing the first ${d.attention.length} of ${d.attention[0].totalAttention} projects needing review.`}</p>
+                      <p className="dim">{fill(t('Showing the first {shown} of {total} projects needing review.'), {
+                        shown: d.attention.length.toLocaleString(locale),
+                        total: d.attention[0].totalAttention.toLocaleString(locale),
+                      })}</p>
                     )}
                   </>
                 )}
