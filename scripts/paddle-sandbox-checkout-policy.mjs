@@ -15,6 +15,7 @@ export function preparePaddleSandboxCheckout(binding, catalogue, {now=Date.now()
     binding.environment!=='sandbox' || binding.provider!=='paddle' ||
     binding.source!=='locked-tenant-record' || catalogue.source!=='server-approved-catalogue' ||
     !UUID.test(binding.intentId||'') || !UUID.test(binding.tenantId||'') ||
+    !UUID.test(binding.invoiceId||'') || !UUID.test(binding.attemptId||'') ||
     !UUID.test(binding.subscriptionId||'') || !UUID.test(binding.planId||'') ||
     !UUID.test(catalogue.planId||'') || binding.planId!==catalogue.planId)
     return fail('untrusted_server_binding');
@@ -29,8 +30,11 @@ export function preparePaddleSandboxCheckout(binding, catalogue, {now=Date.now()
    apiOrigin:'https://sandbox-api.paddle.com',method:'POST',endpoint:'/transactions',
    request:{items:[{price_id:catalogue.paddlePriceId,quantity:1}],
      collection_mode:'automatic',
-     custom_data:{epmo_intent_id:binding.intentId}},
+     custom_data:{epmo_intent_id:binding.intentId,
+       epmo_attempt_id:binding.attemptId,epmo_invoice_id:binding.invoiceId,
+       epmo_tenant_id:binding.tenantId}},
    expected:{intentId:binding.intentId,tenantId:binding.tenantId,
+     attemptId:binding.attemptId,invoiceId:binding.invoiceId,
      subscriptionId:binding.subscriptionId,planId:binding.planId,
      priceId:catalogue.paddlePriceId,amountMinor:catalogue.amountMinor,
      currency:catalogue.currency,expiresAt:binding.expiresAt},
@@ -48,7 +52,10 @@ export function validatePaddleSandboxTransaction(prepared, response) {
     !Array.isArray(response.items) || response.items.length!==1 ||
     response.items[0]?.price?.id!==prepared.expected.priceId ||
     response.items[0]?.quantity!==1 ||
-    response.custom_data?.epmo_intent_id!==prepared.expected.intentId)
+    response.custom_data?.epmo_intent_id!==prepared.expected.intentId ||
+    response.custom_data?.epmo_attempt_id!==prepared.expected.attemptId ||
+    response.custom_data?.epmo_invoice_id!==prepared.expected.invoiceId ||
+    response.custom_data?.epmo_tenant_id!==prepared.expected.tenantId)
     return fail('response_not_bound_to_server_intent');
  // This returns a candidate ONLY. Caller must insert one immutable row
  // matching the tenant, plan and Paddle transaction ID under an SQL lock.
