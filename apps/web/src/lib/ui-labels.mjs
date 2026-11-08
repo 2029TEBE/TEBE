@@ -43,6 +43,21 @@ export const UI_LABELS = Object.freeze({
   'Documents': { 'de-DE': 'Dokumente', 'zh-CN': '文档', 'fr-FR': 'Documents', 'ja-JP': '文書' },
   'Updates': { 'de-DE': 'Aktuelles', 'zh-CN': '最新动态', 'fr-FR': 'Actualités', 'ja-JP': '更新情報' },
   'Stakeholders': { 'de-DE': 'Stakeholder', 'zh-CN': '利益相关方', 'fr-FR': 'Parties prenantes', 'ja-JP': 'ステークホルダー' },
+  "Executive decision journey": { 'ar-SA': "مسار القرار التنفيذي", 'de-DE': "Weg zur Managemententscheidung", 'zh-CN': "管理决策流程", 'fr-FR': "Parcours de décision de direction", 'ja-JP': "経営判断の流れ" },
+  "FROM SIGNALS TO DECISIONS": { 'ar-SA': "من المؤشرات إلى القرار", 'de-DE': "VON SIGNALEN ZU ENTSCHEIDUNGEN", 'zh-CN': "从信号到决策", 'fr-FR': "DES SIGNAUX AUX DÉCISIONS", 'ja-JP': "兆候から意思決定へ" },
+  "Turn delivery signals into accountable reviews": { 'ar-SA': "حوّل الانحرافات إلى مراجعة موثقة", 'de-DE': "Umsetzungssignale in nachvollziehbare Prüfungen überführen", 'zh-CN': "将交付信号转化为可追责的审查", 'fr-FR': "Transformer les signaux d’exécution en examens responsables", 'ja-JP': "実行状況の兆候を責任あるレビューへ" },
+  "These are the current workspace API signals, not automated decisions or approvals.": { 'ar-SA': "بيانات مساحة العمل الحالية فقط. الأرقام المعروضة لا تعني اعتماد قرار أو تنفيذ إجراء.", 'de-DE': "Dies sind API-Signale des aktuellen Arbeitsbereichs, keine automatisierten Entscheidungen oder Genehmigungen.", 'zh-CN': "这些是当前工作区的 API 信号，并非自动决策或审批。", 'fr-FR': "Ces signaux proviennent de l’API de l’espace de travail actuel ; ils ne constituent ni décisions ni approbations automatisées.", 'ja-JP': "これは現在のワークスペースのAPI情報であり、自動的な意思決定や承認ではありません。" },
+  "OBSERVE": { 'ar-SA': "رصد", 'de-DE': "BEOBACHTEN", 'zh-CN': "观察", 'fr-FR': "OBSERVER", 'ja-JP': "観察" },
+  "Overdue register items": { 'ar-SA': "عناصر سجل متأخرة", 'de-DE': "Überfällige Registereinträge", 'zh-CN': "逾期登记事项", 'fr-FR': "Éléments de registre en retard", 'ja-JP': "期限超過の台帳項目" },
+  "VERIFY": { 'ar-SA': "تحقق", 'de-DE': "PRÜFEN", 'zh-CN': "核实", 'fr-FR': "VÉRIFIER", 'ja-JP': "確認" },
+  "Blocked gates needing evidence review": { 'ar-SA': "بوابات متعثرة تتطلب التحقق من الأدلة", 'de-DE': "Blockierte Phasengates mit Nachweisprüfung", 'zh-CN': "需要核查证据的受阻阶段关卡", 'fr-FR': "Jalons bloqués nécessitant une revue des preuves", 'ja-JP': "証拠確認が必要なブロック中のゲート" },
+  "HUMAN DECISION": { 'ar-SA': "قرار بشري", 'de-DE': "MENSCHLICHE ENTSCHEIDUNG", 'zh-CN': "人工决策", 'fr-FR': "DÉCISION HUMAINE", 'ja-JP': "人による判断" },
+  "Projects returned in the attention queue": { 'ar-SA': "مشاريع ضمن قائمة الانتباه المسترجعة", 'de-DE': "Projekte in der Aufmerksamkeitsliste", 'zh-CN': "待关注队列中返回的项目", 'fr-FR': "Projets figurant dans la file d’attention", 'ja-JP': "要対応キューに返されたプロジェクト" },
+  "Check the source evidence and accountable owner before acting.": { 'ar-SA': "يجب مراجعة السجل الأصلي وصاحب الصلاحية قبل اتخاذ القرار.", 'de-DE': "Vor Maßnahmen die Originalnachweise und die verantwortliche Person prüfen.", 'zh-CN': "采取行动前，请核对原始证据及责任人。", 'fr-FR': "Vérifiez les justificatifs d’origine et le responsable avant d’agir.", 'ja-JP': "対応前に元の証拠と責任者を確認してください。" },
+  "Delivery trend": { 'ar-SA': "اتجاه التنفيذ", 'de-DE': "Umsetzungstrend", 'zh-CN': "交付趋势", 'fr-FR': "Tendance de livraison", 'ja-JP': "実行傾向" },
+  "Portfolio performance": { 'ar-SA': "أداء المحفظة", 'de-DE': "Portfolioleistung", 'zh-CN': "项目组合绩效", 'fr-FR': "Performance du portefeuille", 'ja-JP': "ポートフォリオ実績" },
+  "Portfolio mix": { 'ar-SA': "توزيع المحفظة", 'de-DE': "Portfoliozusammensetzung", 'zh-CN': "项目组合构成", 'fr-FR': "Composition du portefeuille", 'ja-JP': "ポートフォリオ構成" },
+  "Project health": { 'ar-SA': "حالة المشاريع", 'de-DE': "Projektstatus", 'zh-CN': "项目健康状况", 'fr-FR': "Santé des projets", 'ja-JP': "プロジェクトの健全性" },
   'Skip to content': { 'de-DE': 'Zum Inhalt springen', 'zh-CN': '跳转到内容', 'fr-FR': 'Aller au contenu', 'ja-JP': '本文へスキップ' },
   'Modules': { 'de-DE': 'Module', 'zh-CN': '模块', 'fr-FR': 'Modules', 'ja-JP': 'モジュール' },
   'The EPMO': { 'de-DE': 'The EPMO', 'zh-CN': 'The EPMO', 'fr-FR': 'The EPMO', 'ja-JP': 'The EPMO' },
@@ -53,9 +68,14 @@ export const UI_LABELS = Object.freeze({
  * so this UI-only adapter never overwrites verified Arabic strings.
  */
 export function uiLabel(english, locale, legacyArabic = null) {
-  if (locale === 'ar-SA') return legacyArabic || english;
-  if (locale === 'en') return english;
   const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
+  if (locale === 'ar-SA') {
+    // A verified existing Arabic translation wins; new UI-only phrases
+    // use their local Arabic entry without touching backend document exports.
+    return legacyArabic && legacyArabic !== english
+      ? legacyArabic : (row?.['ar-SA'] ?? english);
+  }
+  if (locale === 'en') return english;
   return row?.[locale] ?? english;
 }
 
