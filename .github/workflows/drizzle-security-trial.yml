@@ -1,0 +1,37 @@
+name: Trial safe Drizzle ORM security upgrade
+on:
+  push:
+    branches: [security/drizzle-compatibility-20261109]
+    paths: [.github/workflows/drizzle-security-trial.yml]
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Upgrade both Drizzle ORM workspaces consistently
+        run: |
+          set -euo pipefail
+          pnpm --filter @pmo/api add drizzle-orm@0.45.2
+          pnpm --filter @pmo/db add drizzle-orm@0.45.2
+          pnpm install --lockfile-only
+          pnpm install --frozen-lockfile
+      - name: Verify db and API type contracts
+        run: |
+          pnpm build:packages
+          pnpm typecheck
+          npm run test:offline
+      - name: Commit only after successful compatibility checks
+        run: |
+          set -euo pipefail
+          git add apps/api/package.json packages/db/package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): upgrade Drizzle ORM consistently [security-lockfile]'
+          git push origin HEAD:security/drizzle-compatibility-20261109
