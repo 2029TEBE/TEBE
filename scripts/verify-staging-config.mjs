@@ -14,6 +14,12 @@ function publicHttpsOrigin(value) {
       !u.hostname.endsWith('.local') && !u.hostname.endsWith('.internal');
   } catch { return false; }
 }
+/** Host-bound staging web must not reuse production's default host port. */
+function stagingWebPort(value) {
+  if (typeof value !== 'string' || !/^[1-9][0-9]{3,4}$/.test(value)) return false;
+  const port = Number(value);
+  return Number.isSafeInteger(port) && port >= 1024 && port <= 65535 && port !== 3000;
+}
 function validSecret(value) {
   return typeof value === 'string' && value.length >= 24 &&
     !/replace|placeholder|example|changeme|password|secret|dummy|your_/i.test(value);
@@ -29,6 +35,7 @@ export function checkStagingSecurity(env) {
   const checks = [
     ['Staging environment explicitly selected', env.DEPLOYMENT_ENV === 'staging'],
     ['Loopback-only web bind', (env.WEB_BIND || '') === '127.0.0.1'],
+    ['Dedicated non-production web host port', stagingWebPort(env.WEB_PORT)],
     ['Public HTTPS web origin', publicHttpsOrigin(env.WEB_ORIGIN)],
     ['Public HTTPS API origin', publicHttpsOrigin(env.PUBLIC_API_URL)],
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
