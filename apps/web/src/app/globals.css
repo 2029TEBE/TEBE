@@ -766,7 +766,7 @@ ol.feed li i { margin-inline-start: auto; font-style: normal; color: var(--ink-4
    * the Arabic face only for Arabic glyphs, which is exactly what is wanted.
    */
   :root { --font: 'Manrope', 'Noto Kufi Arabic', 'Helvetica Neue', Arial, sans-serif; }
-  html[lang='ar'] { --font: 'Noto Kufi Arabic', 'IBM Plex Sans Arabic', 'Helvetica Neue', Arial, sans-serif; }
+  html[lang='ar-SA'] { --font: 'Noto Kufi Arabic', 'IBM Plex Sans Arabic', 'Helvetica Neue', Arial, sans-serif; }
   body, input, select, textarea, button { font-family: var(--font); }
 
   /*
@@ -855,12 +855,12 @@ ol.feed li i { margin-inline-start: auto; font-style: normal; color: var(--ink-4
  * Applied to everything, not just body, so form controls and buttons match:
  * a page of Tajawal with Plex inputs looks like two products.
  */
-html[lang='ar'] {
+html[lang='ar-SA'] {
   --font: 'Noto Kufi Arabic', 'IBM Plex Sans Arabic', Tahoma, Arial, sans-serif;
 }
-html[lang='ar'] body,
-html[lang='ar'] input, html[lang='ar'] select,
-html[lang='ar'] textarea, html[lang='ar'] button { font-family: var(--font); }
+html[lang='ar-SA'] body,
+html[lang='ar-SA'] input, html[lang='ar-SA'] select,
+html[lang='ar-SA'] textarea, html[lang='ar-SA'] button { font-family: var(--font); }
 html[dir='rtl'] .caret, html[dir='rtl'] details.explain summary::before { transform: scaleX(-1); }
 html[dir='rtl'] details.explain[open] summary::before { transform: rotate(90deg); }
 .iconbtn.lang { font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600; }
@@ -1525,3 +1525,19 @@ html.rail-narrow .rail > div + div {
    motion should not be given a chasing ring. */
 @media (pointer: coarse) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
 @media (prefers-reduced-motion: reduce) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
+
+/* Unified locale selector: compact on the dashboard, usable on the sign-in page. */
+.locale-switcher { display: inline-flex; align-items: center; max-inline-size: 154px; min-inline-size: 0; }
+.locale-switcher select {
+  max-inline-size: 100%; min-inline-size: 92px; block-size: 34px; border: 1px solid var(--line);
+  border-radius: var(--r); background: var(--surface); color: var(--ink);
+  padding-inline: 10px; font: inherit; font-size: var(--fs-sm); cursor: pointer;
+}
+.locale-switcher select:focus-visible { outline: 2px solid var(--focus, currentColor); outline-offset: 2px; }
+.locale-switcher select:disabled { opacity: .6; cursor: wait; }
+.auth-locale { position: absolute; inset-block-start: 20px; inset-inline-end: 20px; }
+.authpanel { position: relative; }
+@media (max-width: 560px) {
+  .topbar .locale-switcher { max-inline-size: 108px; }
+  .topbar .locale-switcher select { min-inline-size: 0; }
+}
