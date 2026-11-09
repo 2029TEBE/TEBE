@@ -4,6 +4,12 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { money, num } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 
+/** Display-only width. Preserve the original amounts and variance in text. */
+const financialBarWidth = (amount: number, budget: number) => {
+  const ratio = budget > 0 ? (amount / budget) * 100 : 0;
+  return Number.isFinite(ratio) ? Math.max(0, Math.min(100, ratio)) : 0;
+};
+
 export default async function Financials({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -13,8 +19,10 @@ export default async function Financials({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Financials"
-          sub="Budget, committed, spent and forecast — with earned value, so an overrun shows before it lands.">
+    <Page title={lang === 'ar' ? 'البيانات المالية' : 'Financials'}
+          sub={lang === 'ar'
+            ? 'الميزانية والالتزامات والمصروفات والتوقعات والقيمة المكتسبة لرصد الانحرافات المالية.'
+            : 'Budget, committed, spent and forecast — with earned value, so an overrun shows before it lands.'}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="cost" title="New cost line" cta="Add cost line" returnTo="/financials"
         intro="Budget, commitment, actual and forecast are separate lines against the same project. Keeping them apart is what makes variance and CPI mean anything."
@@ -44,9 +52,9 @@ export default async function Financials({ searchParams }:
                 <div className="tile"><span>{t('Approved budget')}</span><strong>{money(tot.budget)}</strong>
                   <div className="split"><i className="dim">SAR</i></div></div>
                 <div className="tile"><span>{t('Committed')}</span><strong>{money(tot.committed)}</strong>
-                  <div className="bar"><i style={{ width: `${(tot.committed / tot.budget) * 100}%` }} /></div></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.committed, tot.budget)}%` }} /></div></div>
                 <div className="tile"><span>{t('Actual spend')}</span><strong>{money(tot.actual)}</strong>
-                  <div className="bar"><i style={{ width: `${(tot.actual / tot.budget) * 100}%` }} /></div></div>
+                  <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.actual, tot.budget)}%` }} /></div></div>
                 <div className={`tile${over > 0 ? ' alarm' : ''}`}>
                   <span>{t('Forecast variance')}</span>
                   <strong className={over > 0 ? 'crit' : 'good'}>{over > 0 ? '+' : ''}{money(over)}</strong>
@@ -54,29 +62,39 @@ export default async function Financials({ searchParams }:
               </div>
 
               <h2 className="sec">{t('By project')}</h2>
-              <div className="scrollx">
+              <div className="scrollx" role="region" aria-label={t('By project')} tabIndex={0}>
                 <table>
                   <thead><tr>
-                    <th>{t('Project')}</th><th>{t('Budget')}</th><th>{t('Committed')}</th><th>{t('Actual')}</th>
-                    <th>{t('Earned value')}</th><th>{t('CPI')}</th><th>{t('Forecast')}</th><th>{t('Variance')}</th>
+                    <th scope="col">{t('Project')}</th><th scope="col">{t('Budget')}</th><th scope="col">{t('Committed')}</th><th scope="col">{t('Actual')}</th>
+                    <th scope="col">{t('Earned value')}</th><th scope="col">{t('CPI')}</th><th scope="col">{t('Forecast')}</th><th scope="col">{t('Variance')}</th>
                   </tr></thead>
                   <tbody>
                     {d.byProject.map((r: any) => (
                       <tr key={r.id}>
-                        <td><strong>{r.code}</strong><div className="dim">{r.progressPct}% complete</div></td>
+                        <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% {lang === 'ar' ? 'مكتمل' : 'complete'}</div></td>
                         <td className="num">{money(r.budget)}</td>
                         <td className="num">{money(r.committed)}</td>
                         <td className="num">{money(r.actual)}</td>
                         <td className="num">{money(r.earnedValue)}</td>
                         <td className="num">{r.cpi == null
                           ? <span className="dim" title={r.cpiSuppressed
-                              ? `Only ${Math.round(r.drawnPct)}% of budget drawn — too early for a meaningful CPI`
-                              : 'No spend recorded'}>too early</span>
+                              ? (lang === 'ar'
+                                  ? `تم صرف ${Math.round(r.drawnPct)}% فقط من الميزانية — لا تكفي البيانات لحساب مؤشر تكلفة ذي دلالة`
+                                  : `Only ${Math.round(r.drawnPct)}% of budget drawn — too early for a meaningful CPI`)
+                              : (lang === 'ar' ? 'لا توجد مصروفات مسجلة' : 'No spend recorded')}>
+                              {r.cpiSuppressed
+                                ? (lang === 'ar' ? 'مبكر للحساب' : 'too early')
+                                : (lang === 'ar' ? 'لا توجد مصروفات' : 'no spend')}
+                            </span>
                           : <span className={r.cpi >= 1 ? 'good' : 'crit'}>{num(r.cpi, 2)}</span>}</td>
                         <td className="num">{money(r.forecast)}
                           {r.forecastCoverage < 1 && (
-                            <div className="dim" title="Categories without their own forecast fall back to budget">
-                              {Math.round(r.forecastCoverage * 100)}% forecast, rest at budget
+                            <div className="dim" title={lang === 'ar'
+                              ? 'الفئات التي لا تتوفر لها توقعات مستقلة تستخدم الميزانية كقيمة بديلة'
+                              : 'Categories without their own forecast fall back to budget'}>
+                              {Math.round(r.forecastCoverage * 100)}% {lang === 'ar'
+                                ? 'ضمن التوقعات، والباقي وفق الميزانية'
+                                : 'forecast, rest at budget'}
                             </div>)}</td>
                         <td className="num">{r.variance > 0
                           ? <span className="crit">+{money(r.variance)}</span>
@@ -98,8 +116,8 @@ export default async function Financials({ searchParams }:
               </details>
 
               <h2 className="sec">{t('By category')}</h2>
-              <table>
-                <thead><tr><th>{t('Category')}</th><th>{t('Budget')}</th><th>{t('Actual')}</th><th>{t('Drawn')}</th></tr></thead>
+              <div className="design-table-scroll" role="region" aria-label={t('By category')} tabIndex={0}><table>
+                <thead><tr><th scope="col">{t('Category')}</th><th scope="col">{t('Budget')}</th><th scope="col">{t('Actual')}</th><th scope="col">{t('Drawn')}</th></tr></thead>
                 <tbody>
                   {d.byCategory.map((c: any) => (
                     <tr key={c.category}>
@@ -107,12 +125,12 @@ export default async function Financials({ searchParams }:
                       <td className="num">{money(c.budget)}</td>
                       <td className="num">{money(c.actual)}</td>
                       <td><div className="bar" style={{ inlineSize: 140 }}>
-                        <i style={{ width: `${c.budget ? Math.min(100, (c.actual / c.budget) * 100) : 0}%` }} />
+                        <i aria-hidden="true" style={{ width: `${financialBarWidth(c.actual, c.budget)}%` }} />
                       </div></td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </>
           );
         }}

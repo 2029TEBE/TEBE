@@ -15,7 +15,7 @@ export default async function Stakeholders({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Stakeholders" sub="Who can affect delivery, and how closely each needs managing. Placement comes from influence × interest.">
+    <Page title={lang === 'ar' ? 'أصحاب المصلحة' : 'Stakeholders'} sub={lang === 'ar' ? 'تصنيف أصحاب المصلحة وفق التأثير والاهتمام لتحديد مستوى التواصل المناسب.' : 'Who can affect delivery, and how closely each needs managing. Placement comes from influence × interest.'}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="stakeholder" title="New stakeholder" cta="Add stakeholder" returnTo="/stakeholders"
         intro="Influence and interest place someone on the engagement grid, so both are worth setting even when they are a guess."
@@ -31,11 +31,25 @@ export default async function Stakeholders({ searchParams }:
                 { name: 'phone', label: 'Phone' },
                 { name: 'isExternal', label: 'External to the organisation', type: 'checkbox' },
               ]} />
-      <Loaded load={api.stakeholders} empty="No stakeholders recorded yet.">
+      <Loaded load={api.stakeholders} empty={lang === 'ar' ? 'لم يتم تسجيل أصحاب مصلحة بعد.' : 'No stakeholders recorded yet.'}>
         {(list) => (
           <>
-            <table>
-              <thead><tr><th>{t('Stakeholder')}</th><th>{t('Organisation')}</th><th>{t('Role')}</th><th>{t('Project')}</th><th>{t('Influence')}</th><th>{t('Interest')}</th><th>{t('Handling')}</th></tr></thead>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص أصحاب المصلحة' : 'Stakeholder overview'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'إدارة أصحاب المصلحة' : 'STAKEHOLDER ENGAGEMENT'}</span>
+                <h2>{lang === 'ar' ? 'ملخص أصحاب المصلحة المسجلين' : 'Registered stakeholder snapshot'}</h2>
+                <p>{lang === 'ar'
+                  ? 'تستند المؤشرات إلى أصحاب المصلحة المعادين من واجهة البيانات المصرح بها فقط، ولا تعني أنها تشمل جميع الأطراف في المؤسسة.'
+                  : 'This snapshot covers only stakeholders returned by the authorized API; it may not represent every party across the organization.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'المسجلون' : 'Returned stakeholders'}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تأثير واهتمام مرتفعان' : 'High influence and interest'}</small><strong>{list.filter((s: { influence?: number | null; interest?: number | null }) => Number(s.influence) >= 4 && Number(s.interest) >= 4).length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'جهات خارجية' : 'External stakeholders'}</small><strong>{list.filter((s: { isExternal?: boolean }) => s.isExternal === true).length}</strong></div>
+              </div>
+            </section>
+            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل أصحاب المصلحة' : 'Stakeholder register'} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Stakeholder')}</th><th scope="col">{t('Organisation')}</th><th scope="col">{t('Role')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Influence')}</th><th scope="col">{t('Interest')}</th><th scope="col">{t('Handling')}</th></tr></thead>
               <tbody>{list.map((s: any) => {
                 const b = s.influence && s.interest ? band(s.influence, s.interest) : null;
                 return (
@@ -43,22 +57,22 @@ export default async function Stakeholders({ searchParams }:
                     <td><strong>{s.name}</strong>
                       {s.email && <div className="dim">{s.email}</div>}</td>
                     <td>{s.organisation ?? '—'}
-                      {s.isExternal && <div><span className="kind k-issue">external</span></div>}</td>
+                      {s.isExternal && <div><span className="kind k-issue">{lang === 'ar' ? 'خارجي' : 'external'}</span></div>}</td>
                     <td className="dim">{s.role ?? '—'}</td>
                     <td className="num">{s.projectCode ?? '—'}</td>
                     <td className="num">{s.influence ?? '—'}</td>
                     <td className="num">{s.interest ?? '—'}</td>
-                    <td>{b ? <span className={`pill sh-${b}`}>{b} closely</span> : <span className="dim">—</span>}</td>
+                    <td>{b ? <span className={`pill sh-${b}`}>{lang === 'ar' ? ({ manage: 'إدارة مباشرة', satisfy: 'الحفاظ على الرضا', inform: 'إبلاغ مستمر', monitor: 'متابعة' } as Record<string, string>)[b] : ({ manage: 'manage closely', satisfy: 'keep satisfied', inform: 'keep informed', monitor: 'monitor' } as Record<string, string>)[b]}</span> : <span className="dim">—</span>}</td>
                   </tr>);
               })}</tbody>
-            </table>
+            </table></div>
             <details className="explain">
               <summary>{t('What the handling column means')}</summary>
-              <p>{t('The standard influence/interest grid. High influence and high interest means')}
+              {lang === 'ar' ? <p>تحدد مصفوفة التأثير والاهتمام أسلوب التواصل: التأثير والاهتمام المرتفعان يتطلبان إدارة مباشرة، والتأثير المرتفع مع اهتمام منخفض يستلزم الحفاظ على الرضا، والاهتمام المرتفع مع تأثير منخفض يتطلب إبلاغا مستمرا، أما المستويات المنخفضة فتحتاج إلى المتابعة الدورية.</p> : <p>{t('The standard influence/interest grid. High influence and high interest means')}
                 <strong> manage closely</strong> — they can stop the project and they care.
                 High influence, low interest means <strong>keep satisfied</strong> — do not surprise them.
                 Low influence, high interest means <strong>keep informed</strong>. Neither means
-                <strong> monitor</strong>. It decides who gets a phone call and who gets a newsletter.</p>
+                <strong> monitor</strong>. It decides who gets a phone call and who gets a newsletter.</p>}
             </details>
           </>
         )}

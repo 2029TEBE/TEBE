@@ -139,7 +139,7 @@ export default async function Analytics() {
               </div>
 
               <h2 className="sec">{t('Budget vs spend')}</h2>
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Budget vs spend')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Budget')}</th><th>{t('Actual')}</th><th>{t('Drawn')}</th></tr></thead>
                 <tbody>{d.spendByProject.map((s: any) => (
                   <tr key={s.code}>
@@ -153,10 +153,10 @@ export default async function Analytics() {
                       <span className="dim">{s.budget ? pct((s.actual / s.budget) * 100) : '—'}</span>
                     </td>
                   </tr>))}</tbody>
-              </table>
+              </table></div>
 
               <h2 className="sec">{t('Schedule slippage')}</h2>
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Schedule slippage')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Baselined items')}</th><th>{t('Slipped')}</th><th>{t('Worst slip')}</th></tr></thead>
                 <tbody>{d.slip.map((s: any) => (
                   <tr key={s.code}>
@@ -168,7 +168,7 @@ export default async function Analytics() {
                       ? <span className="crit">+{s.worstSlipDays} days</span>
                       : <span className="good">on time</span>}</td>
                   </tr>))}</tbody>
-              </table>
+              </table></div>
             </>
           );
         }}

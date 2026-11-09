@@ -22,6 +22,31 @@ export default async function SuperAdmin({ searchParams }: {
         'إدارة اشتراكات العملاء والباقات. منح التراخيص يدويًا لا يعني التحقق من الدفع.')}>
       {done && <p className="okmsg" role="status">{tx('Change saved and audited.', 'تم حفظ التغيير وتسجيله.')}</p>}
       {error && <p className="err" role="alert">{error}</p>}
+      <section className="design-context" aria-label={tx('Vendor administration context', 'سياق إدارة المنصة')}>
+        <div className="design-context-head">
+          <span className="design-kicker">{tx('VENDOR CONTROLS / LIVE OPERATIONS', 'صلاحيات مزود الخدمة / عمليات فعلية')}</span>
+          <h2>{tx('Subscription management with accountable controls', 'إدارة الاشتراكات بضوابط واضحة')}</h2>
+          <p>{tx('The forms below change real subscriptions. Access is restricted to platform administrators; use documented authorization before taking an action.',
+            'تؤثر النماذج أدناه في الاشتراكات الفعلية. الوصول محصور بمسؤولي المنصة؛ تحقّق من التفويض الموثق قبل إجراء أي تغيير.')}</p>
+        </div>
+        <div className="design-summary">
+          <div className="design-metric">
+            <small>{tx('01 / Verify', '٠١ / التحقق')}</small>
+            <strong className="design-vendor-word">{tx('Authority', 'الصلاحية')}</strong>
+            <small>{tx('Confirm the authorized customer and plan', 'تحقق من العميل والباقة والتفويض')}</small>
+          </div>
+          <div className="design-metric">
+            <small>{tx('02 / Record', '٠٢ / التوثيق')}</small>
+            <strong className="design-vendor-word">{tx('Reason', 'السبب')}</strong>
+            <small>{tx('Record a meaningful business reference', 'وثّق مرجعا واضحا للإجراء')}</small>
+          </div>
+          <div className="design-metric">
+            <small>{tx('03 / Review', '٠٣ / المراجعة')}</small>
+            <strong className="design-vendor-word">{tx('Audit', 'التدقيق')}</strong>
+            <small>{tx('Review the audit history after a change', 'راجع سجل التدقيق بعد إجراء التغيير')}</small>
+          </div>
+        </div>
+      </section>
       <section className="panel" style={{marginBlockEnd:24}}>
         <h2>{tx('Create subscription plan', 'إنشاء باقة اشتراك')}</h2>
         <form method="post" action="/api/super-admin" style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'end'}}>

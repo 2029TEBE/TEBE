@@ -22,22 +22,40 @@ export default async function Integrations({ searchParams }:
                       flash={{ connected, error }} initial={ms} />
 
       <h2 className="sec">{t('Everything else')}</h2>
-      <Loaded load={api.integrations} empty="No other integrations configured.">
+      <Loaded load={api.integrations} empty={lang === 'ar' ? 'لم تُهيأ تكاملات أخرى بعد.' : 'No other integrations configured.'}>
         {(list) => (
           <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص التكاملات الأخرى' : 'Other integrations snapshot'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'ترابط الأنظمة' : 'CONNECTED SYSTEMS'}</span>
+                <h2>{lang === 'ar' ? 'حالة التكاملات الأخرى' : 'Other integration status'}</h2>
+                <p>{lang === 'ar'
+                  ? 'هذه المؤشرات محسوبة من سجلات التكاملات الأخرى المعادة فقط، ولا تشمل اتصال Microsoft المعروض أعلاه.'
+                  : 'These metrics count only the other integrations returned by this API response; Microsoft is displayed separately above.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'التكاملات المعادة' : 'Returned integrations'}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'متصلة' : 'Connected'}</small><strong>{list.filter((item: { status: string }) => item.status === 'connected').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج إلى معالجة' : 'Connection errors'}</small><strong>{list.filter((item: { status: string }) => item.status === 'error').length}</strong></div>
+              </div>
+            </section>
             <div className="grid2">
               {list.map((i: any) => (
                 <div className={`panel integ s-${i.status}`} key={i.id}>
                   <header>
                     <strong>{i.name}</strong>
                     <span className={`pill ${i.status === 'connected' ? 'on_track'
-                      : i.status === 'error' ? 'critical' : 's-closed'}`}>{i.status}</span>
+                      : i.status === 'error' ? 'critical' : 's-closed'}`}>{
+                        lang === 'ar' && i.status === 'connected' ? 'متصل'
+                        : lang === 'ar' && i.status === 'error' ? 'خطأ'
+                        : i.status
+                      }</span>
                   </header>
                   <dl>
                     <div><dt>{t('Provider')}</dt><dd><code>{i.provider}</code></dd></div>
                     <div><dt>{t('Direction')}</dt><dd>{i.direction}</dd></div>
                     <div><dt>{t('Records synced')}</dt><dd className="num">{num(i.recordsSynced)}</dd></div>
-                    <div><dt>{t('Last sync')}</dt><dd>{i.lastSyncAt ? ago(i.lastSyncAt, lang) : 'never'}</dd></div>
+                    <div><dt>{t('Last sync')}</dt><dd>{i.lastSyncAt ? ago(i.lastSyncAt, lang) : (lang === 'ar' ? 'لم تتم مزامنة' : 'Never synced')}</dd></div>
                   </dl>
                   {i.lastError && <p className="err" style={{ marginBlockStart: 12 }}>{i.lastError}</p>}
                 </div>
