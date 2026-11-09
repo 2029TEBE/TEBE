@@ -106,6 +106,14 @@ jobs:
       - name: Record tenant isolation and data integrity evidence
         run: node scripts/phase15e-release-evidence.mjs record tenant_isolation
       - name: Start API
+        # Disposable CI-only OAuth configuration. These are inert placeholders,
+        # never production integration credentials, and are scoped to the API
+        # subprocess started for live acceptance tests only.
+        env:
+          MS_CLIENT_ID: '00000000-0000-4000-8000-000000000001'
+          MS_CLIENT_SECRET: 'ci-only-placeholder-no-provider-access'
+          MS_REDIRECT_URI: 'http://localhost:4000/integrations/microsoft/callback'
+          MS_TOKEN_KEY: 'ci-only-ephemeral-token-key-never-production'
         run: |
           pnpm --filter @pmo/api build
           node scripts/verify-build-artifacts.mjs --scope api

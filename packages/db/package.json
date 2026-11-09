@@ -28,7 +28,7 @@
     "@pmo/contracts": "workspace:*",
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
