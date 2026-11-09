@@ -10,6 +10,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { loadEnv } from './common/env';
 import { isAllowedWriteRequest } from './common/write-origin.guard';
+import { requestLocaleMiddleware } from './common/request-locale';
 
 async function bootstrap() {
   const env = loadEnv();
@@ -21,6 +22,8 @@ async function bootstrap() {
 
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
   app.use(cookieParser());
+  // Read the chosen locale after cookie parsing, without touching auth or tenant context.
+  app.use(requestLocaleMiddleware);
 
   const allowedOrigins = env.WEB_ORIGIN.split(',').map((s) => s.trim());
   // Reject cross-site browser mutations before auth/controllers execute.
