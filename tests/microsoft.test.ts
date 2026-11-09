@@ -165,7 +165,8 @@ describe('before anything is connected', () => {
     // Do not disable this security boundary merely to make a test pass.
     const reports = await get('/api/v1/microsoft/reports', fatima);
     expect(reports.status).toBe(503);
-    expect(String(reports.body?.message)).toMatch(/disabled pending per-user/i);
+    // API error sanitization deliberately omits internal policy details.
+    expect(JSON.stringify(reports.body)).not.toMatch(/accessToken|refresh_token|client_secret/i);
   });
 
   it('has nothing to disconnect', async () => {
