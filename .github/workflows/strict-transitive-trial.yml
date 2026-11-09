@@ -1,0 +1,42 @@
+name: Trial strict transitive security overrides
+on:
+  push:
+    branches: [security/strict-transitive-security-20261109]
+    paths: [.github/workflows/strict-transitive-trial.yml]
+permissions:
+  contents: write
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Update tmp image-size and Vite regardless of original range
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const p='package.json',pkg=JSON.parse(fs.readFileSync(p,'utf8'));
+          pkg.pnpm ??= {}; pkg.pnpm.overrides ??= {};
+          Object.assign(pkg.pnpm.overrides,{
+            'tmp':'0.2.7',
+            'image-size':'2.0.3',
+            'vite':'8.2.4'
+          });
+          fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\n');
+          NODE
+          pnpm install --lockfile-only
+          pnpm install --frozen-lockfile
+      - name: Verify compatibility and offline tests
+        run: pnpm build:packages && pnpm typecheck && npm run test:offline
+      - name: Commit successful patch
+        run: |
+          git add package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): resolve old transitive tmp image-size and Vite'
+          git push origin HEAD:security/strict-transitive-security-20261109
