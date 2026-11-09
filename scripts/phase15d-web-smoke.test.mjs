@@ -60,3 +60,15 @@ test('rejects missing redirect location', async () =>
   assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/billing': response(307) })), /location missing/));
 test('rejects login errors and missing content', async () =>
   assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login': response(500, 'internal error', { 'content-type': 'text/html' }) })), /expected HTTP 200/));
+
+test('accepts BCP 47 regional English and Arabic language tags', async () => {
+  const result = await verifyWebSmoke(ORIGIN, makeFetch({
+    '/login': response(200, page('en-US', 'ltr', 'Sign in'), { 'content-type': 'text/html' }),
+    '/login-ar': response(200, page('ar-SA', 'rtl', 'تسجيل الدخول'), { 'content-type': 'text/html' }),
+  }));
+  assert.equal(result.passed, true);
+});
+test('rejects a different RTL language even when Arabic text is present', async () =>
+  assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login-ar': response(200, page('he-IL', 'rtl', 'تسجيل الدخول'), { 'content-type': 'text/html' }) })), /mismatch/));
+test('rejects malformed document language tags', async () =>
+  assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login-ar': response(200, page('ar_SA', 'rtl', 'تسجيل الدخول'), { 'content-type': 'text/html' }) })), /mismatch/));
