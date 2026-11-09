@@ -21,7 +21,7 @@ export default async function FinancialIntelligencePage() {
             <div className="tile"><span>{t('Estimates needing review')}</span><strong>{insight.unreliableForecasts}</strong></div>
           </div>
           <div className="chartcard">
-            <h2 className="sec">{t('Forecast variance as % of each project's budget')}</h2>
+            <h2 className="sec">{t('Positive forecast variance (% of budget)')}</h2>
             {comparable.length?<BarChart caption="Forecast variance percentage by project" labels={comparable.map(p=>p.code)}
               values={comparable.map(p=>Math.max(0,p.variancePct??0))} format={v=>`${Math.round(v)}%`}
               hrefs={comparable.map(()=>'/financials')}/>:
