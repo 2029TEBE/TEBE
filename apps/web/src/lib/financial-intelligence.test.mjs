@@ -8,7 +8,7 @@ test('empty input never invents estimates',()=>{
 });
 test('preserves backend CPI and EAC without recomputing misleading baselines',()=>{
  const p=financialIntelligence([row()]).projects[0];
- assert.equal(p.forecastVariance,150);assert.equal(p.estimatedOverrun,250);assert.equal(p.cpi,0.8);
+ assert.equal(p.forecastVariance,150);assert.equal(p.variancePct,15);assert.equal(p.estimatedOverrun,250);assert.equal(p.cpi,0.8);
 });
 test('immature spend hides CPI and EAC rather than forecasting',()=>{
  const p=financialIntelligence([row({actual:50,cpi:7,eac:142})]).projects[0];
@@ -21,4 +21,9 @@ test('missing forecast coverage is highlighted, budget-free projects are not ove
 test('untrusted incidental data is not included and invalid numbers are rejected',()=>{
  const r=financialIntelligence([row({customerEmail:'private@example.test'}),row({code:'BAD',budget:Infinity})]);
  assert.equal(r.projects.length,1);assert.doesNotMatch(JSON.stringify(r),/private@example|BAD/);
+});
+
+test('percentage ranking is currency-neutral and excludes unbudgeted projects',()=>{
+ const r=financialIntelligence([row({code:'SMALL',budget:100,forecast:130}),row({code:'LARGE',budget:100000,forecast:110000})]);
+ assert.deepEqual(r.projects.map(p=>p.code),['SMALL','LARGE']);
 });
