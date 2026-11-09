@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Req, Res, HttpCode } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
+import { SUPPORTED_LOCALES } from '@pmo/contracts';
 import { ZodPipe } from '../common/zod.pipe';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService, SESSION_COOKIE } from './auth.service';
@@ -19,7 +20,8 @@ const loginBody = z.object({
 
 const recoveryRequest = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
-  lang: z.enum(['ar', 'en']).default('en'),
+  // Legacy 'ar' remains valid while clients migrate to canonical ar-SA.
+  lang: z.enum(['ar', ...SUPPORTED_LOCALES.map(item => item.code)] as [string, ...string[]]).default('en'),
 }).strict();
 const recoveryReset = z.object({
   token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
