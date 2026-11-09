@@ -73,6 +73,12 @@ if [[ "$MODE" == staging ]]; then
     echo 'BLOCKED: staging configuration or pre-sync validation tool is unverified. No files copied.' >&2
     exit 1
   fi
+  # Attest actual Docker projects, named volumes and host-port ownership.
+  # Require independently provisioned read-only script before any sync.
+  if ! ssh_remote "cd '$DIR' && test -f scripts/verify-staging-resources.mjs && node scripts/verify-staging-resources.mjs --env-file '$ENVFILE'"; then
+    echo 'BLOCKED: staging Docker resources are not isolated. No files copied.' >&2
+    exit 1
+  fi
 fi
 
 echo "Deploying $MODE to $HOST:$DIR"
