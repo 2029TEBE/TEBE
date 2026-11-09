@@ -863,6 +863,7 @@ html[lang='ar'] input, html[lang='ar'] select,
 html[lang='ar'] textarea, html[lang='ar'] button { font-family: var(--font); }
 html[dir='rtl'] .caret, html[dir='rtl'] details.explain summary::before { transform: scaleX(-1); }
 html[dir='rtl'] details.explain[open] summary::before { transform: rotate(90deg); }
+.auth-language { display: flex; justify-content: flex-end; margin-block-end: 16px; }
 /* Readable, keyboard-accessible language selector; matches the website's EN/Arabic choices. */
 .language-select {
   display: inline-flex; align-items: center; gap: 6px; flex: none;
