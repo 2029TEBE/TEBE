@@ -1,6 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { getLang } from '@/lib/i18n';
+import { getLocale } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   title: 'The EPMO | المكتب التنفيذي لإدارة المشاريع',
@@ -20,9 +20,10 @@ export const metadata: Metadata = {
  * wrong language for the whole page.
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const ar = (await getLang()) === 'ar';
+  const locale = await getLocale();
+  const ar = locale === 'ar-SA';
   return (
-    <html lang={ar ? 'ar' : 'en'} dir={ar ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html lang={locale} dir={ar ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Kufi+Arabic:wght@400;500;700&display=swap" />
