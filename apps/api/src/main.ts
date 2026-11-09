@@ -10,6 +10,7 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { loadEnv } from './common/env';
 import { isAllowedWriteRequest } from './common/write-origin.guard';
+import { localeDirection, resolveRequestLocale } from '@pmo/contracts';
 
 async function bootstrap() {
   const env = loadEnv();
@@ -21,6 +22,15 @@ async function bootstrap() {
 
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
   app.use(cookieParser());
+  // Request-scoped locale metadata for future translated emails, exports and errors.
+  // Never changes authorization, tenant context, stored values or response data.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const locale = resolveRequestLocale(
+      req.get('x-epmo-locale'), req.cookies?.pmo_lang, req.get('accept-language'));
+    res.locals.epmoLocale = locale;
+    res.locals.epmoDirection = localeDirection(locale);
+    next();
+  });
 
   const allowedOrigins = env.WEB_ORIGIN.split(',').map((s) => s.trim());
   // Reject cross-site browser mutations before auth/controllers execute.
