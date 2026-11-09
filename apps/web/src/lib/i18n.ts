@@ -1,5 +1,5 @@
 import { cookies, headers } from 'next/headers';
-import { normalizeLocale, resolveRequestLocale, type SupportedLocale } from '@pmo/contracts';
+import { resolveRequestLocale, type SupportedLocale } from '@pmo/contracts';
 import { translator, type Lang, type T } from './i18n-dict';
 
 export { translator, term, type Lang, type T } from './i18n-dict';
