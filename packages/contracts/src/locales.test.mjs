@@ -23,7 +23,7 @@ test('legacy Arabic cookie and safe language aliases normalize to canonical code
   assert.equal(normalizeLocale('ja-JP'), 'ja-JP');
 });
 test('unsupported or malicious language tags never escape the allowlist', () => {
-  for (const locale of ['xx-XX','zh-TW','../../etc/passwd','', 'a'.repeat(120), {}, null]) {
+  for (const locale of ['xx-XX','zh-TW','../../etc/passwd','__proto__','constructor','toString','', 'a'.repeat(120), {}, null]) {
     assert.equal(normalizeLocale(locale), null);
   }
 });
