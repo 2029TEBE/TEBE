@@ -1,6 +1,5 @@
 'use client';
 import { useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { SUPPORTED_LOCALES, type SupportedLocale } from '@pmo/contracts';
 
 /**
@@ -9,7 +8,6 @@ import { SUPPORTED_LOCALES, type SupportedLocale } from '@pmo/contracts';
  * Locale is presentation-only: no account, tenant or API permission is changed.
  */
 export function LangToggle({ locale }: { locale: SupportedLocale }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
 
   function selectLocale(next: string) {
@@ -22,7 +20,6 @@ export function LangToggle({ locale }: { locale: SupportedLocale }) {
 
   return (
     <label className="locale-switcher" title="Choose interface language">
-      <span className="sr-only">Interface language</span>
       <select aria-label="Interface language" value={locale} disabled={pending}
               onChange={(event) => selectLocale(event.target.value)}>
         {SUPPORTED_LOCALES.map(item => (
