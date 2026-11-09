@@ -15,8 +15,8 @@
  * component takes `lang` as a prop. Both call `translator(lang)`.
  */
 import type { SupportedLocale } from './locales';
-/** Keep legacy ar cookie support while all selectors migrate to ar-SA. */
-export type Lang = SupportedLocale | 'ar';
+/** Legacy frontend rendering contract until its widgets support all locales. */
+export type Lang = 'en' | 'ar';
 
 /** English source → Arabic. */
 const AR: Record<string, string> = {
@@ -1119,7 +1119,7 @@ const AR: Record<string, string> = {
 export type T = (s: string) => string;
 
 /** A translate function for this request. Unknown strings come back as English. */
-export function translator(lang: Lang): T {
+export function translator(lang: Lang | SupportedLocale): T {
   // Only Arabic has a translated dictionary today. All other locale codes
   // fall back to English until reviewed dictionaries are available.
   if (lang !== 'ar' && lang !== 'ar-SA') return (s) => s;
