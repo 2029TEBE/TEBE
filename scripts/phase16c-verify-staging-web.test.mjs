@@ -19,7 +19,7 @@ function fakeFetch() {
     const path = new URL(url).pathname;
     if (path==='/login') {
       const ar=options.headers.cookie==='pmo_lang=ar';
-      return response(200,`<html lang="${ar?'ar':'en'}" dir="${ar?'rtl':'ltr'}"><body>${ar?'تسجيل الدخول':'Sign in'}<form action="/api/session"></form></body></html>`,{'content-type':'text/html'});
+      return response(200,`<html lang="${ar?'ar-SA':'en'}" dir="${ar?'rtl':'ltr'}"><body>${ar?'تسجيل الدخول':'Sign in'}<form action="/api/session"></form></body></html>`,{'content-type':'text/html'});
     }
     return response(307,'',{location:'/login'});
   };
