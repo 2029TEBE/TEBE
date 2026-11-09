@@ -8,7 +8,7 @@ const toggle = read('apps/web/src/components/LangToggle.tsx');
 const login = read('apps/web/src/app/login/page.tsx');
 const checks = [
   ['English/Arabic page metadata', layout.includes('The EPMO | المكتب التنفيذي لإدارة المشاريع')],
-  ['Correct document lang and direction', /<html\s+lang=\{ar\s*\?\s*'ar'\s*:\s*'en'\}\s+dir=\{ar\s*\?\s*'rtl'\s*:\s*'ltr'\}/.test(layout)],
+  ['Correct document lang and direction', layout.includes("lang={ar ? 'ar-SA' : 'en'}") && layout.includes("dir={ar ? 'rtl' : 'ltr'}")],
   ['Cookie-backed language preference', language.includes("get('pmo_lang')")],
   ['Language toggle persists preference', toggle.includes('document.cookie = `pmo_lang=')],
   ['Language toggle reloads server document metadata', toggle.includes('window.location.reload()')],
