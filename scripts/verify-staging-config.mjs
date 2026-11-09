@@ -34,7 +34,10 @@ export function checkStagingSecurity(env) {
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
     ['Database connection has non-placeholder credentials', dbUrl(env.DATABASE_URL)],
     ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
-    ['Stripe configuration never uses live key in staging', !String(env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')],
+    ['Legacy Stripe adapter disabled while Paddle staging is unverified', env.STRIPE_ENABLED === 'false'],
+    ['No legacy Stripe payment credentials in non-billing staging',
+      !env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET && !env.STRIPE_WEBHOOK_PUBLIC_URL],
+    ['No Stripe staging exception for non-billing mode', env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === 'false'],
     ['Reference billing webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['No production deployment mode', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
   ];
