@@ -27,7 +27,8 @@ const aliases: Readonly<Record<string, SupportedLocale>> = {
 /** Only explicitly supported locales and safe aliases are accepted. */
 export function normalizeLocale(input: unknown): SupportedLocale | null {
   if (typeof input !== 'string' || input.length > 35) return null;
-  return aliases[input.trim().toLowerCase()] ?? null;
+  const key = input.trim().toLowerCase();
+  return Object.hasOwn(aliases, key) ? aliases[key] : null;
 }
 
 /** Honor quality weights and original order. Reject oversized/untrusted input. */
