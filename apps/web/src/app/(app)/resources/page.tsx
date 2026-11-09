@@ -4,6 +4,10 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { num } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 
+/** Visual bar width only; over-allocated totals remain visible in text. */
+const capacityBarFill = (pct: number) =>
+  Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
+
 export default async function Resources({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
@@ -13,8 +17,8 @@ export default async function Resources({ searchParams }:
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Resources"
-          sub="Who is working on what, and who is over-committed. Over-allocation is the earliest warning of slippage.">
+    <Page title={lang === 'ar' ? 'الموارد' : 'Resources'}
+          sub={lang === 'ar' ? 'توزيع الأفراد على المشاريع ورصد الحمل الزائد قبل أن يؤثر في التنفيذ.' : 'Who is working on what, and who is over-committed. Over-allocation is the earliest warning of slippage.'}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="allocation" title="New allocation" cta="Allocate" returnTo="/resources"
         intro="Allocating the same person past 100% across projects is what over-commitment looks like before anyone feels it."
@@ -31,9 +35,23 @@ export default async function Resources({ searchParams }:
       <Loaded load={api.resources}>
         {(d) => (
           <>
+            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص طاقة الموارد' : 'Resource capacity snapshot'}>
+              <div className="design-context-head">
+                <span className="design-kicker">{lang === 'ar' ? 'طاقة التنفيذ' : 'DELIVERY CAPACITY'}</span>
+                <h2>{lang === 'ar' ? 'ملخص طاقة الأفراد' : 'People capacity overview'}</h2>
+                <p>{lang === 'ar'
+                  ? 'المؤشرات مأخوذة من سجلات الموارد المعادة من واجهة البيانات المصرح بها؛ ولا تمثل بالضرورة جميع أفراد المؤسسة.'
+                  : 'Metrics describe only resource records returned by the authorized API, not necessarily the entire organization.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'الأفراد المعروضون' : 'Returned people'}</small><strong>{d.people.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تجاوزوا 100% تخصيصا' : 'Allocated above 100%'}</small><strong>{d.people.filter((p: { allocatedPct: number }) => p.allocatedPct > 100).length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'سجلات التخصيص المعروضة' : 'Returned allocations'}</small><strong>{d.byProject.length}</strong></div>
+              </div>
+            </section>
             <h2 className="sec" style={{ marginTop: 0 }}>{t('Capacity')}</h2>
-            <table>
-              <thead><tr><th>{t('Person')}</th><th>{t('Projects')}</th><th>{t('Allocated')}</th><th>{t('Load')}</th><th>{t('Hours, 7 days')}</th></tr></thead>
+            <div className="design-table-scroll" role="region" aria-label={t('Capacity')} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Person')}</th><th scope="col">{t('Projects')}</th><th scope="col">{t('Allocated')}</th><th scope="col">{t('Load')}</th><th scope="col">{t('Hours, 7 days')}</th></tr></thead>
               <tbody>
                 {d.people.map((p: any) => {
                   const over = p.allocatedPct > 100;
@@ -46,20 +64,20 @@ export default async function Resources({ searchParams }:
                       <td>
                         <div className="bar" style={{ inlineSize: 180 }}>
                           <i className={over ? 'over' : undefined}
-                             style={{ width: `${Math.min(100, p.allocatedPct)}%` }} />
+                             aria-hidden="true" style={{ width: `${capacityBarFill(p.allocatedPct)}%` }} />
                         </div>
-                        {over && <div className="crit">over-committed by {p.allocatedPct - 100}%</div>}
+                        {over && <div className="crit">{lang === 'ar' ? 'تجاوز الطاقة بنسبة' : 'over-committed by'} {p.allocatedPct - 100}%</div>}
                       </td>
                       <td className="num">{num(p.hoursLast7, 1)}</td>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
 
             <h2 className="sec">{t('Allocations by project')}</h2>
-            <table>
-              <thead><tr><th>{t('Project')}</th><th>{t('Person')}</th><th>{t('Role')}</th><th>{t('Allocation')}</th></tr></thead>
+            <div className="design-table-scroll" role="region" aria-label={t('Allocations by project')} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Person')}</th><th scope="col">{t('Role')}</th><th scope="col">{t('Allocation')}</th></tr></thead>
               <tbody>
                 {d.byProject.map((a: any, i: number) => (
                   <tr key={i}>
@@ -70,7 +88,7 @@ export default async function Resources({ searchParams }:
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
       </Loaded>

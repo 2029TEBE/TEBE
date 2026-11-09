@@ -17,7 +17,8 @@ export default async function Updates({ searchParams }:
   // stream below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title="Updates" sub="Narrative from the delivery teams — what the numbers do not say.">
+    <Page title={lang === 'ar' ? 'التحديثات' : 'Updates'}
+          sub={lang === 'ar' ? 'مستجدات فرق التنفيذ التي لا تظهر في المؤشرات الرقمية.' : 'Narrative from the delivery teams — what the numbers do not say.'}>
       <Flash error={error} done={done} lang={lang} />
       {mayPost ? <NewRecord lang={lang} kind="update" title="Post an update" cta="Post" returnTo="/updates"
         intro="An escalation is the one that gets read first. Leave the project blank for something that applies to the whole portfolio."
@@ -32,11 +33,11 @@ export default async function Updates({ searchParams }:
         ]} /> : <p className="dim">{lang === 'ar'
           ? 'يمكنك قراءة التحديثات، ولكن نشر التحديثات يتطلب صلاحية المساهمة.'
           : 'You can read updates, but posting requires contributor permission.'}</p>}
-      <Loaded load={api.updates} empty="No updates posted yet.">
+      <Loaded load={api.updates} empty={lang === 'ar' ? 'لم تُنشر تحديثات بعد.' : 'No updates posted yet.'}>
         {(list) => (
-          <div className="stream">
+          <div className="stream" role="feed" aria-label={lang === 'ar' ? 'تحديثات المشاريع' : 'Project updates'}>
             {list.map((u: any) => (
-              <article key={u.id} className={`post p-${u.kind}`}>
+              <article key={u.id} className={`post p-${u.kind}`} aria-label={lang === 'ar' ? 'تحديث مشروع' : 'Project update'}>
                 <header>
                   <span className="av">{(u.author ?? '?').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}</span>
                   <div>

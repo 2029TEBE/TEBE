@@ -1285,7 +1285,14 @@ form.inline .btn { flex: none; }
 .stackbar .track { display: flex; block-size: 16px; border-radius: 999px; overflow: hidden;
   background: var(--surface-3); }
 .stackbar .seg { display: block; transition: opacity .12s; }
-.stackbar a:hover .seg { opacity: .75; }
+.stackbar .track > a.seg:hover { opacity: .8; }
+.stackbar .track > a.seg:focus-visible {
+  outline: 2px solid var(--surface);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 3px var(--ink);
+  position: relative;
+  z-index: 1;
+}
 .chartgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: var(--sp-3); align-items: start; margin-block: var(--sp-3); }
 @media (max-width: 900px) { .chartgrid { grid-template-columns: 1fr; } }
@@ -1525,3 +1532,268 @@ html.rail-narrow .rail > div + div {
    motion should not be given a chasing ring. */
 @media (pointer: coarse) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
 @media (prefers-reduced-motion: reduce) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
+
+
+/* THEEPMO design-first v3: safe app-wide treatment. Inherit the existing
+   authorization-aware shell, language direction, preference storage and routes.
+   No API, permissions or data-contract changes are required. */
+:root{
+  --ds-navy:#0B2630;--ds-teal:#087F80;--ds-amber:#D7A94B;
+  --ds-slate:#F5F7F9;--ds-white:#FFFFFF;
+}
+.shell>div:last-child{min-width:0}
+.page{min-width:0}
+.page h1{font-weight:760;letter-spacing:-.035em}
+.page h2{letter-spacing:-.018em}
+.rail{scrollbar-gutter:stable}
+.rail a[aria-current='page']{border-inline-start:3px solid var(--accent)}
+.topbar{min-width:0}
+.tile,.panel,.simpanel{border-radius:16px}
+.tile{transition:border-color .16s ease,transform .16s ease}
+.tile:hover{border-color:var(--line-3)}
+.page table{font-variant-numeric:tabular-nums}
+.page table th{font-size:var(--fs-xs);letter-spacing:.01em;white-space:normal}
+.page table td{vertical-align:middle}
+.page table a:focus-visible,.page button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.page .btn{min-height:36px}
+:root[data-theme='light'] .tile,:root[data-theme='light'] .panel,:root[data-theme='light'] .simpanel{box-shadow:0 1px 3px rgba(11,38,48,.025),0 12px 30px rgba(11,38,48,.035)}
+:root[data-theme='light'] .topbar{background:rgba(255,255,255,.93)}
+:root[data-theme='light'] .rail{box-shadow:2px 0 20px rgba(11,38,48,.025)}
+.shell[dir='rtl'] .page h1,.shell[dir='rtl'] .page h2{letter-spacing:0}
+@media (max-width:940px){.rail{scrollbar-gutter:auto}.topbar{padding-inline:var(--sp-3)}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}}
+
+/* Design-first v3: accessible, data-preserving shared customer presentation polish. */
+:root{--executive-card-radius:16px;--executive-focus-width:3px}
+.page :is(a,button,input,select,textarea,summary):focus-visible{outline:var(--executive-focus-width) solid var(--accent);outline-offset:3px}
+.page :is(.tile,.simpanel){border-radius:var(--executive-card-radius)}
+.page :is(.tile,.simpanel) :is(strong,b){overflow-wrap:anywhere}
+.page .scrollx{overscroll-behavior-inline:contain}
+html[dir='rtl'] .page :is(.tile,.simpanel){text-align:start}
+@media(max-width:650px){.page{padding-inline:clamp(12px,4vw,24px)}.page .tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}}
+@media(prefers-reduced-motion:reduce){.page :is(.tile,.simpanel){scroll-behavior:auto}}
+
+
+/* ── Design-first v3.1: source-backed customer workspace hierarchy ───────
+   Presentational only. Shared across customer dashboards; no event handlers,
+   links, permission checks, data access or execution routes are changed.
+   Both themes use the established semantic color tokens. */
+.design-kicker{
+  display:block;color:var(--accent-ink);font-size:var(--fs-2xs);font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;margin-block-end:8px;
+}
+.design-context{
+  background:linear-gradient(110deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line-2);border-radius:var(--r-lg);
+  padding:var(--sp-6);margin-block:var(--sp-4) var(--sp-6);
+  box-shadow:var(--shadow-sm);
+}
+.design-context-head{max-width:78ch}
+.design-context-head h2{font-size:clamp(1.125rem,2.6vw,1.65rem);font-weight:700;margin:0 0 var(--sp-2)}
+.design-context-head p{color:var(--ink-3);font-size:var(--fs-sm);line-height:1.6;margin:0}
+.design-summary{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--sp-3);margin-block-start:var(--sp-5);
+}
+.design-metric{
+  padding:var(--sp-4);background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);display:flex;flex-direction:column;gap:var(--sp-1);
+  min-inline-size:0;
+}
+.design-metric small{
+  font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);
+  line-height:1.5;overflow-wrap:anywhere;
+}
+.design-metric strong{
+  color:var(--ink);font-size:clamp(1.55rem,3vw,2.3rem);font-weight:760;
+  line-height:1.22;font-variant-numeric:tabular-nums;
+}
+.design-context-actions{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3);
+  border-block-start:1px solid var(--line);margin-block-start:var(--sp-4);
+  padding-block-start:var(--sp-4);
+}
+.design-context-actions>.btn{margin-inline-start:auto}
+.design-key{display:inline-flex;align-items:center;gap:var(--sp-2);color:var(--ink-2);font-size:var(--fs-sm)}
+.design-key-dot{inline-size:9px;block-size:9px;border-radius:50%;flex:none}
+.design-key-dot.good{background:var(--good)}
+.design-key-dot.warn{background:var(--warn)}
+.design-focus{margin-block:var(--sp-6)}
+.design-section-intro{display:flex;align-items:end;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--sp-3)}
+.design-section-intro h2{font-weight:720;font-size:clamp(1.15rem,2.6vw,1.5rem)}
+.design-micro{font-size:var(--fs-xs);color:var(--ink-3);line-height:1.55}
+.design-focus-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);
+  margin-block:var(--sp-3);
+}
+.design-focus-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2);
+  background:var(--surface-2);border:1px solid var(--line-2);border-radius:var(--r);
+  padding:var(--sp-5);min-inline-size:0;
+}
+.design-focus-head{
+  inline-size:100%;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+}
+.design-focus-head small{color:var(--ink-3);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
+.design-focus-card h3{
+  font-weight:710;font-size:var(--fs-lg);line-height:1.38;
+  overflow-wrap:anywhere;letter-spacing:0;
+}
+.design-focus-card p{
+  font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2);margin:0 0 var(--sp-3);
+}
+.design-focus-card .btn{margin-block-start:auto}
+html[dir="rtl"] .design-kicker{letter-spacing:0}
+@media(max-width:1000px){
+  .design-focus-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .design-context{padding:var(--sp-4);margin-block:var(--sp-3) var(--sp-5)}
+  .design-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .design-focus-grid{grid-template-columns:1fr}
+  .design-context-actions>.btn{margin-inline-start:0}
+}
+@media(max-width:420px){
+  .design-summary{grid-template-columns:1fr}
+}
+@media print{
+  .design-context,.design-focus-card{box-shadow:none;break-inside:avoid}
+}
+
+
+/* Design-first v3.2: source-linked executive journey and studio summary. */
+.design-journey{
+  margin-block:var(--sp-5) var(--sp-6);
+  border-radius:var(--r-xl);
+  border:1px solid var(--line-2);
+  padding:clamp(18px,3vw,30px);
+  background:linear-gradient(140deg,var(--surface-2),var(--surface));
+  box-shadow:var(--shadow-sm);
+}
+.design-journey-intro h2{
+  font-weight:730;font-size:clamp(1.2rem,2.5vw,1.65rem);
+  letter-spacing:-.02em;margin:0 0 var(--sp-2);
+}
+.design-journey-intro p{color:var(--ink-3);font-size:var(--fs-sm);line-height:1.6;max-width:76ch;margin:0}
+.design-journey-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-block:var(--sp-5);gap:var(--sp-3);
+}
+.design-journey-step{
+  min-width:0;padding:var(--sp-4);
+  display:flex;flex-direction:column;gap:7px;
+  border-radius:var(--r);background:var(--surface);
+  border:1px solid var(--line);
+}
+.design-step-index{display:grid;place-items:center;border-radius:9px;
+  color:var(--accent-ink);background:var(--accent-soft);
+  font-size:var(--fs-xs);font-weight:850;inline-size:34px;block-size:34px;
+}
+.design-journey-step small{
+  color:var(--ink-3);font-size:var(--fs-2xs);font-weight:800;letter-spacing:.08em;
+}
+.design-journey-step strong{
+  font-size:clamp(1.55rem,3vw,2.2rem);font-weight:770;
+  line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ink);
+}
+.design-journey-step>span:last-child{font-size:var(--fs-sm);color:var(--ink-2);line-height:1.5}
+.design-journey-footer{
+  display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);
+  flex-wrap:wrap;padding-block-start:var(--sp-3);border-block-start:1px solid var(--line);
+}
+.design-journey-footer>span{color:var(--ink-3);font-size:var(--fs-xs);line-height:1.6}
+.design-journey-footer .btn{white-space:normal;text-align:center}
+.design-summary-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+html[dir='rtl'] .design-journey-step small{letter-spacing:0}
+@media(max-width:900px){.design-summary-four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.design-journey-steps{grid-template-columns:1fr}}
+@media(max-width:420px){.design-summary-four{grid-template-columns:1fr}}
+@media print{.design-journey{box-shadow:none;break-inside:avoid}}
+
+/* Vendor safety step titles are words, not metric quantities. */
+.design-metric .design-vendor-word{
+  font-size:clamp(1rem,2.2vw,1.4rem);
+  font-weight:750;line-height:1.35;overflow-wrap:anywhere;
+}
+
+
+/* v3.3 - native tables preserved inside keyboard-accessible scroll regions. */
+.design-table-scroll {
+  max-inline-size:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line-2) transparent;
+  border-radius:var(--r);
+  margin-block-end:var(--sp-4);
+  scroll-padding-inline:var(--sp-3);
+}
+.design-table-scroll > table {
+  margin:0;
+  min-inline-size:660px;
+  inline-size:100%;
+  border-collapse:separate;
+  border-spacing:0;
+}
+.design-table-scroll:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+@media(max-width:700px){
+  .design-table-scroll > table{min-inline-size:760px}
+}
+@media print{
+  .design-table-scroll{
+    overflow:visible;
+    max-inline-size:none;
+    border:0;
+  }
+  .design-table-scroll > table{
+    min-inline-size:0;
+    inline-size:100%;
+  }
+}
+
+/* v3.6: Focus treatment for existing shared table-scroller regions. */
+.scrollx[role="region"]{
+  max-inline-size:100%;
+  overscroll-behavior-inline:contain;
+  scroll-padding-inline:var(--sp-3);
+}
+.scrollx[role="region"]:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+@media print{
+  .scrollx[role="region"]{overflow:visible;max-inline-size:none}
+}
+
+/* Universal locale selector — frontend-only, shared across the app shell. */
+.locale-picker{display:flex;align-items:center;gap:6px;position:relative;min-width:0}
+.locale-picker select{
+  min-height:44px;max-inline-size:155px;min-inline-size:95px;
+  border:1px solid var(--line);border-radius:8px;
+  padding-inline:8px;background:var(--surface-2);color:var(--ink);
+  font:inherit;font-size:12px;cursor:pointer
+}
+.locale-picker select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.locale-picker .sr-only{
+  position:absolute!important;inline-size:1px!important;block-size:1px!important;
+  overflow:hidden!important;clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;clip-path:inset(50%)!important
+}
+.locale-picker [aria-live]:not([hidden]){
+  position:absolute;inset-block-start:calc(100% + 6px);inset-inline-end:0;
+  padding:7px 10px;z-index:10;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink-2);
+  border-radius:8px;font-size:10px;line-height:1.4;
+  min-inline-size:165px;max-inline-size:205px;
+}
+@media(max-width:560px){
+  .locale-picker select{max-inline-size:104px;min-inline-size:76px;font-size:11px}
+}
+
+/* Language selection is available before authentication as well as in the app. */
+.locale-login-control{display:flex;justify-content:flex-end;margin-block:0 16px;max-inline-size:100%}
+.locale-login-control .locale-picker{flex-wrap:wrap;justify-content:flex-end}
+.locale-login-control .locale-picker select{max-inline-size:155px}

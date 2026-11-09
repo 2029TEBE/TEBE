@@ -9,6 +9,10 @@ type Row = {
   progressPct: number; budgetAmount: string | number | null; endDate: string | null;
 };
 
+/** Visual fill only; retain the original project progress value in text and sorting. */
+const projectProgressFill = (value: number) =>
+  Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+
 const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
   { key: 'code', head: 'Code', value: (r) => r.code,
     cell: (r) => <span className="num">{r.code}</span> },
@@ -25,7 +29,7 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
   { key: 'progress', head: 'Progress', value: (r) => r.progressPct,
     cell: (r) => (
       <>
-        <div className="bar"><i style={{ width: `${r.progressPct}%` }} /></div>
+        <div className="bar"><i aria-hidden="true" style={{ width: `${projectProgressFill(r.progressPct)}%` }} /></div>
         <span className="dim">{r.progressPct}%</span>
       </>
     ) },

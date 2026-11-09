@@ -4,7 +4,9 @@ import { getSession, api, SESSION_COOKIE } from '@/lib/api';
 import { NAV } from '@/lib/nav';
 import { can, NAV_MODULE, type Capability } from '@pmo/contracts';
 import { TenantSwitcher } from '@/components/TenantSwitcher';
-import { LangToggle } from '@/components/LangToggle';
+import { UniversalLocaleSwitch } from '@/components/UniversalLocaleSwitch';
+import { getFrontendLocale } from '@/lib/i18n';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Cursor } from '@/components/Cursor';
 import { AskWidget } from '@/components/AskWidget';
@@ -32,7 +34,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : '/login');
   }
 
-  const ar = jar.get('pmo_lang')?.value === 'ar';
+  const locale = await getFrontendLocale();
+  const ar = locale === 'ar-SA';
   const caps = (session.capabilities ?? ['read']) as Capability[];
 
   // A screen appears only if the person has the capability AND the workspace
@@ -50,18 +53,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .map((g) => ({ ...g, items: g.items.filter(allowed) }))
     .filter((g) => g.items.length > 0);
   const commands = groups.flatMap((g) => g.items.map((i) => ({
-    label: ar ? i.ar : i.label, href: i.href, group: ar ? g.ar : g.label,
+    label: uiLabel(i.label, locale, i.ar), href: i.href, group: uiLabel(g.label, locale, g.ar),
   }))); // show and search the group in the selected language too
 
   const rail = (
     <>
       {/* Their wordmark treatment: no icon, the second half in the brand mint. */}
-      <div className="brand"><span className="wordmark">{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span></div>
+      <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, 'المكتب التنفيذي لإدارة المشاريع')}</span></div>
       <RailToggle />
       {groups.map((g) => (
-        <RailGroup key={g.key} label={ar ? g.ar : g.label} hrefs={g.items.map((i) => i.href)}>
+        <RailGroup key={g.key} label={uiLabel(g.label, locale, g.ar)} hrefs={g.items.map((i) => i.href)}>
           {g.items.map((i) => (
-            <NavLink key={i.href} href={i.href} navKey={i.key}>{ar ? i.ar : i.label}</NavLink>
+            <NavLink key={i.href} href={i.href} navKey={i.key}>{uiLabel(i.label, locale, i.ar)}</NavLink>
           ))}
         </RailGroup>
       ))}
@@ -69,16 +72,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar' : 'en'}>
-      <a className="skiplink" href="#main">{ar ? 'تخطَّ إلى المحتوى' : 'Skip to content'}</a>
-      <nav className="rail" aria-label={ar ? 'الوحدات' : 'Modules'}>{rail}</nav>
+    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={locale}>
+      <a className="skiplink" href="#main">{uiLabel('Skip to content', locale, 'تخطَّ إلى المحتوى')}</a>
+      <nav className="rail" aria-label={uiLabel('Modules', locale, 'الوحدات')}>{rail}</nav>
       <div>
         <header className="topbar">
           <MobileNav ar={ar}>{rail}</MobileNav>
           <Crumbs ar={ar} />
           <div className="spacer" />
           <CommandPalette commands={commands} lang={ar ? 'ar' : 'en'} />
-          <LangToggle ar={ar} />
+          <UniversalLocaleSwitch locale={locale} />
           <ThemeToggle lang={ar ? 'ar' : 'en'} />
           <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} />
         </header>

@@ -25,7 +25,18 @@ export default async function ProjectsPage({ searchParams }:
       <Loaded load={async () => ({ d: await api.projects(programFilter), o: await api.createOptions() })}>
         {({ d, o }) => (
           <>
-            {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}>
+            {d.items.length > 0 && <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المشاريع' : 'Project snapshot'}>
+              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'متابعة التنفيذ' : 'DELIVERY SNAPSHOT'}</span>
+                <h2>{lang === 'ar' ? 'صحة المشاريع الحالية' : 'Project delivery at a glance'}</h2>
+                <p>{lang === 'ar' ? 'مؤشرات من سجلات المشاريع المسترجعة في الصفحة الحالية فقط.' : 'Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.'}</p>
+              </div>
+              <div className="design-summary">
+                <div className="design-metric"><small>{lang === 'ar' ? 'السجلات المعروضة' : 'Returned projects'}</small><strong>{d.items.length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'وفق الخطة' : 'On track'}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج انتباها' : 'Need attention'}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
+              </div>
+            </section>}
+            {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
               <h2 className="sec" style={{ marginTop: 0 }}>
                 {lang === 'ar' ? 'جهّز هيكل مشروعك' : 'Set up your project structure'}
               </h2>

@@ -49,7 +49,8 @@ export default async function Notifications({ searchParams }:
                 <p>{t('No rule has matched yet. Rules live under Platform Studio — a gate that cannot pass, a signature outstanding or an overdue task will each put a message here.')}</p>
               </div>
             ) : (
-              <div className="tablewrap">
+              <div className="tablewrap design-table-scroll" role="region"
+                   aria-label={lang === 'ar' ? 'صندوق الإشعارات الصادرة' : 'Notification outbox'} tabIndex={0}>
                 <table>
                   <thead><tr>
                     <th>{t('Status')}</th><th>{t('Type')}</th><th>{t('To')}</th>

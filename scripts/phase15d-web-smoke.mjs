@@ -26,7 +26,12 @@ function assertHtml(res, body, label, lang, dir, expectedText) {
   if (!String(res.headers.get('content-type') || '').toLowerCase().includes('text/html'))
     throw new Error(`${label}: response is not HTML`);
   const html = body.match(/<html\b[^>]*>/i)?.[0] || '';
-  if (!new RegExp(`\\blang=["']${lang}["']`, 'i').test(html) ||
+  // BCP 47 regional tags (for example ar-SA) retain the same language.
+  const documentLang = html.match(/\blang=["']([^"']+)["']/i)?.[1];
+  let documentLanguage;
+  try { documentLanguage = new Intl.Locale(documentLang || '').language; }
+  catch { /* Missing or malformed language tags must fail acceptance. */ }
+  if (documentLanguage !== new Intl.Locale(lang).language ||
       !new RegExp(`\\bdir=["']${dir}["']`, 'i').test(html))
     throw new Error(`${label}: root HTML language/direction mismatch`);
   if (!body.includes(expectedText)) throw new Error(`${label}: localized sign-in text missing`);

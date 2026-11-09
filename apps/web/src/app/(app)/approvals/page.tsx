@@ -22,8 +22,19 @@ export default async function Approvals() {
                 <div className="tile"><span>{t('Blocked')}</span><strong>{pending.length - ready.length}</strong>
                   <div className="split"><i className="dim">{t('cannot sign yet')}</i></div></div>
               </div>
+              <section className="design-context" aria-label={t('Approval readiness')}>
+                <div className="design-context-head">
+                  <span className="design-kicker">{t('Approval readiness')}</span>
+                  <p>{t('A pending signature is not the same as a signable gate. Review outstanding criteria and blockers in the queue before taking action.')}</p>
+                </div>
+                <div className="design-context-actions">
+                  <span className="design-key"><i className="design-key-dot good" />{ready.length} {t('Ready to sign now')}</span>
+                  <span className="design-key"><i className="design-key-dot warn" />{pending.length - ready.length} {t('Blocked')}</span>
+                  <a className="btn ghost" href="/governance">{t('Review stage gates')}</a>
+                </div>
+              </section>
               <h2 className="sec">{t('Queue')}</h2>
-              <table>
+              <div className="design-table-scroll" role="region" aria-label={t('Queue')} tabIndex={0}><table>
                 <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Approver')}</th><th>{t('Role')}</th><th>{t('Ready?')}</th><th>{t('Decision')}</th></tr></thead>
                 <tbody>{list.map((a: any) => {
                   const blocked = a.criteriaOutstanding > 0 || a.blockers > 0;
@@ -49,7 +60,7 @@ export default async function Approvals() {
                             <div className="dim">{when(a.decidedAt, lang)}</div></>}</td>
                     </tr>);
                 })}</tbody>
-              </table>
+              </table></div>
               <details className="explain">
                 <summary>{t('Why an approval can be “pending” but not signable')}</summary>
                 <p>{t('A signature is only meaningful once the evidence exists. The platform will not let an approver sign a gate whose checklist is incomplete or which has an open blocker pointed at it — so “pending” and “ready” are different states, and this queue tells the approver which of the two they are looking at.')}</p>

@@ -62,7 +62,7 @@ export default async function DataPage({ searchParams }:
       </div>
 
       <h2 className="sec">{t('What is in the workbook')}</h2>
-      <div className="tablewrap">
+      <div className="tablewrap design-table-scroll" role="region" aria-label={lang === 'ar' ? 'محتويات ملف العمل' : 'Workbook contents'} tabIndex={0}>
         <table>
           <thead><tr><th>{t('Sheet')}</th><th>{t('What it holds')}</th><th>{t('Required columns')}</th></tr></thead>
           <tbody>
