@@ -1,0 +1,22 @@
+# Lockfile-aware updates for the pnpm monorepo.
+# Dependabot opens PRs for review; nothing is merged or deployed automatically.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 15
+    versioning-strategy: "increase"
+    rebase-strategy: "auto"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
