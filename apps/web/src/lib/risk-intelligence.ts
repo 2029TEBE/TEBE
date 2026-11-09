@@ -15,7 +15,7 @@ export function riskIntelligence(input: unknown): RiskSummary {
   }
   const cells:RiskCell[] = [...tally.entries()].map(([key,count])=>{
     const [severity,likelihood]=key.split('-').map(Number), score=severity*likelihood;
-    const band=score>=15?'critical':score>=10?'high':score>=5?'medium':'low';
+    const band: RiskCell['band']=score>=15?'critical':score>=10?'high':score>=5?'medium':'low';
     return {severity,likelihood,count,score,band};
   });
   const total=cells.reduce((a,c)=>a+c.count,0);
