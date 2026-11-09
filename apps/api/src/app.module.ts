@@ -17,6 +17,7 @@ import { AskXModule } from './askx/askx.module';
 import { MicrosoftModule } from './microsoft/microsoft.module';
 import { ModuleGuard } from './platform/module.guard';
 import { RequestLogMiddleware } from './common/request-log.middleware';
+import { LocaleController } from './common/locale.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { RequestLogMiddleware } from './common/request-log.middleware';
     AuthModule, PlatformModule, CreatesModule, OnboardingModule, PortfolioModule, GovernanceModule, InsightsModule,
     ExcelModule, ExportsModule, NotifyModule, AskXModule, MicrosoftModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, LocaleController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Licensing is enforced for every route, not just the ones that remember to ask.
