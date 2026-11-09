@@ -6,7 +6,7 @@
 export type FinancialSignal = {
   code: string; budget: number; actual: number; forecast: number; earnedValue: number;
   cpi: number|null; eac: number|null; forecastCoverage: number;
-  forecastVariance: number; estimatedOverrun: number|null;
+  forecastVariance: number; variancePct: number|null; estimatedOverrun: number|null;
   state: 'overrun'|'within-budget'|'insufficient-data';
   note: string;
 };
@@ -28,15 +28,16 @@ export function financialIntelligence(input:unknown):{
     const cpi=drawn>=0.15&&actual>0&&finite(x.cpi)&&x.cpi>=0?x.cpi:null;
     const eac=cpi!==null&&cpi>0&&finite(x.eac)&&x.eac>=0?x.eac:null;
     const forecastVariance=forecast-budget;
+    const variancePct=budget>0?Number(((forecastVariance/budget)*100).toFixed(2)):null;
     const state:FinancialSignal['state']=budget===0?'insufficient-data':forecastVariance>0?'overrun':'within-budget';
     const note=budget===0?'No approved budget recorded.'
       :forecastCoverage<1?'Forecast is partly substituted with budget where category forecasts are missing.'
       :cpi===null?'CPI/EAC unavailable or immature; no extrapolation shown.'
       :'CPI and EAC are estimates based on reported progress, not a certified baseline.';
-    projects.push({code:x.code,budget,actual,forecast,earnedValue,cpi,eac,forecastCoverage,forecastVariance,
+    projects.push({code:x.code,budget,actual,forecast,earnedValue,cpi,eac,forecastCoverage,forecastVariance,variancePct,
       estimatedOverrun:eac===null?null:eac-budget,state,note});
   }
-  return {projects:projects.sort((a,b)=>b.forecastVariance-a.forecastVariance),
+  return {projects:projects.sort((a,b)=>(b.variancePct??-Infinity)-(a.variancePct??-Infinity)),
     overrunProjects:projects.filter(p=>p.state==='overrun').length,
     unreliableForecasts:projects.filter(p=>p.forecastCoverage<1||p.cpi===null).length,
     disclaimer:'Read-only estimates from current authorized project records. Currency normalization and independent schedule baselines are not verified; avoid cross-currency sums and SPI claims.'};
