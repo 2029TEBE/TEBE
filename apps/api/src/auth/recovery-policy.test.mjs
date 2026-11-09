@@ -37,10 +37,18 @@ test('allows plain HTTP only for local development', () => {
 test('both recovery email languages include the same link and expiry', () => {
   const t = issueRecoveryToken().token;
   const link = recoveryLink('https://app.epmo.example',t);
-  for (const lang of ['en','ar']) {
+  for (const lang of ['en','ar','ar-SA','de-DE','zh-CN','fr-FR','ja-JP']) {
     const m = recoveryMessage(link,lang);
     assert.ok(m.body.includes(link));
     assert.ok(m.subject.length > 10);
     assert.ok(m.body.includes('30'));
   }
+});
+
+test('Arabic Saudi recovery uses Arabic; untranslated locales use safe English fallback', () => {
+ const link = recoveryLink('https://app.epmo.example', issueRecoveryToken().token);
+ assert.equal(recoveryMessage(link,'ar-SA').subject, recoveryMessage(link,'ar').subject);
+ for (const lang of ['de-DE','zh-CN','fr-FR','ja-JP']) {
+   assert.equal(recoveryMessage(link,lang).subject, recoveryMessage(link,'en').subject);
+ }
 });
