@@ -1,0 +1,58 @@
+name: Generate critical dependency security patches
+on:
+  push:
+    branches:
+      - security/patch-critical-dependencies-20261109
+    paths:
+      - .github/workflows/critical-dependency-patch.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch-critical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install existing lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Patch Next 15 and critical reverse-proxy dependency
+        run: |
+          set -euo pipefail
+          pnpm --filter @pmo/web add --save-exact next@15.5.29
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.pnpm ??= {};
+          pkg.pnpm.overrides ??= {};
+          // Express/Nest resolves proxy-addr transitively. Override only the
+          // vulnerable package on this isolated security branch.
+          pkg.pnpm.overrides['proxy-addr'] = '2.0.8';
+          fs.writeFileSync(path, JSON.stringify(pkg,null,2)+'\n');
+          NODE
+          pnpm install --lockfile-only
+          pnpm install --frozen-lockfile
+      - name: Validate lockfile and TypeScript
+        run: |
+          pnpm build:packages
+          pnpm typecheck
+      - name: Commit package manifest and lockfile together
+        run: |
+          set -euo pipefail
+          git add package.json apps/web/package.json pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): update Next 15 and proxy-addr with regenerated lockfile [security-lockfile]'
+          git push origin HEAD:security/patch-critical-dependencies-20261109
