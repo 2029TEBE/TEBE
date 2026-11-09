@@ -14,7 +14,7 @@ export default async function ResourceIntelligencePage() {
           const summary=resourceCapacity(data?.people);
           return <section aria-label="Resource capacity intelligence" style={{display:'grid',gap:'20px'}}>
             <div className="tiles">
-              <div className="tile"><span>{t('People with allocation records')}</span><strong>{summary.people}</strong></div>
+              <div className="tile"><span>{t('Active people assessed')}</span><strong>{summary.people}</strong></div>
               <div className="tile"><span>{t('Overallocated')}</span><strong className={summary.overallocated?'crit':'good'}>{summary.overallocated}</strong></div>
               <div className="tile"><span>{t('Near capacity')}</span><strong>{summary.nearCapacity}</strong></div>
               <div className="tile"><span>{t('Average recorded allocation')}</span><strong>{summary.averageAllocatedPct===null?'—':`${summary.averageAllocatedPct}%`}</strong></div>
