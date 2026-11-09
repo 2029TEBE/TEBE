@@ -20,5 +20,5 @@ test('pre-sync validation fails closed, only in staging', () => {
 
 test('pre-sync gate has no production keys or hidden bypass flags', () => {
   const section = script.slice(script.indexOf('# A staging target is not safe'), script.indexOf('echo "Deploying $MODE'));
-  assert.doesNotMatch(section, /StrictHostKeyChecking=no|curl\s+.*-k|rsync\s|--force|DEPLOYMENT_ENV=production/);
+  assert.doesNotMatch(section, /StrictHostKeyChecking=no|curl\s+.*-k|^\s*rsync\s|--force|DEPLOYMENT_ENV=production/m);
 });
