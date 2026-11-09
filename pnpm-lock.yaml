@@ -17,6 +17,9 @@ overrides:
   vite@^8.0.0: 8.2.4
   picomatch@^4.0.0: 4.0.4
   image-size@^2.0.0: 2.0.3
+  tmp: 0.2.7
+  image-size: 2.0.3
+  vite: 8.2.4
 
 importers:
 
@@ -2185,9 +2188,9 @@ packages:
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
-  image-size@1.2.1:
-    resolution: {integrity: sha512-rH+46sQJ2dlwfjfhCyNx5thzrv+dtmBIhPHk0zgRUukHzZ/kRueTJXoYYsclBaKcSMBWuGbOFXtioLpzTb5euw==}
-    engines: {node: '>=16.x'}
+  image-size@2.0.3:
+    resolution: {integrity: sha512-9BJAtVCBth+76NwqnEfWr3PiRnYhbquk6K/USuQ1GQajz5NgLzO7tNsnoNjHfO7LuftgkBf+CCH6j28hjMbIYQ==}
+    engines: {node: '>=18'}
     hasBin: true
 
   immediate@3.0.6:
@@ -2617,10 +2620,6 @@ packages:
     resolution: {integrity: sha512-5b6Y85tPxZZ7QytO+BQzysW31HJku27cRIlkbAXaNx+BdcVi+LlRFmVXzeF6a7JCwJpyw5c4b+YSVImQIrBpuQ==}
     engines: {node: '>=10'}
 
-  os-tmpdir@1.0.2:
-    resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
-    engines: {node: '>=0.10.0'}
-
   package-json-from-dist@1.0.1:
     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
 
@@ -2724,9 +2723,6 @@ packages:
   qs@6.16.2:
     resolution: {integrity: sha512-VYdnB5S7/0IeXzBacUtwNAaM6d7Y/PgYnNC7bJCI6meqA/OgnsQbZMtVW8Dt2D1PHgbHGtYmhSoEIgvt7xZ2ZA==}
     engines: {node: '>=0.6'}
-
-  queue@6.0.2:
-    resolution: {integrity: sha512-iHZWu+q3IdFZFX36ro/lKBkSvfkztY5Y7HMiPlOUjhupPcG2JMfst2KKEpu5XndviX/3UhFbRngUPNKtgvtZiA==}
 
   range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
@@ -3056,10 +3052,6 @@ packages:
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
-
-  tmp@0.0.33:
-    resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
-    engines: {node: '>=0.6.0'}
 
   tmp@0.2.7:
     resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
@@ -5069,7 +5061,7 @@ snapshots:
     dependencies:
       chardet: 0.7.0
       iconv-lite: 0.4.24
-      tmp: 0.0.33
+      tmp: 0.2.7
 
   fast-csv@4.3.6:
     dependencies:
@@ -5260,9 +5252,7 @@ snapshots:
 
   ieee754@1.2.1: {}
 
-  image-size@1.2.1:
-    dependencies:
-      queue: 6.0.2
+  image-size@2.0.3: {}
 
   immediate@3.0.6: {}
 
@@ -5631,8 +5621,6 @@ snapshots:
       strip-ansi: 6.0.1
       wcwidth: 1.0.1
 
-  os-tmpdir@1.0.2: {}
-
   package-json-from-dist@1.0.1: {}
 
   pako@1.0.11: {}
@@ -5705,7 +5693,7 @@ snapshots:
     dependencies:
       '@types/node': 22.20.1
       https: 1.0.0
-      image-size: 1.2.1
+      image-size: 2.0.3
       jszip: 3.10.2
 
   process-nextick-args@2.0.1: {}
@@ -5725,10 +5713,6 @@ snapshots:
     dependencies:
       es-define-property: 1.0.1
       side-channel: 1.1.1
-
-  queue@6.0.2:
-    dependencies:
-      inherits: 2.0.4
 
   range-parser@1.2.1: {}
 
@@ -6072,10 +6056,6 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-
-  tmp@0.0.33:
-    dependencies:
-      os-tmpdir: 1.0.2
 
   tmp@0.2.7: {}
 
