@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/api';
 import { tr, getLang } from '@/lib/i18n';
+import { LangToggle } from '@/components/LangToggle';
 
 export const metadata = { title: 'Sign in · The EPMO' };
 
@@ -19,6 +20,7 @@ export default async function LoginPage({ searchParams }:
   return (
     <div className="authwrap">
       <div className="authpanel">
+        <div className="auth-language"><LangToggle ar={ar} /></div>
         <div className="brand" style={{ padding: 0, marginBlockEnd: 26 }}>
           <span className="glyph">E</span><span className="wordmark">{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span>
         </div>
