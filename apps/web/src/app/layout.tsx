@@ -23,7 +23,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const ar = locale === 'ar-SA';
   return (
-    <html lang={locale} dir={ar ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html lang={ar ? 'ar-SA' : 'en'} data-selected-locale={locale}
+          dir={ar ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Kufi+Arabic:wght@400;500;700&display=swap" />
