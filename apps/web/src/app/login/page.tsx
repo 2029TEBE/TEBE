@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/api';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLocale } from '@/lib/i18n';
+import { LangToggle } from '@/components/LangToggle';
 
 export const metadata = { title: 'Sign in · The EPMO' };
 
@@ -12,13 +13,15 @@ export default async function LoginPage({ searchParams }:
 
   const { error } = await searchParams;
   const t = await tr();
-  const ar = (await getLang()) === 'ar';
+  const locale = await getLocale();
+  const ar = locale === 'ar-SA';
   const showHint = process.env.NODE_ENV === 'development' &&
     (!process.env.DEPLOYMENT_ENV || process.env.DEPLOYMENT_ENV === 'development');
 
   return (
     <div className="authwrap">
       <div className="authpanel">
+        <div className="auth-locale"><LangToggle locale={locale} /></div>
         <div className="brand" style={{ padding: 0, marginBlockEnd: 26 }}>
           <span className="glyph">E</span><span className="wordmark">{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span>
         </div>
