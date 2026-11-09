@@ -11,7 +11,7 @@ const checks = [
   ['Correct document lang and direction', /<html\s+lang=\{ar\s*\?\s*'ar'\s*:\s*'en'\}\s+dir=\{ar\s*\?\s*'rtl'\s*:\s*'ltr'\}/.test(layout)],
   ['Cookie-backed language preference', language.includes("get('pmo_lang')")],
   ['Language toggle persists preference', toggle.includes('document.cookie = `pmo_lang=')],
-  ['Language toggle refreshes server UI', toggle.includes('router.refresh()')],
+  ['Language toggle reloads server document metadata', toggle.includes('window.location.reload()')],
   ['Language toggle has accessible name', toggle.includes('aria-label=')],
   ['Bilingual login headline', login.includes("ar ? 'تسجيل الدخول' : 'Sign in'")],
   ['Bilingual login help', login.includes("ar ? 'حسابات التطوير' : 'Development accounts'")],
