@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import type { SupportedLocale } from '@pmo/contracts';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 /**
@@ -10,7 +11,7 @@ import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
  * default rather than an error state, and the interface says plainly that
  * nothing is being delivered rather than implying silence means success.
  */
-export type Sendable = { to: string; subject: string; body: string; lang: 'en' | 'ar' };
+export type Sendable = { to: string; subject: string; body: string; lang: SupportedLocale | 'ar' };
 export type SendResult = { ok: true } | { ok: false; error: string };
 
 export interface MailTransport {
