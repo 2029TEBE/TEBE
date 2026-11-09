@@ -23,7 +23,7 @@ export function LangToggle({ locale }: { locale: SupportedLocale }) {
       <select aria-label="Interface language" value={locale} disabled={pending}
               onChange={(event) => selectLocale(event.target.value)}>
         {SUPPORTED_LOCALES.map(item => (
-          <option key={item.code} value={item.code}>{item.nativeName}</option>
+          <option key={item.code} value={item.code}>{item.nativeName}{item.code !== 'en' && item.code !== 'ar-SA' ? ' (English fallback)' : ''}</option>
         ))}
       </select>
     </label>
