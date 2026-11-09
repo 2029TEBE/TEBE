@@ -71,7 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={locale}>
+    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar-SA' : 'en'}>
       <a className="skiplink" href="#main">{ar ? 'تخطَّ إلى المحتوى' : 'Skip to content'}</a>
       <nav className="rail" aria-label={ar ? 'الوحدات' : 'Modules'}>{rail}</nav>
       <div>
