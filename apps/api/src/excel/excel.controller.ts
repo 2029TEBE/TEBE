@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Post, Query, Res, UploadedFile, UseInterceptors,
-         BadRequestException } from '@nestjs/common';
+         BadRequestException, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { RequiresModule } from '../platform/module.guard';
 import { ExcelService } from './excel.service';
+import { ExcelImportGuard } from './excel-import.guard';
+import { requireCapability } from '../common/require-capability';
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const lang = (v: unknown): 'en' | 'ar' => (v === 'ar' ? 'ar' : 'en');
@@ -28,17 +30,26 @@ export class ExcelController {
   }
 
   @RequiresModule('pmo360') @Post('preview')
+  @UseGuards(ExcelImportGuard)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 12 * 1024 * 1024 } }))
   async preview(@UploadedFile() file?: { buffer: Buffer; originalname: string }) {
+    // Reject unauthorized uploads before validating whether a file exists or is well formed.
+    requireCapability('pmoa_manage_projects');
+    requireCapability('pmoa_manage_finance');
     if (!file?.buffer?.length || !/\.xlsx$/i.test(file.originalname ?? ''))
       throw new BadRequestException('Upload a valid .xlsx workbook.');
     return this.svc.previewWorkbook(file.buffer);
   }
 
   @RequiresModule('pmo360') @Post('import')
+  @UseGuards(ExcelImportGuard)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 12 * 1024 * 1024 } }))
   async load(@UploadedFile() file?: { buffer: Buffer; originalname: string },
              @Body('mode') mode?: string) {
+    // Permission checks precede upload validation so no unauthorized caller can
+    // discover parsing/validation behaviour. Service repeats checks at write time.
+    requireCapability('pmoa_manage_projects');
+    requireCapability('pmoa_manage_finance');
     if (!file?.buffer?.length) throw new BadRequestException('No file was uploaded.');
     if (!/\.xlsx$/i.test(file.originalname ?? '')) {
       throw new BadRequestException('Upload the .xlsx workbook, not .xls or .csv.');
