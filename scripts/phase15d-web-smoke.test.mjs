@@ -7,7 +7,7 @@ function response(status, text = '', headers = {}) {
 }
 const page = (lang, dir, text) => `<html lang="${lang}" dir="${dir}"><body><h1>${text}</h1><form method="post" action="/api/session"></form></body></html>`;
 const loginEn = response(200, page('en', 'ltr', 'Sign in'), { 'content-type': 'text/html; charset=utf-8' });
-const loginAr = response(200, page('ar', 'rtl', 'تسجيل الدخول'), { 'content-type': 'text/html' });
+const loginAr = response(200, page('ar-SA', 'rtl', 'تسجيل الدخول'), { 'content-type': 'text/html' });
 const protectedRoute = response(307, '', { location: '/login' });
 function makeFetch(overrides = {}) {
   return async (url, options) => {
@@ -45,7 +45,7 @@ test('requests Arabic with locale cookie and refuses implicit redirects', async 
 test('rejects an untranslated Arabic page', async () =>
   assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login-ar': loginEn })), /language\/direction mismatch/));
 test('rejects wrong direction on root html', async () =>
-  assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login-ar': response(200, page('ar', 'ltr', 'تسجيل الدخول'), { 'content-type': 'text/html' }) })), /mismatch/));
+  assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login-ar': response(200, page('ar-SA', 'ltr', 'تسجيل الدخول'), { 'content-type': 'text/html' }) })), /mismatch/));
 test('rejects missing login form', async () =>
   assert.rejects(verifyWebSmoke(ORIGIN, makeFetch({ '/login': response(200, '<html lang="en" dir="ltr">Sign in</html>', { 'content-type': 'text/html' }) })), /form missing/));
 test('rejects non-HTML login responses', async () =>

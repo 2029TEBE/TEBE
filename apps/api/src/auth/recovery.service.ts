@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import type { SupportedLocale } from '@pmo/contracts';
 import { eq, sql } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { db, users } from '@pmo/db';
@@ -11,7 +12,7 @@ const rows = (r: unknown) => r as any[];
 @Injectable()
 export class RecoveryService {
   /** Always give the same response for unknown, disabled, cooled-down and valid accounts. */
-  async request(email: string, lang: 'en' | 'ar') {
+  async request(email: string, lang: SupportedLocale | 'ar') {
     // Fail visibly for ALL addresses when recovery has not been configured.
     const transport = buildTransport();
     if (!transport.delivers) throw new ServiceUnavailableException('Password recovery email is unavailable. Contact support.');

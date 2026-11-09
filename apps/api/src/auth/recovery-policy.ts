@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import type { SupportedLocale } from '@pmo/contracts';
 
 const opaque = /^[A-Za-z0-9_-]{43}$/;
 
@@ -22,8 +23,9 @@ export function recoveryLink(webOrigin: string, token: string): string {
   url.hash = `token=${token}`;
   return url.toString();
 }
-export function recoveryMessage(link: string, lang: 'en' | 'ar') {
-  return lang === 'ar' ? {
+export function recoveryMessage(link: string, lang: SupportedLocale | 'ar') {
+  // Reviewed Arabic/English templates only; other languages safely use English.
+  return (lang === 'ar' || lang === 'ar-SA') ? {
     subject: 'إعادة تعيين كلمة المرور — The EPMO',
     body: `تم طلب إعادة تعيين كلمة مرورك في The EPMO.\n\nاستخدم الرابط التالي خلال 30 دقيقة:\n${link}\n\nإذا لم تطلب ذلك، تجاهل هذه الرسالة.`,
   } : {

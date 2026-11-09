@@ -32,7 +32,7 @@ test('web acceptance uses no credentials or mutating HTTP methods', () => {
 });
 test('smoke covers Arabic RTL and the protected Super Admin page', () => {
   assert.match(checker, /pmo_lang=ar/);
-  assert.match(checker, /lang: 'ar', dir: 'rtl'/);
+  assert.match(checker, /lang: 'ar-SA', dir: 'rtl'/);
   assert.match(checker, /'\/super-admin'/);
 });
 

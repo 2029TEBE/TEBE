@@ -49,5 +49,5 @@ test('public accept endpoint is narrowly scoped and throttled', () => {
 
 test('development identity enumeration is not registered in the customer API', () => {
   assert.doesNotMatch(appModule, /DevController|dev\/dev\.controller/);
-  assert.match(appModule, /controllers: \[HealthController\]/);
+  assert.match(appModule, /controllers: \[HealthController, LocaleController\]/);
 });

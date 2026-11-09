@@ -15,6 +15,21 @@ const good = {
 };
 const failed=(v,mode='staging')=>validateRc1Configuration(v,mode).filter(c=>!c.passed).map(c=>c.name);
 test('staging configuration passes when complete and safe',()=>assert.deepEqual(failed(good),[]));
+test('non-billing staging passes without legacy credentials or webhook',()=>{
+ const disabled={...good,STRIPE_ENABLED:'false',STRIPE_SECRET_KEY:'',STRIPE_WEBHOOK_SECRET:'',
+   STRIPE_WEBHOOK_PUBLIC_URL:'',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+ assert.deepEqual(failed(disabled),[]);
+});
+test('non-billing staging refuses stale Stripe secrets',()=>{
+ const disabled={...good,STRIPE_ENABLED:'false',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+ assert.ok(failed(disabled).some(x=>x.includes('no legacy PSP credentials')));
+});
+test('production cannot use non-billing staging exception',()=>{
+ const disabled={...good,DEPLOYMENT_ENV:'production',STRIPE_ENABLED:'false',
+   STRIPE_SECRET_KEY:'',STRIPE_WEBHOOK_SECRET:'',STRIPE_WEBHOOK_PUBLIC_URL:'',
+   STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+ assert.ok(failed(disabled,'production').length > 0);
+});
 test('production accepts only live keys and no staging exemption',()=>{
  const env={...good,DEPLOYMENT_ENV:'production',STRIPE_SECRET_KEY:'sk_live_12345678901234567890',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
  assert.deepEqual(failed(env,'production'),[]);

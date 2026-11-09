@@ -79,6 +79,7 @@ function redisUrl(value, password) {
 /** Return checks rather than throwing to present every blocker at once. */
 export function validateRc1Configuration(env, mode) {
   if (!['staging','production'].includes(mode)) throw new Error('Expected staging or production mode');
+  const billingDisabledForStaging = mode === 'staging' && env.STRIPE_ENABLED === 'false';
   const stripeMode = mode === 'staging' ? 'test' : 'live';
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
@@ -87,12 +88,16 @@ export function validateRc1Configuration(env, mode) {
     ['HTTPS public API origin', httpsOrigin(env.PUBLIC_API_URL)],
     // Only the TLS reverse proxy should be reachable from the public network.
     ['Web container host port is bound to loopback', !env.WEB_BIND || env.WEB_BIND === '127.0.0.1'],
-    ['Stripe webhook matches public API origin and exact path', webhookMatches(env.PUBLIC_API_URL,env.STRIPE_WEBHOOK_PUBLIC_URL)],
-    ['Stripe adapter enabled', env.STRIPE_ENABLED === 'true'],
-    [`Stripe ${stripeMode} key configured`, keyPattern.test(env.STRIPE_SECRET_KEY || '')],
-    ['Stripe webhook signing secret configured', /^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET || '')],
+    ['Billing provider configuration is explicit', env.STRIPE_ENABLED === 'true' || billingDisabledForStaging],
+    ['Disabled staging billing has no legacy PSP credentials',
+      !billingDisabledForStaging || (!env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET && !env.STRIPE_WEBHOOK_PUBLIC_URL)],
+    ['Stripe webhook matches public API origin and exact path',
+      billingDisabledForStaging || webhookMatches(env.PUBLIC_API_URL,env.STRIPE_WEBHOOK_PUBLIC_URL)],
+    [`Stripe ${stripeMode} key configured`, billingDisabledForStaging || keyPattern.test(env.STRIPE_SECRET_KEY || '')],
+    ['Stripe webhook signing secret configured',
+      billingDisabledForStaging || /^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET || '')],
     ['Reference payment adapter remains disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
-    ['Staging exception matches deployment mode', env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === (mode === 'staging' ? 'true' : 'false')],
+    ['Staging exception matches deployment mode', env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === (mode === 'staging' && !billingDisabledForStaging ? 'true' : 'false')],
     ['Database admin username is not the application role', !!env.PG_USER && env.PG_USER !== 'pmo_app' && env.PG_USER !== 'postgres'],
     ['Database admin password is non-default', goodPassword(env.PG_PASSWORD)],
     ['Application database URL uses restricted pmo_app role', dbAppUrl(env.DATABASE_URL,env.PG_DB || 'pmo')],

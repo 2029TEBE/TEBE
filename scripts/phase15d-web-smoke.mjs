@@ -59,7 +59,7 @@ export async function verifyWebSmoke(originInput, fetchFn = fetch) {
   }
   for (const locale of [
     { lang: 'en', dir: 'ltr', text: 'Sign in', label: 'English login', cookies: {} },
-    { lang: 'ar', dir: 'rtl', text: 'تسجيل الدخول', label: 'Arabic login', cookies: { cookie: 'pmo_lang=ar' } },
+    { lang: 'ar-SA', dir: 'rtl', text: 'تسجيل الدخول', label: 'Arabic login', cookies: { cookie: 'pmo_lang=ar' } },
   ]) {
     const res = await request('/login', locale.cookies);
     const body = await res.text();

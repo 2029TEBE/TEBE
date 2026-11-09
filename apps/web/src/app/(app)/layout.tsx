@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { getLocale } from '@/lib/i18n';
 import { getSession, api, SESSION_COOKIE } from '@/lib/api';
 import { NAV } from '@/lib/nav';
 import { can, NAV_MODULE, type Capability } from '@pmo/contracts';
@@ -32,7 +33,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : '/login');
   }
 
-  const ar = jar.get('pmo_lang')?.value === 'ar';
+  const locale = await getLocale();
+  const ar = locale === 'ar-SA';
   const caps = (session.capabilities ?? ['read']) as Capability[];
 
   // A screen appears only if the person has the capability AND the workspace
@@ -69,7 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar' : 'en'}>
+    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar-SA' : 'en'}>
       <a className="skiplink" href="#main">{ar ? 'تخطَّ إلى المحتوى' : 'Skip to content'}</a>
       <nav className="rail" aria-label={ar ? 'الوحدات' : 'Modules'}>{rail}</nav>
       <div>
@@ -78,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Crumbs ar={ar} />
           <div className="spacer" />
           <CommandPalette commands={commands} lang={ar ? 'ar' : 'en'} />
-          <LangToggle ar={ar} />
+          <LangToggle locale={locale} />
           <ThemeToggle lang={ar ? 'ar' : 'en'} />
           <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} />
         </header>

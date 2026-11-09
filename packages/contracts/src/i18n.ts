@@ -14,6 +14,8 @@
  * No provider and no context: a server component reads the cookie, a client
  * component takes `lang` as a prop. Both call `translator(lang)`.
  */
+import type { SupportedLocale } from './locales';
+/** Legacy frontend rendering contract until its widgets support all locales. */
 export type Lang = 'en' | 'ar';
 
 /** English source → Arabic. */
@@ -1117,8 +1119,10 @@ const AR: Record<string, string> = {
 export type T = (s: string) => string;
 
 /** A translate function for this request. Unknown strings come back as English. */
-export function translator(lang: Lang): T {
-  if (lang === 'en') return (s) => s;
+export function translator(lang: Lang | SupportedLocale): T {
+  // Only Arabic has a translated dictionary today. All other locale codes
+  // fall back to English until reviewed dictionaries are available.
+  if (lang !== 'ar' && lang !== 'ar-SA') return (s) => s;
   return (s) => AR[s] ?? s;
 }
 
