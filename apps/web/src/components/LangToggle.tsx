@@ -1,20 +1,34 @@
 'use client';
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { SUPPORTED_LOCALES, type SupportedLocale } from '@pmo/contracts';
 
-/** Flips the whole app between English and Arabic — and LTR to RTL with it. */
-export function LangToggle({ ar }: { ar: boolean }) {
-  const [pending, start] = useTransition();
+/**
+ * Universal locale switcher. All six options are saved, but languages without
+ * approved dictionaries intentionally render English until translations ship.
+ * Locale is presentation-only: no account, tenant or API permission is changed.
+ */
+export function LangToggle({ locale }: { locale: SupportedLocale }) {
   const router = useRouter();
-  function flip() {
-    document.cookie = `pmo_lang=${ar ? 'en' : 'ar'}; path=/; max-age=31536000; samesite=lax`;
-    start(() => router.refresh());
+  const [pending, start] = useTransition();
+
+  function selectLocale(next: string) {
+    if (!SUPPORTED_LOCALES.some(item => item.code === next) || next === locale) return;
+    document.cookie = `pmo_lang=${encodeURIComponent(next)}; path=/; max-age=31536000; samesite=lax`;
+    // The document's language and direction are generated on the server;
+    // a full navigation ensures <html lang> and <html dir> stay synchronized.
+    start(() => { window.location.reload(); });
   }
+
   return (
-    <button className="iconbtn lang" onClick={flip} disabled={pending}
-            title={ar ? 'Switch to English' : 'التبديل إلى العربية'}
-            aria-label={ar ? 'Switch to English' : 'Switch to Arabic'}>
-      {ar ? 'EN' : 'ع'}
-    </button>
+    <label className="locale-switcher" title="Choose interface language">
+      <span className="sr-only">Interface language</span>
+      <select aria-label="Interface language" value={locale} disabled={pending}
+              onChange={(event) => selectLocale(event.target.value)}>
+        {SUPPORTED_LOCALES.map(item => (
+          <option key={item.code} value={item.code}>{item.nativeName}</option>
+        ))}
+      </select>
+    </label>
   );
 }
