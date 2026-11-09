@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { checkStagingSecurity } from './verify-staging-config.mjs';
 const env = {
- DEPLOYMENT_ENV:'staging', WEB_BIND:'127.0.0.1', WEB_ORIGIN:'https://staging.example.com',
+ DEPLOYMENT_ENV:'staging', WEB_BIND:'127.0.0.1', WEB_PORT:'3001', WEB_ORIGIN:'https://staging.example.com',
  PUBLIC_API_URL:'https://api-staging.example.com', DATABASE_URL:`postgres://app:${'A'.repeat(32)}@db:5432/pmo`,
  REDIS_URL:`redis://:${'B'.repeat(32)}@redis:6379`, STRIPE_ENABLED:'false', STRIPE_SECRET_KEY:'', STRIPE_WEBHOOK_SECRET:'', STRIPE_WEBHOOK_PUBLIC_URL:'', STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false', BILLING_REFERENCE_WEBHOOK_ENABLED:'false', NODE_ENV:'production'
 };
@@ -16,3 +16,12 @@ test('rejects any legacy payment credential',()=>assert.ok(failed({...env,STRIPE
 test('rejects legacy test-mode exemption',()=>assert.ok(failed({...env,STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'true'}).some(x=>x.includes('exception'))));
 test('rejects reference billing webhook',()=>assert.ok(failed({...env,BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}).length>0));
 test('rejects credential-bearing URL and local origin',()=>assert.ok(failed({...env,WEB_ORIGIN:'https://user:pass@localhost'}).length>0));
+
+test('requires a dedicated staging host port, not production 3000 or privileged ports', () => {
+  for (const port of [undefined, '', '3000', '80', '443', '0', '65536', '03'+'001', '3001;echo unsafe', '0.0.0.0:3001']) {
+    assert.ok(failed({...env, WEB_PORT: port}).some(x=>x.includes('Dedicated non-production web host port')), String(port));
+  }
+  for (const port of ['3001','3210','65535']) {
+    assert.deepEqual(failed({...env, WEB_PORT: port}), [], port);
+  }
+});
