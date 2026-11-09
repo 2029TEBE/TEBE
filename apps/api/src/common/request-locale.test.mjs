@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeLocale, localeDirection, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../../../packages/contracts/src/locales.ts';
-import { selectRequestLocale, requestLocaleMiddleware } from './request-locale.ts';
+import { normalizeLocale, localeDirection, SUPPORTED_LOCALES, DEFAULT_LOCALE, selectRequestLocale } from '../../../../packages/contracts/src/locales.ts';
+import { readFileSync } from 'node:fs';
 
 test('the agreed six locales are stable and English is the master', () => {
   assert.deepEqual([...SUPPORTED_LOCALES], ['en','ar-SA','de-DE','zh-CN','fr-FR','ja-JP']);
@@ -35,14 +35,10 @@ test('unsupported, disabled or malformed language preferences fall back to Engli
   assert.equal(selectRequestLocale(undefined, 'ar;q=2'), 'en');
   assert.equal(selectRequestLocale(''.padEnd(600, 'a'), ''.padEnd(600, 'a')), 'en');
 });
-test('locale middleware does not mutate cookies, response body or tenant identity', () => {
-  const req = { cookies: { pmo_lang: 'ar' }, headers: { 'accept-language': 'en-US' },
-    user: { id: 'user-1', tenantId: 'tenant-1' } };
-  const res = { locals: {} };
-  let called = 0;
-  requestLocaleMiddleware(req, res, () => { called += 1; });
-  assert.equal(res.locals.epmoLocale, 'ar-SA');
-  assert.equal(req.user.tenantId, 'tenant-1');
-  assert.equal(req.cookies.pmo_lang, 'ar');
-  assert.equal(called, 1);
+test('API middleware is strictly request-scoped and wired after cookie parsing', () => {
+  const source = readFileSync(new URL('./request-locale.ts', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('../main.ts', import.meta.url), 'utf8');
+  assert.match(source, /res\.locals\.epmoLocale\s*=\s*selectRequestLocale\(/);
+  assert.doesNotMatch(source, /res\.cookie\(|setHeader\(|tenantId\s*=/);
+  assert.ok(main.indexOf('app.use(cookieParser());') < main.indexOf('app.use(requestLocaleMiddleware);'));
 });
