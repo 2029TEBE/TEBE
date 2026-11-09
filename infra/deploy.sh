@@ -64,6 +64,17 @@ if ! ssh_remote "test -d '$DIR' && test \"\$(realpath -e '$DIR')\" = '$DIR' && t
   exit 1
 fi
 
+# A staging target is not safe just because its folder and .env file exist.
+# Validate the already-installed remote safety checker before ANY rsync --delete.
+# If this is a brand-new host, provision the checker out-of-band first;
+# never weaken the gate to bootstrap an unverified remote destination.
+if [[ "$MODE" == staging ]]; then
+  if ! ssh_remote "cd '$DIR' && test -f scripts/verify-staging-config.mjs && node scripts/verify-staging-config.mjs --env-file '$ENVFILE'"; then
+    echo 'BLOCKED: staging configuration or pre-sync validation tool is unverified. No files copied.' >&2
+    exit 1
+  fi
+fi
+
 echo "Deploying $MODE to $HOST:$DIR"
 # Secrets are server-managed. Never copy *.env or .git to a destination.
 rsync -az --delete --no-owner --no-group \
