@@ -132,3 +132,11 @@ test('shared contract and frontend locale lists remain identical', async () => {
   assert.equal(codes.length, 23);
   assert.deepEqual([...FRONTEND_LOCALES], codes, 'frontend and backend locale registries have drifted');
 });
+
+test('invalid new locale preference preserves reviewed legacy Arabic cookie', () => {
+  const source = read('apps/web/src/lib/i18n.ts');
+  assert.match(source, /const normalized = normalizeFrontendLocale\(current\)/);
+  assert.match(source, /if \(normalized\) return normalized;/);
+  assert.match(source, /jar\.get\('pmo_lang'\)\?\.value === 'ar'/);
+  assert.doesNotMatch(source, /normalizeFrontendLocale\(current\) \?\? 'en-US'/);
+});
