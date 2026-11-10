@@ -58,3 +58,11 @@ CI result for this exact revision must be checked separately from earlier succes
 - Added regression checks for zero inline Arabic in those migrated files, token safety, and exact parity of the frontend's 23 locale codes against the shared contract's 23 entries.
 - **Do not infer 19 fully translated experiences.** Translation catalogs are still incomplete; non-English/non-Arabic interface copy may fall back to English. Marketing frontend PR #23 is still a separate distribution.
 - Latest commit's full build/CI result is separately tracked in GitHub; prior green jobs cannot verify a newer head.
+
+## Regional locale normalization follow-up (10 November 2026)
+- Existing PR #483 head `f50ce0a` had a successful GitHub CI run before these changes. Marketing PR #23 head `d6206529` likewise passed marketing validation; both PRs remained drafts.
+- SaaS frontend locale resolution now preserves `en-GB`, `es-419`, `pt-BR`, and `pt-PT` when browser locale tags include supported extension subtags, instead of inadvertently collapsing `en-GB-*` to `en-US`.
+- Added regression assertions in `apps/web/src/lib/frontend-locale.test.mjs` for regional locale extensions and preference selection.
+- Changes committed on existing draft PR #483 as `e443492` and `aae15b8`. Latest CI result must be obtained from GitHub before treating the new head as passing; no deployment or merge was performed.
+- GitHub connector permissions: write/admin on SaaS repository; read-only on marketing repository. Marketing source cannot be updated through this connection without write permission.
+- This is a targeted normalization fix, not completion of catalog sharing, full 19-language translation coverage, localized exports, device acceptance, or production verification.
