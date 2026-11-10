@@ -30,6 +30,14 @@ export async function tr(): Promise<T> {
  */
 export async function getFrontendLocale(): Promise<import('./frontend-locale.mjs').FrontendLocale> {
   const jar = await cookies();
+  // Dedicated cross-subdomain display preference shared with the marketing
+  // origin. It intentionally does not overlap authentication or tenant cookies.
+  // Preserve legacy app-only locale behavior for browsers not yet migrated.
+  const shared = jar.get('epmo_site_locale')?.value;
+  if (shared !== undefined) {
+    const normalized = normalizeFrontendLocale(shared);
+    if (normalized) return normalized;
+  }
   const current = jar.get('pmo_locale')?.value;
   if (current !== undefined) {
     const normalized = normalizeFrontendLocale(current);
