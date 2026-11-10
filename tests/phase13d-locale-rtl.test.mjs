@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { compareTableValues, formatTableCount } from '../apps/web/src/lib/table-locale.mjs';
+import { uiLabel } from '../apps/web/src/lib/ui-labels.mjs';
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 
@@ -44,11 +45,11 @@ test('navigation passes selected locale and translates command groups', () => {
   // Arabic names and stable links instead of branching on language at each use.
   assert.ok(s.includes('group: uiLabel(g.label, locale, navigationArabic(g.label))'));
   assert.ok(s.includes('label: uiLabel(i.label, locale, navigationArabic(i.label))'));
-  const catalog = read('apps/web/src/lib/ui-labels.mjs');
-  assert.ok(catalog.includes("if (locale === 'ar-SA')"));
-  assert.ok(catalog.includes("legacyArabic && legacyArabic !== english"));
-  assert.ok(catalog.includes("row?.['ar-SA'] ?? english"));
-  assert.ok(catalog.includes('return row?.[locale] ?? english'));
+  // Assert actual fallback behavior, not implementation syntax.
+  assert.equal(uiLabel('Projects', 'ar', 'المشاريع'), 'المشاريع');
+  assert.equal(uiLabel('Projects', 'de'), 'Projekte');
+  assert.equal(uiLabel('Untranslated label', 'de'), 'Untranslated label');
+  assert.equal(uiLabel('Value {count}', 'ar', 'القيمة {missing}'), 'Value {count}');
   assert.match(s, /const commands = groups\.flatMap/);
 });
 test('tables use locale helpers and bidi isolation for raw values', () => {
