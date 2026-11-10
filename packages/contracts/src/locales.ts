@@ -51,8 +51,12 @@ export function resolveLocale(value: unknown): LocaleCode {
   if (v === 'en') return 'en-US';
   if (v.startsWith('en-gb')) return 'en-GB';
   if (v.startsWith('en-')) return 'en-US';
-  if (v === 'zh' || v === 'zh-hans' || v.startsWith('zh-hans-') || v === 'zh-sg') return 'zh-CN';
-  if (v === 'zh-hant' || v.startsWith('zh-hant-') || v === 'zh-hk') return 'zh-TW';
+  // Keep all region aliases consistent with the browser-facing resolver.
+  if (v === 'es-419' || v.startsWith('es-419-')) return 'es-419';
+  if (v === 'pt-br' || v.startsWith('pt-br-')) return 'pt-BR';
+  if (v === 'pt-pt' || v.startsWith('pt-pt-')) return 'pt-PT';
+  if (v === 'zh-hant' || v.startsWith('zh-hant-') || v === 'zh-tw' || v.startsWith('zh-tw-') || v === 'zh-hk' || v.startsWith('zh-hk-') || v === 'zh-mo' || v.startsWith('zh-mo-')) return 'zh-TW';
+  if (v === 'zh' || v === 'zh-hans' || v.startsWith('zh-hans-') || v === 'zh-cn' || v.startsWith('zh-cn-') || v === 'zh-sg' || v.startsWith('zh-sg-')) return 'zh-CN';
   const base = v.split('-')[0];
   return LOCALE_CODES.find(code => code.toLowerCase() === base) ?? DEFAULT_LOCALE;
 }
