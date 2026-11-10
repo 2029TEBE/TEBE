@@ -93,7 +93,13 @@ jobs:
           EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
-          [[ "$EXPECTED_SHA" =~ ^[a-f0-9]{40}$ ]]
+          SHA_PATTERN='^[a-f0-9]{40}
+          ssh -i "$HOME/.ssh/epmo_prod" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$EPMO_DEPLOY_HOST" \
+            "test -d /opt/the-epmo && printf '%s\\n' '$EXPECTED_SHA' > /opt/the-epmo/.deployed-revision"
+          echo "Deployed revision: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+          [[ "$EXPECTED_SHA" =~ $SHA_PATTERN ]]
           ssh -i "$HOME/.ssh/epmo_prod" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$EPMO_DEPLOY_HOST" \
             "test -d /opt/the-epmo && printf '%s\\n' '$EXPECTED_SHA' > /opt/the-epmo/.deployed-revision"
