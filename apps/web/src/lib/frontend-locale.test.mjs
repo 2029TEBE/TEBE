@@ -1,62 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  FRONTEND_LOCALES,
-  normalizeFrontendLocale,
-  chooseFrontendLocale,
-  isSupportedFrontendLocale,
-} from './frontend-locale.mjs';
+import { FRONTEND_LOCALES, normalizeFrontendLocale, chooseFrontendLocale, isSupportedFrontendLocale } from './frontend-locale.mjs';
 
-test('defines the six approved frontend locales only', () => {
-  assert.deepEqual([...FRONTEND_LOCALES], [
-    'en', 'ar-SA', 'de-DE', 'zh-CN', 'fr-FR', 'ja-JP',
-  ]);
-  assert.equal(isSupportedFrontendLocale('ar-SA'), true);
-  assert.equal(isSupportedFrontendLocale('es'), false);
+test('registers 23 TheOrg variants and keeps 19 language families', () => {
+  assert.equal(FRONTEND_LOCALES.length, 23);
+  assert.equal(new Set(FRONTEND_LOCALES.map(s => s.split('-')[0])).size, 19);
+  assert.equal(isSupportedFrontendLocale('ur'), true);
+  assert.equal(isSupportedFrontendLocale('es-419'), true);
+  assert.equal(isSupportedFrontendLocale('xx'), false);
 });
 
-test('normalizes language subtags while preserving script distinctions', () => {
-  assert.equal(normalizeFrontendLocale('en-US'), 'en');
-  assert.equal(normalizeFrontendLocale('ar-SA'), 'ar-SA');
-  assert.equal(normalizeFrontendLocale('de-CH'), 'de-DE');
-  assert.equal(normalizeFrontendLocale('fr-CA'), 'fr-FR');
-  assert.equal(normalizeFrontendLocale('ja-JP'), 'ja-JP');
+test('retains exact Chinese scripts and regional English variants', () => {
+  assert.equal(normalizeFrontendLocale('en-GB'), 'en-GB');
+  assert.equal(normalizeFrontendLocale('en-US'), 'en-US');
+  assert.equal(normalizeFrontendLocale('ar-SA'), 'ar');
+  assert.equal(normalizeFrontendLocale('zh-Hant'), 'zh-TW');
   assert.equal(normalizeFrontendLocale('zh-Hans'), 'zh-CN');
-  assert.equal(normalizeFrontendLocale('zh-SG'), 'zh-CN');
-  assert.equal(normalizeFrontendLocale('zh-TW'), null);
-  assert.equal(normalizeFrontendLocale('zh-HK'), null);
-  assert.equal(normalizeFrontendLocale('pt-BR'), null);
-  assert.equal(normalizeFrontendLocale(null), null);
+  assert.equal(normalizeFrontendLocale('zh-HK'), 'zh-TW');
+  assert.equal(normalizeFrontendLocale('pt-PT'), 'pt-PT');
 });
 
-test('explicit user choice wins over browser and IP country', () => {
-  assert.equal(chooseFrontendLocale({
-    selected: 'en', saved: 'ar', browserLanguages: ['de-DE'], country: 'SA',
-  }), 'en');
+test('user-selected or saved preference wins', () => {
+  assert.equal(chooseFrontendLocale({selected:'ur',saved:'fr',browserLanguages:['en-GB']}),'ur');
+  assert.equal(chooseFrontendLocale({saved:'ja',browserLanguages:['de']}),'ja');
 });
 
-test('saved preference takes precedence over browser and country', () => {
-  assert.equal(chooseFrontendLocale({
-    saved: 'ja-JP', browserLanguages: ['ar-SA'], country: 'CN',
-  }), 'ja-JP');
-});
-
-test('browser language takes precedence over regional IP hint', () => {
-  assert.equal(chooseFrontendLocale({
-    browserLanguages: ['es-ES', 'fr-CA', 'en-US'], country: 'CN',
-  }), 'fr-FR');
-});
-
-test('country acts as fallback only, never as forced language', () => {
-  assert.equal(chooseFrontendLocale({ country: 'CN' }), 'zh-CN');
-  assert.equal(chooseFrontendLocale({ country: 'SA' }), 'ar-SA');
-  assert.equal(chooseFrontendLocale({ country: 'DE' }), 'de-DE');
-  assert.equal(chooseFrontendLocale({ country: 'JP' }), 'ja-JP');
-  assert.equal(chooseFrontendLocale({ browserLanguages: ['en-US'], country: 'SA' }), 'en');
-});
-
-test('unsupported language and missing country safely fall back to English', () => {
-  assert.equal(chooseFrontendLocale(), 'en');
-  assert.equal(chooseFrontendLocale({ selected: 'xx', saved: 'pt', browserLanguages: ['es'], country: 'US' }), 'en');
-  assert.equal(chooseFrontendLocale({ selected: 'zh-TW', country: 'JP' }), 'ja-JP');
+test('browser preference precedes country hints; unknown defaults to English', () => {
+  assert.equal(chooseFrontendLocale({browserLanguages:['es-419'],country:'CN'}),'es-419');
+  assert.equal(chooseFrontendLocale({country:'SA'}),'ar');
+  assert.equal(chooseFrontendLocale({country:'JP'}),'ja');
+  assert.equal(chooseFrontendLocale({selected:'invalid',saved:'invalid'}),'en-US');
 });
