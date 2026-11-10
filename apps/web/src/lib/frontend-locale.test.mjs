@@ -40,3 +40,13 @@ test('preserves supported regional variants with browser extension subtags', () 
   assert.equal(normalizeFrontendLocale('pt-PT-u-ca-gregory'), 'pt-PT');
   assert.equal(chooseFrontendLocale({browserLanguages:['en-GB-u-ca-gregory']}), 'en-GB');
 });
+
+test('Chinese region and script extensions retain the intended writing system', () => {
+  for (const value of ['zh-TW-u-ca-gregory', 'zh-HK-u-nu-hanidec', 'zh-MO', 'zh-Hant-HK']) {
+    assert.equal(normalizeFrontendLocale(value), 'zh-TW', value);
+  }
+  for (const value of ['zh-CN-u-nu-latn', 'zh-SG-u-ca-gregory', 'zh-Hans-SG']) {
+    assert.equal(normalizeFrontendLocale(value), 'zh-CN', value);
+  }
+  assert.equal(chooseFrontendLocale({browserLanguages:['zh-TW-u-ca-gregory']}), 'zh-TW');
+});
