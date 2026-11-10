@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { uiLabel, uiLabelCoverage, translationHasMatchingPlaceholders } from './ui-labels.mjs';
+import { UI_LABELS, uiLabel, uiLabelCoverage, translationHasMatchingPlaceholders } from './ui-labels.mjs';
 
 test('English source text is unchanged', () => {
   assert.equal(uiLabel('Projects', 'en', 'المشاريع'), 'Projects');
@@ -87,4 +87,15 @@ test('runtime fallback rejects malformed interpolation including legacy Arabic',
   assert.equal(uiLabel(source, 'ar', 'عرض {total} من {shown} مشروع'), 'عرض {total} من {shown} مشروع');
   assert.equal(uiLabel(source, 'fr', ''), uiLabel(source, 'fr-FR'));
   assert.equal(uiLabel(source, 'xx'), source);
+});
+
+test('full UI label catalog preserves interpolation tokens across every translated variant', () => {
+  for (const [source, variants] of Object.entries(UI_LABELS)) {
+    for (const [locale, translated] of Object.entries(variants)) {
+      assert.equal(translationHasMatchingPlaceholders(source, translated), true,
+        `placeholder mismatch: ${locale} / ${source}`);
+      assert.equal(typeof translated, 'string', `non-string translation: ${locale} / ${source}`);
+      assert.ok(translated.trim().length > 0, `blank translation: ${locale} / ${source}`);
+    }
+  }
 });
