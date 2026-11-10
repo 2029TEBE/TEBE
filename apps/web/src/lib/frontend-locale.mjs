@@ -14,8 +14,9 @@ export function normalizeFrontendLocale(input) {
   if (value === 'pt-br' || value.startsWith('pt-br-')) return 'pt-BR';
   if (value === 'pt-pt' || value.startsWith('pt-pt-')) return 'pt-PT';
   if (value.startsWith('ar-')) return 'ar';
-  if (value === 'zh' || value === 'zh-hans' || value.startsWith('zh-hans-') || value === 'zh-sg') return 'zh-CN';
-  if (value === 'zh-hant' || value.startsWith('zh-hant-') || value === 'zh-hk') return 'zh-TW';
+  // Script and territory aliases must survive additional browser subtags.
+  if (value === 'zh-hant' || value.startsWith('zh-hant-') || value === 'zh-tw' || value.startsWith('zh-tw-') || value === 'zh-hk' || value.startsWith('zh-hk-') || value === 'zh-mo' || value.startsWith('zh-mo-')) return 'zh-TW';
+  if (value === 'zh' || value === 'zh-hans' || value.startsWith('zh-hans-') || value === 'zh-cn' || value.startsWith('zh-cn-') || value === 'zh-sg' || value.startsWith('zh-sg-')) return 'zh-CN';
   const base = value.split('-')[0];
   return CODES.get(base) ?? null;
 }
