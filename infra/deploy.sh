@@ -124,7 +124,7 @@ ssh_remote "cd '$DIR' && $COMPOSE up -d postgres redis"
 if [[ "$MODE" == staging || "$MODE" == prod ]]; then
   # Fail closed: no verified pre-migration dump, no schema upgrade.
   # Backups live OUTSIDE the rsync --delete deployment path.
-  if ! backup_result=$(ssh_remote "cd '$DIR' && infra/backup-db.sh '$MODE'"); then
+  if ! backup_result=$(ssh_remote "cd '$DIR' && bash infra/backup-db.sh '$MODE'"); then
     echo 'BLOCKED: mandatory pre-migration backup failed' >&2
     exit 1
   fi
@@ -137,10 +137,10 @@ if [[ "$MODE" == staging || "$MODE" == prod ]]; then
       echo 'BLOCKED: backup command did not return a safe staging archive path' >&2
       exit 1
     fi
-    ssh_remote "cd '$DIR' && infra/rehearse-db-restore.sh staging '$backup_path'"
+    ssh_remote "cd '$DIR' && bash infra/rehearse-db-restore.sh staging '$backup_path'"
   fi
 fi
-ssh_remote "cd '$DIR' && infra/bootstrap-db.sh '$MODE'"
+ssh_remote "cd '$DIR' && bash infra/bootstrap-db.sh '$MODE'"
 ssh_remote "cd '$DIR' && $COMPOSE up -d api web"
 
 # Never spin forever on an unhealthy deployment. Expose useful logs on failure.
