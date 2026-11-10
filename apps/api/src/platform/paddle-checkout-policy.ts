@@ -70,7 +70,9 @@ export function assertPaddleTransactionResponse(payload: unknown,
     throw Error('Paddle transaction metadata does not match intent');
   if (!Array.isArray(tx.items) || tx.items.length !== 1 ||
       !tx.items[0] || typeof tx.items[0] !== 'object' ||
-      (tx.items[0] as Record<string, unknown>).price_id !== intent.priceId ||
+      (!(tx.items[0] as Record<string, unknown>).price ||
+        typeof (tx.items[0] as Record<string, unknown>).price !== 'object' ||
+        ((tx.items[0] as Record<string, unknown>).price as Record<string, unknown>).id !== intent.priceId) ||
       (tx.items[0] as Record<string, unknown>).quantity !== 1)
     throw Error('Paddle response item does not match approved price');
   const checkout = tx.checkout;
