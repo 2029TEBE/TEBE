@@ -46,3 +46,12 @@ test('deployment does not include an unguarded direct push trigger or bypass che
   assert.ok(!workflow.includes('StrictHostKeyChecking=no'));
   assert.ok(!deploy.includes('SKIP_TESTS=true'));
 });
+
+test('successful deployment records exactly one validated revision marker',()=>{
+  const section = workflow.split('      - name: Record deployed revision on the VPS\n')[1];
+  assert.ok(section, 'Missing revision recording step');
+  assert.equal((section.match(/\.deployed-revision/g) || []).length,1);
+  assert.ok(section.includes("SHA_PATTERN='^[a-f0-9]{40}$'"));
+  assert.ok(section.includes('[[ "$EXPECTED_SHA" =~ $SHA_PATTERN ]]'));
+  assert.ok(section.includes('StrictHostKeyChecking=yes'));
+});
