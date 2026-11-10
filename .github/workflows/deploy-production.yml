@@ -32,9 +32,15 @@ jobs:
       - name: Refuse to deploy stale or superseded commits
         env:
           EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          current=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
+          # The repository is private. Authenticate the main HEAD lookup;
+          # anonymous git ls-remote would fail even when CI is green.
+          current=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -er '.commit.sha')
           if [[ -z "$current" || "$current" != "$EXPECTED_SHA" ]]; then
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
