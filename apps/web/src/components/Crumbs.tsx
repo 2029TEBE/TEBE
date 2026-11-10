@@ -1,32 +1,34 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { NAV } from '@/lib/nav';
+import { navigationArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
 
-/** Match complete path segments, not overlapping route prefixes. */
 const matchesNavPath = (path: string, href: string) =>
   href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
 
-export function Crumbs({ ar }: { ar: boolean }) {
+/** The displayed language comes from one catalog; Arabic isn't duplicated here. */
+export function Crumbs({ ar, locale = 'en-US' }: { ar: boolean; locale?: FrontendLocale }) {
   const path = usePathname();
-  // A few signed-in pages are intentionally outside the licensed NAV groups.
-  // Never describe an unlisted page as the Executive Overview by default.
-  const standalone: Record<string, [string, string]> = {
-    '/decision-cockpit': ['Executive Decision Cockpit', 'مركز القرارات التنفيذي'],
-    '/operations-preview': ['Operations preview', 'معاينة عمليات المنصة'],
+  const labelFor = (english: string) => uiLabel(english, locale, navigationArabic(english));
+  const standalone: Record<string, string> = {
+    '/decision-cockpit': 'Executive Decision Cockpit',
+    '/operations-preview': 'Operations preview',
   };
   let group = '';
-  let label = path === '/'
-    ? (ar ? 'النظرة التنفيذية' : 'Executive Overview')
-    : (standalone[path]?.[ar ? 1 : 0] ?? (ar ? 'الصفحة الحالية' : 'Current page'));
+  let label = labelFor(path === '/' ? 'Executive Overview' : (standalone[path] ?? 'Current page'));
   for (const g of NAV) {
     for (const i of g.items) {
-      const hit = matchesNavPath(path, i.href);
-      if (hit) { group = ar ? g.ar : g.label; label = ar ? i.ar : i.label; }
+      if (matchesNavPath(path, i.href)) {
+        group = labelFor(g.label);
+        label = labelFor(i.label);
+      }
     }
   }
   return (
-    <nav className="crumbs" aria-label={ar ? 'مسار الصفحة' : 'Breadcrumb'}>
-      <span>{ar ? 'المكتب التنفيذي لإدارة المشاريع' : 'The EPMO'}</span>
+    <nav className="crumbs" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'} aria-label={labelFor('Breadcrumb')}>
+      <span>{labelFor('The EPMO')}</span>
       {group && <><span className="sep" aria-hidden="true">/</span><span>{group}</span></>}
       <span className="sep" aria-hidden="true">/</span><b aria-current="page">{label}</b>
     </nav>

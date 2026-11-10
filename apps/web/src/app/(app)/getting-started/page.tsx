@@ -1,70 +1,22 @@
+import { gettingStartedExtraArabic, fill } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import Link from 'next/link';
 import { trialChecklist, TRIAL_EXAMPLE } from '@/lib/trial-guidance.mjs';
 import { api, getSession, type OnboardingStatus } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { getLang } from '@/lib/i18n';
-import { can, type Capability } from '@pmo/contracts';
+import { can, GETTING_STARTED_COPY, type Capability } from '@pmo/contracts';
 import { onboardingActionHref, onboardingActionLicensed } from '@/lib/onboarding-guidance';
 import { effectiveSubscriptionStatus, daysUntil } from '@/lib/subscription-display.mjs';
 
-const copy = {
-  en: {
-    title: 'Getting Started',
-    sub: 'Set up your organization, invite colleagues, and launch your first governed project.',
-    progress: 'Workspace setup progress',
-    nextTitle: 'Your next recommended step',
-    nextInfo: 'We recommend creating your portfolio, then a programme and your first governed project. You can add colleagues at any time.',
-    nextButton: 'Start this step',
-    nextBlocked: 'You can review the step below, but completing it requires an authorized user or an enabled module.',
-    allDone: 'Setup complete',
-    completed: 'completed',
-    done: 'Completed',
-    todo: 'To do',
-    open: 'Open',
-    askAdmin: 'Ask an administrator',
-    moduleNeeded: 'This step also requires the PMO module to be enabled for your workspace.',
-    help: 'Only authorized workspace administrators can add people or create project records.',
-    note: 'Administrators can now invite colleagues using secure, 72-hour email links when Amazon SES is configured.',
-    finished: 'Your workspace essentials are ready. You can continue managing projects from the navigation.',
-    tasks: {
-      workspace: ['Workspace created', 'Your organization workspace is active. Review its name and identifier in Settings.'],
-      team: ['Add a colleague', 'Bring another member into this workspace and assign an appropriate role.'],
-      portfolio: ['Create a portfolio', 'Group work by your strategic portfolio.'],
-      program: ['Create a programme', 'Place related initiatives inside a portfolio.'],
-      project: ['Create your first project', 'Start with a project and its stage-gate governance.'],
-    },
-  },
-  ar: {
-    title: 'البدء',
-    sub: 'جهّز مساحة مؤسستك وفريق العمل وأطلق أول مشروع تحت الحوكمة.',
-    progress: 'تقدم إعداد مساحة العمل',
-    nextTitle: 'الخطوة التالية المقترحة',
-    nextInfo: 'نقترح إنشاء المحفظة ثم البرنامج وأول مشروع خاضع للحوكمة. ويمكنك إضافة الزملاء في أي وقت.',
-    nextButton: 'ابدأ هذه الخطوة',
-    nextBlocked: 'يمكنك مراجعة الخطوة أدناه، لكن تنفيذها يتطلب مستخدماً مخولاً أو وحدة مفعّلة.',
-    allDone: 'اكتمل الإعداد',
-    completed: 'مكتملة',
-    done: 'مكتمل',
-    todo: 'لم يكتمل',
-    open: 'فتح',
-    askAdmin: 'تواصل مع مسؤول مساحة العمل',
-    moduleNeeded: 'تتطلب هذه الخطوة أيضاً تفعيل وحدة إدارة المشاريع لمساحة العمل.',
-    help: 'إضافة الأعضاء وإنشاء سجلات المشاريع متاحان فقط للمستخدمين المخولين.',
-    note: 'يمكن لمسؤولي مساحة العمل إرسال دعوات آمنة عبر البريد الإلكتروني لمدة 72 ساعة بعد تهيئة خدمة Amazon SES.',
-    finished: 'اكتملت الخطوات الأساسية. يمكنك الآن متابعة إدارة المشاريع من القائمة الرئيسية.',
-    tasks: {
-      workspace: ['مساحة العمل جاهزة', 'مساحة المؤسسة مفعّلة. يمكنك مراجعة الاسم والمعرّف في الإعدادات.'],
-      team: ['إضافة زميل', 'أضف عضواً آخر وحدد الصلاحية المناسبة له.'],
-      portfolio: ['إنشاء محفظة', 'نظّم العمل وفق المحفظة الاستراتيجية.'],
-      program: ['إنشاء برنامج', 'اجمع المبادرات المترابطة في محفظة واحدة.'],
-      project: ['إنشاء أول مشروع', 'ابدأ مشروعاً مع بوابات المراحل الخاصة بالحوكمة.'],
-    },
-  },
-} as const;
+
 
 export default async function GettingStarted() {
   const lang = await getLang();
-  const text = copy[lang];
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, gettingStartedExtraArabic(english));
+  const text = GETTING_STARTED_COPY[lang];
   const session = await getSession();
   const capabilities: Capability[] = session.authenticated
     ? (session.capabilities as Capability[]) : [];
@@ -75,14 +27,14 @@ export default async function GettingStarted() {
 
   return (
     <Page title={text.title} sub={text.sub}>
-      {licenseStatus === 'trialing' && <section className="panel" aria-label={lang === 'ar' ? 'إرشادات الفترة التجريبية' : 'Trial guidance'} style={{ marginBlockEnd: 16 }}>
-        <strong>{lang === 'ar' ? 'الفترة التجريبية لمساحة العمل' : 'Your workspace trial'}</strong>
-        <p>{lang === 'ar' ? `المتبقي من التجربة: ${trialDays ?? '—'} أيام. أكمِل إعداد مساحة العمل وراجع خطة الاشتراك قبل انتهاء التجربة.` : `Trial time remaining: ${trialDays ?? '—'} days. Finish workspace setup and review your plan before the trial ends.`}</p>
-        <Link href="/billing">{lang === 'ar' ? 'مراجعة الخطة والتجديد' : 'Review plan and renewal'}</Link>
+      {licenseStatus === 'trialing' && <section className="panel" aria-label={labelFor("Trial guidance")} style={{ marginBlockEnd: 16 }}>
+        <strong>{labelFor("Your workspace trial")}</strong>
+        <p>{fill(labelFor('Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.'), {days: trialDays ?? '—'})}</p>
+        <Link href="/billing">{labelFor("Review plan and renewal")}</Link>
       </section>}
       {licenseStatus === 'expired' && <section className="panel" role="status" style={{ marginBlockEnd: 16 }}>
-        <p>{lang === 'ar' ? 'انتهت صلاحية الاشتراك. قد تكون الوحدات التجارية غير متاحة حتى تأكيد التجديد.' : 'The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.'}</p>
-        <Link href="/billing">{lang === 'ar' ? 'فتح الفوترة' : 'Open billing'}</Link>
+        <p>{labelFor("The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.")}</p>
+        <Link href="/billing">{labelFor("Open billing")}</Link>
       </section>}
       <Loaded load={async () => ({
         data: await api.onboarding(),
@@ -112,13 +64,13 @@ export default async function GettingStarted() {
                 </div>
               </div>
               {data.completed === data.total && <p>{text.finished}</p>}
-              {licenseStatus === 'trialing' && <div style={{ marginTop: 16 }} aria-label={lang === 'ar' ? 'خطوات نجاح التجربة' : 'Trial success checklist'}>
-                <h3>{lang === 'ar' ? 'أهداف نجاح التجربة' : 'Trial success goals'}</h3>
+              {licenseStatus === 'trialing' && <div style={{ marginTop: 16 }} aria-label={labelFor("Trial success checklist")}>
+                <h3>{labelFor("Trial success goals")}</h3>
                 <ol>{trialChecklist(data.tasks, lang).map(step => <li key={step.key}>
                   {step.completed ? '✓ ' : '○ '}{step.label}
                 </li>)}</ol>
-                <p className="dim">{lang === 'ar' ? 'مثال توضيحي فقط، وليس بيانات فعلية أو مشروعاً محفوظاً:' : 'Illustrative sample only — not real data or a saved project:'}
-                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} {lang === 'ar' ? 'مخاطر' : 'risks'} · {TRIAL_EXAMPLE.decisions} {lang === 'ar' ? 'قرار' : 'decision'}.
+                <p className="dim">{labelFor("Illustrative sample only — not real data or a saved project:")}
+                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} {labelFor("risks")} · {TRIAL_EXAMPLE.decisions} {labelFor("decision")}.
                 </p>
               </div>}
             </section>

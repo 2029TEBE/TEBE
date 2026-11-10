@@ -1,3 +1,6 @@
+import { reportsArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
@@ -5,15 +8,17 @@ import { tr, getLang } from '@/lib/i18n';
 
 export default async function Reports() {
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, reportsArabic(english));
   const t = await tr();
   return (
-    <Page title={lang === 'ar' ? 'التقارير والتصدير' : 'Reporting & Exports'}
-          sub={lang === 'ar' ? 'حزم مجلس الإدارة من بيانات العمل الفعلية دون تجميعها يدويا.' : 'Board packs generated from live data rather than assembled by hand.'}>
-      <Loaded load={api.reports} empty={lang === 'ar' ? 'لا توجد تعريفات تقارير بعد.' : 'No report definitions yet.'}>
+    <Page title={labelFor("Reporting & Exports")}
+          sub={labelFor("Board packs generated from live data rather than assembled by hand.")}>
+      <Loaded load={api.reports} empty={labelFor("No report definitions yet.")}>
         {(list) => (
           <>
-            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص التقارير' : 'Reporting overview'}>
-              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'التقارير التنفيذية' : 'REPORTING OVERVIEW'}</span>
+            <section className="design-context" aria-label={labelFor("Reporting overview")}>
+              <div className="design-context-head"><span className="design-kicker">{labelFor("REPORTING OVERVIEW")}</span>
                 <h2>{t('Report catalogue')}</h2>
                 <p>{t('Definitions and most recent generation records from the workspace API. Scheduling and exports keep their existing behavior.')}</p></div>
               <div className="design-summary">
@@ -22,25 +27,23 @@ export default async function Reports() {
                 <div className="design-metric"><small>{t('Not yet generated')}</small><strong>{list.filter((r: any) => !r.lastRunAt).length}</strong></div>
               </div>
             </section>
-            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'قائمة التقارير' : 'Report catalogue'} tabIndex={0}><table>
-              <thead><tr><th scope="col">{t('Report')}</th><th scope="col">{t('Audience')}</th><th scope="col">{t('Schedule')}</th><th scope="col">{t('Last generated')}</th><th scope="col">{lang === 'ar' ? 'حزمة المجلس' : 'Board pack'}</th></tr></thead>
+            <div className="design-table-scroll" role="region" aria-label={labelFor("Report catalogue")} tabIndex={0}><table>
+              <thead><tr><th scope="col">{t('Report')}</th><th scope="col">{t('Audience')}</th><th scope="col">{t('Schedule')}</th><th scope="col">{t('Last generated')}</th><th scope="col">{labelFor("Board pack")}</th></tr></thead>
               <tbody>
                 {list.map((r: any) => (
                   <tr key={r.id}>
                     <td><strong><bdi>{r.name}</bdi></strong><div className="dim">{r.kind.replace(/_/g, ' ')}</div></td>
                     <td><bdi>{r.audience}</bdi></td>
-                    <td className="dim"><bdi>{r.schedule ?? (lang === 'ar' ? 'عند الطلب' : 'On demand')}</bdi></td>
-                    <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{lang === 'ar' ? 'لم يصدر بعد' : 'Never generated'}</span>}</td>
+                    <td className="dim"><bdi>{r.schedule ?? (labelFor("On demand"))}</bdi></td>
+                    <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{labelFor("Never generated")}</span>}</td>
                     <td><a className="btn" href="/reports/board-pack"
-                      aria-label={lang === 'ar' ? 'فتح حزمة مجلس الإدارة المشتركة' : 'Open shared board pack'}>
-                      {lang === 'ar' ? 'حزمة المجلس' : 'Board pack'}</a></td>
+                      aria-label={labelFor("Open shared board pack")}>
+                      {labelFor("Board pack")}</a></td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
-            <p className="dim">{lang === 'ar'
-              ? 'كل رابط في الجدول يفتح حزمة مجلس الإدارة المشتركة، وليس معاينة منفصلة لكل تعريف تقرير.'
-              : 'Each link in the table opens the shared board pack, not a separate preview of that report definition.'}</p>
+            <p className="dim">{labelFor("Each link in the table opens the shared board pack, not a separate preview of that report definition.")}</p>
             <h2 className="sec">{t('Take the board pack away')}</h2>
             <div className="xlgrid">
               <section className="panel">

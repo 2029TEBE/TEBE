@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { uiLabel, uiLabelCoverage } from './ui-labels.mjs';
+import { UI_LABELS, uiLabel, uiLabelCoverage, translationHasMatchingPlaceholders } from './ui-labels.mjs';
 
 test('English source text is unchanged', () => {
   assert.equal(uiLabel('Projects', 'en', 'المشاريع'), 'Projects');
@@ -23,14 +23,14 @@ test('missing translations safely fall back to English', () => {
 });
 test('coverage enumerates untranslated strings without duplication', () => {
   assert.deepEqual(uiLabelCoverage(['Projects','Projects','Unknown'], 'fr-FR'), {
-    total: 2, translated: 1, missing: ['Unknown'],
+    total: 2, translated: 1, missing: ['Unknown'], invalidPlaceholders: [],
   });
 });
 test('all shared nav group headings have four catalogue translations', () => {
   for (const title of ['Home','Plan & Deliver','Govern','Analyse','Collaborate','Configure']) {
     for (const locale of ['de-DE','zh-CN','fr-FR','ja-JP']) {
       assert.deepEqual(uiLabelCoverage([title], locale), {
-        total: 1, translated: 1, missing: [],
+        total: 1, translated: 1, missing: [], invalidPlaceholders: [],
       });
       assert.ok(uiLabel(title, locale).length > 0);
     }
@@ -66,4 +66,36 @@ test('shared executive journey has all six translations without separate dashboa
   assert.ok(!page.includes("lang === 'ar' ? 'حوّل الانحرافات"));
   assert.ok(page.includes('await api.overview()'));
   assert.ok(page.includes('await api.trends()'));
+});
+
+test('Arabic missing labels are not falsely recorded as translated', () => {
+  assert.deepEqual(uiLabelCoverage(['Projects', 'Unknown'], 'ar-SA', { Projects: 'المشاريع' }), {
+    total: 2, translated: 1, missing: ['Unknown'], invalidPlaceholders: [],
+  });
+});
+
+test('placeholder integrity protects interpolated labels in every locale', () => {
+  assert.equal(translationHasMatchingPlaceholders('Showing {shown} of {total}', 'عرض {total} من {shown}'), true);
+  assert.equal(translationHasMatchingPlaceholders('Showing {shown} of {total}', 'عرض {shown}'), false);
+  const result = uiLabelCoverage(['Showing {shown} of {total} projects needing review.'], 'fr-FR');
+  assert.deepEqual(result.invalidPlaceholders, []);
+});
+
+test('runtime fallback rejects malformed interpolation including legacy Arabic', () => {
+  const source = 'Showing the first {shown} of {total} projects needing review.';
+  assert.equal(uiLabel(source, 'ar', 'عرض أول {shown} مشروع'), source);
+  assert.equal(uiLabel(source, 'ar', 'عرض {total} من {shown} مشروع'), 'عرض {total} من {shown} مشروع');
+  assert.equal(uiLabel(source, 'fr', ''), uiLabel(source, 'fr-FR'));
+  assert.equal(uiLabel(source, 'xx'), source);
+});
+
+test('full UI label catalog preserves interpolation tokens across every translated variant', () => {
+  for (const [source, variants] of Object.entries(UI_LABELS)) {
+    for (const [locale, translated] of Object.entries(variants)) {
+      assert.equal(translationHasMatchingPlaceholders(source, translated), true,
+        `placeholder mismatch: ${locale} / ${source}`);
+      assert.equal(typeof translated, 'string', `non-string translation: ${locale} / ${source}`);
+      assert.ok(translated.trim().length > 0, `blank translation: ${locale} / ${source}`);
+    }
+  }
 });

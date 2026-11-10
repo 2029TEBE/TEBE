@@ -1,5 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { navigationArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
 
 type Mode = 'dark' | 'light';
 
@@ -20,7 +23,7 @@ const KEY = 'pmo-theme-v2';
  * tell which you were on without pressing it. It was reported, fairly, as the
  * light theme having gone missing.
  */
-export function ThemeToggle({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
+export function ThemeToggle({ locale = 'en-US' }: { locale?: FrontendLocale }) {
   const [mode, setMode] = useState<Mode>('dark');
 
   useEffect(() => {
@@ -44,26 +47,26 @@ export function ThemeToggle({ lang = 'en' }: { lang?: 'en' | 'ar' }) {
     apply(m);
   }
 
-  const t = (en: string, ar: string) => (lang === 'ar' ? ar : en);
+  const t = (english: string) => uiLabel(english, locale, navigationArabic(english));
 
   return (
-    <div className="themeswitch" role="group" aria-label={t('Appearance', 'المظهر')}>
+    <div className="themeswitch" role="group" aria-label={t('Appearance')}>
       <button type="button" onClick={() => choose('dark')}
-              aria-pressed={mode === 'dark'} title={t('Dark', 'داكن')}>
+              aria-pressed={mode === 'dark'} title={t('Dark')}>
         <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M10 2a8 8 0 108 8 6 6 0 01-8-8z" />
         </svg>
-        <span>{t('Dark', 'داكن')}</span>
+        <span>{t('Dark')}</span>
       </button>
       <button type="button" onClick={() => choose('light')}
-              aria-pressed={mode === 'light'} title={t('Light', 'فاتح')}>
+              aria-pressed={mode === 'light'} title={t('Light')}>
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor"
              strokeWidth="1.7" aria-hidden="true">
           <circle cx="10" cy="10" r="3.6" />
           <path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M15.8 4.2l-1.4 1.4M5.6 14.4l-1.4 1.4"
                 strokeLinecap="round" />
         </svg>
-        <span>{t('Light', 'فاتح')}</span>
+        <span>{t('Light')}</span>
       </button>
     </div>
   );

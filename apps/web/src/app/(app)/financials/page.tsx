@@ -1,4 +1,8 @@
+import { pageArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
+import { fill } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { money, num } from '@/lib/fmt';
@@ -14,15 +18,15 @@ export default async function Financials({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, pageArabic("financials", english));
   const t = await tr();
   // Outside <Loaded> on purpose: the create form must render even when the
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title={lang === 'ar' ? 'البيانات المالية' : 'Financials'}
-          sub={lang === 'ar'
-            ? 'الميزانية والالتزامات والمصروفات والتوقعات والقيمة المكتسبة لرصد الانحرافات المالية.'
-            : 'Budget, committed, spent and forecast — with earned value, so an overrun shows before it lands.'}>
+    <Page title={labelFor("Financials")}
+          sub={labelFor("Budget, committed, spent and forecast — with earned value, so an overrun shows before it lands.")}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="cost" title="New cost line" cta="Add cost line" returnTo="/financials"
         intro="Budget, commitment, actual and forecast are separate lines against the same project. Keeping them apart is what makes variance and CPI mean anything."
@@ -71,30 +75,24 @@ export default async function Financials({ searchParams }:
                   <tbody>
                     {d.byProject.map((r: any) => (
                       <tr key={r.id}>
-                        <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% {lang === 'ar' ? 'مكتمل' : 'complete'}</div></td>
+                        <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% {labelFor("complete")}</div></td>
                         <td className="num">{money(r.budget)}</td>
                         <td className="num">{money(r.committed)}</td>
                         <td className="num">{money(r.actual)}</td>
                         <td className="num">{money(r.earnedValue)}</td>
                         <td className="num">{r.cpi == null
                           ? <span className="dim" title={r.cpiSuppressed
-                              ? (lang === 'ar'
-                                  ? `تم صرف ${Math.round(r.drawnPct)}% فقط من الميزانية — لا تكفي البيانات لحساب مؤشر تكلفة ذي دلالة`
-                                  : `Only ${Math.round(r.drawnPct)}% of budget drawn — too early for a meaningful CPI`)
-                              : (lang === 'ar' ? 'لا توجد مصروفات مسجلة' : 'No spend recorded')}>
+                              ? (fill(labelFor('Only {pct}% of budget drawn — too early for a meaningful CPI'), {pct: Math.round(r.drawnPct)}))
+                              : (labelFor("No spend recorded"))}>
                               {r.cpiSuppressed
-                                ? (lang === 'ar' ? 'مبكر للحساب' : 'too early')
-                                : (lang === 'ar' ? 'لا توجد مصروفات' : 'no spend')}
+                                ? (labelFor("too early"))
+                                : (labelFor("no spend"))}
                             </span>
                           : <span className={r.cpi >= 1 ? 'good' : 'crit'}>{num(r.cpi, 2)}</span>}</td>
                         <td className="num">{money(r.forecast)}
                           {r.forecastCoverage < 1 && (
-                            <div className="dim" title={lang === 'ar'
-                              ? 'الفئات التي لا تتوفر لها توقعات مستقلة تستخدم الميزانية كقيمة بديلة'
-                              : 'Categories without their own forecast fall back to budget'}>
-                              {Math.round(r.forecastCoverage * 100)}% {lang === 'ar'
-                                ? 'ضمن التوقعات، والباقي وفق الميزانية'
-                                : 'forecast, rest at budget'}
+                            <div className="dim" title={labelFor("Categories without their own forecast fall back to budget")}>
+                              {Math.round(r.forecastCoverage * 100)}% {labelFor("forecast, rest at budget")}
                             </div>)}</td>
                         <td className="num">{r.variance > 0
                           ? <span className="crit">+{money(r.variance)}</span>

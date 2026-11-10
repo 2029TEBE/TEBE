@@ -11,6 +11,7 @@ const acceptProxy=text('apps/web/src/app/api/invite/accept/route.ts');
 const acceptForm=text('apps/web/src/app/accept-invite/InviteForm.tsx');
 const middleware=text('apps/api/src/app.module.ts');
 const settings=text('apps/web/src/app/(app)/settings/page.tsx');
+const settingsCatalog=text('packages/contracts/src/settings-locale.ts');
 
 test('profile changes require workspace admin capability',()=>assert.match(service,/async updateProfile\([\s\S]*?requireCapability\('pmoa_admin'\)/));
 test('invitation issuance requires manage-people capability',()=>assert.match(service,/async invite\([\s\S]*?requireCapability\('pmoa_manage_people'\)/));
@@ -71,8 +72,9 @@ test('browser removes invitation token from address bar',()=>{
  assert.match(acceptForm,/history\.replaceState/);
 });
 test('UI includes bilingual invitation controls and separates owner configuration',()=>{
- assert.match(settings,/دعوة زميل بالبريد الإلكتروني/);
- assert.match(settings,/Invite a colleague by email/);
+ assert.match(settingsCatalog,/دعوة زميل بالبريد الإلكتروني/);
+ assert.match(settings,/settingsArabic\(english\)/);
+ assert.match(settingsCatalog,/Invite a colleague by email/);
  assert.match(settings,/mayEditProfile = can\(caps, 'pmoa_admin'\)/);
 });
 test('forged invitations are rejected before password hashing',()=>{

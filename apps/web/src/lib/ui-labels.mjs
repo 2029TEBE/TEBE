@@ -69,23 +69,60 @@ export const UI_LABELS = Object.freeze({
  * English stays the source. Legacy Arabic is passed from existing NAV/controls
  * so this UI-only adapter never overwrites verified Arabic strings.
  */
+/** Bridge historical six-locale catalog keys to TheOrg language identifiers. */
+export function catalogLocale(locale) {
+  return ({ ar:'ar-SA', de:'de-DE', fr:'fr-FR', ja:'ja-JP', 'en-US':'en', 'en-GB':'en' })[locale] ?? locale;
+}
 export function uiLabel(english, locale, legacyArabic = null) {
+  locale = catalogLocale(locale);
   const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
-  if (locale === 'ar-SA') {
-    // A verified existing Arabic translation wins; new UI-only phrases
-    // use their local Arabic entry without touching backend document exports.
-    return legacyArabic && legacyArabic !== english
-      ? legacyArabic : (row?.['ar-SA'] ?? english);
-  }
   if (locale === 'en') return english;
-  return row?.[locale] ?? english;
+  // A legacy Arabic label is preferred where one exists, but a broken
+  // translation must never drop or rename dynamic display placeholders.
+  const candidate = locale === 'ar-SA'
+    ? (typeof legacyArabic === 'string' && legacyArabic.trim() && legacyArabic !== english
+      ? legacyArabic : row?.['ar-SA'])
+    : row?.[locale];
+  return typeof candidate === 'string' && candidate.trim() &&
+    translationHasMatchingPlaceholders(english, candidate)
+      ? candidate : english;
 }
 
-/** Missing entries are explicit QA findings, not automatic translations. */
-export function uiLabelCoverage(englishLabels, locale) {
+/** English text is the source. Placeholders must survive translation unchanged. */
+export function translationPlaceholders(value) {
+  return [...String(value).matchAll(/\{([a-zA-Z][\w]*)\}/g)]
+    .map((match) => match[1]).sort();
+}
+
+export function translationHasMatchingPlaceholders(english, translated) {
+  return JSON.stringify(translationPlaceholders(english)) ===
+    JSON.stringify(translationPlaceholders(translated));
+}
+
+/**
+ * Report verified catalog coverage; legacy Arabic fallback can be supplied as
+ * a map of English source text to existing Arabic translations.
+ * Do not count English fallback strings as translated.
+ */
+export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
+  locale = catalogLocale(locale);
   const unique = [...new Set(englishLabels)];
-  const missing = unique.filter((english) =>
-    locale !== 'en' && locale !== 'ar-SA' &&
-    !(Object.hasOwn(UI_LABELS, english) && Object.hasOwn(UI_LABELS[english], locale)));
-  return { total: unique.length, translated: unique.length - missing.length, missing };
+  const missing = [];
+  const invalidPlaceholders = [];
+  for (const english of unique) {
+    if (locale === 'en') continue;
+    const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
+    const legacy = locale === 'ar-SA' && Object.hasOwn(legacyArabic, english)
+      ? legacyArabic[english] : null;
+    const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
+      ? legacy : row?.[locale];
+    if (typeof translated !== 'string' || !translated.trim()) {
+      missing.push(english);
+    } else if (!translationHasMatchingPlaceholders(english, translated)) {
+      invalidPlaceholders.push(english);
+    }
+  }
+  return { total: unique.length,
+    translated: unique.length - missing.length - invalidPlaceholders.length,
+    missing, invalidPlaceholders };
 }
