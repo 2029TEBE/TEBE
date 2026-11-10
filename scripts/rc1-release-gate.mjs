@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const envKeys = ['DATABASE_URL','WEB_ORIGIN','PUBLIC_API_URL','PG_USER','PG_PASSWORD','PG_DB',
-  'REDIS_URL','REDIS_PASSWORD','STRIPE_ENABLED','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET',
+  'REDIS_URL','REDIS_PASSWORD','BILLING_MODE','STRIPE_ENABLED','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET',
   'STRIPE_WEBHOOK_PUBLIC_URL','STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION',
   'DEPLOYMENT_ENV','BILLING_REFERENCE_WEBHOOK_ENABLED','WEB_BIND'];
 
@@ -79,20 +79,30 @@ function redisUrl(value, password) {
 /** Return checks rather than throwing to present every blocker at once. */
 export function validateRc1Configuration(env, mode) {
   if (!['staging','production'].includes(mode)) throw new Error('Expected staging or production mode');
+  // A deliberate no-payments release must not require a live payment adapter.
+  // Omission keeps the existing strict Stripe release policy; no silent opt-out.
+  const billingDisabled = env.BILLING_MODE === 'disabled';
   const stripeMode = mode === 'staging' ? 'test' : 'live';
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
+    ['Billing mode is recognized', env.BILLING_MODE === undefined || ['stripe','disabled'].includes(env.BILLING_MODE)],
     ['Deployment mode matches this release target', env.DEPLOYMENT_ENV === mode],
     ['HTTPS web origin', httpsOrigin(env.WEB_ORIGIN)],
     ['HTTPS public API origin', httpsOrigin(env.PUBLIC_API_URL)],
     // Only the TLS reverse proxy should be reachable from the public network.
     ['Web container host port is bound to loopback', !env.WEB_BIND || env.WEB_BIND === '127.0.0.1'],
-    ['Stripe webhook matches public API origin and exact path', webhookMatches(env.PUBLIC_API_URL,env.STRIPE_WEBHOOK_PUBLIC_URL)],
-    ['Stripe adapter enabled', env.STRIPE_ENABLED === 'true'],
-    [`Stripe ${stripeMode} key configured`, keyPattern.test(env.STRIPE_SECRET_KEY || '')],
-    ['Stripe webhook signing secret configured', /^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET || '')],
+    ...(billingDisabled ? [
+      ['Disabled billing cannot enable Stripe', env.STRIPE_ENABLED === 'false'],
+      ['Disabled billing cannot retain payment credentials', !env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET],
+      ['Disabled billing cannot enable reference payments', env.BILLING_REFERENCE_WEBHOOK_ENABLED === 'false'],
+    ] : [
+      ['Stripe webhook matches public API origin and exact path', webhookMatches(env.PUBLIC_API_URL,env.STRIPE_WEBHOOK_PUBLIC_URL)],
+      ['Stripe adapter enabled', env.STRIPE_ENABLED === 'true'],
+      [`Stripe ${stripeMode} key configured`, keyPattern.test(env.STRIPE_SECRET_KEY || '')],
+      ['Stripe webhook signing secret configured', /^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET || '')],
+    ]),
     ['Reference payment adapter remains disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
-    ['Staging exception matches deployment mode', env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === (mode === 'staging' ? 'true' : 'false')],
+    ['Staging exception matches deployment mode', env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === (!billingDisabled && mode === 'staging' ? 'true' : 'false')],
     ['Database admin username is not the application role', !!env.PG_USER && env.PG_USER !== 'pmo_app' && env.PG_USER !== 'postgres'],
     ['Database admin password is non-default', goodPassword(env.PG_PASSWORD)],
     ['Application database URL uses restricted pmo_app role', dbAppUrl(env.DATABASE_URL,env.PG_DB || 'pmo')],

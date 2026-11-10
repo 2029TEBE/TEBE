@@ -69,7 +69,7 @@ DO \$\$ BEGIN
 END \$\$;
 -- An earlier RLS-only setup may have created pmo_app as NOLOGIN.
 -- Explicit LOGIN is required even if the role already exists.
-ALTER ROLE pmo_app LOGIN WITH PASSWORD '${APP_PW_SQL}';
+ALTER ROLE pmo_app WITH LOGIN PASSWORD '${APP_PW_SQL}';
 SQL
 
 echo "2/3 schema"

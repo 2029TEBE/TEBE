@@ -48,3 +48,33 @@ test('rejects publicly bound web container port in staging or production', () =>
   assert.ok(failed({...good, WEB_BIND:'::'}).some(c=>c.includes('loopback')));
   assert.deepEqual(failed({...good, WEB_BIND:'127.0.0.1'}),[]);
 });
+
+const disabled = {...good, BILLING_MODE:'disabled', DEPLOYMENT_ENV:'production',
+  STRIPE_ENABLED:'false', STRIPE_SECRET_KEY:'', STRIPE_WEBHOOK_SECRET:'',
+  STRIPE_WEBHOOK_PUBLIC_URL:'', STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+test('explicit billing-disabled production release needs no payment credentials',()=>{
+  assert.deepEqual(failed(disabled,'production'),[]);
+});
+test('disabled billing refuses enabled Stripe or either retained secret',()=>{
+  for(const extra of [{STRIPE_ENABLED:'true'},{STRIPE_SECRET_KEY:'sk_live_12345678901234567890'},
+    {STRIPE_WEBHOOK_SECRET:'whsec_1234567890123456789012'}])
+    assert.ok(failed({...disabled,...extra},'production').length);
+});
+test('disabled billing cannot activate reference payments or a test-mode exception',()=>{
+  for(const extra of [{BILLING_REFERENCE_WEBHOOK_ENABLED:'true'},
+    {BILLING_REFERENCE_WEBHOOK_ENABLED:undefined},{STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'true'}])
+    assert.ok(failed({...disabled,...extra},'production').length);
+});
+test('disabled billing still enforces transport, database and Redis protections',()=>{
+  for(const extra of [{WEB_ORIGIN:'http://theepmo.com'}, {WEB_BIND:'0.0.0.0'},
+    {DATABASE_URL:'postgres://postgres:password@postgres/pmo'}, {REDIS_PASSWORD:'password'}])
+    assert.ok(failed({...disabled,...extra},'production').length);
+});
+test('unknown billing modes and implicit opt-outs fail closed',()=>{
+  for(const mode of ['paddle','DISABLED','',null])
+    assert.ok(failed({...disabled,BILLING_MODE:mode},'production').length);
+  assert.ok(failed({...disabled,BILLING_MODE:undefined},'production').length);
+});
+test('disabled billing also supports a staging deployment without payment activation',()=>{
+  assert.deepEqual(failed({...disabled,DEPLOYMENT_ENV:'staging'},'staging'),[]);
+});
