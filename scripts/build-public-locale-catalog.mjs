@@ -67,9 +67,16 @@ export function verifyPublicLocaleCatalog(document) {
       payload.defaultLocale !== 'en-US') return false;
   if (!Array.isArray(payload.locales) ||
       JSON.stringify(payload.locales) !== JSON.stringify(FRONTEND_LOCALES)) return false;
+  if (payload.source !== 'THE EPMO SaaS UI catalog') return false;
+  if (Object.keys(payload).sort().join(',') !==
+      'coverage,defaultLocale,locales,releaseApproved,schemaVersion,scope,source,translations') return false;
   if (!payload.translations || typeof payload.translations !== 'object' ||
       Array.isArray(payload.translations)) return false;
+  const publicKeys = [...PUBLIC_CATALOG_KEYS].sort();
+  const actualKeys = Object.keys(payload.translations).sort();
+  if (JSON.stringify(actualKeys) !== JSON.stringify(publicKeys)) return false;
   for (const [source, variants] of Object.entries(payload.translations)) {
+    if (!Object.hasOwn(UI_LABELS, source)) return false;
     if (!source.trim() || ['__proto__', 'prototype', 'constructor'].includes(source)) return false;
     if (!variants || typeof variants !== 'object' || Array.isArray(variants)) return false;
     for (const [locale, translated] of Object.entries(variants)) {
