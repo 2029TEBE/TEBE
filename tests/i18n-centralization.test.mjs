@@ -102,3 +102,25 @@ test('universal selector uses shared Arabic catalog, not embedded language label
   assert.match(nav, /"Interface language": "لغة الواجهة"/);
   assert.match(read('apps/web/src/app/(app)/layout.tsx'), /navigationArabic\('The EPMO'\)/);
 });
+
+test('account flows centralize all presentation Arabic and preserve secret-handling logic', () => {
+  const pages = [
+    'apps/web/src/app/forgot-password/page.tsx',
+    'apps/web/src/app/reset-password/page.tsx',
+    'apps/web/src/app/accept-invite/page.tsx',
+  ];
+  const forms = [
+    'apps/web/src/app/forgot-password/RecoveryRequestForm.tsx',
+    'apps/web/src/app/reset-password/ResetPasswordForm.tsx',
+    'apps/web/src/app/accept-invite/InviteForm.tsx',
+  ];
+  for (const path of [...pages, ...forms]) {
+    assert.doesNotMatch(read(path), /[\u0600-\u06ff]{2,}/u, `inline Arabic in ${path}`);
+  }
+  const copy = read('packages/contracts/src/auth-form-locale.ts');
+  for (const key of ['recovery','reset','invite']) assert.match(copy, new RegExp(`\\b${key}: Object\\.freeze`));
+  assert.match(read(forms[1]), /window\.history\.replaceState/);
+  assert.match(read(forms[2]), /window\.history\.replaceState/);
+  assert.match(read(forms[0]), /body: JSON\.stringify\(\{ email, lang \}\)/);
+  for (const path of pages) assert.match(read(path), /locale === 'ar' \|\| locale === 'ur'/);
+});
