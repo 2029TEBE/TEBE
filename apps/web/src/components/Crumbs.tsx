@@ -1,6 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { NAV } from '@/lib/nav';
+import { navigationArabic } from '@pmo/contracts';
 
 /** Match complete path segments, not overlapping route prefixes. */
 const matchesNavPath = (path: string, href: string) =>
@@ -21,7 +22,7 @@ export function Crumbs({ ar }: { ar: boolean }) {
   for (const g of NAV) {
     for (const i of g.items) {
       const hit = matchesNavPath(path, i.href);
-      if (hit) { group = ar ? g.ar : g.label; label = ar ? i.ar : i.label; }
+      if (hit) { group = ar ? navigationArabic(g.label) : g.label; label = ar ? navigationArabic(i.label) : i.label; }
     }
   }
   return (
