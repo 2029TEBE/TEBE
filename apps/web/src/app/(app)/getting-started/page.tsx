@@ -1,4 +1,4 @@
-import { gettingStartedExtraArabic } from '@pmo/contracts';
+import { gettingStartedExtraArabic, fill } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ export default async function GettingStarted() {
     <Page title={text.title} sub={text.sub}>
       {licenseStatus === 'trialing' && <section className="panel" aria-label={labelFor("Trial guidance")} style={{ marginBlockEnd: 16 }}>
         <strong>{labelFor("Your workspace trial")}</strong>
-        <p>{lang === 'ar' ? `المتبقي من التجربة: ${trialDays ?? '—'} أيام. أكمِل إعداد مساحة العمل وراجع خطة الاشتراك قبل انتهاء التجربة.` : `Trial time remaining: ${trialDays ?? '—'} days. Finish workspace setup and review your plan before the trial ends.`}</p>
+        <p>{fill(labelFor('Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.'), {days: trialDays ?? '—'})}</p>
         <Link href="/billing">{labelFor("Review plan and renewal")}</Link>
       </section>}
       {licenseStatus === 'expired' && <section className="panel" role="status" style={{ marginBlockEnd: 16 }}>
