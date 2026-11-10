@@ -7,7 +7,12 @@ export function normalizeFrontendLocale(input) {
   if (typeof input !== 'string' || !input.trim()) return null;
   const value = input.trim().replaceAll('_','-').toLowerCase();
   if (CODES.has(value)) return CODES.get(value);
+  // Preserve known regional variants even when the browser supplies extra subtags.
+  if (value === 'en-gb' || value.startsWith('en-gb-')) return 'en-GB';
   if (value === 'en' || value.startsWith('en-')) return 'en-US';
+  if (value === 'es-419' || value.startsWith('es-419-')) return 'es-419';
+  if (value === 'pt-br' || value.startsWith('pt-br-')) return 'pt-BR';
+  if (value === 'pt-pt' || value.startsWith('pt-pt-')) return 'pt-PT';
   if (value.startsWith('ar-')) return 'ar';
   if (value === 'zh' || value === 'zh-hans' || value.startsWith('zh-hans-') || value === 'zh-sg') return 'zh-CN';
   if (value === 'zh-hant' || value.startsWith('zh-hant-') || value === 'zh-hk') return 'zh-TW';
