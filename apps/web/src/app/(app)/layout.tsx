@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getSession, api, SESSION_COOKIE } from '@/lib/api';
 import { NAV } from '@/lib/nav';
-import { can, NAV_MODULE, type Capability } from '@pmo/contracts';
+import { can, NAV_MODULE, navigationArabic, type Capability } from '@pmo/contracts';
 import { TenantSwitcher } from '@/components/TenantSwitcher';
 import { UniversalLocaleSwitch } from '@/components/UniversalLocaleSwitch';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .map((g) => ({ ...g, items: g.items.filter(allowed) }))
     .filter((g) => g.items.length > 0);
   const commands = groups.flatMap((g) => g.items.map((i) => ({
-    label: uiLabel(i.label, locale, i.ar), href: i.href, group: uiLabel(g.label, locale, g.ar),
+    label: uiLabel(i.label, locale, navigationArabic(i.label)), href: i.href, group: uiLabel(g.label, locale, navigationArabic(g.label)),
   }))); // show and search the group in the selected language too
 
   const rail = (
@@ -62,9 +62,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, 'المكتب التنفيذي لإدارة المشاريع')}</span></div>
       <RailToggle />
       {groups.map((g) => (
-        <RailGroup key={g.key} label={uiLabel(g.label, locale, g.ar)} hrefs={g.items.map((i) => i.href)}>
+        <RailGroup key={g.key} label={uiLabel(g.label, locale, navigationArabic(g.label))} hrefs={g.items.map((i) => i.href)}>
           {g.items.map((i) => (
-            <NavLink key={i.href} href={i.href} navKey={i.key}>{uiLabel(i.label, locale, i.ar)}</NavLink>
+            <NavLink key={i.href} href={i.href} navKey={i.key}>{uiLabel(i.label, locale, navigationArabic(i.label))}</NavLink>
           ))}
         </RailGroup>
       ))}
