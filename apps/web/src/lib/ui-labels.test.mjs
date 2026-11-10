@@ -80,3 +80,11 @@ test('placeholder integrity protects interpolated labels in every locale', () =>
   const result = uiLabelCoverage(['Showing {shown} of {total} projects needing review.'], 'fr-FR');
   assert.deepEqual(result.invalidPlaceholders, []);
 });
+
+test('runtime fallback rejects malformed interpolation including legacy Arabic', () => {
+  const source = 'Showing the first {shown} of {total} projects needing review.';
+  assert.equal(uiLabel(source, 'ar', 'عرض أول {shown} مشروع'), source);
+  assert.equal(uiLabel(source, 'ar', 'عرض {total} من {shown} مشروع'), 'عرض {total} من {shown} مشروع');
+  assert.equal(uiLabel(source, 'fr', ''), uiLabel(source, 'fr-FR'));
+  assert.equal(uiLabel(source, 'xx'), source);
+});
