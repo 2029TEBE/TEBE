@@ -49,8 +49,25 @@ ssh_remote() { "${SSH_CMD[@]}" "$HOST" "$1"; }
 
 # The production deploy must be verified locally before files are copied.
 if [[ "$MODE" == prod ]]; then
-  command -v pnpm >/dev/null || { echo 'BLOCKED: pnpm is required for production verification.' >&2; exit 1; }
-  pnpm -s verify
+  # GitHub workflow_run provides a successful full CI run for the exact SHA.
+  # When this attestation is present, avoid running database-dependent tests
+  # a second time on a runner without its CI PostgreSQL service. Never accept
+  # an unbound skip flag or a different checkout revision.
+  if [[ -n "${EPMO_CI_VERIFIED_SHA:-}" || -n "${EPMO_CI_WORKFLOW_RUN_ID:-}" ]]; then
+    [[ "${GITHUB_ACTIONS:-}" == true && "${GITHUB_EVENT_NAME:-}" == workflow_run &&
+       "${EPMO_CI_VERIFIED_SHA:-}" =~ ^[0-9a-f]{40}$ &&
+       "${EPMO_CI_WORKFLOW_RUN_ID:-}" =~ ^[1-9][0-9]*$ ]] || {
+      echo 'BLOCKED: incomplete production CI attestation.' >&2; exit 1;
+    }
+    command -v git >/dev/null || { echo 'BLOCKED: git is required to verify the tested SHA.' >&2; exit 1; }
+    [[ "$(git rev-parse HEAD)" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      echo 'BLOCKED: checked-out revision does not match the successful CI run.' >&2; exit 1;
+    }
+    echo "Using successfully completed CI run $EPMO_CI_WORKFLOW_RUN_ID for revision $EPMO_CI_VERIFIED_SHA."
+  else
+    command -v pnpm >/dev/null || { echo 'BLOCKED: pnpm is required for production verification.' >&2; exit 1; }
+    pnpm -s verify
+  fi
 fi
 
 # Fail before rsync --delete if the remote environment has not been prepared.
@@ -65,11 +82,29 @@ if ! ssh_remote "test -d '$DIR' && test \"\$(realpath -e '$DIR')\" = '$DIR' && t
 fi
 
 echo "Deploying $MODE to $HOST:$DIR"
+# rsync --delete can remove old, untracked configuration backups and artifacts.
+# Protect *replaced or deleted* files in a root outside the deployment tree.
+# The remote account owns the snapshot, stored with restrictive permissions.
+remote_home=$(ssh_remote 'printf "%s" "$HOME"')
+if [[ ! "$remote_home" =~ ^/([a-zA-Z0-9_.-]+/)*[a-zA-Z0-9_.-]+$ ]]; then
+  echo 'BLOCKED: cannot establish a safe remote backup root' >&2
+  exit 1
+fi
+snapshot_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+snapshot_dir="$remote_home/the-epmo-deployment-snapshots/$MODE/$snapshot_stamp"
+if [[ "$snapshot_dir" == "$DIR" || "$snapshot_dir" == "$DIR/"* ]]; then
+  echo 'BLOCKED: snapshot path would be inside the deployment tree' >&2
+  exit 1
+fi
+ssh_remote "umask 077; mkdir -p '$snapshot_dir' && chmod 700 '$snapshot_dir'"
 # Secrets are server-managed. Never copy *.env or .git to a destination.
-rsync -az --delete --no-owner --no-group \
+# --backup saves overwritten/deleted pre-existing remote files outside --delete.
+rsync -az --delete --backup --backup-dir="$snapshot_dir" --no-owner --no-group \
   --exclude node_modules --exclude .next --exclude .next-prod --exclude dist \
   --exclude '.env' --exclude '.env.*' --exclude .git --exclude .DS_Store \
+  --exclude .deployed-revision \
   -e "$SSH_FOR_RSYNC" ./ "$HOST:$DIR/"
+echo "Protected overwritten/deleted destination files under $HOST:$snapshot_dir"
 
 COMPOSE="docker compose -f docker-compose.prod.yml -p $PROJECT --env-file $ENVFILE"
 if [[ "$MODE" == dev ]]; then

@@ -1,0 +1,101 @@
+name: Deploy production (after CI)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epmo-production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy latest verified main to VPS
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          vars.EPMO_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: production
+    steps:
+      # Explicit opt-in environment variable is required in addition to successful CI.
+      # Until production access, backup restore, billing, and release gates pass,
+      # EPMO_DEPLOY_ENABLED must remain absent/false.
+      - name: Check out the exact CI-tested revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Refuse to deploy stale or superseded commits
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The repository is private. Authenticate the main HEAD lookup;
+          # anonymous git ls-remote would fail even when CI is green.
+          current=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -er '.commit.sha')
+          if [[ -z "$current" || "$current" != "$EXPECTED_SHA" ]]; then
+            echo "::error::The tested commit is no longer main; refusing stale production deployment."
+            exit 1
+          fi
+      - name: Set up Node and pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate pinned SSH deployment configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_KEY" && test -n "$DEPLOY_KNOWN_HOSTS" || {
+            echo "::error::Missing server-approved production SSH deployment secrets."
+            exit 1
+          }
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$ ]] || {
+            echo "::error::Production deploy host must be user@verified-hostname."
+            exit 1
+          }
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/epmo_prod"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/epmo_prod" "$HOME/.ssh/known_hosts"
+      - name: Verify and deploy with mandatory backup and runtime health gates
+        env:
+          EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          EPMO_CI_VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          export EPMO_DEPLOY_SSH_KEY="$HOME/.ssh/epmo_prod"
+          bash infra/deploy.sh prod
+      - name: Record deployed revision on the VPS
+        env:
+          EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          SHA_PATTERN='^[a-f0-9]{40}$'
+          [[ "$EXPECTED_SHA" =~ $SHA_PATTERN ]]
+          ssh -i "$HOME/.ssh/epmo_prod" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$EPMO_DEPLOY_HOST" \
+            "test -d /opt/the-epmo && printf '%s\\n' '$EXPECTED_SHA' > /opt/the-epmo/.deployed-revision"
+          echo "Deployed revision: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"

@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node scripts/verify-ci-safety.mjs
+      - name: Parse production deployment transport script
+        run: bash -n infra/deploy.sh
       - run: node scripts/verify-release-static.mjs
       - run: node scripts/verify-migration-chain.mjs
       - run: node scripts/rc1-release-gate.mjs

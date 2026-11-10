@@ -43,6 +43,7 @@ test('staging calls secure transport, preflight, bootstrap and bounded health ch
     for (const tool of ['ssh','rsync']) {
       const file = join(dir, tool);
       writeFileSync(file, `#!/bin/sh\nprintf '%s: %s\\n' '${tool}' "$*" >> "$EPMO_DEPLOY_TRACE"\ncase "$*" in
+  *'printf "%s" "$HOME"'*) printf '/home/deploy'; exit 0 ;;
   *"infra/backup-db.sh 'staging'"*) printf '%s\n' 'PASS: verified pre-migration PostgreSQL backup: /opt/epmo-backups/epmo-staging-20261026T120000Z-abcdef.dump' ;;
 esac
 exit 0
@@ -75,6 +76,7 @@ test('remote prerequisite check happens before destructive file sync', () => {
     for (const tool of ['ssh', 'rsync']) {
       const file = join(dir, tool);
       writeFileSync(file, `#!/bin/sh\nprintf '%s\\n' "${tool}: $*" >> "$EPMO_DEPLOY_TRACE"\ncase "$*" in
+  *'printf "%s" "$HOME"'*) printf '/home/deploy'; exit 0 ;;
   *"infra/backup-db.sh 'staging'"*) printf '%s\n' 'PASS: verified pre-migration PostgreSQL backup: /opt/epmo-backups/epmo-staging-20261026T120000Z-abcdef.dump' ;;
 esac
 exit 0
@@ -134,6 +136,7 @@ test('failed staging restore rehearsal aborts before SQL migrations', () => {
     writeFileSync(ssh, `#!/bin/sh
 printf '%s\n' "$*" >> "$EPMO_DEPLOY_TRACE"
 case "$*" in
+  *'printf "%s" "$HOME"'*) printf '/home/deploy'; exit 0 ;;
   *"infra/backup-db.sh 'staging'"*) printf '%s\n' 'PASS: verified pre-migration PostgreSQL backup: /opt/backups/epmo-staging-20261026T120000Z-abcdef.dump' ;;
   *"infra/rehearse-db-restore.sh staging"*) exit 9 ;;
 esac
