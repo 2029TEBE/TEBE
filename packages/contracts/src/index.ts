@@ -28,3 +28,5 @@ export * from './page-locale';
 export * from './status-locale';
 
 export * from './export-language';
+
+export * from './auth-form-locale';
