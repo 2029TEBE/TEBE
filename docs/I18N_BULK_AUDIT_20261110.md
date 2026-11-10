@@ -82,3 +82,13 @@ CI result for this exact revision must be checked separately from earlier succes
 - All-locale translation coverage, shared marketing/SaaS catalog artifact, backend emails, API messages, exports beyond EN/AR, accessible responsive RTL browser acceptance, release trigger verification.
 - Marketing repository `2029TEFE/TEFE` is only readable via the current GitHub connection, preventing authorized write operations.
 - Status: partial implementation, draft-only; do not mark 100% completion or production ready.
+
+## Auto-approved safe batch — additional verified development scope (10 November 2026)
+
+- Commit `c4df44c`: invalid `pmo_locale` cookies now defer to the legacy `pmo_lang=ar` preference instead of unexpectedly reverting Arabic users to English.
+- Commit `9a796b1`: regression guard for invalid new cookie and legacy compatibility.
+- Commit `23c14f4`: adds `scripts/i18n-inline-inventory.mjs`, a non-blocking count-only scanner for candidate inline Arabic and language branches in web/API source files. It emits file paths and candidate counts, never customer data or source snippets.
+- Commit `291070c`: offline regression test verifies inventory JSON is count-only, coherent and clearly labelled non-certifying.
+- **Audit limitation:** The inventory detects candidates, not proven UI text. Translation catalogs, comments and genuine data may still be counted. Its counts must not be interpreted as quality or completion percentages.
+- PR #483 is still draft; external marketing PR #23 is read-only to this connection. Existing high-level blockers remain: 19-language review, public/SaaS catalog distribution, backend exports/emails, mobile/RTL browser acceptance and Cloudflare release-trigger verification.
+- The latest branch-head CI status must be checked independently; earlier successes do not certify these commits. No production release or merge performed.
