@@ -1,26 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { directionForLocale, presentationLocale, compareLocalizedValues, formatNumber, formatDate, formatCurrency } from './locale-format.mjs';
+import { FRONTEND_LOCALES } from './frontend-locale.mjs';
 
-test('approved locales resolve; Arabic is the only RTL locale', () => {
-  for (const locale of ['en', 'ar-SA', 'de-DE', 'zh-CN', 'fr-FR', 'ja-JP'])
-    assert.equal(presentationLocale(locale), locale);
-  assert.equal(directionForLocale('ar-SA'), 'rtl');
-  for (const locale of ['en', 'de-DE', 'zh-CN', 'fr-FR', 'ja-JP'])
-    assert.equal(directionForLocale(locale), 'ltr');
-  assert.equal(presentationLocale('zh-TW'), 'en');
-});
-
-test('locale-aware numeric sorting preserves nulls last in both directions', () => {
-  assert.ok(compareLocalizedValues('Project 2', 'Project 10', 'de-DE') < 0);
-  assert.ok(compareLocalizedValues('Project 2', 'Project 10', 'fr-FR', 'desc') > 0);
-  assert.ok(compareLocalizedValues(null, 'Project 10', 'ja-JP', 'desc') > 0);
-});
-test('formats numbers, currencies and dates with Intl for each approved locale', () => {
-  for (const locale of ['en', 'ar-SA', 'de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
-    assert.ok(formatNumber(1234.5, locale).length > 0);
-    assert.ok(formatCurrency(120, 'SAR', locale).length > 0);
-    assert.ok(formatDate('2026-11-10', locale).length > 0);
+test('all 23 locales format correctly; Arabic and Urdu are RTL', () => {
+  assert.equal(FRONTEND_LOCALES.length, 23);
+  for (const locale of FRONTEND_LOCALES) {
+    assert.equal(presentationLocale(locale),locale);
+    assert.equal(directionForLocale(locale),['ar','ur'].includes(locale) ? 'rtl' : 'ltr');
+    assert.ok(formatNumber(1234.5,locale).length>0);
+    assert.ok(formatCurrency(120,'SAR',locale).length>0);
+    assert.ok(formatDate('2026-11-10',locale).length>0);
   }
-  assert.equal(formatDate('invalid', 'en'), '—');
+  assert.equal(presentationLocale('invalid'),'en-US');
+  assert.equal(formatDate('invalid','en-US'),'—');
+});
+test('locale sorting preserves nulls last in either direction', () => {
+  assert.ok(compareLocalizedValues('Project 2','Project 10','de')<0);
+  assert.ok(compareLocalizedValues('Project 2','Project 10','fr','desc')>0);
+  assert.ok(compareLocalizedValues(null,'Project 10','ja','desc')>0);
 });
