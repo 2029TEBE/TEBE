@@ -83,7 +83,7 @@ test('simulated staging deploy aborts if the post-deploy smoke fails',()=>{
     const log=join(folder,'calls.txt');
     for(const app of ['ssh','rsync']) {
       const dest=join(folder,app);
-      writeFileSync(dest,`#!/bin/bash\nprintf '%s: %s\\n' '${app}' "$*" >> "$EPMO_DEPLOY_TRACE"\ncase "$*" in\n  *"infra/backup-db.sh 'staging'"*) printf '%s\\n' 'PASS: verified pre-migration PostgreSQL backup: /opt/backup/epmo-staging-20261026T120000Z-abc123.dump' ;;\n  *"phase16c-verify-staging-web.mjs"*) exit 9 ;;\nesac\nexit 0\n`);
+      writeFileSync(dest,`#!/bin/bash\nprintf '%s: %s\\n' '${app}' "$*" >> "$EPMO_DEPLOY_TRACE"\ncase "$*" in\n  *\'printf "%s" "$HOME"\'*) printf \'/home/deploy\'; exit 0 ;;\n  *"infra/backup-db.sh 'staging'"*) printf '%s\\n' 'PASS: verified pre-migration PostgreSQL backup: /opt/backup/epmo-staging-20261026T120000Z-abc123.dump' ;;\n  *"phase16c-verify-staging-web.mjs"*) exit 9 ;;\nesac\nexit 0\n`);
       chmodSync(dest,0o755);
     }
     const result=spawnSync('bash',[resolve(import.meta.dirname,'../infra/deploy.sh'),'staging'],{
