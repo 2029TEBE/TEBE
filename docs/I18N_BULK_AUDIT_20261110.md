@@ -29,3 +29,12 @@
 - RTL: Arabic and Urdu; mixed bidirectional identifiers, numbers and email addresses.
 - Export: en/ar file content and filenames, fail closed for unsupported formats until translations are verified.
 - Arabic and English current customer journeys; locale fallback notices for other languages.
+
+## Subsequent bulk pass
+- Added automated audit of shared navigation translation coverage for all 23 locale variants; CI now prints actual counts and prevents false claims of translation completion.
+- Migrated onboarding and reports' additional literal bilingual phrases (22 entries) into shared contracts.
+- Migrated 71 literal bilingual page phrases across activity, benefits, decisions, documents, financials, my-work, notifications and portfolios into the shared `page-locale.ts` catalog; reviewed logic remains unchanged.
+- Separated Urdu RTL layout direction from Arabic text selection in the application shell and breadcrumbs.
+- Added regression checks to prevent migrated files reverting to inline literal Arabic ternaries.
+- Public frontend added catalog aliases for reviewed DE/FR/JA translations, plus marketing 23-variant/RTL validation in CI.
+- Some complex in-file Arabic expressions, marketing HTML `data-ar`, and backend document/export language limitations remain. This document does not assert full localization completeness.
