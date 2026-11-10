@@ -66,3 +66,19 @@ CI result for this exact revision must be checked separately from earlier succes
 - Changes committed on existing draft PR #483 as `e443492` and `aae15b8`. Latest CI result must be obtained from GitHub before treating the new head as passing; no deployment or merge was performed.
 - GitHub connector permissions: write/admin on SaaS repository; read-only on marketing repository. Marketing source cannot be updated through this connection without write permission.
 - This is a targeted normalization fix, not completion of catalog sharing, full 19-language translation coverage, localized exports, device acceptance, or production verification.
+
+## Additional safe implementation batch — 10 November 2026
+
+### Applied on SaaS draft branch
+- Frontend locale normalization retains regional browser variants with Unicode or other additional subtags; six assertions added in `frontend-locale.test.mjs`.
+- `uiLabel` now falls back to the English source when a candidate translation is blank, non-string, or loses, renames, or duplicates interpolation placeholders. Existing Arabic text still takes precedence when valid.
+- Added regression coverage for malformed Arabic placeholders and a full `UI_LABELS` catalog validation test for placeholder parity and non-empty translation values.
+- Updated files: `apps/web/src/lib/frontend-locale.mjs`, `frontend-locale.test.mjs`, `ui-labels.mjs`, `ui-labels.test.mjs`.
+- Implementation commits: `e443492`, `aae15b8`, `a6f0eb9`, `df23299`, `f17cb13`. A previous audit-only commit was `b9aa633`.
+- No merges, production deployment, DNS, payments, customer databases, or mail infrastructure changes.
+- CI results must be evaluated against the final head, not earlier green runs; commit creation is not test evidence.
+
+### Still not completed
+- All-locale translation coverage, shared marketing/SaaS catalog artifact, backend emails, API messages, exports beyond EN/AR, accessible responsive RTL browser acceptance, release trigger verification.
+- Marketing repository `2029TEFE/TEFE` is only readable via the current GitHub connection, preventing authorized write operations.
+- Status: partial implementation, draft-only; do not mark 100% completion or production ready.
