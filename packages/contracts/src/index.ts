@@ -17,3 +17,5 @@ export * from './getting-started-copy';
 
 export * from './billing-locale';
 export * from './superadmin-locale';
+
+export * from './settings-locale';
