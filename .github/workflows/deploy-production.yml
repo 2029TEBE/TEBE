@@ -31,11 +31,10 @@ jobs:
           persist-credentials: false
       - name: Refuse to deploy stale or superseded commits
         env:
-          GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
-          current=$(git ls-remote "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
+          current=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
           if [[ -z "$current" || "$current" != "$EXPECTED_SHA" ]]; then
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
@@ -72,6 +71,8 @@ jobs:
       - name: Verify and deploy with mandatory backup and runtime health gates
         env:
           EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          EPMO_CI_VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
           export EPMO_DEPLOY_SSH_KEY="$HOME/.ssh/epmo_prod"
