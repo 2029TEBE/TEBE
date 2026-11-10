@@ -1,5 +1,6 @@
 /** Migrated billing English/Arabic copy. English remains the source text; pending locales fall back to English. */
 export const BILLING_AR: Readonly<Record<string,string>> = Object.freeze({
+  "Trial: {days} days": "تجربة: {days} يوم",
   "Active": "نشط",
   "Trial": "تجريبي",
   "Past due": "متأخر السداد",
