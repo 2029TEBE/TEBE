@@ -42,8 +42,8 @@ test('navigation passes selected locale and translates command groups', () => {
   assert.match(s, /<MobileNav ar=\{ar\}>/);
   // The nav label is translated through the frontend-only catalog, preserving
   // Arabic names and stable links instead of branching on language at each use.
-  assert.ok(s.includes('group: uiLabel(g.label, locale, g.ar)'));
-  assert.ok(s.includes('label: uiLabel(i.label, locale, i.ar)'));
+  assert.ok(s.includes('group: uiLabel(g.label, locale, navigationArabic(g.label))'));
+  assert.ok(s.includes('label: uiLabel(i.label, locale, navigationArabic(i.label))'));
   const catalog = read('apps/web/src/lib/ui-labels.mjs');
   assert.ok(catalog.includes("if (locale === 'ar-SA')"));
   assert.ok(catalog.includes("legacyArabic && legacyArabic !== english"));
