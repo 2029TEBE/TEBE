@@ -6,11 +6,11 @@
 import { normalizeFrontendLocale } from './frontend-locale.mjs';
 
 export function presentationLocale(input) {
-  return normalizeFrontendLocale(input) ?? 'en';
+  return normalizeFrontendLocale(input) ?? 'en-US';
 }
 
 export function directionForLocale(input) {
-  return presentationLocale(input) === 'ar-SA' ? 'rtl' : 'ltr';
+  return presentationLocale(input) === 'ar' || presentationLocale(input) === 'ur' ? 'rtl' : 'ltr';
 }
 
 export function formatNumber(value, locale = 'en', options = {}) {
