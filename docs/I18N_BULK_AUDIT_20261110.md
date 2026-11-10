@@ -49,3 +49,12 @@
 - Untranslated interface screens, email/notification templates, marketing HTML, and non-EN/AR backend reports remain open. These are not marked translated or production-ready.
 
 CI result for this exact revision must be checked separately from earlier successful commits.
+
+## Account-flow and locale-parity audit extension (10 November 2026)
+- Audited frontend password recovery, password reset and invitation acceptance pages and their three client forms. Moved five server-page Arabic labels into shared contract catalog and 23 existing form phrases into **screen-specific** shared catalogs, preserving the differing Arabic wording of the same English password label in separate contexts.
+- Removed inline Arabic display text from the three server pages and three account forms, without changing form submission endpoints, authentication decisions, bearer-token fragments, or immediate URL-history scrubbing.
+- Fixed the password-recovery, password-reset and invitation landing-page inner `dir` attributes to retain RTL for Urdu independently of Arabic text selection.
+- Removed remaining inline Arabic from the universal language switcher and authenticated shell, using the shared Arabic navigation catalog instead.
+- Added regression checks for zero inline Arabic in those migrated files, token safety, and exact parity of the frontend's 23 locale codes against the shared contract's 23 entries.
+- **Do not infer 19 fully translated experiences.** Translation catalogs are still incomplete; non-English/non-Arabic interface copy may fall back to English. Marketing frontend PR #23 is still a separate distribution.
+- Latest commit's full build/CI result is separately tracked in GitHub; prior green jobs cannot verify a newer head.
