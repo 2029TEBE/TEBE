@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { buildPublicLocaleCatalog } from './build-public-locale-catalog.mjs';
+import { buildPublicLocaleCatalog, verifyPublicLocaleCatalog } from './build-public-locale-catalog.mjs';
 
 test('public locale build is deterministic and explicitly not a complete translation release', () => {
   const a = buildPublicLocaleCatalog();
@@ -27,4 +27,22 @@ test('public catalog contains no backend sources and does not invent absent tran
     assert.ok(key.trim());
     for (const locale of Object.keys(translations)) assert.ok(catalog.locales.includes(locale), locale);
   }
+});
+
+test('public catalog validator rejects tampering, unregistered variants and false approval', () => {
+  const original = buildPublicLocaleCatalog();
+  assert.equal(verifyPublicLocaleCatalog(original), true);
+  const tampered = structuredClone(original);
+  tampered.translations.Projects.de = 'Tampered';
+  assert.equal(verifyPublicLocaleCatalog(tampered), false);
+  const unregistered = structuredClone(original);
+  unregistered.locales.push('xx');
+  assert.equal(verifyPublicLocaleCatalog(unregistered), false);
+  const fakeRelease = structuredClone(original);
+  fakeRelease.releaseApproved = true;
+  assert.equal(verifyPublicLocaleCatalog(fakeRelease), false);
+  const invalid = structuredClone(original);
+  invalid.translations.Projects.xx = 'Translation';
+  assert.equal(verifyPublicLocaleCatalog(invalid), false);
+  assert.equal(verifyPublicLocaleCatalog(null), false);
 });
