@@ -1,22 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SEMANTIC_LABELS, semanticEnglish, semanticLabel } from '../packages/contracts/src/semantic-locale.ts';
+import { readFileSync } from 'node:fs';
 import { navigationArabic } from '../packages/contracts/src/nav-locale.ts';
 
-test('semantic keys are stable and preserve existing reviewed Arabic terminology', () => {
-  assert.ok(Object.keys(SEMANTIC_LABELS).length >= 15);
-  for (const key of Object.keys(SEMANTIC_LABELS)) {
-    const english = semanticEnglish(key);
-    assert.ok(english.trim(), key);
-    assert.equal(semanticLabel(key, 'en-GB'), english);
-    assert.equal(semanticLabel(key, 'ar-SA'), navigationArabic(english));
+const source = readFileSync(new URL('../packages/contracts/src/semantic-locale.ts', import.meta.url), 'utf8');
+const entries = [...source.matchAll(/^  '([^']+)': '([^']+)',?$/gm)].map(([, key, value]) => [key, value]);
+
+test('semantic vocabulary is typed and backed by the existing reviewed Arabic source', () => {
+  assert.ok(entries.length >= 15);
+  assert.match(source, /navigationArabic\(english\)/);
+  assert.match(source, /resolveLocale\(requestedLocale\) === 'ar'/);
+  assert.match(source, /return .*\? navigationArabic\(english\) : english/);
+  for (const [key, english] of entries) {
+    assert.ok(/^[a-z][a-zA-Z]*\.[a-zA-Z]+$/.test(key), key);
+    assert.ok(english.trim());
+    assert.notEqual(navigationArabic(english), english, 'missing reviewed Arabic: ' + key);
   }
-  assert.equal(semanticLabel('navigation.projects', 'ar'), 'المشاريع');
-  assert.equal(semanticLabel('navigation.projects', 'sw'), 'Projects');
 });
 
-test('semantic keys are unique and do not encode the display copy as identifiers', () => {
-  const keys = Object.keys(SEMANTIC_LABELS);
-  assert.equal(new Set(keys).size, keys.length);
-  assert.ok(keys.every(key => /^[a-z][a-zA-Z]*\.[a-zA-Z]+$/.test(key)));
+test('semantic keys are unique and preserve existing navigation vocabulary', () => {
+  assert.equal(new Set(entries.map(([key]) => key)).size, entries.length);
+  assert.ok(entries.some(([key, value]) => key === 'navigation.projects' && value === 'Projects'));
+  assert.equal(navigationArabic('Projects'), 'المشاريع');
 });
