@@ -9,6 +9,8 @@ test('core migrated frontend files do not embed Arabic presentation strings', ()
     'apps/web/src/app/login/page.tsx',
     'apps/web/src/components/Crumbs.tsx',
     'apps/web/src/components/ThemeToggle.tsx',
+    'apps/web/src/components/UniversalLocaleSwitch.tsx',
+    'apps/web/src/app/(app)/layout.tsx',
     'apps/web/src/lib/nav.ts',
     'apps/web/src/app/(app)/billing/page.tsx',
     'apps/web/src/app/(app)/super-admin/page.tsx',
@@ -91,4 +93,12 @@ test('parameterized Arabic financial guidance preserves all English variables', 
   for (const token of ['{pct}', '{count}']) assert.ok(page.includes(token));
   assert.match(extra, /\{days\}/);
   assert.match(read('apps/web/src/app/(app)/benefits/page.tsx'), /fill\(labelFor\('/);
+});
+
+test('universal selector uses shared Arabic catalog, not embedded language labels', () => {
+  const switcher = read('apps/web/src/components/UniversalLocaleSwitch.tsx');
+  const nav = read('packages/contracts/src/nav-locale.ts');
+  assert.match(switcher, /navigationArabic\('Interface language'\)/);
+  assert.match(nav, /"Interface language": "لغة الواجهة"/);
+  assert.match(read('apps/web/src/app/(app)/layout.tsx'), /navigationArabic\('The EPMO'\)/);
 });
