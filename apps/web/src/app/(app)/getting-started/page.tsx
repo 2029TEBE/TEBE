@@ -1,3 +1,6 @@
+import { gettingStartedExtraArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import Link from 'next/link';
 import { trialChecklist, TRIAL_EXAMPLE } from '@/lib/trial-guidance.mjs';
 import { api, getSession, type OnboardingStatus } from '@/lib/api';
@@ -22,14 +25,14 @@ export default async function GettingStarted() {
 
   return (
     <Page title={text.title} sub={text.sub}>
-      {licenseStatus === 'trialing' && <section className="panel" aria-label={lang === 'ar' ? 'إرشادات الفترة التجريبية' : 'Trial guidance'} style={{ marginBlockEnd: 16 }}>
-        <strong>{lang === 'ar' ? 'الفترة التجريبية لمساحة العمل' : 'Your workspace trial'}</strong>
+      {licenseStatus === 'trialing' && <section className="panel" aria-label={labelFor("Trial guidance")} style={{ marginBlockEnd: 16 }}>
+        <strong>{labelFor("Your workspace trial")}</strong>
         <p>{lang === 'ar' ? `المتبقي من التجربة: ${trialDays ?? '—'} أيام. أكمِل إعداد مساحة العمل وراجع خطة الاشتراك قبل انتهاء التجربة.` : `Trial time remaining: ${trialDays ?? '—'} days. Finish workspace setup and review your plan before the trial ends.`}</p>
-        <Link href="/billing">{lang === 'ar' ? 'مراجعة الخطة والتجديد' : 'Review plan and renewal'}</Link>
+        <Link href="/billing">{labelFor("Review plan and renewal")}</Link>
       </section>}
       {licenseStatus === 'expired' && <section className="panel" role="status" style={{ marginBlockEnd: 16 }}>
-        <p>{lang === 'ar' ? 'انتهت صلاحية الاشتراك. قد تكون الوحدات التجارية غير متاحة حتى تأكيد التجديد.' : 'The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.'}</p>
-        <Link href="/billing">{lang === 'ar' ? 'فتح الفوترة' : 'Open billing'}</Link>
+        <p>{labelFor("The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.")}</p>
+        <Link href="/billing">{labelFor("Open billing")}</Link>
       </section>}
       <Loaded load={async () => ({
         data: await api.onboarding(),
@@ -59,13 +62,13 @@ export default async function GettingStarted() {
                 </div>
               </div>
               {data.completed === data.total && <p>{text.finished}</p>}
-              {licenseStatus === 'trialing' && <div style={{ marginTop: 16 }} aria-label={lang === 'ar' ? 'خطوات نجاح التجربة' : 'Trial success checklist'}>
-                <h3>{lang === 'ar' ? 'أهداف نجاح التجربة' : 'Trial success goals'}</h3>
+              {licenseStatus === 'trialing' && <div style={{ marginTop: 16 }} aria-label={labelFor("Trial success checklist")}>
+                <h3>{labelFor("Trial success goals")}</h3>
                 <ol>{trialChecklist(data.tasks, lang).map(step => <li key={step.key}>
                   {step.completed ? '✓ ' : '○ '}{step.label}
                 </li>)}</ol>
-                <p className="dim">{lang === 'ar' ? 'مثال توضيحي فقط، وليس بيانات فعلية أو مشروعاً محفوظاً:' : 'Illustrative sample only — not real data or a saved project:'}
-                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} {lang === 'ar' ? 'مخاطر' : 'risks'} · {TRIAL_EXAMPLE.decisions} {lang === 'ar' ? 'قرار' : 'decision'}.
+                <p className="dim">{labelFor("Illustrative sample only — not real data or a saved project:")}
+                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} {labelFor("risks")} · {TRIAL_EXAMPLE.decisions} {labelFor("decision")}.
                 </p>
               </div>}
             </section>
