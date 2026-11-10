@@ -43,6 +43,32 @@ export function buildPublicLocaleCatalog() {
   };
 }
 
+// Validate a generated artifact before CI passes it to another repository.
+// Integrity is not authentication: CI must separately pin the trusted source.
+export function verifyPublicLocaleCatalog(document) {
+  if (!document || typeof document !== 'object' || Array.isArray(document)) return false;
+  const { sha256, ...payload } = document;
+  if (typeof sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(sha256)) return false;
+  if (payload.schemaVersion !== 1 ||
+      payload.scope !== 'public-safe-shared-ui-labels-only' ||
+      payload.releaseApproved !== false || payload.coverage !== 'partial' ||
+      payload.defaultLocale !== 'en-US') return false;
+  if (!Array.isArray(payload.locales) ||
+      JSON.stringify(payload.locales) !== JSON.stringify(FRONTEND_LOCALES)) return false;
+  if (!payload.translations || typeof payload.translations !== 'object' ||
+      Array.isArray(payload.translations)) return false;
+  for (const [source, variants] of Object.entries(payload.translations)) {
+    if (!source.trim() || ['__proto__', 'prototype', 'constructor'].includes(source)) return false;
+    if (!variants || typeof variants !== 'object' || Array.isArray(variants)) return false;
+    for (const [locale, translated] of Object.entries(variants)) {
+      if (!FRONTEND_LOCALES.includes(locale) ||
+          typeof translated !== 'string' || !translated.trim() ||
+          !translationHasMatchingPlaceholders(source, translated)) return false;
+    }
+  }
+  return createHash('sha256').update(JSON.stringify(payload), 'utf8').digest('hex') === sha256;
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   process.stdout.write(JSON.stringify(buildPublicLocaleCatalog(), null, 2) + '\n');
 }
