@@ -78,3 +78,14 @@ test('unknown billing modes and implicit opt-outs fail closed',()=>{
 test('disabled billing also supports a staging deployment without payment activation',()=>{
   assert.deepEqual(failed({...disabled,DEPLOYMENT_ENV:'staging'},'staging'),[]);
 });
+
+test('premature Paddle secret provisioning is blocked in every supported billing mode',()=>{
+  for (const key of ['PADDLE_API_KEY', 'PADDLE_WEBHOOK_SECRET',
+    'PADDLE_NOTIFICATION_SECRET', 'PADDLE_CLIENT_TOKEN']) {
+    for (const [config, mode] of [[disabled,'production'],[good,'staging']]) {
+      const failures = failed({...config,[key]:'configured-secret-value'},mode);
+      assert.ok(failures.some(name => name.includes('Incomplete Paddle')),
+        key + ' must not silently activate an incomplete payment provider');
+    }
+  }
+});
