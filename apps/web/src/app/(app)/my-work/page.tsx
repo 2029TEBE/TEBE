@@ -65,9 +65,7 @@ export default async function MyWork() {
                   <tr key={t.id}>
                     <td className="num">{t.projectCode}</td><td>{t.title}</td>
                     <td><span className={`pill s-${t.state === 'blocked' ? 'open' : 'closed'}`}>
-                      {lang === 'ar'
-                        ? localizedStatus('work', t.state, locale)
-                        : t.state.replace(/_/g, ' ')}</span></td>
+                      {localizedStatus('work', t.state, locale)}</span></td>
                     <td className={t.overdue ? 'crit' : undefined}>{when(t.dueDate, lang)}</td>
                   </tr>))}</tbody>
               </table></div>
