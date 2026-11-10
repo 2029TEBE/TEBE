@@ -14,3 +14,6 @@ export * from './locales';
 export * from './nav-locale';
 
 export * from './getting-started-copy';
+
+export * from './billing-locale';
+export * from './superadmin-locale';
