@@ -92,3 +92,17 @@ CI result for this exact revision must be checked separately from earlier succes
 - **Audit limitation:** The inventory detects candidates, not proven UI text. Translation catalogs, comments and genuine data may still be counted. Its counts must not be interpreted as quality or completion percentages.
 - PR #483 is still draft; external marketing PR #23 is read-only to this connection. Existing high-level blockers remain: 19-language review, public/SaaS catalog distribution, backend exports/emails, mobile/RTL browser acceptance and Cloudflare release-trigger verification.
 - The latest branch-head CI status must be checked independently; earlier successes do not certify these commits. No production release or merge performed.
+
+## Auto-approved bulk batch: regional normalization and public catalog candidate
+
+Changes committed to the existing SaaS draft branch:
+- `55c8d86`: preserve Chinese territory/script selection for browser subtags (Traditional `zh-TW`, `zh-HK`, `zh-MO`; Simplified `zh-CN`, `zh-SG`).
+- `fdccf65`: regression coverage for Chinese territory and script extensions.
+- `3c695a5`: deterministic public-only UI catalog candidate builder with explicit `releaseApproved=false` and `coverage=partial` metadata; SHA-256 digest; no backend source or tenant data included.
+- `7898776`: test public artifact reproducibility, locale inventory, hash consistency and intentional omission of untranslated values.
+- `828a13b`: portable CLI path handling for the builder.
+- `561d278`: documentation for a safe cross-repository adoption process, verification and release gates.
+
+This work is a **preparatory public catalog artifact**, NOT a single physically shared catalog in both running repositories. Marketing PR #23 remains read-only through the current connection. No release, merge, production backend, mail, DNS or customer data changes.
+
+**Completion evidence:** Commit and source file existence are verified. The latest commit's CI result must be checked separately before listing these items as passing CI. English fallback and EN/AR backend export safety remain unchanged.
