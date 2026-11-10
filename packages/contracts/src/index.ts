@@ -30,3 +30,5 @@ export * from './status-locale';
 export * from './export-language';
 
 export * from './auth-form-locale';
+
+export * from './semantic-locale';
