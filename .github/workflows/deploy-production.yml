@@ -72,7 +72,6 @@ jobs:
       - name: Verify and deploy with mandatory backup and runtime health gates
         env:
           EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
-          EPMO_DEPLOY_SSH_KEY: ${{ github.workspace }}/../.ssh/unused
         run: |
           set -euo pipefail
           export EPMO_DEPLOY_SSH_KEY="$HOME/.ssh/epmo_prod"
