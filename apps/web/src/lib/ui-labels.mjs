@@ -69,9 +69,14 @@ export const UI_LABELS = Object.freeze({
  * English stays the source. Legacy Arabic is passed from existing NAV/controls
  * so this UI-only adapter never overwrites verified Arabic strings.
  */
+/** Bridge historical six-locale catalog keys to TheOrg language identifiers. */
+export function catalogLocale(locale) {
+  return ({ ar:'ar-SA', de:'de-DE', fr:'fr-FR', ja:'ja-JP', 'en-US':'en', 'en-GB':'en' })[locale] ?? locale;
+}
 export function uiLabel(english, locale, legacyArabic = null) {
+  locale = catalogLocale(locale);
   const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
-  if (locale === 'ar') {
+  if (locale === 'ar-SA') {
     // A verified existing Arabic translation wins; new UI-only phrases
     // use their local Arabic entry without touching backend document exports.
     return legacyArabic && legacyArabic !== english
@@ -98,6 +103,7 @@ export function translationHasMatchingPlaceholders(english, translated) {
  * Do not count English fallback strings as translated.
  */
 export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
+  locale = catalogLocale(locale);
   const unique = [...new Set(englishLabels)];
   const missing = [];
   const invalidPlaceholders = [];
