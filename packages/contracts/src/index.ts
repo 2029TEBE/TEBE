@@ -10,3 +10,5 @@ export * from './workbook';
 export * from './i18n';
 
 export * from './locales';
+
+export * from './nav-locale';
