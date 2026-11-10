@@ -7,15 +7,13 @@ import { NewRecord, Flash } from '@/components/NewRecord';
 import { when } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 import { DocumentUpload } from '@/components/DocumentUpload';
+import { localizedStatus } from '@pmo/contracts';
 
 const size = (kb: number | null) =>
   kb == null ? '—' : kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
 
 /** Labels only; preserve the original status values for classes and API data. */
-const statusLabel = (status: string, lang: string) =>
-  lang === 'ar'
-    ? ({ draft: 'مسودة', in_review: 'قيد المراجعة', approved: 'معتمد', superseded: 'مستبدل' } as Record<string, string>)[status] ?? status.replace(/_/g, ' ')
-    : status.replace(/_/g, ' ');
+const statusLabel = (status: string, lang: string) => localizedStatus('documents', status, lang);
 
 export default async function Documents({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
