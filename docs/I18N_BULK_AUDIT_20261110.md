@@ -125,3 +125,13 @@ This work is a **preparatory public catalog artifact**, NOT a single physically 
 - Only 17 semantic display keys have been introduced; the rest of the application still uses existing legacy English-string and domain-catalog interfaces. No claim of full semantic-key migration or 19-language coverage.
 - Source guards and dependency audit passed for `5158be5` in run `42815461645`; full verify was still running at the time of this audit entry. Later commits require separate CI verification.
 - No deployment, merge, customer data, production configuration or billing change was performed.
+
+## Auto-approved bulk batch — public catalog validation and measured coverage
+
+- Commit `d68252c`: rejects unexpected public catalog source keys, missing allowlisted keys, altered source metadata and extra top-level fields even when a digest has been recomputed. Hash integrity remains distinct from publisher authentication.
+- Commit `22d725e`: negative tests covering rehashed additions, deletions, and unapproved metadata.
+- Commit `fb1f654`: creates a machine-readable **23-locale, public-label-only** coverage report linked to the candidate catalog digest. Never treats registered locales or English fallback as complete product translations.
+- Commit `a29ce83`: coverage assertions for every locale, English source tracking and untranslated Swahili fallback.
+- GitHub run `42816009364` for `a29ce83`: dependency-free source tests and dependency audit succeeded; full integration verification was still running when checked.
+- All changes are in SaaS draft PR #483. Marketing draft PR #23 remains read-only for the connected account. The physically shared catalog consumption, 19 complete locale reviews, backend emails/exports, RTL browser acceptance and production gates remain unimplemented or unverified.
+- No merge, production deployment, live tenant mutation, secret change, DNS or mail adjustment.
