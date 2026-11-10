@@ -49,8 +49,25 @@ ssh_remote() { "${SSH_CMD[@]}" "$HOST" "$1"; }
 
 # The production deploy must be verified locally before files are copied.
 if [[ "$MODE" == prod ]]; then
-  command -v pnpm >/dev/null || { echo 'BLOCKED: pnpm is required for production verification.' >&2; exit 1; }
-  pnpm -s verify
+  # GitHub workflow_run provides a successful full CI run for the exact SHA.
+  # When this attestation is present, avoid running database-dependent tests
+  # a second time on a runner without its CI PostgreSQL service. Never accept
+  # an unbound skip flag or a different checkout revision.
+  if [[ -n "${EPMO_CI_VERIFIED_SHA:-}" || -n "${EPMO_CI_WORKFLOW_RUN_ID:-}" ]]; then
+    [[ "${GITHUB_ACTIONS:-}" == true && "${GITHUB_EVENT_NAME:-}" == workflow_run &&
+       "${EPMO_CI_VERIFIED_SHA:-}" =~ ^[0-9a-f]{40}$ &&
+       "${EPMO_CI_WORKFLOW_RUN_ID:-}" =~ ^[1-9][0-9]*$ ]] || {
+      echo 'BLOCKED: incomplete production CI attestation.' >&2; exit 1;
+    }
+    command -v git >/dev/null || { echo 'BLOCKED: git is required to verify the tested SHA.' >&2; exit 1; }
+    [[ "$(git rev-parse HEAD)" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      echo 'BLOCKED: checked-out revision does not match the successful CI run.' >&2; exit 1;
+    }
+    echo "Using successfully completed CI run $EPMO_CI_WORKFLOW_RUN_ID for revision $EPMO_CI_VERIFIED_SHA."
+  else
+    command -v pnpm >/dev/null || { echo 'BLOCKED: pnpm is required for production verification.' >&2; exit 1; }
+    pnpm -s verify
+  fi
 fi
 
 # Fail before rsync --delete if the remote environment has not been prepared.
@@ -69,6 +86,7 @@ echo "Deploying $MODE to $HOST:$DIR"
 rsync -az --delete --no-owner --no-group \
   --exclude node_modules --exclude .next --exclude .next-prod --exclude dist \
   --exclude '.env' --exclude '.env.*' --exclude .git --exclude .DS_Store \
+  --exclude .deployed-revision \
   -e "$SSH_FOR_RSYNC" ./ "$HOST:$DIR/"
 
 COMPOSE="docker compose -f docker-compose.prod.yml -p $PROJECT --env-file $ENVFILE"
