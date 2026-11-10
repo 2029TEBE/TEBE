@@ -26,3 +26,5 @@ export * from './reports-locale';
 export * from './page-locale';
 
 export * from './status-locale';
+
+export * from './export-language';
