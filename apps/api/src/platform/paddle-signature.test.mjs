@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { verifyPaddleSignature, parseVerifiedPaddleEvent } from './paddle-signature.ts';
+import { verifyPaddleSignature, authenticatePaddleWebhook } from './paddle-signature.ts';
 
 const secret = 'pdl_ntfset_test_verification_secret_12345';
 const nowMs = 1762790400000;
@@ -42,15 +42,22 @@ test('rejects invalid bodies or oversized inputs', () => {
   assert.equal(verifyPaddleSignature(raw, signature, secret, NaN), false);
 });
 test('parse signed event metadata without provisioning', () => {
-  assert.deepEqual(parseVerifiedPaddleEvent(raw), {
+  assert.deepEqual(authenticatePaddleWebhook(raw, signature, secret, nowMs), {
     eventId: 'evt_123456789',
     eventType: 'subscription.updated',
     occurredAt: '2026-11-10T16:00:00.000Z',
     data: { id: 'sub_123', status: 'active' },
   });
 });
-test('event metadata rejects invalid structure', () => {
-  assert.throws(() => parseVerifiedPaddleEvent(Buffer.from('invalid json')));
-  assert.throws(() => parseVerifiedPaddleEvent(Buffer.from(JSON.stringify({ event_id: 'evt_123', event_type: 'subscription.updated', occurred_at: 'x', data: {} }))));
-  assert.throws(() => parseVerifiedPaddleEvent(Buffer.from(JSON.stringify({ event_id: 'evt_123', event_type: 'subscription.updated', occurred_at: '2026-11-10T16:00:00.000Z', data: [] }))));
+test('authenticated parser refuses signed malformed JSON and invalid event structure', () => {
+  const sign = body => `ts=${ts};h1=${createHmac('sha256', secret).update(ts).update(':').update(body).digest('hex')}`;
+  for (const body of [
+    Buffer.from('invalid json'),
+    Buffer.from(JSON.stringify({ event_id: 'evt_123', event_type: 'subscription.updated', occurred_at: 'x', data: {} })),
+    Buffer.from(JSON.stringify({ event_id: 'evt_123', event_type: 'subscription.updated', occurred_at: '2026-11-10T16:00:00.000Z', data: [] })),
+  ]) assert.throws(() => authenticatePaddleWebhook(body, sign(body), secret, nowMs));
+});
+test('authenticated parser rejects an unsigned or tampered body', () => {
+  assert.throws(() => authenticatePaddleWebhook(raw, undefined, secret, nowMs));
+  assert.throws(() => authenticatePaddleWebhook(Buffer.concat([raw, Buffer.from(' ')]), signature, secret, nowMs));
 });
