@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const locale = await getFrontendLocale();
-  const ar = locale === 'ar-SA';
+  const ar = locale === 'ar' || locale === 'ur';
   const caps = (session.capabilities ?? ['read']) as Capability[];
 
   // A screen appears only if the person has the capability AND the workspace
@@ -80,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <MobileNav ar={ar}>{rail}</MobileNav>
           <Crumbs ar={ar} />
           <div className="spacer" />
-          <CommandPalette commands={commands} lang={ar ? 'ar' : 'en'} />
+          <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} />
           <UniversalLocaleSwitch locale={locale} />
           <ThemeToggle lang={ar ? 'ar' : 'en'} />
           <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} />
