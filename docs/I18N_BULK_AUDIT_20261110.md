@@ -106,3 +106,11 @@ Changes committed to the existing SaaS draft branch:
 This work is a **preparatory public catalog artifact**, NOT a single physically shared catalog in both running repositories. Marketing PR #23 remains read-only through the current connection. No release, merge, production backend, mail, DNS or customer data changes.
 
 **Completion evidence:** Commit and source file existence are verified. The latest commit's CI result must be checked separately before listing these items as passing CI. English fallback and EN/AR backend export safety remain unchanged.
+
+## Auto-approved follow-up — public artifact integrity validation
+
+- `98b2b62`: adds `verifyPublicLocaleCatalog(document)` for candidate compiled UI catalog artifacts. The verifier rejects invalid schema, mismatched locale lists, malformed placeholders, incorrect digests, unknown translation locale keys and unapproved release status changes.
+- `ee43992`: adds negative tests for tampered translations, modified locale registry, false approval flags, unknown locale keys and missing input.
+- The SHA-256 checksum is a **transport integrity check, not publisher authentication or proof of editorial approval**. A trusted CI source and pinned revision remain required.
+- The artifact still contains only partial reviewed UI labels and is NOT a fully shared catalog or published deployment. Marketing TEFE #23 is still a separate draft and cannot be edited from the current read-only connection.
+- Source checks and full verification must be rerun for the final head; do not infer their result from earlier green builds. No production changes were authorized or executed.
