@@ -35,7 +35,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const locale = await getFrontendLocale();
-  const ar = locale === 'ar' || locale === 'ur';
+  const ar = locale === 'ar';
+  const rtl = locale === 'ar' || locale === 'ur';
   const caps = (session.capabilities ?? ['read']) as Capability[];
 
   // A screen appears only if the person has the capability AND the workspace
@@ -72,7 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="shell" dir={ar ? 'rtl' : 'ltr'} lang={locale}>
+    <div className="shell" dir={rtl ? 'rtl' : 'ltr'} lang={locale}>
       <a className="skiplink" href="#main">{uiLabel('Skip to content', locale, 'تخطَّ إلى المحتوى')}</a>
       <nav className="rail" aria-label={uiLabel('Modules', locale, 'الوحدات')}>{rail}</nav>
       <div>
