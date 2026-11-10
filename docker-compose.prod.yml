@@ -55,6 +55,9 @@ services:
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-none}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_REGION: ${MAIL_REGION:-ap-south-1}
+      # Optional VPS transactional mail. A sending-only token belongs to API only.
+      MAIL_CF_ACCOUNT_ID: ${MAIL_CF_ACCOUNT_ID:-}
+      MAIL_CF_API_TOKEN: ${MAIL_CF_API_TOKEN:-}
       BILLING_REFERENCE_WEBHOOK_ENABLED: 'false'
       # The PDF export prints the real web app in headless Chromium, so the
       # API has to be able to reach it over the compose network. This is the
