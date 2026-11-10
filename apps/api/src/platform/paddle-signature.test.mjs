@@ -4,7 +4,7 @@ import { createHmac } from 'node:crypto';
 import { verifyPaddleSignature, authenticatePaddleWebhook } from './paddle-signature.ts';
 
 const secret = 'pdl_ntfset_test_verification_secret_12345';
-const nowMs = 1762790400000;
+const nowMs = Date.parse('2026-11-10T16:00:00.000Z');
 const ts = String(nowMs / 1000);
 const raw = Buffer.from(JSON.stringify({
   event_id: 'evt_123456789',
