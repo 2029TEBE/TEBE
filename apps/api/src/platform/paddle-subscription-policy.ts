@@ -103,5 +103,7 @@ export function decidePaddleSubscriptionUpdate(event: PaddleSubscriptionEvent,
  * explicit product/price entitlement mapping, not a checkout redirect.
  */
 export function paddleAccessAllowed(status: PaddleSubscriptionStatus): boolean {
-  return status === 'active' || status === 'trialing' || status === 'past_due';
+  // Match the existing ModuleGuard until a reviewed grace-period policy is implemented.
+  // Do not accidentally widen access for a past-due tenant via a new provider.
+  return status === 'active' || status === 'trialing';
 }
