@@ -81,11 +81,40 @@ export function uiLabel(english, locale, legacyArabic = null) {
   return row?.[locale] ?? english;
 }
 
-/** Missing entries are explicit QA findings, not automatic translations. */
-export function uiLabelCoverage(englishLabels, locale) {
+/** English text is the source. Placeholders must survive translation unchanged. */
+export function translationPlaceholders(value) {
+  return [...String(value).matchAll(/\\{([a-zA-Z][\\w]*)\\}/g)]
+    .map((match) => match[1]).sort();
+}
+
+export function translationHasMatchingPlaceholders(english, translated) {
+  return JSON.stringify(translationPlaceholders(english)) ===
+    JSON.stringify(translationPlaceholders(translated));
+}
+
+/**
+ * Report verified catalog coverage; legacy Arabic fallback can be supplied as
+ * a map of English source text to existing Arabic translations.
+ * Do not count English fallback strings as translated.
+ */
+export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
   const unique = [...new Set(englishLabels)];
-  const missing = unique.filter((english) =>
-    locale !== 'en' && locale !== 'ar-SA' &&
-    !(Object.hasOwn(UI_LABELS, english) && Object.hasOwn(UI_LABELS[english], locale)));
-  return { total: unique.length, translated: unique.length - missing.length, missing };
+  const missing = [];
+  const invalidPlaceholders = [];
+  for (const english of unique) {
+    if (locale === 'en') continue;
+    const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
+    const legacy = locale === 'ar-SA' && Object.hasOwn(legacyArabic, english)
+      ? legacyArabic[english] : null;
+    const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
+      ? legacy : row?.[locale];
+    if (typeof translated !== 'string' || !translated.trim()) {
+      missing.push(english);
+    } else if (!translationHasMatchingPlaceholders(english, translated)) {
+      invalidPlaceholders.push(english);
+    }
+  }
+  return { total: unique.length,
+    translated: unique.length - missing.length - invalidPlaceholders.length,
+    missing, invalidPlaceholders };
 }
