@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const rail = (
     <>
       {/* Their wordmark treatment: no icon, the second half in the brand mint. */}
-      <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, 'المكتب التنفيذي لإدارة المشاريع')}</span></div>
+      <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, navigationArabic('The EPMO'))}</span></div>
       <RailToggle />
       {groups.map((g) => (
         <RailGroup key={g.key} label={uiLabel(g.label, locale, navigationArabic(g.label))} hrefs={g.items.map((i) => i.href)}>
@@ -74,8 +74,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="shell" dir={rtl ? 'rtl' : 'ltr'} lang={locale}>
-      <a className="skiplink" href="#main">{uiLabel('Skip to content', locale, 'تخطَّ إلى المحتوى')}</a>
-      <nav className="rail" aria-label={uiLabel('Modules', locale, 'الوحدات')}>{rail}</nav>
+      <a className="skiplink" href="#main">{uiLabel('Skip to content', locale, navigationArabic('Skip to content'))}</a>
+      <nav className="rail" aria-label={uiLabel('Modules', locale, navigationArabic('Modules'))}>{rail}</nav>
       <div>
         <header className="topbar">
           <MobileNav ar={ar}>{rail}</MobileNav>
