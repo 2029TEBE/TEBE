@@ -55,7 +55,7 @@ export function parseVerifiedPaddleEvent(rawBody: Buffer):
     throw new Error('Invalid Paddle event');
   const event = candidate as Record<string, unknown>;
   if (typeof event.event_id !== 'string' || !/^evt_[a-zA-Z0-9]+$/.test(event.event_id) ||
-      typeof event.event_type !== 'string' || !/^[a-z_]+\\.[a-z_]+$/.test(event.event_type) ||
+      typeof event.event_type !== 'string' || !/^[a-z_]+[.][a-z_]+$/.test(event.event_type) ||
       typeof event.occurred_at !== 'string' ||
       !Number.isFinite(Date.parse(event.occurred_at)) ||
       !event.data || typeof event.data !== 'object' || Array.isArray(event.data))
