@@ -8,7 +8,7 @@ const toggle = read('apps/web/src/components/UniversalLocaleSwitch.tsx');
 const login = read('apps/web/src/app/login/page.tsx');
 const checks = [
   ['English/Arabic page metadata', layout.includes('The EPMO | المكتب التنفيذي لإدارة المشاريع')],
-  ['Correct document lang and direction', layout.includes("<html lang={locale} dir={ar ? 'rtl' : 'ltr'}") && layout.includes("const ar = locale === 'ar-SA'")],
+  ['Correct document lang and direction', layout.includes("<html lang={locale} dir={ar ? 'rtl' : 'ltr'}") && layout.includes("const ar = locale === 'ar' || locale === 'ur'")],
   ['Cookie-backed language preference', language.includes("get('pmo_lang')") && language.includes("get('pmo_locale')")],
   ['Language selector persists both preferences', toggle.includes('document.cookie = `pmo_lang=') && toggle.includes('document.cookie = `pmo_locale=')],
   ['Language selector refreshes server UI', toggle.includes('router.refresh()')],
