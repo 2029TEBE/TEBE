@@ -8,6 +8,8 @@ import { tr, getLang } from '@/lib/i18n';
 
 export default async function Reports() {
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, reportsArabic(english));
   const t = await tr();
   return (
     <Page title={labelFor("Reporting & Exports")}
