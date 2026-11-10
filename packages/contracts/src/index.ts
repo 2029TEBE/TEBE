@@ -22,3 +22,5 @@ export * from './settings-locale';
 
 export * from './getting-started-extra-locale';
 export * from './reports-locale';
+
+export * from './page-locale';
