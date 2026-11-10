@@ -18,6 +18,7 @@ jobs:
       - run: node scripts/verify-release-static.mjs
       - run: node scripts/verify-migration-chain.mjs
       - run: node scripts/rc1-release-gate.mjs
+      - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
   verify:
     runs-on: ubuntu-latest
