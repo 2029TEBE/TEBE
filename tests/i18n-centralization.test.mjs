@@ -39,3 +39,13 @@ test('onboarding and billing pages use shared dictionary rather than duplicate c
   assert.match(read('apps/web/src/app/(app)/super-admin/page.tsx'), /superadminArabic\(english\)/);
   assert.match(read('apps/web/src/app/(app)/settings/page.tsx'), /settingsArabic\(english\)/);
 });
+
+test('Urdu uses RTL without being mistaken for Arabic translations', () => {
+  const root = read('apps/web/src/app/layout.tsx');
+  const app = read('apps/web/src/app/(app)/layout.tsx');
+  const crumbs = read('apps/web/src/components/Crumbs.tsx');
+  assert.match(root, /locale === 'ar' \|\| locale === 'ur'/);
+  assert.match(app, /const ar = locale === 'ar';/);
+  assert.match(app, /const rtl = locale === 'ar' \|\| locale === 'ur';/);
+  assert.match(crumbs, /locale === 'ar' \|\| locale === 'ur' \? 'rtl' : 'ltr'/);
+});
