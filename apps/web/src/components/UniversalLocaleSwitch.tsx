@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { LOCALE_REGISTRY, type LocaleCode } from '@pmo/contracts';
+import { LOCALE_REGISTRY, navigationArabic, type LocaleCode } from '@pmo/contracts';
 import { chooseFrontendLocale } from '@/lib/frontend-locale.mjs';
 
 /** One selector for all recognized TheOrg locales; untranslated labels fall back to English. */
@@ -9,7 +9,7 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const fallback = !['en-US', 'en-GB', 'ar'].includes(locale);
-  const label = locale === 'ar' ? 'لغة الواجهة' : 'Interface language';
+  const label = locale === 'ar' ? navigationArabic('Interface language') : 'Interface language';
 
   useEffect(() => {
     const hasPreference = document.cookie.split(';').some(part =>
