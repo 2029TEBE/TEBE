@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getFrontendLocale();
-  const ar = locale === 'ar-SA';
+  const ar = locale === 'ar' || locale === 'ur';
   return (
     <html lang={locale} dir={ar ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
