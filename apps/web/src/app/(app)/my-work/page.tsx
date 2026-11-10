@@ -2,6 +2,7 @@ import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
+import { fill, localizedStatus } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { when, num } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
@@ -40,7 +41,7 @@ export default async function MyWork() {
                       ? <span className="pill critical">{labelFor("accountable")}</span>
                       : <span className="pill s-closed">{labelFor("consulted")}</span>}</td>
                     <td>{a.criteriaOutstanding > 0
-                      ? <span className="warnt">{lang === 'ar' ? `معايير غير مستوفاة: ${a.criteriaOutstanding}` : `${a.criteriaOutstanding} criteria outstanding`}</span>
+                      ? <span className="warnt">{fill(labelFor('{count} criteria outstanding'), { count: a.criteriaOutstanding })}</span>
                       : <span className="good">{labelFor("ready to sign")}</span>}</td>
                   </tr>))}</tbody>
               </table></div>
@@ -65,7 +66,7 @@ export default async function MyWork() {
                     <td className="num">{t.projectCode}</td><td>{t.title}</td>
                     <td><span className={`pill s-${t.state === 'blocked' ? 'open' : 'closed'}`}>
                       {lang === 'ar'
-                        ? ({ todo: 'للعمل', in_progress: 'قيد التنفيذ', blocked: 'متعثر', done: 'مكتمل' } as Record<string, string>)[t.state] ?? t.state.replace(/_/g, ' ')
+                        ? localizedStatus('work', t.state, locale)
                         : t.state.replace(/_/g, ' ')}</span></td>
                     <td className={t.overdue ? 'crit' : undefined}>{when(t.dueDate, lang)}</td>
                   </tr>))}</tbody>
