@@ -54,3 +54,26 @@ test('public artifact exports explicitly allowlisted navigation copy only', () =
   assert.ok(!Object.hasOwn(catalog.translations, 'Projects returned in the attention queue'));
   assert.equal(new Set(PUBLIC_CATALOG_KEYS).size, PUBLIC_CATALOG_KEYS.length);
 });
+
+test('validator rejects rehashed unallowlisted content and metadata', () => {
+  const resign = (document) => {
+    const { sha256, ...payload } = document;
+    document.sha256 = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    return document;
+  };
+  const extraCopy = structuredClone(buildPublicLocaleCatalog());
+  extraCopy.translations['Internal operational secret'] = { de: 'Internes Geheimnis' };
+  assert.equal(verifyPublicLocaleCatalog(resign(extraCopy)), false);
+
+  const removedKey = structuredClone(buildPublicLocaleCatalog());
+  delete removedKey.translations.Projects;
+  assert.equal(verifyPublicLocaleCatalog(resign(removedKey)), false);
+
+  const extraMetadata = structuredClone(buildPublicLocaleCatalog());
+  extraMetadata.privateMetadata = 'must not ship';
+  assert.equal(verifyPublicLocaleCatalog(resign(extraMetadata)), false);
+
+  const changedSource = structuredClone(buildPublicLocaleCatalog());
+  changedSource.source = 'untrusted';
+  assert.equal(verifyPublicLocaleCatalog(resign(changedSource)), false);
+});
