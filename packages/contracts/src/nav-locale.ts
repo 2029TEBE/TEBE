@@ -58,6 +58,7 @@ export const NAV_AR: Readonly<Record<string,string>> = Object.freeze({
   "The seeded accounts use ": "تستخدم الحسابات التجريبية كلمة المرور ",
   ". The owner account keeps its own password — it is never printed here and a reseed does not reset it.": "، بينما يحتفظ حساب المالك بكلمة مرور مستقلة لا تُعرض هنا ولا تتغير عند إعادة تهيئة البيانات.",
   "“A project cannot skip a gate, a decision cannot lack an owner, and a report cannot go stale — because the platform will not allow it.”": "«لا يمكن للمشروع تجاوز بوابة حوكمة، ولا اتخاذ قرار دون مسؤول، ولا ترك تقرير دون تحديث؛ فالمنصة تضمن ذلك.»",
+  "Interface language": "لغة الواجهة",
 });
 export function navigationArabic(english: string): string {
   return NAV_AR[english] ?? english;
