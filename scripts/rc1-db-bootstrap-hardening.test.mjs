@@ -46,7 +46,7 @@ test('CI creates application role before migration requiring it', () => {
 test('bootstrap uses non-default application password from the application URL', () => {
   assert.match(bootstrap, /decodeURIComponent\(u\.password\)/);
   assert.match(bootstrap, /\[ "\$\{#APP_PW\}" -ge 16 \]/);
-  assert.match(bootstrap, /ALTER ROLE pmo_app LOGIN WITH PASSWORD/);
+  assert.match(bootstrap, /ALTER ROLE pmo_app WITH LOGIN PASSWORD/);
 });
 
 test('database startup wait is bounded and fails before schema changes', () => {
@@ -65,6 +65,6 @@ test('financial RLS assertion is enforced after applying RLS policies', () => {
 });
 
 test('bootstrap converts an existing NOLOGIN app role into a restricted LOGIN', () => {
-  assert.match(bootstrap, /ALTER ROLE pmo_app LOGIN WITH PASSWORD/);
+  assert.match(bootstrap, /ALTER ROLE pmo_app WITH LOGIN PASSWORD/);
   assert.match(bootstrap, /CREATE ROLE pmo_app LOGIN/);
 });
