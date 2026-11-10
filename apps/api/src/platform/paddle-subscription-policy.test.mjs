@@ -47,7 +47,7 @@ test('reject malformed IDs and unknown status', () => {
 test('provider status access rules are conservative', () => {
   assert.equal(paddleAccessAllowed('active'), true);
   assert.equal(paddleAccessAllowed('trialing'), true);
-  assert.equal(paddleAccessAllowed('past_due'), true);
+  assert.equal(paddleAccessAllowed('past_due'), false);
   assert.equal(paddleAccessAllowed('paused'), false);
   assert.equal(paddleAccessAllowed('canceled'), false);
 });
