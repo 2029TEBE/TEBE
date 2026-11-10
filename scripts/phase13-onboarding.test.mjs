@@ -9,6 +9,7 @@ const app = src('apps/api/src/app.module.ts');
 const nav = src('apps/web/src/lib/nav.ts');
 const navModules = src('packages/contracts/src/modules.ts');
 const page = src('apps/web/src/app/(app)/getting-started/page.tsx');
+const copy = src('packages/contracts/src/getting-started-copy.ts');
 const client = src('apps/web/src/lib/api.ts');
 
 test('onboarding requires authenticated read permission', () => {
@@ -41,7 +42,8 @@ test('navigation is core and visible with read capability', () => {
 test('web page shows bilingual status and restricts create links by capabilities', () => {
   assert.match(page, /getLang\(\)/);
   assert.match(page, /can\(capabilities, task\.capability\)/);
-  assert.match(page, /دعوات آمنة عبر البريد الإلكتروني/);
-  assert.match(page, /secure, 72-hour email links/);
+  assert.match(copy, /دعوات آمنة عبر البريد الإلكتروني/);
+  assert.match(copy, /secure, 72-hour email links/);
+  assert.match(page, /GETTING_STARTED_COPY\[lang\]/);
   assert.match(client, /\/api\/v1\/onboarding\/status/);
 });
