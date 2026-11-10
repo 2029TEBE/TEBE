@@ -59,6 +59,11 @@ export const NAV_AR: Readonly<Record<string,string>> = Object.freeze({
   ". The owner account keeps its own password — it is never printed here and a reseed does not reset it.": "، بينما يحتفظ حساب المالك بكلمة مرور مستقلة لا تُعرض هنا ولا تتغير عند إعادة تهيئة البيانات.",
   "“A project cannot skip a gate, a decision cannot lack an owner, and a report cannot go stale — because the platform will not allow it.”": "«لا يمكن للمشروع تجاوز بوابة حوكمة، ولا اتخاذ قرار دون مسؤول، ولا ترك تقرير دون تحديث؛ فالمنصة تضمن ذلك.»",
   "Interface language": "لغة الواجهة",
+  "Choose a new password": "تعيين كلمة مرور جديدة",
+  "Join The EPMO": "الانضمام إلى The EPMO",
+  "Forgot your password?": "استعادة كلمة المرور",
+  "We will email a 30-minute recovery link if an active account exists.": "سنرسل رابطًا صالحًا لمدة 30 دقيقة إذا كان لديك حساب نشط.",
+  "Back to sign in": "العودة إلى تسجيل الدخول",
 });
 export function navigationArabic(english: string): string {
   return NAV_AR[english] ?? english;
