@@ -44,6 +44,20 @@ export const NAV_AR: Readonly<Record<string,string>> = Object.freeze({
   "Dark": "داكن",
   "Light": "فاتح",
   "Skip to content": "تخطَّ إلى المحتوى",
+  "Sign in": "تسجيل الدخول",
+  "Governance for portfolios, programmes and projects.": "حوكمة المحافظ والبرامج والمشاريع.",
+  "Username or email": "اسم المستخدم أو البريد الإلكتروني",
+  "username or you@company.com": "اسم المستخدم أو you@company.com",
+  "Password": "كلمة المرور",
+  "Forgot password?": "نسيت كلمة المرور؟",
+  "Development accounts": "حسابات التطوير",
+  "owner · both workspaces": "مالك · مساحتا العمل",
+  "owner · Al-Nakheel": "مالك · النخيل",
+  "consultant · Al-Nakheel": "مستشار · النخيل",
+  "owner · Nexa": "مالك · نكسا",
+  "The seeded accounts use ": "تستخدم الحسابات التجريبية كلمة المرور ",
+  ". The owner account keeps its own password — it is never printed here and a reseed does not reset it.": "، بينما يحتفظ حساب المالك بكلمة مرور مستقلة لا تُعرض هنا ولا تتغير عند إعادة تهيئة البيانات.",
+  "“A project cannot skip a gate, a decision cannot lack an owner, and a report cannot go stale — because the platform will not allow it.”": "«لا يمكن للمشروع تجاوز بوابة حوكمة، ولا اتخاذ قرار دون مسؤول، ولا ترك تقرير دون تحديث؛ فالمنصة تضمن ذلك.»",
 });
 export function navigationArabic(english: string): string {
   return NAV_AR[english] ?? english;
