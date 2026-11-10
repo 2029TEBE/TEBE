@@ -1,4 +1,4 @@
-import { billingArabic } from '@pmo/contracts';
+import { billingArabic, fill } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { billingChangeGuidance } from '@/lib/billing-self-service.mjs';
@@ -85,7 +85,7 @@ export default async function BillingPage({ searchParams }: {
         {plans => <div className="modgrid">{plans.map(plan => <article className="modcard" key={plan.code}>
           <h3>{plan.name}</h3>
           <p><strong>{formatBillingMoney(plan.priceMinor, plan.currency, lang)}</strong> / {plan.billingInterval === 'yearly' ? tx("year") : tx("month")}</p>
-          <p className="dim">{plan.trialDays > 0 ? tx(`Trial: ${plan.trialDays} days`, `تجربة: ${plan.trialDays} يوم`) : tx("No trial included")}</p>
+          <p className="dim">{plan.trialDays > 0 ? fill(tx('Trial: {days} days'), { days: plan.trialDays }) : tx("No trial included")}</p>
           <p className="dim">{tx("Contact an administrator to request this plan.")}</p>
         </article>)}</div>}
       </Loaded>
