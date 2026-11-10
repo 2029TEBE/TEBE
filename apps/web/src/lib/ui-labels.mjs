@@ -71,7 +71,7 @@ export const UI_LABELS = Object.freeze({
  */
 export function uiLabel(english, locale, legacyArabic = null) {
   const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
-  if (locale === 'ar-SA') {
+  if (locale === 'ar') {
     // A verified existing Arabic translation wins; new UI-only phrases
     // use their local Arabic entry without touching backend document exports.
     return legacyArabic && legacyArabic !== english
