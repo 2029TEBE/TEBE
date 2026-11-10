@@ -1,29 +1,24 @@
-# THE EPMO — one application, six locale interfaces
+# THE EPMO localization architecture — TheOrg reference
 
-Reference: TheOrg Electron `locales/*.pak` package. Its resource directory is a useful example of organizing locale identifiers, but those binary Chromium runtime files are **not** product translations and must not be copied into the browser application.
+## Current implementation
+- Canonical 23-variant registry (`packages/contracts/src/locales.ts`), representing 19 language families.
+- Authentication, entitlement, and database logic remain locale-neutral.
+- English `en-US`/`en-GB` are source/fallback; `ar` and `ur` display RTL.
+- Legacy backend Word/PowerPoint/PDF exports still support only `en` and `ar`; **do not claim 19-language exports**.
+- Existing translation catalogs include English, Arabic and **partial** German, Simplified Chinese, French, Japanese. All other selectable languages use explicit English fallback.
+- `pmo_locale` is the preferred UI cookie. `pmo_lang` remains as an EN/AR export compatibility bridge.
+- `navigationArabic` in shared contracts contains 35 migrated Arabic nav labels. No duplicate Arabic copy remains in `apps/web/src/lib/nav.ts`.
+- The marketing site has a parallel registry and pending source-data unification across repositories. The two repositories are NOT yet one physically shared translation bundle.
+- TheOrg `.pak` files are Chromium resources, **not** product copy; do not import or distribute them as translations.
 
-## Supported locales
-- `en` — English; canonical authoring language; LTR
-- `ar-SA` — Arabic (Saudi Arabia); RTL
-- `de-DE` — German; LTR
-- `zh-CN` — Simplified Chinese; LTR
-- `fr-FR` — French; LTR
-- `ja-JP` — Japanese; LTR
+## Remaining work before release
+1. Extract all remaining inline Arabic presentation strings from the dashboard components into one shared translation catalog.
+2. Migrate HTML `data-ar` marketing strings into namespaced catalogs, and share catalog packages across frontend/backend repositories.
+3. Supply reviewed complete translations for all 19 languages (23 variants), with ICU messages, plural rules and placeholder coverage.
+4. Change all API messages, emails, notifications and document exports to use approved locale-aware templates; keep privileged business logic unchanged.
+5. Add translation-completeness checks, untranslated-fallback reporting, RTL visual checks (Arabic and Urdu), and bilingual ID/currency tests.
+6. Validate existing legacy cookies and export URLs across the migration.
+7. Keep release and Cloudflare delivery off until tests and visual acceptance pass.
 
-## Existing compatibility boundaries
-- `apps/web/src/lib/frontend-locale.mjs` is the locale normalization/resolution boundary.
-- `UniversalLocaleSwitch` is the **only active** selector in the authenticated shell.
-- Cookie `pmo_locale` is authoritative; legacy `pmo_lang` remains an EN/AR export compatibility bridge during migration.
-- `@pmo/contracts` currently maintains the EN/AR dictionary consumed by API exports. It must remain untouched until six-language export acceptance is complete.
-- `ui-labels.mjs` is a partial frontend catalog and is not proof of complete translations.
-- `locale-format.mjs` provides six-locale presentation formatting without modifying stable IDs, API values or database records.
-
-## Completion gates (not yet satisfied)
-1. Extract stable namespaced translation keys and complete all six UI catalogs, with parameter/plural validation.
-2. Introduce server/client unified translation adapter and include login, onboarding, administration, errors, data tables and emails.
-3. Verify RTL and bidirectional numbers/identifiers, keyboard navigation, all breakpoints and screen-reader labeling.
-4. Add six-locale document-export integration tests before changing backend export language behavior.
-5. Enforce a missing-key and translation-coverage release gate before claiming the six locales complete.
-6. Do not change tenant identity, RBAC, billing, migrations or production DNS as part of localization cleanup.
-
-Unused-file policy: remove only code proven unreferenced. Historical migration SQL and audit artifacts are not safe to delete merely because their names refer to a previous feature.
+## Unused-files rule
+Only remove files proven unreferenced. Never delete database migrations, historical audit files or back-compat exports based only on their filenames.
