@@ -14,6 +14,8 @@ import { effectiveSubscriptionStatus, daysUntil } from '@/lib/subscription-displ
 
 export default async function GettingStarted() {
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, gettingStartedExtraArabic(english));
   const text = GETTING_STARTED_COPY[lang];
   const session = await getSession();
   const capabilities: Capability[] = session.authenticated
