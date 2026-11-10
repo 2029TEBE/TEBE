@@ -10,6 +10,7 @@ export const PAGE_AR: Readonly<Record<string, Readonly<Record<string,string>>>> 
     "Items requiring a decision": "سجل البنود التي تحتاج إلى قرار",
   }),
   "benefits": Object.freeze({
+    "{pct}% of the way from baseline to target": "{pct}% من المسافة بين خط الأساس والمستهدف",
     "Benefits": "المنافع",
     "Did the project deliver the value it promised? Tracked after handover — the step most tools skip.": "تتبع القيمة المتحققة بعد التسليم مقارنة بالمستهدفات وخط الأساس.",
     "No benefits defined yet.": "لم يتم تسجيل أي منافع بعد.",
@@ -46,6 +47,7 @@ export const PAGE_AR: Readonly<Record<string, Readonly<Record<string,string>>>> 
     "Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.": "يساعد ربط المستند بمعيار محدد في بوابة المشروع على إثبات استيفاء المتطلبات عند المراجعة أو التدقيق. ويوضح سجل المستندات اسم الدليل وإصداره ومالكه وتاريخ تحديثه متى توفرت هذه البيانات، دون افتراض عدد ثابت للمستندات المرتبطة.",
   }),
   "financials": Object.freeze({
+    "Only {pct}% of budget drawn — too early for a meaningful CPI": "تم صرف {pct}% فقط من الميزانية — لا تكفي البيانات لحساب مؤشر تكلفة ذي دلالة",
     "Financials": "البيانات المالية",
     "Budget, committed, spent and forecast — with earned value, so an overrun shows before it lands.": "الميزانية والالتزامات والمصروفات والتوقعات والقيمة المكتسبة لرصد الانحرافات المالية.",
     "complete": "مكتمل",
@@ -56,6 +58,7 @@ export const PAGE_AR: Readonly<Record<string, Readonly<Record<string,string>>>> 
     "forecast, rest at budget": "ضمن التوقعات، والباقي وفق الميزانية",
   }),
   "my-work": Object.freeze({
+    "{count} criteria outstanding": "معايير غير مستوفاة: {count}",
     "My Work": "عملي",
     "Everything assigned to you, ranked by what is blocking a gate rather than by due date.": "الأعمال المسندة إليك، مرتبة حسب ما يعوق بوابات المراحل بدلا من تاريخ الاستحقاق وحده.",
     "overdue": "مهمة متأخرة",
