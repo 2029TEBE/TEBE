@@ -27,7 +27,7 @@ export function Crumbs({ ar, locale = 'en-US' }: { ar: boolean; locale?: Fronten
     }
   }
   return (
-    <nav className="crumbs" dir={ar ? 'rtl' : 'ltr'} aria-label={labelFor('Breadcrumb')}>
+    <nav className="crumbs" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'} aria-label={labelFor('Breadcrumb')}>
       <span>{labelFor('The EPMO')}</span>
       {group && <><span className="sep" aria-hidden="true">/</span><span>{group}</span></>}
       <span className="sep" aria-hidden="true">/</span><b aria-current="page">{label}</b>
