@@ -76,14 +76,16 @@ export function catalogLocale(locale) {
 export function uiLabel(english, locale, legacyArabic = null) {
   locale = catalogLocale(locale);
   const row = Object.hasOwn(UI_LABELS, english) ? UI_LABELS[english] : null;
-  if (locale === 'ar-SA') {
-    // A verified existing Arabic translation wins; new UI-only phrases
-    // use their local Arabic entry without touching backend document exports.
-    return legacyArabic && legacyArabic !== english
-      ? legacyArabic : (row?.['ar-SA'] ?? english);
-  }
   if (locale === 'en') return english;
-  return row?.[locale] ?? english;
+  // A legacy Arabic label is preferred where one exists, but a broken
+  // translation must never drop or rename dynamic display placeholders.
+  const candidate = locale === 'ar-SA'
+    ? (typeof legacyArabic === 'string' && legacyArabic.trim() && legacyArabic !== english
+      ? legacyArabic : row?.['ar-SA'])
+    : row?.[locale];
+  return typeof candidate === 'string' && candidate.trim() &&
+    translationHasMatchingPlaceholders(english, candidate)
+      ? candidate : english;
 }
 
 /** English text is the source. Placeholders must survive translation unchanged. */
