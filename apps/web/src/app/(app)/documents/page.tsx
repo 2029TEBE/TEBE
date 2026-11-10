@@ -1,3 +1,6 @@
+import { pageArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
@@ -18,15 +21,15 @@ export default async function Documents({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, pageArabic("documents", english));
   const t = await tr();
   // Outside <Loaded> on purpose: the create form must render even when the
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title={lang === 'ar' ? 'المستندات' : 'Documents'}
-          sub={lang === 'ar'
-            ? 'المخرجات وأدلة الاعتماد. يربط المستند المسجل بمعيار البوابة لتوثيق استيفائه.'
-            : 'Deliverables and gate evidence. A document linked to a gate criterion is what turns a tick into proof.'}>
+    <Page title={labelFor("Documents")}
+          sub={labelFor("Deliverables and gate evidence. A document linked to a gate criterion is what turns a tick into proof.")}>
       <Flash error={error} done={done} lang={lang} />
       <DocumentUpload lang={lang} projects={o.projects ?? []} />
       <NewRecord lang={lang} kind="document" title="Register a document" cta="Register" returnTo="/documents"
@@ -44,7 +47,7 @@ export default async function Documents({ searchParams }:
                 { name: 'ownerId', label: 'Owner', type: 'select',
                   options: o.people.map((p: any) => ({ value: p.id, label: p.name })) },
               ]} />
-      <Loaded load={api.documents} empty={lang === 'ar' ? 'لا توجد مستندات بعد.' : 'No documents yet.'}>
+      <Loaded load={api.documents} empty={labelFor("No documents yet.")}>
         {(list) => (
           <>
             <section className="design-context" aria-label={t('Document overview')}>
@@ -57,7 +60,7 @@ export default async function Documents({ searchParams }:
                 <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
               </div>
             </section>
-            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المستندات' : 'Document register'} tabIndex={0}><table>
+            <div className="design-table-scroll" role="region" aria-label={labelFor("Document register")} tabIndex={0}><table>
               <thead><tr><th scope="col">{t('Document')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Type')}</th><th scope="col">{t('Ver')}</th><th scope="col">{t('Evidence for')}</th><th scope="col">{t('Size')}</th><th scope="col">{t('Updated')}</th><th scope="col">{t('Status')}</th></tr></thead>
               <tbody>{list.map((d: any) => (
                 <tr key={d.id}>
@@ -90,9 +93,7 @@ export default async function Documents({ searchParams }:
             </table></div>
             <details className="explain">
               <summary>{t('How documents connect to governance')}</summary>
-              <p>{lang === 'ar'
-                ? 'يساعد ربط المستند بمعيار محدد في بوابة المشروع على إثبات استيفاء المتطلبات عند المراجعة أو التدقيق. ويوضح سجل المستندات اسم الدليل وإصداره ومالكه وتاريخ تحديثه متى توفرت هذه البيانات، دون افتراض عدد ثابت للمستندات المرتبطة.'
-                : 'Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.'}</p>
+              <p>{labelFor("Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.")}</p>
             </details>
           </>
         )}
