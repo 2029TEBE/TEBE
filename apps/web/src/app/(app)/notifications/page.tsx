@@ -1,3 +1,6 @@
+import { pageArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { tr, getLang, term } from '@/lib/i18n';
@@ -11,6 +14,8 @@ export default async function Notifications({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, pageArabic("notifications", english));
   const t = await tr();
 
   return (
@@ -50,7 +55,7 @@ export default async function Notifications({ searchParams }:
               </div>
             ) : (
               <div className="tablewrap design-table-scroll" role="region"
-                   aria-label={lang === 'ar' ? 'صندوق الإشعارات الصادرة' : 'Notification outbox'} tabIndex={0}>
+                   aria-label={labelFor("Notification outbox")} tabIndex={0}>
                 <table>
                   <thead><tr>
                     <th>{t('Status')}</th><th>{t('Type')}</th><th>{t('To')}</th>
