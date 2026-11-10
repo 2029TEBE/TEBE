@@ -49,3 +49,14 @@ test('Urdu uses RTL without being mistaken for Arabic translations', () => {
   assert.match(app, /const rtl = locale === 'ar' \|\| locale === 'ur';/);
   assert.match(crumbs, /locale === 'ar' \|\| locale === 'ur' \? 'rtl' : 'ltr'/);
 });
+
+test('eight dashboard pages resolve literal Arabic phrases from the shared page catalog', () => {
+  const pages = ['activity', 'benefits', 'decisions', 'documents', 'financials', 'my-work', 'notifications', 'portfolios'];
+  const catalog = read('packages/contracts/src/page-locale.ts');
+  for (const page of pages) {
+    const source = read(`apps/web/src/app/(app)/${page}/page.tsx`);
+    assert.ok(source.includes(`pageArabic("${page}", english)`), `missing lookup in ${page}`);
+    assert.doesNotMatch(source, /lang\s*===\s*'ar'\s*\?\s*'[^']+'\s*:\s*'[^']+'/);
+    assert.ok(catalog.includes(`"${page}": Object.freeze`), `missing catalog for ${page}`);
+  }
+});
