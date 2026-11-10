@@ -7,7 +7,7 @@ import type { Capability } from '@pmo/contracts';
  * gates it — same capability strings their product uses.
  */
 export type NavItem = { key: string; label: string; href: string; cap: Capability };
-export type NavGroup = { key: string; label: string; ar: string; items: NavItem[] };
+export type NavGroup = { key: string; label: string; items: NavItem[] };
 
 export const NAV: NavGroup[] = [
   { key: 'home', label: 'Home', items: [
