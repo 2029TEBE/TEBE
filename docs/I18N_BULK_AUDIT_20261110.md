@@ -38,3 +38,14 @@
 - Added regression checks to prevent migrated files reverting to inline literal Arabic ternaries.
 - Public frontend added catalog aliases for reviewed DE/FR/JA translations, plus marketing 23-variant/RTL validation in CI.
 - Some complex in-file Arabic expressions, marketing HTML `data-ar`, and backend document/export language limitations remain. This document does not assert full localization completeness.
+
+## Current bulk follow-up (10 November 2026)
+
+- Confirmed earlier PR #483 source checks, audit and full verification all passed before this new batch; marketing PR #23 validation passed.
+- Centralized presentation-only document, benefit, work, and portfolio status labels in `packages/contracts/src/status-locale.ts`, preserving status codes used by backend and access controls.
+- Migrated the remaining inline Arabic labels/variable text from `benefits`, `documents`, `my-work`, `portfolios`, `financials`, and the getting-started trial message. Arabic templates now use named placeholders (`{pct}`, `{count}`, `{days}`) and shared formatting.
+- Defined **reviewed export languages** separately from supported UI locale identifiers. Board pack exports accept legacy English/Arabic and en-US/en-GB/ar-SA aliases, but explicitly reject other requested locales instead of silently producing English files.
+- Added CI regression assertions covering migration, status labels, placeholders and strict export language behavior.
+- Untranslated interface screens, email/notification templates, marketing HTML, and non-EN/AR backend reports remain open. These are not marked translated or production-ready.
+
+CI result for this exact revision must be checked separately from earlier successful commits.
