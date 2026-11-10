@@ -32,7 +32,10 @@ export async function getFrontendLocale(): Promise<import('./frontend-locale.mjs
   const jar = await cookies();
   const current = jar.get('pmo_locale')?.value;
   if (current !== undefined) {
-    return normalizeFrontendLocale(current) ?? 'en-US';
+    const normalized = normalizeFrontendLocale(current);
+    if (normalized) return normalized;
+    // Invalid/newly unsupported preferences must not discard an older
+    // legitimate Arabic choice stored by previous application versions.
   }
   return jar.get('pmo_lang')?.value === 'ar' ? 'ar' : 'en-US';
 }
