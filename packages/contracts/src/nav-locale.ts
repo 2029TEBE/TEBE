@@ -35,6 +35,15 @@ export const NAV_AR: Readonly<Record<string,string>> = Object.freeze({
   "Modules": "المنصة والوحدات",
   "Billing & Renewals": "الفوترة والتجديدات",
   "Subscriptions": "إدارة الاشتراكات",
+  "Executive Decision Cockpit": "مركز القرارات التنفيذي",
+  "Operations preview": "معاينة عمليات المنصة",
+  "Current page": "الصفحة الحالية",
+  "Breadcrumb": "مسار الصفحة",
+  "The EPMO": "المكتب التنفيذي لإدارة المشاريع",
+  "Appearance": "المظهر",
+  "Dark": "داكن",
+  "Light": "فاتح",
+  "Skip to content": "تخطَّ إلى المحتوى",
 });
 export function navigationArabic(english: string): string {
   return NAV_AR[english] ?? english;
