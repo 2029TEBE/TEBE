@@ -60,3 +60,35 @@ test('eight dashboard pages resolve literal Arabic phrases from the shared page 
     assert.ok(catalog.includes(`"${page}": Object.freeze`), `missing catalog for ${page}`);
   }
 });
+
+test('localized statuses are presentation-only and verified legacy Arabic values remain available', () => {
+  const status = read('packages/contracts/src/status-locale.ts');
+  for (const word of ['مسودة','قيد المراجعة','معتمد','متوقف','متحقق','وفق الخطة']) {
+    if (word === 'متوقف') continue; // no existing "paused" status in this catalog
+    assert.ok(status.includes(word), `missing legacy status label: ${word}`);
+  }
+  for (const page of ['benefits', 'documents', 'my-work', 'portfolios']) {
+    const code = read(`apps/web/src/app/(app)/${page}/page.tsx`);
+    assert.match(code, /localizedStatus\(/);
+  }
+});
+
+test('backend export rejects untranslated locales without changing approved EN/AR document builders', () => {
+  const controller = read('apps/api/src/exports/exports.controller.ts');
+  const languages = read('packages/contracts/src/export-language.ts');
+  assert.match(controller, /resolveExportLanguage\(v\)/);
+  assert.match(controller, /throw new BadRequestException\('This export is available in English and Arabic only/);
+  assert.match(languages, /normalized === 'ar-sa'/);
+  assert.match(languages, /normalized === 'en-us'/);
+  assert.match(languages, /return null;/);
+  const svc = read('apps/api/src/exports/exports.service.ts');
+  assert.match(svc, /private async pack\(lang: 'en' \| 'ar'\)/);
+});
+
+test('parameterized Arabic financial guidance preserves all English variables', () => {
+  const page = read('packages/contracts/src/page-locale.ts');
+  const extra = read('packages/contracts/src/getting-started-extra-locale.ts');
+  for (const token of ['{pct}', '{count}']) assert.ok(page.includes(token));
+  assert.match(extra, /\{days\}/);
+  assert.match(read('apps/web/src/app/(app)/benefits/page.tsx'), /fill\(labelFor\('/);
+});
