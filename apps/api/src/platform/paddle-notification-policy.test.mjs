@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { evaluateSignedPaddleSubscription } from './paddle-notification-policy.ts';
+import { evaluateSignedPaddleSubscription } from './paddle-notification-policy.mjs';
 
 const secret = 'pdl_ntfset_test_verification_secret_12345';
 const nowMs = Date.parse('2026-11-10T16:00:00.000Z');
