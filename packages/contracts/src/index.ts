@@ -19,3 +19,6 @@ export * from './billing-locale';
 export * from './superadmin-locale';
 
 export * from './settings-locale';
+
+export * from './getting-started-extra-locale';
+export * from './reports-locale';
