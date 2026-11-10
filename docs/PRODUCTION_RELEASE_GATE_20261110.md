@@ -77,3 +77,29 @@ constraints are technical **NO-GO** safeguards, not missing owner approval.
 - Marketing PR: https://github.com/2029TEFE/TEFE/pull/23
 - SaaS verified CI: https://github.com/2029TEBE/TEBE/actions/runs/42816140123
 - Marketing verified CI: https://github.com/2029TEFE/TEFE/actions/runs/42820702641
+
+## Passive production HTTPS preflight — 10 November 2026
+
+A new non-mutating GitHub-hosted preflight was committed in marketing PR #23:
+
+- `c819586`: `scripts/check-live-production.mjs`, HTTPS-only public endpoint probes, safe redirect allowlist, no credentials or writes.
+- `477027b`: offline regression tests for success/failure behavior.
+- `b2b1beb`: independent GitHub Actions preflight workflow.
+- `03cc464`, `f1c0320`: require public marketing endpoints not to return `X-Robots-Tag: noindex` and test the rule.
+- `f1c0320` passed the ordinary marketing validation workflow (run `42824108047`) while **production preflight failed** (run `42824108207`). This is an expected release-gate failure: production is not ready.
+
+Direct external evidence from the preflight runner (run `42824065925`):
+| URL | HTTPS GET status | Robots header | Assessment |
+|---|---|---|---|
+| `https://theepmo.com/` | 200 | `noindex, nofollow` | NO-GO: not indexable |
+| `https://www.theepmo.com/` | 200 | `noindex, nofollow` | NO-GO: not indexable |
+| `https://app.theepmo.com/login` | 200 | none observed | Reachable only, auth and deployed revision not certified |
+
+No source or tool has authenticated live Cloudflare Pages configuration,
+confirmed build SHA at production, verified web/API sessions and tenant isolation,
+verified host backups/rollback, or established a deployment connector. Passing
+source CI and public HTTP 200 responses **do not** prove release readiness.
+
+**Release decision remains NO-GO**. No merges, Pages deployment, VPS rollout,
+DNS changes, payments or email changes were performed. This decision reflects
+verified technical safeguards, not missing owner authorization.
