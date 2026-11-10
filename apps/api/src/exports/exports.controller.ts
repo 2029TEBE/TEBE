@@ -1,4 +1,5 @@
 import { Controller, Get, Query, Req, Res, BadRequestException } from '@nestjs/common';
+import { resolveExportLanguage } from '@pmo/contracts';
 import type { Request, Response } from 'express';
 import { RequiresModule } from '../platform/module.guard';
 import { ExportsService } from './exports.service';
@@ -9,7 +10,11 @@ const TYPES: Record<string, string> = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   pdf:  'application/pdf',
 };
-const lang = (v: unknown): 'en' | 'ar' => (v === 'ar' ? 'ar' : 'en');
+const lang = (v: unknown): 'en' | 'ar' => {
+  const result = resolveExportLanguage(v);
+  if (!result) throw new BadRequestException('This export is available in English and Arabic only. Choose one of these languages to continue.');
+  return result;
+};
 
 @Controller('api/v1/export')
 export class ExportsController {
@@ -36,8 +41,9 @@ export class ExportsController {
   async pdf(@Query('lang') l: string, @Req() req: Request, @Res() res: Response) {
     const token = (req as any).cookies?.pmo_session;
     if (!token) throw new BadRequestException('Sign in again to export a PDF.');
+    const exportLanguage = lang(l);
     try {
-      const { buf, name } = await this.svc.pdf(lang(l), token);
+      const { buf, name } = await this.svc.pdf(exportLanguage, token);
       send(res, buf, name, TYPES.pdf);
     } catch (e) {
       throw new BadRequestException(pdfUnavailableReason(e));
