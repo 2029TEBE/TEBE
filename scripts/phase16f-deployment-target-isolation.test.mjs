@@ -50,6 +50,7 @@ test('staging deployment with a custom isolated checkout performs remote checks 
       writeFileSync(p, `#!/bin/sh
 printf '%s: %s\n' '${cmd}' "$*" >> "$TRACE"
 case "$*" in
+  *'printf "%s" "$HOME"'*) printf '/home/deploy'; exit 0 ;;
   *"infra/backup-db.sh 'staging'"*) echo 'PASS: verified pre-migration PostgreSQL backup: /opt/epmo-backups/epmo-staging-test-abcdef.dump' ;;
 esac
 exit 0
