@@ -44,7 +44,7 @@ export function verifyPaddleSignature(
 /** Parse event metadata only AFTER a successful signature verification.
  * No event alone is sufficient to grant a customer paid entitlements.
  */
-export function parseVerifiedPaddleEvent(rawBody: Buffer):
+function parsePaddleEvent(rawBody: Buffer):
   { eventId: string; eventType: string; occurredAt: string; data: Record<string, unknown> } {
   if (!Buffer.isBuffer(rawBody) || !rawBody.length || rawBody.length > MAX_BODY_BYTES)
     throw new Error('Invalid Paddle body');
@@ -62,4 +62,16 @@ export function parseVerifiedPaddleEvent(rawBody: Buffer):
     throw new Error('Invalid Paddle event metadata');
   return { eventId: event.event_id, eventType: event.event_type,
     occurredAt: event.occurred_at, data: event.data as Record<string, unknown> };
+}
+
+/** Public ingress helper: always authenticate before parsing or using event data.
+ * A failed signature is never silently acknowledged as a processed notification.
+ */
+export function authenticatePaddleWebhook(
+  rawBody: Buffer | undefined, header: unknown, secret: string | undefined,
+  nowMs: number = Date.now(),
+): ReturnType<typeof parsePaddleEvent> {
+  if (!verifyPaddleSignature(rawBody, header, secret, nowMs))
+    throw new Error('Invalid Paddle webhook signature');
+  return parsePaddleEvent(rawBody as Buffer);
 }
