@@ -19,11 +19,15 @@ jobs:
       ${{ github.event.workflow_run.conclusion == 'success' &&
           github.event.workflow_run.event == 'push' &&
           github.event.workflow_run.head_branch == 'main' &&
-          github.event.workflow_run.head_repository.full_name == github.repository }}
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          vars.EPMO_DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     environment: production
     steps:
+      # Explicit opt-in environment variable is required in addition to successful CI.
+      # Until production access, backup restore, billing, and release gates pass,
+      # EPMO_DEPLOY_ENABLED must remain absent/false.
       - name: Check out the exact CI-tested revision
         uses: actions/checkout@v4
         with:
