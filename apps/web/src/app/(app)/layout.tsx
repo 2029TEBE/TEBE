@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div>
         <header className="topbar">
           <MobileNav ar={ar}>{rail}</MobileNav>
-          <Crumbs ar={ar} />
+          <Crumbs ar={ar} locale={locale} />
           <div className="spacer" />
           <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} />
           <UniversalLocaleSwitch locale={locale} />
