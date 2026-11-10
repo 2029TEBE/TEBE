@@ -23,10 +23,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    needs: [source-guards, audit]
-    concurrency:
-      group: epmo-verified-release-${{ github.ref }}
-      cancel-in-progress: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -196,51 +192,6 @@ jobs:
           path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
-      # Deployment secrets are supplied only to trusted main pushes, after
-      # source checks, audit and every integration/release evidence gate pass.
-      - name: Select current main release for automatic deployment
-        id: release_candidate
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.EPMO_DEPLOY_ENABLED == 'true'
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          latest=$(git ls-remote https://github.com/2029TEBE/TEBE.git refs/heads/main | cut -f1)
-          if [ "$latest" != "$RELEASE_SHA" ]; then
-            echo 'Skipping superseded release; a newer main commit will deploy after verification.'
-            echo 'deploy=false' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
-          echo 'deploy=true' >> "$GITHUB_OUTPUT"
-      - name: Configure verified VPS transport
-        if: steps.release_candidate.outputs.deploy == 'true'
-        env:
-          EPMO_DEPLOY_HOST: ${{ vars.EPMO_DEPLOY_HOST }}
-          EPMO_DEPLOY_PRIVATE_KEY: ${{ secrets.EPMO_DEPLOY_SSH_KEY }}
-          EPMO_DEPLOY_KNOWN_HOSTS: ${{ vars.EPMO_DEPLOY_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          test -n "$EPMO_DEPLOY_HOST" || { echo 'BLOCKED: EPMO_DEPLOY_HOST is missing'; exit 1; }
-          test -n "$EPMO_DEPLOY_PRIVATE_KEY" || { echo 'BLOCKED: deployment SSH key is missing'; exit 1; }
-          test -n "$EPMO_DEPLOY_KNOWN_HOSTS" || { echo 'BLOCKED: verified SSH host pin is missing'; exit 1; }
-          umask 077
-          mkdir -p "$HOME/.ssh"
-          printf '%s\n' "$EPMO_DEPLOY_PRIVATE_KEY" > "$RUNNER_TEMP/epmo-deploy-key"
-          printf '%s\n' "$EPMO_DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          ssh-keygen -y -f "$RUNNER_TEMP/epmo-deploy-key" > /dev/null
-      - name: Deploy verified main to production VPS
-        if: steps.release_candidate.outputs.deploy == 'true'
-        env:
-          EPMO_DEPLOY_HOST: ${{ vars.EPMO_DEPLOY_HOST }}
-          EPMO_DEPLOY_DIR: /opt/the-epmo
-          EPMO_DEPLOY_SSH_KEY: ${{ runner.temp }}/epmo-deploy-key
-        run: |
-          bash infra/deploy.sh prod
-          printf 'Verified production deployment of `%s` completed.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-      - name: Remove temporary deployment identity
-        if: always()
-        run: rm -f -- "$RUNNER_TEMP/epmo-deploy-key"
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 20

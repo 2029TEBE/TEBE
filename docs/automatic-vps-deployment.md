@@ -1,26 +1,15 @@
-# Automatic VPS deployment
+# Backend deployment readiness
 
-Main pushes run source checks and dependency audit before the full integration
-job. Only a successful verified main push may reach the deployment steps.
-Pull requests and workflow_dispatch never receive deployment credentials.
-The verify/deploy job is serialized per ref and skips superseded main commits.
+The existing CI-gated deployment implementation is tracked in PR #484:
+https://github.com/2029TEBE/TEBE/pull/484
 
-Activation requires repository variables `EPMO_DEPLOY_ENABLED=true`,
-`EPMO_DEPLOY_HOST=user@verified-server`, and `EPMO_DEPLOY_KNOWN_HOSTS`
-(the trusted host public-key line verified through the server console), plus
-secret `EPMO_DEPLOY_SSH_KEY` for an authorized deployment identity. Do not use
-ssh-keyscan output as the sole proof of server identity. Prefer a deployment
-account scoped to the application and required Docker operations.
+This change fixes the billing-disabled preflight and bootstrap SQL only.
+It does not install a second deployment pipeline or activate billing.
+Follow the reviewed deployment workflow's actual environment, secret names,
+SSH host verification and rollback requirements before enabling it.
 
-Existing infra/deploy.sh remains the deployment mechanism, including local
-verification, remote destination checks, production configuration validation,
-image builds, pre-migration backup, migration ledger validation and bounded
-health checks. A failed gate fails the deployment job; it never becomes a
-successful deployment receipt. No auth protections are relaxed.
-
-Updates appear after CI, verification and deployment complete, not immediately
-at git push. A failed release leaves an Actions failure requiring investigation.
-Do not activate until a first supervised deployment and rollback rehearsal pass.
+Updates appear after successful CI and deployment, not immediately at git push.
+Never deploy a pull-request revision directly to production.
 
 ## Observed activation blockers, 2026-11-10
 
