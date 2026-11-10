@@ -2,6 +2,7 @@ import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
+import { fill, localizedStatus } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { num, when } from '@/lib/fmt';
@@ -76,9 +77,9 @@ export default async function Benefits({ searchParams }:
                     <td>{b.pctOfTarget == null ? <span className="dim">—</span> : (
                       <><div className="bar" style={{ inlineSize: 110 }}>
                         <i aria-hidden="true" style={{ width: `${benefitBarWidth(Number(b.pctOfTarget))}%` }} /></div>
-                        <span className="dim">{lang === 'ar' ? `${b.pctOfTarget}% من المسافة بين خط الأساس والمستهدف` : `${b.pctOfTarget}% of the way from baseline to target`}</span></>)}</td>
+                        <span className="dim">{fill(labelFor('{pct}% of the way from baseline to target'), {pct: b.pctOfTarget})}</span></>)}</td>
                     <td>{when(b.reviewDate, lang)}</td>
-                    <td><span className={`pill b-${b.status}`}>{lang === 'ar' ? (({ planned: 'مخطط', in_progress: 'قيد التنفيذ', realized: 'متحقق', missed: 'لم يتحقق' } as Record<string, string>)[b.status] ?? b.status) : b.status.replace('_', ' ')}</span></td>
+                    <td><span className={`pill b-${b.status}`}>{localizedStatus('benefits', b.status, locale)}</span></td>
                   </tr>
                 ))}
               </tbody>
