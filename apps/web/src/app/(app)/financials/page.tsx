@@ -2,6 +2,7 @@ import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
+import { fill } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { money, num } from '@/lib/fmt';
@@ -81,9 +82,7 @@ export default async function Financials({ searchParams }:
                         <td className="num">{money(r.earnedValue)}</td>
                         <td className="num">{r.cpi == null
                           ? <span className="dim" title={r.cpiSuppressed
-                              ? (lang === 'ar'
-                                  ? `تم صرف ${Math.round(r.drawnPct)}% فقط من الميزانية — لا تكفي البيانات لحساب مؤشر تكلفة ذي دلالة`
-                                  : `Only ${Math.round(r.drawnPct)}% of budget drawn — too early for a meaningful CPI`)
+                              ? (fill(labelFor('Only {pct}% of budget drawn — too early for a meaningful CPI'), {pct: Math.round(r.drawnPct)}))
                               : (labelFor("No spend recorded"))}>
                               {r.cpiSuppressed
                                 ? (labelFor("too early"))
