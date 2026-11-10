@@ -14,7 +14,8 @@ export function directionForLocale(input) {
 }
 
 export function formatNumber(value, locale = 'en', options = {}) {
-  return new Intl.NumberFormat(presentationLocale(locale), options).format(value);
+  const resolved = presentationLocale(locale);
+  return new Intl.NumberFormat(resolved === 'ar' ? 'ar-SA-u-nu-arab' : resolved, options).format(value);
 }
 
 export function formatCurrency(value, currency = 'SAR', locale = 'en') {
