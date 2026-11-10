@@ -1,3 +1,6 @@
+import { pageArabic } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
@@ -12,13 +15,15 @@ export default async function Benefits({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
+  const labelFor = (english: string) => uiLabel(english, locale, pageArabic("benefits", english));
   const t = await tr();
   // Outside <Loaded> on purpose: the create form must render even when the
   // list below is empty, which is precisely when someone needs it.
   const o = await api.createOptions().catch(() => ({ projects: [], people: [] }));
   return (
-    <Page title={lang === 'ar' ? 'المنافع' : 'Benefits'}
-          sub={lang === 'ar' ? 'تتبع القيمة المتحققة بعد التسليم مقارنة بالمستهدفات وخط الأساس.' : 'Did the project deliver the value it promised? Tracked after handover — the step most tools skip.'}>
+    <Page title={labelFor("Benefits")}
+          sub={labelFor("Did the project deliver the value it promised? Tracked after handover — the step most tools skip.")}>
       <Flash error={error} done={done} lang={lang} />
       <NewRecord lang={lang} kind="benefit" title="New benefit" cta="Add benefit" returnTo="/benefits"
         intro="A benefit is the value the project promised. Recording the measure and its baseline now is what makes it checkable after handover."
@@ -37,24 +42,22 @@ export default async function Benefits({ searchParams }:
                 { name: 'ownerId', label: 'Owner', type: 'select',
                   options: o.people.map((p: any) => ({ value: p.id, label: p.name })) },
               ]} />
-      <Loaded load={api.benefits} empty={lang === 'ar' ? 'لم يتم تسجيل أي منافع بعد.' : 'No benefits defined yet.'}>
+      <Loaded load={api.benefits} empty={labelFor("No benefits defined yet.")}>
         {(list) => (
           <>
-            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المنافع' : 'Benefits snapshot'}>
+            <section className="design-context" aria-label={labelFor("Benefits snapshot")}>
               <div className="design-context-head">
-                <span className="design-kicker">{lang === 'ar' ? 'تحقق المنافع' : 'BENEFIT REALIZATION'}</span>
-                <h2>{lang === 'ar' ? 'حالة المنافع المسجلة' : 'Recorded benefit status'}</h2>
-                <p>{lang === 'ar'
-                  ? 'تحسب المؤشرات المنافع المعادة من واجهة البيانات المصرح بها بحسب حالتها المسجلة، وليس بحسب تقدير تلقائي للقيمة المتحققة.'
-                  : 'These counts reflect the status of benefits returned by the authorized API, not an independently calculated assessment of value realized.'}</p>
+                <span className="design-kicker">{labelFor("BENEFIT REALIZATION")}</span>
+                <h2>{labelFor("Recorded benefit status")}</h2>
+                <p>{labelFor("These counts reflect the status of benefits returned by the authorized API, not an independently calculated assessment of value realized.")}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'المنافع المعروضة' : 'Returned benefits'}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مسجلة كمتحققة' : 'Marked realized'}</small><strong>{list.filter((b: { status: string }) => b.status === 'realized').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مسجلة كغير متحققة' : 'Marked missed'}</small><strong>{list.filter((b: { status: string }) => b.status === 'missed').length}</strong></div>
+                <div className="design-metric"><small>{labelFor("Returned benefits")}</small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small>{labelFor("Marked realized")}</small><strong>{list.filter((b: { status: string }) => b.status === 'realized').length}</strong></div>
+                <div className="design-metric"><small>{labelFor("Marked missed")}</small><strong>{list.filter((b: { status: string }) => b.status === 'missed').length}</strong></div>
               </div>
             </section>
-            <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل المنافع' : 'Benefits register'} tabIndex={0}><table>
+            <div className="design-table-scroll" role="region" aria-label={labelFor("Benefits register")} tabIndex={0}><table>
               <thead><tr>
                 <th scope="col">{t('Benefit')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Measure')}</th><th scope="col">{t('Baseline')}</th>
                 <th scope="col">{t('Target')}</th><th scope="col">{t('Actual')}</th><th scope="col">{t('Progress')}</th><th scope="col">{t('Review')}</th><th scope="col">{t('Status')}</th>
@@ -66,7 +69,7 @@ export default async function Benefits({ searchParams }:
                       {b.owner && <div className="dim">{b.owner}</div>}</td>
                     <td className="num">{b.projectCode ?? '—'}</td>
                     <td className="dim">{b.measure}
-                      {b.direction === 'decrease' && <div className="kind">{lang === 'ar' ? 'القيمة الأقل أفضل' : 'lower is better'}</div>}</td>
+                      {b.direction === 'decrease' && <div className="kind">{labelFor("lower is better")}</div>}</td>
                     <td className="num">{num(b.baseline)}</td>
                     <td className="num">{num(b.target)}</td>
                     <td className="num">{num(b.actual)}</td>
