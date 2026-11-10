@@ -9,9 +9,21 @@ import { resolve } from 'node:path';
 import { FRONTEND_LOCALES } from '../apps/web/src/lib/frontend-locale.mjs';
 import { UI_LABELS, catalogLocale, translationHasMatchingPlaceholders } from '../apps/web/src/lib/ui-labels.mjs';
 
+// Only explicitly reviewed, non-sensitive navigation copy is exportable.
+// Any expansion requires an intentional allowlist edit and CI review.
+export const PUBLIC_CATALOG_KEYS = Object.freeze([
+  'Home', 'Projects', 'Portfolios', 'Reports', 'Settings', 'Analytics',
+  'Benefits', 'Documents', 'Financials', 'Notifications',
+  'Integrations', 'Resources', 'Stakeholders', 'Subscriptions',
+  'The EPMO', 'Modules', 'Skip to content',
+]);
+
 export function buildPublicLocaleCatalog() {
   const locales = [...FRONTEND_LOCALES];
-  const keys = Object.keys(UI_LABELS).sort();
+  const keys = [...PUBLIC_CATALOG_KEYS].sort();
+  for (const key of keys) {
+    if (!Object.hasOwn(UI_LABELS, key)) throw new Error('Public catalog allowlist refers to an absent source key');
+  }
   const translations = {};
   for (const english of keys) {
     const row = UI_LABELS[english];
