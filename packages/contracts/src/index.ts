@@ -8,3 +8,5 @@ export * from './modules';
 export * from './creates';
 export * from './workbook';
 export * from './i18n';
+
+export * from './locales';
