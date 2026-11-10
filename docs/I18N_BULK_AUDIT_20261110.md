@@ -114,3 +114,14 @@ This work is a **preparatory public catalog artifact**, NOT a single physically 
 - The SHA-256 checksum is a **transport integrity check, not publisher authentication or proof of editorial approval**. A trusted CI source and pinned revision remain required.
 - The artifact still contains only partial reviewed UI labels and is NOT a fully shared catalog or published deployment. Marketing TEFE #23 is still a separate draft and cannot be edited from the current read-only connection.
 - Source checks and full verification must be rerun for the final head; do not infer their result from earlier green builds. No production changes were authorized or executed.
+
+## Auto-approved draft batch — public exposure reduction and typed semantic keys
+
+- `4e513ee`: public localization build now uses an explicit allowlist of 17 low-risk navigation/accessibility labels, rather than exporting all enterprise dashboard UI copy. This is a public-content minimization control, not a claim that the artifact has been published.
+- `ea22163`: public catalog tests enforce exact allowlist membership and absence of internal executive-dashboard narrative keys.
+- `43ffb6b`: typed semantic label registry in shared contracts; English source maps to previously reviewed Arabic navigation translations, avoiding parallel Arabic catalogs for this initial vocabulary.
+- `3f5095a`: semantic contract exported from `@pmo/contracts`.
+- `912796f` and `5158be5`: semantic-key tests added and adjusted for the repository's existing offline test runtime.
+- Only 17 semantic display keys have been introduced; the rest of the application still uses existing legacy English-string and domain-catalog interfaces. No claim of full semantic-key migration or 19-language coverage.
+- Source guards and dependency audit passed for `5158be5` in run `42815461645`; full verify was still running at the time of this audit entry. Later commits require separate CI verification.
+- No deployment, merge, customer data, production configuration or billing change was performed.
