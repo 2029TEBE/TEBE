@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const billing = read('apps/web/src/app/(app)/billing/page.tsx');
+const billingCopy = read('packages/contracts/src/billing-locale.ts');
 const api = read('apps/web/src/lib/api.ts');
 const subscriptionService = read('apps/api/src/platform/subscription.service.ts');
 const proxy = read('apps/web/src/app/api/billing/subscription/route.ts');
@@ -23,7 +24,7 @@ test('subscription read includes pricing metadata', () => {
   assert.match(subscriptionService, /p\.currency/);
 });
 test('payment does not activate licenses on browser redirect', () => {
-  assert.match(billing, /verifies Stripe’s payment webhook/);
+  assert.match(billingCopy, /verifies Stripe’s payment webhook/);
   assert.doesNotMatch(billing, /confirmPaymentFromQuery/);
 });
 test('form actions use existing safe mutation proxy', () => {
@@ -38,14 +39,14 @@ test('mutation proxy cannot accept caller-selected tenant ids or external URLs',
   assert.match(proxy, /const path = action ===/);
 });
 test('plans are display-only, not secretly self-activating', () => {
-  assert.match(billing, /Selecting a plan here does not change your subscription/);
+  assert.match(billingCopy, /Selecting a plan here does not change your subscription/);
   assert.doesNotMatch(billing, /\bactivatePlan\(/);
 });
 test('trial and cancellation instructions are bilingual', () => {
   assert.match(billing, /trialEndsAt/);
-  assert.match(billing, /الفترة التجريبية/);
-  assert.match(billing, /الإلغاء عند نهاية الفترة/);
-  assert.match(billing, /الاشتراك والفوترة/);
+  assert.match(billingCopy, /الفترة التجريبية/);
+  assert.match(billingCopy, /الإلغاء عند نهاية الفترة/);
+  assert.match(billingCopy, /الاشتراك والفوترة/);
 });
 test('customer docs explicitly describe staging gap', () => {
   assert.match(doc, /not production verified/i);
