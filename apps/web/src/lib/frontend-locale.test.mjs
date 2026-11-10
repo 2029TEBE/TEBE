@@ -31,3 +31,12 @@ test('browser preference precedes country hints; unknown defaults to English', (
   assert.equal(chooseFrontendLocale({country:'JP'}),'ja');
   assert.equal(chooseFrontendLocale({selected:'invalid',saved:'invalid'}),'en-US');
 });
+
+test('preserves supported regional variants with browser extension subtags', () => {
+  assert.equal(normalizeFrontendLocale('en-GB-oxendict'), 'en-GB');
+  assert.equal(normalizeFrontendLocale('en-GB-u-ca-gregory'), 'en-GB');
+  assert.equal(normalizeFrontendLocale('es-419-u-nu-latn'), 'es-419');
+  assert.equal(normalizeFrontendLocale('pt-BR-u-nu-latn'), 'pt-BR');
+  assert.equal(normalizeFrontendLocale('pt-PT-u-ca-gregory'), 'pt-PT');
+  assert.equal(chooseFrontendLocale({browserLanguages:['en-GB-u-ca-gregory']}), 'en-GB');
+});
