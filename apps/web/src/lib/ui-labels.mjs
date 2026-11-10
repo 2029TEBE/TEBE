@@ -83,7 +83,7 @@ export function uiLabel(english, locale, legacyArabic = null) {
 
 /** English text is the source. Placeholders must survive translation unchanged. */
 export function translationPlaceholders(value) {
-  return [...String(value).matchAll(/\\{([a-zA-Z][\\w]*)\\}/g)]
+  return [...String(value).matchAll(/\{([a-zA-Z][\w]*)\}/g)]
     .map((match) => match[1]).sort();
 }
 
