@@ -6,7 +6,6 @@ import { api, getSession } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { getLang } from '@/lib/i18n';
 
-const text = (ar: boolean, en: string, arabic: string) => ar ? arabic : en;
 
 /** This is a vendor-only page. Its backing APIs independently enforce the vendor flag. */
 export default async function SuperAdmin({ searchParams }: {
@@ -18,7 +17,8 @@ export default async function SuperAdmin({ searchParams }: {
   const ar = (await getLang()) === 'ar';
   const { done, error, offset } = await searchParams;
   const page = Math.max(0, Math.min(10_000, Number(offset ?? 0) || 0));
-  const tx = (en: string, Arabic: string) => text(ar, en, Arabic);
+  const locale = await getFrontendLocale();
+  const tx = (english: string) => uiLabel(english, locale, superadminArabic(english));
   return (
     <Page title={tx("Super Admin — Licensing")}
       sub={tx("Manage customer subscriptions and plans. Manual license grants do not verify payment.")}>
