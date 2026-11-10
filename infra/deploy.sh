@@ -82,12 +82,29 @@ if ! ssh_remote "test -d '$DIR' && test \"\$(realpath -e '$DIR')\" = '$DIR' && t
 fi
 
 echo "Deploying $MODE to $HOST:$DIR"
+# rsync --delete can remove old, untracked configuration backups and artifacts.
+# Protect *replaced or deleted* files in a root outside the deployment tree.
+# The remote account owns the snapshot, stored with restrictive permissions.
+remote_home=$(ssh_remote 'printf "%s" "$HOME"')
+if [[ ! "$remote_home" =~ ^/([a-zA-Z0-9_.-]+/)*[a-zA-Z0-9_.-]+$ ]]; then
+  echo 'BLOCKED: cannot establish a safe remote backup root' >&2
+  exit 1
+fi
+snapshot_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+snapshot_dir="$remote_home/the-epmo-deployment-snapshots/$MODE/$snapshot_stamp"
+if [[ "$snapshot_dir" == "$DIR" || "$snapshot_dir" == "$DIR/"* ]]; then
+  echo 'BLOCKED: snapshot path would be inside the deployment tree' >&2
+  exit 1
+fi
+ssh_remote "umask 077; mkdir -p '$snapshot_dir' && chmod 700 '$snapshot_dir'"
 # Secrets are server-managed. Never copy *.env or .git to a destination.
-rsync -az --delete --no-owner --no-group \
+# --backup saves overwritten/deleted pre-existing remote files outside --delete.
+rsync -az --delete --backup --backup-dir="$snapshot_dir" --no-owner --no-group \
   --exclude node_modules --exclude .next --exclude .next-prod --exclude dist \
   --exclude '.env' --exclude '.env.*' --exclude .git --exclude .DS_Store \
   --exclude .deployed-revision \
   -e "$SSH_FOR_RSYNC" ./ "$HOST:$DIR/"
+echo "Protected overwritten/deleted destination files under $HOST:$snapshot_dir"
 
 COMPOSE="docker compose -f docker-compose.prod.yml -p $PROJECT --env-file $ENVFILE"
 if [[ "$MODE" == dev ]]; then
