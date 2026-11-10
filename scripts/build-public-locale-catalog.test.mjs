@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { buildPublicLocaleCatalog, verifyPublicLocaleCatalog } from './build-public-locale-catalog.mjs';
+import { buildPublicLocaleCatalog, verifyPublicLocaleCatalog, PUBLIC_CATALOG_KEYS } from './build-public-locale-catalog.mjs';
 
 test('public locale build is deterministic and explicitly not a complete translation release', () => {
   const a = buildPublicLocaleCatalog();
@@ -45,4 +45,12 @@ test('public catalog validator rejects tampering, unregistered variants and fals
   invalid.translations.Projects.xx = 'Translation';
   assert.equal(verifyPublicLocaleCatalog(invalid), false);
   assert.equal(verifyPublicLocaleCatalog(null), false);
+});
+
+test('public artifact exports explicitly allowlisted navigation copy only', () => {
+  const catalog = buildPublicLocaleCatalog();
+  assert.deepEqual(Object.keys(catalog.translations).sort(), [...PUBLIC_CATALOG_KEYS].sort());
+  assert.ok(!Object.hasOwn(catalog.translations, 'These are the current workspace API signals, not automated decisions or approvals.'));
+  assert.ok(!Object.hasOwn(catalog.translations, 'Projects returned in the attention queue'));
+  assert.equal(new Set(PUBLIC_CATALOG_KEYS).size, PUBLIC_CATALOG_KEYS.length);
 });
