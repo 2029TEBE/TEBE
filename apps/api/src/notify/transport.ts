@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
+import { CloudflareMailTransport, cloudflareMailConfig } from './cloudflare-mail';
 
 /**
  * How mail leaves the building — or doesn't.
@@ -95,6 +96,12 @@ export function buildTransport(env: NodeJS.ProcessEnv = process.env): MailTransp
     }
     log.log(`Mail via SES as ${from} (${region}).`);
     return new SesTransport(from, region, env.MAIL_CONFIGURATION_SET?.trim() || undefined);
+  }
+
+  if (kind === 'cloudflare') {
+    const config = cloudflareMailConfig(env);
+    if (!config) return new NoTransport('Cloudflare mail requires a valid sender, account ID and sending-only API token.');
+    return new CloudflareMailTransport(config);
   }
 
   log.error(`Unknown MAIL_TRANSPORT "${kind}".`);
