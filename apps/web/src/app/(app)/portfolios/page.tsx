@@ -2,6 +2,7 @@ import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { api, getSession } from '@/lib/api';
+import { localizedStatus } from '@pmo/contracts';
 import { can, type Capability } from '@pmo/contracts';
 import Link from 'next/link';
 import { Page, Loaded } from '@/components/Page';
@@ -85,7 +86,7 @@ export default async function PortfoliosPage({ searchParams }:
                   <tr key={pf.id}>
                     <td><strong><bdi>{pf.name}</bdi></strong>
                       {pf.description && <div className="dim"><bdi>{pf.description}</bdi></div>}</td>
-                    <td><span className={`pill ${pf.health}`}>{lang === 'ar' ? (({ on_track: 'وفق الخطة', at_risk: 'يحتاج انتباها', critical: 'حرج' } as Record<string, string>)[pf.health] ?? pf.health.replace('_', ' ')) : pf.health.replace('_', ' ')}</span></td>
+                    <td><span className={`pill ${pf.health}`}>{localizedStatus('portfolios', pf.health, locale)}</span></td>
                     <td>{g.filter((pg: any) => pg.portfolioId === pf.id).length ?
                       g.filter((pg: any) => pg.portfolioId === pf.id).map((pg: any) =>
                         <div key={pg.id}><Link href={`/projects?program=${encodeURIComponent(pg.id)}`}>
