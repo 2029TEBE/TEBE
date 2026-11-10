@@ -21,7 +21,7 @@ test('environment pairing accepts only sandbox/staging and live/production',()=>
 });
 test('server-owned checkout constructs a single catalogued item',()=>{
   assert.deepEqual(paddleTransactionRequest(intent,base),{
-    collection_mode:'automatic', items:[{price:{id:intent.priceId},quantity:1}],
+    collection_mode:'automatic', items:[{price_id:intent.priceId,quantity:1}],
     checkout:{url:base},
     custom_data:{epmo_tenant_id:intent.tenantId,epmo_invoice_id:intent.invoiceId}
   });
