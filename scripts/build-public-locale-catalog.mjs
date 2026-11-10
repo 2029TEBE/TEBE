@@ -5,6 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { FRONTEND_LOCALES } from '../apps/web/src/lib/frontend-locale.mjs';
 import { UI_LABELS, catalogLocale, translationHasMatchingPlaceholders } from '../apps/web/src/lib/ui-labels.mjs';
 
@@ -42,6 +43,6 @@ export function buildPublicLocaleCatalog() {
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL('file://' + process.argv[1]))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   process.stdout.write(JSON.stringify(buildPublicLocaleCatalog(), null, 2) + '\n');
 }
