@@ -39,7 +39,7 @@ test('CI evidence is tied to current GitHub run and cannot be overwritten', () =
 });
 
 test('every CI job is time-bounded to prevent stalled release verification', () => {
-  assert.match(ci, /  source-guards:\n    name: Dependency-free source checks\n    runs-on: ubuntu-latest\n    timeout-minutes: 15/);
-  assert.match(ci, /  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 90/);
-  assert.match(ci, /  audit:\n    runs-on: ubuntu-latest\n    timeout-minutes: 20/);
+  assert.match(ci, /  source-guards:\n    name: Dependency-free source checks\n    runs-on: [^\n]+\n    timeout-minutes: 15/);
+  assert.match(ci, /  verify:\n    runs-on: [^\n]+\n    timeout-minutes: 90/);
+  assert.match(ci, /  audit:\n    runs-on: [^\n]+\n    timeout-minutes: 20/);
 });
