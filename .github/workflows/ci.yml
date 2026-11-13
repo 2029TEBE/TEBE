@@ -62,7 +62,10 @@ jobs:
         run: node scripts/verify-ci-services.mjs
       - run: pnpm install --frozen-lockfile
       - name: Install PostgreSQL client for integration assertions
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
       - run: pnpm build:packages
       - name: Verify compiled workspace packages
         run: node scripts/verify-build-artifacts.mjs --scope packages
