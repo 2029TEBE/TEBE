@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -18,24 +19,24 @@ export default async function Decisions() {
           <>
             <section className="design-context" aria-label={labelFor("Decision register summary")}>
               <div className="design-context-head">
-                <span className="design-kicker">{labelFor("DECISION GOVERNANCE")}</span>
-                <h2>{labelFor("Recorded decisions overview")}</h2>
-                <p>{labelFor("Counts reflect only the decisions returned by the authorized API, not necessarily every decision across the organization.")}</p>
+                <span className="design-kicker"><UiText text={labelFor("DECISION GOVERNANCE")} /></span>
+                <h2><UiText text={labelFor("Recorded decisions overview")} /></h2>
+                <p><UiText text={labelFor("Counts reflect only the decisions returned by the authorized API, not necessarily every decision across the organization.")} /></p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{labelFor("Returned decisions")}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{labelFor("Linked to a gate")}</small><strong>{list.filter((d: { atGate?: string | null }) => Boolean(d.atGate)).length}</strong></div>
-                <div className="design-metric"><small>{labelFor("With an owner")}</small><strong>{list.filter((d: { owner?: string | null }) => Boolean(d.owner)).length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("Returned decisions")} /></small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("Linked to a gate")} /></small><strong>{list.filter((d: { atGate?: string | null }) => Boolean(d.atGate)).length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("With an owner")} /></small><strong>{list.filter((d: { owner?: string | null }) => Boolean(d.owner)).length}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Decision register")} tabIndex={0}><table>
-              <thead><tr><th scope="col">{t('Decision')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Taken at')}</th><th scope="col">{t('Owner')}</th><th scope="col">{t('Date')}</th><th scope="col">{t('State')}</th></tr></thead>
+              <thead><tr><th scope="col"><UiText text={t('Decision')} /></th><th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Taken at')} /></th><th scope="col"><UiText text={t('Owner')} /></th><th scope="col"><UiText text={t('Date')} /></th><th scope="col"><UiText text={t('State')} /></th></tr></thead>
             <tbody>{list.map((d: any) => (
               <tr key={d.id}>
                 <td><strong><bdi>{d.title}</bdi></strong>{d.detail && <div className="dim"><bdi>{d.detail}</bdi></div>}</td>
                 <td className="num"><bdi>{d.projectCode}</bdi></td>
-                <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim">{labelFor("not gate-linked")}</span>}</td>
-                <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim">{labelFor("unassigned")}</span>}</td>
+                <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim"><UiText text={labelFor("not gate-linked")} /></span>}</td>
+                <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim"><UiText text={labelFor("unassigned")} /></span>}</td>
                 <td>{when(d.decidedAt, lang)}</td>
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>

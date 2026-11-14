@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { Fragment } from 'react';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
@@ -19,9 +20,9 @@ export default async function Analytics() {
           );
           return (
             <>
-              <h2 className="sec" style={{ marginTop: 0 }}>{t('Spend against plan')}</h2>
+              <h2 className="sec" style={{ marginTop: 0 }}><UiText text={t('Spend against plan')} /></h2>
               <p className="dim" style={{ marginTop: '-8px' }}>
-                {t('Cumulative, month by month. Two straight lines mean nothing is being learned; the gap between them is the story.')}
+                <UiText text={t('Cumulative, month by month. Two straight lines mean nothing is being learned; the gap between them is the story.')} />
               </p>
               <div className="chartcard">
                 <LineChart
@@ -40,18 +41,18 @@ export default async function Analytics() {
 
               <div className="chartgrid">
                 <div className="chartcard">
-                  <h3>{t('Spend per month')}</h3>
-                  <p className="sub">{t('Not cumulative — the rate, so a slowdown shows as a short bar rather than a flattening line.')}</p>
+                  <h3><UiText text={t('Spend per month')} /></h3>
+                  <p className="sub"><UiText text={t('Not cumulative — the rate, so a slowdown shows as a short bar rather than a flattening line.')} /></p>
                   <BarChart
                     labels={tre.sCurve.map((p: any) => p.period.slice(5, 7))}
                     values={tre.sCurve.map((p: any) => p.actual)}
                     format={(v) => money(v) ?? '0'} />
                 </div>
                 <div className="chartcard">
-                  <h3>{t('Gates passed per month')}</h3>
-                  <p className="sub">{t('Delivery velocity. A portfolio that stops passing gates has stopped moving, whatever the progress bars say.')}</p>
+                  <h3><UiText text={t('Gates passed per month')} /></h3>
+                  <p className="sub"><UiText text={t('Delivery velocity. A portfolio that stops passing gates has stopped moving, whatever the progress bars say.')} /></p>
                   {tre.throughput.length === 0
-                    ? <p className="thin">{t('No gate has been passed yet, so there is no velocity to plot.')}</p>
+                    ? <p className="thin"><UiText text={t('No gate has been passed yet, so there is no velocity to plot.')} /></p>
                     : <BarChart
                         labels={tre.throughput.map((p: any) => p.period.slice(2))}
                         values={tre.throughput.map((p: any) => p.passed)}
@@ -61,7 +62,7 @@ export default async function Analytics() {
                 </div>
               </div>
 
-              <h2 className="sec">{t('Portfolio over time')}</h2>
+              <h2 className="sec"><UiText text={t('Portfolio over time')} /></h2>
               {!tre.historyNote.enough ? (
                 <p className="thin">
                   {tre.historyNote.days === 0
@@ -85,9 +86,9 @@ export default async function Analytics() {
                 </div>
               )}
 
-              <h2 className="sec">{t('Project health')}</h2>
+              <h2 className="sec"><UiText text={t('Project health')} /></h2>
               <p className="dim" style={{ marginTop: '-8px' }}>
-                {t('Each band is a link — click one to see exactly which projects it counts.')}
+                <UiText text={t('Each band is a link — click one to see exactly which projects it counts.')} />
               </p>
               {/* Best to worst, always — a legend in arbitrary order makes the
                   reader work out the severity ranking for themselves. */}
@@ -101,8 +102,8 @@ export default async function Analytics() {
                       : h.health === 'at_risk' ? 'var(--warn)' : 'var(--crit)',
               }))} />
 
-              <h2 className="sec">{t('Gate funnel')}</h2>
-              <p className="dim" style={{ marginTop: '-8px' }}>{t('How far projects have got. A wall of “locked” at one gate is where the portfolio is jamming.')}</p>
+              <h2 className="sec"><UiText text={t('Gate funnel')} /></h2>
+              <p className="dim" style={{ marginTop: '-8px' }}><UiText text={t('How far projects have got. A wall of “locked” at one gate is where the portfolio is jamming.')} /></p>
               <div className="funnel">
                 {d.gateFunnel.map((g: any) => {
                   const inGate = g.approved + g.active + g.locked || 1;
@@ -113,20 +114,20 @@ export default async function Analytics() {
                         <span className="f-active"   style={{ height: `${(g.active / inGate) * 100}%` }} />
                         <span className="f-locked"   style={{ height: `${(g.locked / inGate) * 100}%` }} />
                       </div>
-                      <b>SG{g.seq}</b><em>{t(g.name)}</em>
+                      <b><UiText text={"SG"} />{g.seq}</b><em><UiText text={t(g.name)} /></em>
                     </div>
                   );
                 })}
               </div>
 
-              <h2 className="sec">{t('Risk heat map')}</h2>
-              <p className="dim" style={{ marginTop: '-8px' }}>{t('Open register items by impact (rows) against likelihood (columns). Top-right is where the danger is.')}</p>
+              <h2 className="sec"><UiText text={t('Risk heat map')} /></h2>
+              <p className="dim" style={{ marginTop: '-8px' }}><UiText text={t('Open register items by impact (rows) against likelihood (columns). Top-right is where the danger is.')} /></p>
               <div className="heat">
                 <div className="hcorner" />
-                {[1, 2, 3, 4, 5].map((l) => <div key={l} className="hhead">L{l}</div>)}
+                {[1, 2, 3, 4, 5].map((l) => <div key={l} className="hhead"><UiText text={"L"} />{l}</div>)}
                 {[5, 4, 3, 2, 1].map((sev) => (
                   <Fragment key={`row${sev}`}>
-                    <div className="hhead">S{sev}</div>
+                    <div className="hhead"><UiText text={"S"} />{sev}</div>
                     {[1, 2, 3, 4, 5].map((lik) => {
                       const n = heat.get(`${sev}-${lik}`) ?? 0;
                       const score = sev * lik;
@@ -138,9 +139,9 @@ export default async function Analytics() {
                 ))}
               </div>
 
-              <h2 className="sec">{t('Budget vs spend')}</h2>
+              <h2 className="sec"><UiText text={t('Budget vs spend')} /></h2>
               <div className="design-table-scroll" role="region" aria-label={t('Budget vs spend')} tabIndex={0}><table>
-                <thead><tr><th>{t('Project')}</th><th>{t('Budget')}</th><th>{t('Actual')}</th><th>{t('Drawn')}</th></tr></thead>
+                <thead><tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Budget')} /></th><th><UiText text={t('Actual')} /></th><th><UiText text={t('Drawn')} /></th></tr></thead>
                 <tbody>{d.spendByProject.map((s: any) => (
                   <tr key={s.code}>
                     <td><strong>{s.code}</strong></td>
@@ -155,9 +156,9 @@ export default async function Analytics() {
                   </tr>))}</tbody>
               </table></div>
 
-              <h2 className="sec">{t('Schedule slippage')}</h2>
+              <h2 className="sec"><UiText text={t('Schedule slippage')} /></h2>
               <div className="design-table-scroll" role="region" aria-label={t('Schedule slippage')} tabIndex={0}><table>
-                <thead><tr><th>{t('Project')}</th><th>{t('Baselined items')}</th><th>{t('Slipped')}</th><th>{t('Worst slip')}</th></tr></thead>
+                <thead><tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Baselined items')} /></th><th><UiText text={t('Slipped')} /></th><th><UiText text={t('Worst slip')} /></th></tr></thead>
                 <tbody>{d.slip.map((s: any) => (
                   <tr key={s.code}>
                     <td><strong>{s.code}</strong></td>
@@ -165,8 +166,8 @@ export default async function Analytics() {
                     <td className="num">{s.slipped > 0
                       ? <span className="crit">{s.slipped}</span> : <span className="good">0</span>}</td>
                     <td className="num">{s.worstSlipDays > 0
-                      ? <span className="crit">+{s.worstSlipDays} days</span>
-                      : <span className="good">on time</span>}</td>
+                      ? <span className="crit">+{s.worstSlipDays} <UiText text={" days"} /></span>
+                      : <span className="good"><UiText text={"on time"} /></span>}</td>
                   </tr>))}</tbody>
               </table></div>
             </>

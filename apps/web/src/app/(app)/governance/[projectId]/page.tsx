@@ -1,3 +1,4 @@
+import { UiText, UiField } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when, ago } from '@/lib/fmt';
@@ -37,9 +38,9 @@ export default async function ProjectGovernance({ params, searchParams }: {
           <Page title={`${d.project.code} — ${d.project.name}`}
                 sub={`Stage gate governance. ${d.project.progressPct}% complete · health ${d.project.health.replace('_', ' ')}.`}>
             {error && <p className="err" role="alert" style={{ marginBlockEnd: 18 }}>
-              <strong>{t('Could not do that.')}</strong> {error}</p>}
+              <strong><UiText text={t('Could not do that.')} /></strong> {error}</p>}
             {done && !error && <p className="okmsg" role="status" style={{ marginBlockEnd: 18 }}>
-              {t('Saved.')}</p>}
+              <UiText text={t('Saved.')} /></p>}
 
             {/* gate rail */}
             <ol className="gaterail">
@@ -49,7 +50,7 @@ export default async function ProjectGovernance({ params, searchParams }: {
                 return (
                   <li key={g.id} className={`gs-${g.status}`}>
                     <span className="dot">{g.status === 'approved' ? '✓' : g.status === 'locked' ? '🔒' : g.seq}</span>
-                    <b>SG{g.seq}</b>
+                    <b><UiText text={"SG"} />{g.seq}</b>
                     <em>{g.name}</em>
                     <small>{STATUS_LABEL[g.status]}{c.length ? ` · ${m}/${c.length}` : ''}</small>
                   </li>
@@ -59,20 +60,18 @@ export default async function ProjectGovernance({ params, searchParams }: {
 
             {!active ? (
               <div className="panel" style={{ marginBlockStart: 26 }}>
-                <span className="tag">{t('Complete')}</span>
-                <p style={{ margin: '12px 0 0' }}>{t('Every gate has been passed. This project is closed.')}</p>
+                <span className="tag"><UiText text={t('Complete')} /></span>
+                <p style={{ margin: '12px 0 0' }}><UiText text={t('Every gate has been passed. This project is closed.')} /></p>
               </div>
             ) : (
               <>
-                <h2 className="sec">SG{active.seq} {t(active.name)} — {t('open since')} {when(active.openedAt, lang)}</h2>
+                <h2 className="sec"><UiText text={"SG"} />{active.seq} <UiText text={t(active.name)} /> — <UiText text={t('open since')} /> {when(active.openedAt, lang)}</h2>
 
                 <div className={`gatebar ${ready ? 'ok' : 'blocked'}`}>
                   <div>
-                    <strong>{ready ? 'Ready to pass' : 'Cannot pass yet'}</strong>
+                    <strong><UiText text={ready ? 'Ready to pass' : 'Cannot pass yet'} /></strong>
                     <span className="dim">
-                      {metCount}/{activeCrit.length} criteria · {pending.length} signature(s) outstanding
-                      · {openBlocks.length} blocker(s)
-                    </span>
+                      {metCount}/{activeCrit.length} <UiText text={" criteria · "} />{pending.length} <UiText text={" signature(s) outstanding · "} />{openBlocks.length} <UiText text={" blocker(s)"} /></span>
                   </div>
                   <form method="post" action="/api/govern">
                     <input type="hidden" name="intent" value="advance" />
@@ -80,12 +79,12 @@ export default async function ProjectGovernance({ params, searchParams }: {
                     <input type="hidden" name="returnTo" value={returnTo} />
                     <button className="btn" type="submit" disabled={!ready}
                             title={ready ? 'Pass this gate and open the next' : 'Clear the items below first'}>
-                      {t('Pass this gate')}
+                      <UiText text={t('Pass this gate')} />
                     </button>
                   </form>
                 </div>
 
-                <h3 style={{ margin: '26px 0 10px' }}>{t('Entry criteria')}</h3>
+                <h3 style={{ margin: '26px 0 10px' }}><UiText text={t('Entry criteria')} /></h3>
                 <div className="critlist">
                   {activeCrit.map((c: any) => (
                     <form className={`critrow${c.isMet ? ' met' : ''}`} key={c.id}
@@ -94,22 +93,22 @@ export default async function ProjectGovernance({ params, searchParams }: {
                       <input type="hidden" name="id" value={c.id} />
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="isMet" value={c.isMet ? 'false' : 'true'} />
-                      <span className="mark" aria-hidden="true">{c.isMet ? '✓' : ''}</span>
+                      <span className="mark" aria-hidden="true"><UiText text={c.isMet ? '✓' : ''} /></span>
                       <span className="body">
                         <b>{c.label}</b>
                         {c.isMet ? (
                           <em>
-                            met {when(c.metAt, lang)}{c.metBy ? ` by ${c.metBy}` : ''}
-                            {c.evidenceUrl && <> · <a href={c.evidenceUrl}>evidence</a></>}
+                            <UiText text={"met "} />{when(c.metAt, lang)}{c.metBy ? ` by ${c.metBy}` : ''}
+                            {c.evidenceUrl && <> · <a href={c.evidenceUrl}><UiText text={"evidence"} /></a></>}
                           </em>
                         ) : (
-                          <input className="ev" name="evidenceUrl" type="url"
+                          <UiField as="input" copy={["placeholder"]} className="ev" name="evidenceUrl" type="url"
                                  placeholder="Link to the evidence document (required)"
                                  defaultValue={c.evidenceUrl ?? ''} />
                         )}
                       </span>
                       <button className={`btn ${c.isMet ? 'ghost' : ''}`} type="submit">
-                        {c.isMet ? 'Undo' : 'Mark met'}
+                        <UiText text={c.isMet ? 'Undo' : 'Mark met'} />
                       </button>
                     </form>
                   ))}
@@ -120,17 +119,17 @@ export default async function ProjectGovernance({ params, searchParams }: {
                   <input type="hidden" name="id" value={active.id} />
                   <input type="hidden" name="returnTo" value={returnTo} />
                   <span className="body">
-                    <b>{t('Add a criterion')}</b>
-                    <em>{t('Anything else that must be proven before this gate opens.')}</em>
+                    <b><UiText text={t('Add a criterion')} /></b>
+                    <em><UiText text={t('Anything else that must be proven before this gate opens.')} /></em>
                   </span>
                   <div className="row">
-                    <input name="label" required minLength={3}
+                    <UiField as="input" copy={["placeholder"]} name="label" required minLength={3}
                            placeholder="e.g. Municipality inspection passed" />
-                    <button className="btn" type="submit">{t('Add')}</button>
+                    <button className="btn" type="submit"><UiText text={t('Add')} /></button>
                   </div>
                 </form>
 
-                <h3 style={{ margin: '26px 0 10px' }}>{t('Approvals')}</h3>
+                <h3 style={{ margin: '26px 0 10px' }}><UiText text={t('Approvals')} /></h3>
                 <div className="critlist">
                   {appr(active.id).map((a: any) => (
                     <div className={`critrow${a.decision !== 'pending' ? ' met' : ''}`} key={a.id}>
@@ -138,8 +137,8 @@ export default async function ProjectGovernance({ params, searchParams }: {
                       <span className="body">
                         <b>{a.approver ?? 'Unassigned'}{' '}
                           {a.isAccountable
-                            ? <span className="pill critical">accountable</span>
-                            : <span className="pill s-closed">consulted</span>}
+                            ? <span className="pill critical"><UiText text={"accountable"} /></span>
+                            : <span className="pill s-closed"><UiText text={"consulted"} /></span>}
                         </b>
                         <em>
                           {a.decision === 'pending' ? 'awaiting signature'
@@ -153,22 +152,22 @@ export default async function ProjectGovernance({ params, searchParams }: {
                             <input type="hidden" name="id" value={a.id} />
                             <input type="hidden" name="decision" value="approved" />
                             <input type="hidden" name="returnTo" value={returnTo} />
-                            <button className="btn" type="submit">Sign</button>
+                            <button className="btn" type="submit"><UiText text={"Sign"} /></button>
                           </form>
                           <form method="post" action="/api/govern">
                             <input type="hidden" name="intent" value="decide" />
                             <input type="hidden" name="id" value={a.id} />
                             <input type="hidden" name="decision" value="rejected" />
                             <input type="hidden" name="returnTo" value={returnTo} />
-                            <button className="btn ghost" type="submit">{t('Reject')}</button>
+                            <button className="btn ghost" type="submit"><UiText text={t('Reject')} /></button>
                           </form>
                         </span>
                       )}
                     </div>
                   ))}
                   {appr(active.id).length === 0 &&
-                    <div className="empty"><strong>{t('No approvers assigned to this gate')}</strong>
-                      <p>{t('A gate cannot be signed until someone is accountable for it.')}</p></div>}
+                    <div className="empty"><strong><UiText text={t('No approvers assigned to this gate')} /></strong>
+                      <p><UiText text={t('A gate cannot be signed until someone is accountable for it.')} /></p></div>}
 
                   {/* Reassigning stands the previous accountable owner down, so
                       there is always exactly one. */}
@@ -177,27 +176,27 @@ export default async function ProjectGovernance({ params, searchParams }: {
                     <input type="hidden" name="id" value={active.id} />
                     <input type="hidden" name="returnTo" value={returnTo} />
                     <span className="body">
-                      <b>{t('Set the accountable owner')}</b>
-                      <em>{t('One person owns this decision. Reassigning replaces the current owner.')}</em>
+                      <b><UiText text={t('Set the accountable owner')} /></b>
+                      <em><UiText text={t('One person owns this decision. Reassigning replaces the current owner.')} /></em>
                     </span>
                     <div className="row">
-                      <select name="userId" defaultValue="" required aria-label="Accountable owner">
-                        <option value="" disabled>{t('Choose a person…')}</option>
+                      <UiField as="select" copy={["aria-label"]} name="userId" defaultValue="" required aria-label="Accountable owner">
+                        <option value="" disabled><UiText text={t('Choose a person…')} /></option>
                         {d.members.map((m: any) => (
                           <option key={m.id} value={m.id}>
                             {m.name} — {m.role.replace(/_/g, ' ')}
                           </option>
                         ))}
-                      </select>
-                      <button className="btn" type="submit">{t('Assign')}</button>
+                      </UiField>
+                      <button className="btn" type="submit"><UiText text={t('Assign')} /></button>
                     </div>
                   </form>
                 </div>
 
-                <h3 style={{ margin: '26px 0 10px' }}>{t('Blocking this gate')}</h3>
+                <h3 style={{ margin: '26px 0 10px' }}><UiText text={t('Blocking this gate')} /></h3>
                 {openBlocks.length === 0 ? (
-                  <div className="empty"><strong>{t('Nothing is blocking')}</strong>
-                    <p>{t('No open register item points at this gate.')}</p></div>
+                  <div className="empty"><strong><UiText text={t('Nothing is blocking')} /></strong>
+                    <p><UiText text={t('No open register item points at this gate.')} /></p></div>
                 ) : (
                   <div className="critlist">
                     {openBlocks.map((b: any) => (
@@ -205,14 +204,14 @@ export default async function ProjectGovernance({ params, searchParams }: {
                         <span className="mark" aria-hidden="true">!</span>
                         <span className="body">
                           <b>{b.title}</b>
-                          <em><span className={`kind k-${b.kind}`}>{b.kind}</span> · status {b.status}</em>
+                          <em><span className={`kind k-${b.kind}`}>{b.kind}</span> <UiText text={" · status "} />{b.status}</em>
                         </span>
                         <form method="post" action="/api/govern">
                           <input type="hidden" name="intent" value="raid" />
                           <input type="hidden" name="id" value={b.id} />
                           <input type="hidden" name="status" value="closed" />
                           <input type="hidden" name="returnTo" value={returnTo} />
-                          <button className="btn ghost" type="submit">{t('Close item')}</button>
+                          <button className="btn ghost" type="submit"><UiText text={t('Close item')} /></button>
                         </form>
                       </div>
                     ))}
@@ -221,9 +220,9 @@ export default async function ProjectGovernance({ params, searchParams }: {
               </>
             )}
 
-            <h2 className="sec">{t('What has happened')}</h2>
+            <h2 className="sec"><UiText text={t('What has happened')} /></h2>
             {d.history.length === 0
-              ? <div className="empty"><strong>{t('No governance activity yet')}</strong></div>
+              ? <div className="empty"><strong><UiText text={t('No governance activity yet')} /></strong></div>
               : (
                 <ol className="feed">
                   {d.history.map((h: any) => (

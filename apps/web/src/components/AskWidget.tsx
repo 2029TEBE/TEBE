@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { translator, type Lang } from '@/lib/i18n-dict';
@@ -81,17 +83,17 @@ export function AskWidget({ lang = 'en', enabled = true }: { lang?: Lang; enable
               aria-expanded={open} aria-controls="askpanel"
               title={`${t('Ask X')} · ⌘J`}>
         <Spark />
-        <span>{t('Ask X')}</span>
+        <span><UiText text={t('Ask X')} /></span>
       </button>
 
       <section id="askpanel" className={`askpanel${open ? ' open' : ''}`}
                role="dialog" aria-label={t('Ask X')} aria-hidden={!open}>
         <header>
-          <span className="tag"><Spark /> {t('Ask X')}</span>
+          <span className="tag"><Spark /> <UiText text={t('Ask X')} /></span>
           <div className="sp" />
           {msgs.length > 0 && (
             <button className="linkish" onClick={() => { setMsgs([]); setThreadId(undefined); setError(null); }}>
-              {t('New')}
+              <UiText text={t('New')} />
             </button>
           )}
           <button className="x" onClick={() => setOpen(false)} aria-label={t('Close')}>×</button>
@@ -100,10 +102,10 @@ export function AskWidget({ lang = 'en', enabled = true }: { lang?: Lang; enable
         <div className="askscroll" ref={scroller}>
           {msgs.length === 0 && (
             <div className="askempty">
-              <p>{t('Ask about anything in this workspace. Answers come from its records only — and it will say so when a question cannot be answered from them.')}</p>
+              <p><UiText text={t('Ask about anything in this workspace. Answers come from its records only — and it will say so when a question cannot be answered from them.')} /></p>
               <div className="suggest">
                 {SUGGESTED.map((s) => (
-                  <button key={s} className="chip" onClick={() => send(s)}>{t(s)}</button>
+                  <button key={s} className="chip" onClick={() => send(s)}><UiText text={t(s)} /></button>
                 ))}
               </div>
             </div>
@@ -111,16 +113,16 @@ export function AskWidget({ lang = 'en', enabled = true }: { lang?: Lang; enable
 
           {msgs.map((m, i) => (
             <div key={i} className={`bubble ${m.role}`}>
-              {m.role === 'assistant' && <span className="who"><Spark /> Ask X</span>}
+              {m.role === 'assistant' && <span className="who"><Spark /> <UiText text={" Ask X"} /></span>}
               {m.content.split('\n').filter((l) => l.trim()).map((line, j) => <p key={j}>{line}</p>)}
             </div>
           ))}
 
           {busy && (
             <div className="bubble assistant thinking" aria-live="polite">
-              <span className="who"><Spark /> Ask X</span>
+              <span className="who"><Spark /> <UiText text={" Ask X"} /></span>
               <span className="dots"><i /><i /><i /></span>
-              <span className="dim">{t('Reading this workspace…')}</span>
+              <span className="dim"><UiText text={t('Reading this workspace…')} /></span>
             </div>
           )}
 
@@ -131,11 +133,11 @@ export function AskWidget({ lang = 'en', enabled = true }: { lang?: Lang; enable
           <input ref={input} value={q} onChange={(e) => setQ(e.target.value)}
                  placeholder={t('Ask anything about this portfolio…')}
                  aria-label={t('Ask anything about this portfolio…')} disabled={busy} />
-          <button className="btn" type="submit" disabled={busy || !q.trim()}>{t('Ask')}</button>
+          <button className="btn" type="submit" disabled={busy || !q.trim()}><UiText text={t('Ask')} /></button>
         </form>
         <footer>
-          <span className="dim">{t('Grounded in this workspace only')}</span>
-          {threadId && <a href={`/ask?thread=${threadId}`}>{t('Open full transcript')}</a>}
+          <span className="dim"><UiText text={t('Grounded in this workspace only')} /></span>
+          {threadId && <a href={`/ask?thread=${threadId}`}><UiText text={t('Open full transcript')} /></a>}
         </footer>
       </section>
     </>

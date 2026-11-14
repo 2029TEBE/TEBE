@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api, getSession } from '@/lib/api';
 import { can, type Capability } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
@@ -30,9 +31,9 @@ export default async function Updates({ searchParams }:
             { value: 'escalation', label: 'Escalation' }] },
           { name: 'body', label: 'Update', type: 'textarea', required: true, maxLength: 4000,
             placeholder: 'Piling finished a week early; the crane permit is still with the municipality.' },
-        ]} /> : <p className="dim">{lang === 'ar'
+        ]} /> : <p className="dim"><UiText text={lang === 'ar'
           ? 'يمكنك قراءة التحديثات، ولكن نشر التحديثات يتطلب صلاحية المساهمة.'
-          : 'You can read updates, but posting requires contributor permission.'}</p>}
+          : 'You can read updates, but posting requires contributor permission.'} /></p>}
       <Loaded load={api.updates} empty={lang === 'ar' ? 'لم تُنشر تحديثات بعد.' : 'No updates posted yet.'}>
         {(list) => (
           <div className="stream" role="feed" aria-label={lang === 'ar' ? 'تحديثات المشاريع' : 'Project updates'}>

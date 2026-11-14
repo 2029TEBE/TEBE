@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { authFormLabel } from '@pmo/contracts';
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -35,15 +37,15 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
-  if (!ready) return <p>{t("Checking invitation…")}</p>;
-  if (done) return <div role="status"><p>{t("Invitation accepted. You can now sign in.")}</p>
-    <Link href="/login">{t("Sign in")}</Link></div>;
-  if (!token) return <p role="alert">{t("The invitation link is missing or invalid.")}</p>;
+  if (!ready) return <p><UiText text={t("Checking invitation…")} /></p>;
+  if (done) return <div role="status"><p><UiText text={t("Invitation accepted. You can now sign in.")} /></p>
+    <Link href="/login"><UiText text={t("Sign in")} /></Link></div>;
+  if (!token) return <p role="alert"><UiText text={t("The invitation link is missing or invalid.")} /></p>;
   return <form onSubmit={accept} style={{ display: 'grid', gap: 12, maxWidth: 430 }}>
-    <p>{t("If you already have an account, leave the name and password blank. Your existing password will not change.")}</p>
-    <label>{t("Your name (new accounts)")}
+    <p><UiText text={t("If you already have an account, leave the name and password blank. Your existing password will not change.")} /></p>
+    <label><UiText text={t("Your name (new accounts)")} />
       <input value={name} onChange={e => setName(e.target.value)} maxLength={120} autoComplete="name" /></label>
-    <label>{t("New password (at least 12 characters)")}
+    <label><UiText text={t("New password (at least 12 characters)")} />
       <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={12} maxLength={200} autoComplete="new-password" /></label>
     {error && <p role="alert" style={{ color: 'var(--red, #b42318)' }}>{error}</p>}
     <button disabled={busy} type="submit">{busy ? (t("Accepting…")) : (t("Accept invitation"))}</button>

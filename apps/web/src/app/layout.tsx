@@ -1,3 +1,5 @@
+import { UiText } from '@/components/UiLocale';
+import { UiLocaleProvider } from '@/components/UiLocale';
 import './globals.css';
 import type { Metadata } from 'next';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -32,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html:
           `try{if(localStorage.getItem('pmo-theme-v2')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}` }} />
       </head>
-      <body>{children}</body>
+      <body><UiLocaleProvider locale={locale}>{children}</UiLocaleProvider></body>
     </html>
   );
 }

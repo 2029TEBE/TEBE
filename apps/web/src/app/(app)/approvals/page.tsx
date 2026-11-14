@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
@@ -16,36 +17,36 @@ export default async function Approvals() {
             <>
               <div className="tiles">
                 <div className={`tile${pending.length ? ' alarm' : ''}`}>
-                  <span>{t('Awaiting signature')}</span><strong>{pending.length}</strong></div>
-                <div className="tile"><span>{t('Ready to sign now')}</span><strong>{ready.length}</strong>
-                  <div className="split"><i className="dim">{t('criteria met, nothing blocking')}</i></div></div>
-                <div className="tile"><span>{t('Blocked')}</span><strong>{pending.length - ready.length}</strong>
-                  <div className="split"><i className="dim">{t('cannot sign yet')}</i></div></div>
+                  <span><UiText text={t('Awaiting signature')} /></span><strong>{pending.length}</strong></div>
+                <div className="tile"><span><UiText text={t('Ready to sign now')} /></span><strong>{ready.length}</strong>
+                  <div className="split"><i className="dim"><UiText text={t('criteria met, nothing blocking')} /></i></div></div>
+                <div className="tile"><span><UiText text={t('Blocked')} /></span><strong>{pending.length - ready.length}</strong>
+                  <div className="split"><i className="dim"><UiText text={t('cannot sign yet')} /></i></div></div>
               </div>
               <section className="design-context" aria-label={t('Approval readiness')}>
                 <div className="design-context-head">
-                  <span className="design-kicker">{t('Approval readiness')}</span>
-                  <p>{t('A pending signature is not the same as a signable gate. Review outstanding criteria and blockers in the queue before taking action.')}</p>
+                  <span className="design-kicker"><UiText text={t('Approval readiness')} /></span>
+                  <p><UiText text={t('A pending signature is not the same as a signable gate. Review outstanding criteria and blockers in the queue before taking action.')} /></p>
                 </div>
                 <div className="design-context-actions">
-                  <span className="design-key"><i className="design-key-dot good" />{ready.length} {t('Ready to sign now')}</span>
-                  <span className="design-key"><i className="design-key-dot warn" />{pending.length - ready.length} {t('Blocked')}</span>
-                  <a className="btn ghost" href="/governance">{t('Review stage gates')}</a>
+                  <span className="design-key"><i className="design-key-dot good" />{ready.length} <UiText text={t('Ready to sign now')} /></span>
+                  <span className="design-key"><i className="design-key-dot warn" />{pending.length - ready.length} <UiText text={t('Blocked')} /></span>
+                  <a className="btn ghost" href="/governance"><UiText text={t('Review stage gates')} /></a>
                 </div>
               </section>
-              <h2 className="sec">{t('Queue')}</h2>
+              <h2 className="sec"><UiText text={t('Queue')} /></h2>
               <div className="design-table-scroll" role="region" aria-label={t('Queue')} tabIndex={0}><table>
-                <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Approver')}</th><th>{t('Role')}</th><th>{t('Ready?')}</th><th>{t('Decision')}</th></tr></thead>
+                <thead><tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Gate')} /></th><th><UiText text={t('Approver')} /></th><th><UiText text={t('Role')} /></th><th><UiText text={t('Ready?')} /></th><th><UiText text={t('Decision')} /></th></tr></thead>
                 <tbody>{list.map((a: any) => {
                   const blocked = a.criteriaOutstanding > 0 || a.blockers > 0;
                   return (
                     <tr key={a.id}>
                       <td><strong>{a.projectCode}</strong><div className="dim">{a.projectName}</div></td>
                       <td>{a.gate}</td>
-                      <td>{a.approver ?? <span className="dim">{t('unassigned')}</span>}</td>
+                      <td>{a.approver ?? <span className="dim"><UiText text={t('unassigned')} /></span>}</td>
                       <td>{a.isAccountable
-                        ? <span className="pill critical">{t('accountable')}</span>
-                        : <span className="pill s-closed">{t('consulted')}</span>}</td>
+                        ? <span className="pill critical"><UiText text={t('accountable')} /></span>
+                        : <span className="pill s-closed"><UiText text={t('consulted')} /></span>}</td>
                       <td>{a.decision !== 'pending' ? <span className="dim">—</span>
                         : blocked
                           ? <span className="crit">
@@ -53,17 +54,17 @@ export default async function Approvals() {
                               {a.criteriaOutstanding > 0 && a.blockers > 0 && ', '}
                               {a.blockers > 0 && `${a.blockers} ${t(a.blockers > 1 ? 'blockers' : 'blocker')}`}
                             </span>
-                          : <span className="good">{t('ready')}</span>}</td>
+                          : <span className="good"><UiText text={t('ready')} /></span>}</td>
                       <td>{a.decision === 'pending'
-                        ? <span className="pill at_risk">{t('pending')}</span>
-                        : <><span className="pill on_track">{t(a.decision)}</span>
+                        ? <span className="pill at_risk"><UiText text={t('pending')} /></span>
+                        : <><span className="pill on_track"><UiText text={t(a.decision)} /></span>
                             <div className="dim">{when(a.decidedAt, lang)}</div></>}</td>
                     </tr>);
                 })}</tbody>
               </table></div>
               <details className="explain">
-                <summary>{t('Why an approval can be “pending” but not signable')}</summary>
-                <p>{t('A signature is only meaningful once the evidence exists. The platform will not let an approver sign a gate whose checklist is incomplete or which has an open blocker pointed at it — so “pending” and “ready” are different states, and this queue tells the approver which of the two they are looking at.')}</p>
+                <summary><UiText text={t('Why an approval can be “pending” but not signable')} /></summary>
+                <p><UiText text={t('A signature is only meaningful once the evidence exists. The platform will not let an approver sign a gate whose checklist is incomplete or which has an open blocker pointed at it — so “pending” and “ready” are different states, and this queue tells the approver which of the two they are looking at.')} /></p>
               </details>
             </>
           );

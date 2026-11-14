@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
@@ -36,20 +37,20 @@ export default async function Stakeholders({ searchParams }:
           <>
             <section className="design-context" aria-label={lang === 'ar' ? 'ملخص أصحاب المصلحة' : 'Stakeholder overview'}>
               <div className="design-context-head">
-                <span className="design-kicker">{lang === 'ar' ? 'إدارة أصحاب المصلحة' : 'STAKEHOLDER ENGAGEMENT'}</span>
-                <h2>{lang === 'ar' ? 'ملخص أصحاب المصلحة المسجلين' : 'Registered stakeholder snapshot'}</h2>
-                <p>{lang === 'ar'
+                <span className="design-kicker"><UiText text={lang === 'ar' ? 'إدارة أصحاب المصلحة' : 'STAKEHOLDER ENGAGEMENT'} /></span>
+                <h2><UiText text={lang === 'ar' ? 'ملخص أصحاب المصلحة المسجلين' : 'Registered stakeholder snapshot'} /></h2>
+                <p><UiText text={lang === 'ar'
                   ? 'تستند المؤشرات إلى أصحاب المصلحة المعادين من واجهة البيانات المصرح بها فقط، ولا تعني أنها تشمل جميع الأطراف في المؤسسة.'
-                  : 'This snapshot covers only stakeholders returned by the authorized API; it may not represent every party across the organization.'}</p>
+                  : 'This snapshot covers only stakeholders returned by the authorized API; it may not represent every party across the organization.'} /></p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'المسجلون' : 'Returned stakeholders'}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'تأثير واهتمام مرتفعان' : 'High influence and interest'}</small><strong>{list.filter((s: { influence?: number | null; interest?: number | null }) => Number(s.influence) >= 4 && Number(s.interest) >= 4).length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'جهات خارجية' : 'External stakeholders'}</small><strong>{list.filter((s: { isExternal?: boolean }) => s.isExternal === true).length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'المسجلون' : 'Returned stakeholders'} /></small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'تأثير واهتمام مرتفعان' : 'High influence and interest'} /></small><strong>{list.filter((s: { influence?: number | null; interest?: number | null }) => Number(s.influence) >= 4 && Number(s.interest) >= 4).length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'جهات خارجية' : 'External stakeholders'} /></small><strong>{list.filter((s: { isExternal?: boolean }) => s.isExternal === true).length}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={lang === 'ar' ? 'سجل أصحاب المصلحة' : 'Stakeholder register'} tabIndex={0}><table>
-              <thead><tr><th scope="col">{t('Stakeholder')}</th><th scope="col">{t('Organisation')}</th><th scope="col">{t('Role')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Influence')}</th><th scope="col">{t('Interest')}</th><th scope="col">{t('Handling')}</th></tr></thead>
+              <thead><tr><th scope="col"><UiText text={t('Stakeholder')} /></th><th scope="col"><UiText text={t('Organisation')} /></th><th scope="col"><UiText text={t('Role')} /></th><th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Influence')} /></th><th scope="col"><UiText text={t('Interest')} /></th><th scope="col"><UiText text={t('Handling')} /></th></tr></thead>
               <tbody>{list.map((s: any) => {
                 const b = s.influence && s.interest ? band(s.influence, s.interest) : null;
                 return (
@@ -57,7 +58,7 @@ export default async function Stakeholders({ searchParams }:
                     <td><strong>{s.name}</strong>
                       {s.email && <div className="dim">{s.email}</div>}</td>
                     <td>{s.organisation ?? '—'}
-                      {s.isExternal && <div><span className="kind k-issue">{lang === 'ar' ? 'خارجي' : 'external'}</span></div>}</td>
+                      {s.isExternal && <div><span className="kind k-issue"><UiText text={lang === 'ar' ? 'خارجي' : 'external'} /></span></div>}</td>
                     <td className="dim">{s.role ?? '—'}</td>
                     <td className="num">{s.projectCode ?? '—'}</td>
                     <td className="num">{s.influence ?? '—'}</td>
@@ -67,12 +68,9 @@ export default async function Stakeholders({ searchParams }:
               })}</tbody>
             </table></div>
             <details className="explain">
-              <summary>{t('What the handling column means')}</summary>
-              {lang === 'ar' ? <p>تحدد مصفوفة التأثير والاهتمام أسلوب التواصل: التأثير والاهتمام المرتفعان يتطلبان إدارة مباشرة، والتأثير المرتفع مع اهتمام منخفض يستلزم الحفاظ على الرضا، والاهتمام المرتفع مع تأثير منخفض يتطلب إبلاغا مستمرا، أما المستويات المنخفضة فتحتاج إلى المتابعة الدورية.</p> : <p>{t('The standard influence/interest grid. High influence and high interest means')}
-                <strong> manage closely</strong> — they can stop the project and they care.
-                High influence, low interest means <strong>keep satisfied</strong> — do not surprise them.
-                Low influence, high interest means <strong>keep informed</strong>. Neither means
-                <strong> monitor</strong>. It decides who gets a phone call and who gets a newsletter.</p>}
+              <summary><UiText text={t('What the handling column means')} /></summary>
+              {lang === 'ar' ? <p>تحدد مصفوفة التأثير والاهتمام أسلوب التواصل: التأثير والاهتمام المرتفعان يتطلبان إدارة مباشرة، والتأثير المرتفع مع اهتمام منخفض يستلزم الحفاظ على الرضا، والاهتمام المرتفع مع تأثير منخفض يتطلب إبلاغا مستمرا، أما المستويات المنخفضة فتحتاج إلى المتابعة الدورية.</p> : <p><UiText text={t('The standard influence/interest grid. High influence and high interest means')} />
+                <strong> <UiText text={" manage closely"} /></strong> <UiText text={" — they can stop the project and they care. High influence, low interest means "} /><strong><UiText text={"keep satisfied"} /></strong> <UiText text={" — do not surprise them. Low influence, high interest means "} /><strong><UiText text={"keep informed"} /></strong><UiText text={". Neither means"} /><strong> <UiText text={" monitor"} /></strong><UiText text={". It decides who gets a phone call and who gets a newsletter."} /></p>}
             </details>
           </>
         )}

@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
@@ -76,7 +77,7 @@ export default async function Planner({ searchParams }:
                   <div className="grow" key={i.id}>
                     <div className="glabel">
                       <span className="num dim">{i.projectCode}</span> {i.name}
-                      {i.isCritical && <b title={t('On the critical path')}>{t('critical')}</b>}
+                      {i.isCritical && <b title={t('On the critical path')}><UiText text={t('critical')} /></b>}
                     </div>
                     <div className="gtrack">
                       {ticks.map((t, k) => t.at >= 0 && t.at <= 100 && (
@@ -102,21 +103,21 @@ export default async function Planner({ searchParams }:
                 ))}
               </div>
               <div className="glegend">
-                <span><i className="sw gbase-sw" />{t('baseline')}</span>
-                <span><i className="sw gbar-sw" />{t('actual, filled by progress')}</span>
-                <span><i className="sw gslip-sw" />{t('finishing later than baseline')}</span>
+                <span><i className="sw gbase-sw" /><UiText text={t('baseline')} /></span>
+                <span><i className="sw gbar-sw" /><UiText text={t('actual, filled by progress')} /></span>
+                <span><i className="sw gslip-sw" /><UiText text={t('finishing later than baseline')} /></span>
               </div>
 
-              <h2 className="sec">{t('Slippage against baseline')}</h2>
+              <h2 className="sec"><UiText text={t('Slippage against baseline')} /></h2>
               <div className="design-table-scroll" role="region"
                    aria-label={lang === 'ar' ? 'جدول الانحرافات عن الخطة الأساسية' : 'Baseline slippage table'} tabIndex={0}>
                 <table>
-                  <thead><tr><th scope="col">{t('Project')}</th><th scope="col">{t('Item')}</th><th scope="col">{t('Planned finish')}</th><th scope="col">{t('Now finishing')}</th><th scope="col">{t('Slip')}</th><th scope="col">{t('Progress')}</th></tr></thead>
+                  <thead><tr><th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Item')} /></th><th scope="col"><UiText text={t('Planned finish')} /></th><th scope="col"><UiText text={t('Now finishing')} /></th><th scope="col"><UiText text={t('Slip')} /></th><th scope="col"><UiText text={t('Progress')} /></th></tr></thead>
                 <tbody>
                   {items.filter((i: any) => i.baselineEnd).map((i: any) => (
                     <tr key={i.id}>
                       <td className="num">{i.projectCode}</td>
-                      <td><bdi>{i.name}</bdi>{i.isCritical && <div className="crit">{t('on critical path')}</div>}</td>
+                      <td><bdi>{i.name}</bdi>{i.isCritical && <div className="crit"><UiText text={t('on critical path')} /></div>}</td>
                       <td>{when(i.baselineEnd, lang)}</td>
                       <td>{when(i.endDate, lang)}</td>
                       <td className={i.slipDays > 0 ? 'crit' : 'good'}>

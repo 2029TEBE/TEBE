@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getSession, api, SESSION_COOKIE } from '@/lib/api';
@@ -60,12 +61,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const rail = (
     <>
       {/* Their wordmark treatment: no icon, the second half in the brand mint. */}
-      <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, navigationArabic('The EPMO'))}</span></div>
+      <div className="brand"><span className="wordmark"><UiText text={uiLabel('The EPMO', locale, navigationArabic('The EPMO'))} /></span></div>
       <RailToggle />
       {groups.map((g) => (
         <RailGroup key={g.key} label={uiLabel(g.label, locale, navigationArabic(g.label))} hrefs={g.items.map((i) => i.href)}>
           {g.items.map((i) => (
-            <NavLink key={i.href} href={i.href} navKey={i.key}>{uiLabel(i.label, locale, navigationArabic(i.label))}</NavLink>
+            <NavLink key={i.href} href={i.href} navKey={i.key}><UiText text={uiLabel(i.label, locale, navigationArabic(i.label))} /></NavLink>
           ))}
         </RailGroup>
       ))}
@@ -74,7 +75,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="shell" dir={rtl ? 'rtl' : 'ltr'} lang={locale}>
-      <a className="skiplink" href="#main">{uiLabel('Skip to content', locale, navigationArabic('Skip to content'))}</a>
+      <a className="skiplink" href="#main"><UiText text={uiLabel('Skip to content', locale, navigationArabic('Skip to content'))} /></a>
       <nav className="rail" aria-label={uiLabel('Modules', locale, navigationArabic('Modules'))}>{rail}</nav>
       <div>
         <header className="topbar">

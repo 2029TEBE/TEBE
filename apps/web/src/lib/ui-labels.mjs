@@ -1,3 +1,4 @@
+import { UI_TRANSLATIONS } from './generated-translations.mjs';
 /**
  * Frontend-only English-source label catalog.
  * This deliberately does not modify @pmo/contracts translations, which also
@@ -81,8 +82,8 @@ export function uiLabel(english, locale, legacyArabic = null) {
   // translation must never drop or rename dynamic display placeholders.
   const candidate = locale === 'ar-SA'
     ? (typeof legacyArabic === 'string' && legacyArabic.trim() && legacyArabic !== english
-      ? legacyArabic : row?.['ar-SA'])
-    : row?.[locale];
+      ? legacyArabic : row?.['ar-SA'] ?? UI_TRANSLATIONS.ar?.[english])
+    : row?.[locale] ?? UI_TRANSLATIONS[({ 'de-DE':'de','fr-FR':'fr','ja-JP':'ja','ar-SA':'ar' })[locale] ?? locale]?.[english];
   return typeof candidate === 'string' && candidate.trim() &&
     translationHasMatchingPlaceholders(english, candidate)
       ? candidate : english;
@@ -115,7 +116,7 @@ export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
     const legacy = locale === 'ar-SA' && Object.hasOwn(legacyArabic, english)
       ? legacyArabic[english] : null;
     const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
-      ? legacy : row?.[locale];
+      ? legacy : row?.[locale] ?? UI_TRANSLATIONS[({ 'de-DE':'de','fr-FR':'fr','ja-JP':'ja','ar-SA':'ar' })[locale] ?? locale]?.[english];
     if (typeof translated !== 'string' || !translated.trim()) {
       missing.push(english);
     } else if (!translationHasMatchingPlaceholders(english, translated)) {

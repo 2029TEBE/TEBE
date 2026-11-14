@@ -1,6 +1,8 @@
 'use client';
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { COMPLETE_UI_LOCALES } from '@/lib/generated-translations.mjs';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { LOCALE_REGISTRY, navigationArabic, type LocaleCode } from '@pmo/contracts';
 
 /** Display language only. Never change pmo_session or other auth/tenant cookies. */
@@ -15,9 +17,9 @@ function persistSharedLocale(locale: string) {
 export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const fallback = !['en-US', 'ar'].includes(locale);
-  const label = locale === 'ar' ? navigationArabic('Interface language') : 'Interface language';
-
+  
+  const fallback = locale !== 'en-US' && !COMPLETE_UI_LOCALES.includes(locale);
+  const label = uiLabel('Interface language', locale, navigationArabic('Interface language'));
 
   function setLocale(next: string) {
     if (!LOCALE_REGISTRY.some(item => item.code === next)) return;
@@ -35,10 +37,7 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
       {LOCALE_REGISTRY.map(item =>
         <option key={item.code} value={item.code}>{item.name}</option>)}
     </select>
-    {fallback && <span className="dim" aria-live="polite"
-      title="Translations are being reviewed; missing strings appear in English.">
-      English fallback
-    </span>}
+    {fallback && <span className="dim" role="status">English fallback — translation incomplete</span>}
+
   </div>;
 }
-

@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { authFormLabel } from '@pmo/contracts';
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
@@ -29,16 +31,16 @@ export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
       setDone(true); setToken(''); setPassword(''); setConfirm('');
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  if (!ready) return <p>{t("Checking link…")}</p>;
-  if (done) return <div role="status"><p>{t("Password updated. All previous sessions were revoked.")}</p>
-    <Link href="/login">{t("Sign in")}</Link></div>;
-  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return <p role="alert">{t("Recovery link is missing or invalid.")}
-    {' '}<Link href="/forgot-password">{t("Request a new link")}</Link></p>;
+  if (!ready) return <p><UiText text={t("Checking link…")} /></p>;
+  if (done) return <div role="status"><p><UiText text={t("Password updated. All previous sessions were revoked.")} /></p>
+    <Link href="/login"><UiText text={t("Sign in")} /></Link></div>;
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return <p role="alert"><UiText text={t("Recovery link is missing or invalid.")} />
+    {' '}<Link href="/forgot-password"><UiText text={t("Request a new link")} /></Link></p>;
   return <form className="authform" onSubmit={submit}>
-    <label>{t("New password (at least 12 characters)")}
+    <label><UiText text={t("New password (at least 12 characters)")} />
       <input type="password" value={password} onChange={e => setPassword(e.target.value)}
         minLength={12} maxLength={200} autoComplete="new-password" required /></label>
-    <label>{t("Confirm password")}
+    <label><UiText text={t("Confirm password")} />
       <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
         minLength={12} maxLength={200} autoComplete="new-password" required /></label>
     {error && <p role="alert" className="formerr">{error}</p>}

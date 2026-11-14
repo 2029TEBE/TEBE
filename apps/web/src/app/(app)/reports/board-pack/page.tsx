@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api, getSession } from '@/lib/api';
 import { Loaded } from '@/components/Page';
 import { money, pct, when } from '@/lib/fmt';
@@ -57,16 +58,16 @@ export default async function BoardPack() {
           <article className="pack">
             <header>
               <div>
-                <h1>{t('Portfolio Board Pack')}</h1>
+                <h1><UiText text={t('Portfolio Board Pack')} /></h1>
                 <p className="dim">
                   <bdi>{workspace}</bdi> · <Say t={t} s="generated {date}"
                     v={{ date: when(new Date().toISOString(), lang) }} />
                 </p>
               </div>
-              <span className="tag">{t('Live data')}</span>
+              <span className="tag"><UiText text={t('Live data')} /></span>
             </header>
 
-            <h2>1 · {t('Position')}</h2>
+            <h2>1 · <UiText text={t('Position')} /></h2>
             <p>
               {o.health.total === 0 ? t('This workspace has no projects yet, so there is nothing to report on.') : (
                 <>
@@ -90,23 +91,23 @@ export default async function BoardPack() {
               )}
             </p>
 
-            <h2>2 · {t('Gate status')}</h2>
+            <h2>2 · <UiText text={t('Gate status')} /></h2>
             <table>
-              <thead><tr><th>{t('Project')}</th><th>{t('Gate')}</th><th>{t('Checklist')}</th><th>{t('Accountable')}</th><th>{t('Blocked by')}</th></tr></thead>
+              <thead><tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Gate')} /></th><th><UiText text={t('Checklist')} /></th><th><UiText text={t('Accountable')} /></th><th><UiText text={t('Blocked by')} /></th></tr></thead>
               <tbody>{g.length === 0 ? (
-                <tr><td colSpan={5} className="dim">{t('No active stage gates.')}</td></tr>
+                <tr><td colSpan={5} className="dim"><UiText text={t('No active stage gates.')} /></td></tr>
               ) : g.map((r: any) => (
                 <tr key={r.gateId}>
                   <td><strong>{r.projectCode}</strong></td>
-                  <td><bdi>SG{r.seq} {t(r.name)}</bdi></td>
+                  <td><bdi><UiText text={"SG"} />{r.seq} <UiText text={t(r.name)} /></bdi></td>
                   <td>{r.criteriaTotal ? `${r.criteriaMet}/${r.criteriaTotal}` : '—'}</td>
                   <td><bdi>{r.accountable ?? '—'}</bdi></td>
                   <td><bdi>{r.blockedBy.length ? r.blockedBy.join('; ') : '—'}</bdi></td>
                 </tr>))}</tbody>
             </table>
 
-            <h2>3 · {t('Executive priorities')}</h2>
-            {o.attention.length === 0 ? <p>{t('None.')}</p> : (
+            <h2>3 · <UiText text={t('Executive priorities')} /></h2>
+            {o.attention.length === 0 ? <p><UiText text={t('None.')} /></p> : (
               <ol className="decisions">
                 {o.attention.map((a: any) => (
                   <li key={a.projectId}>
@@ -123,11 +124,11 @@ export default async function BoardPack() {
               </ol>
             )}
 
-            <h2>4 · {t('Cost performance')}</h2>
+            <h2>4 · <UiText text={t('Cost performance')} /></h2>
             <table>
-              <thead><tr><th>{t('Project')}</th><th>{t('Budget')}</th><th>{t('Actual')}</th><th>{t('CPI')}</th><th>{t('Forecast')}</th></tr></thead>
+              <thead><tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Budget')} /></th><th><UiText text={t('Actual')} /></th><th><UiText text={t('CPI')} /></th><th><UiText text={t('Forecast')} /></th></tr></thead>
               <tbody>{f.byProject.length === 0 ? (
-                <tr><td colSpan={5} className="dim">{t('No costs recorded.')}</td></tr>
+                <tr><td colSpan={5} className="dim"><UiText text={t('No costs recorded.')} /></td></tr>
               ) : f.byProject.map((r: any) => (
                 <tr key={r.id}>
                   <td><strong>{r.code}</strong></td>
@@ -138,7 +139,7 @@ export default async function BoardPack() {
             </table>
 
             <footer className="dim">
-              {t('Generated from live portfolio data. Every figure traces to a record in the platform.')}
+              <UiText text={t('Generated from live portfolio data. Every figure traces to a record in the platform.')} />
             </footer>
           </article>
         );

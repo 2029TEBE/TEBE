@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import Link from 'next/link';
 import { getLang, getFrontendLocale } from '@/lib/i18n';
 import { navigationArabic } from '@pmo/contracts';
@@ -10,10 +11,10 @@ export default async function ForgotPasswordPage() {
   const labelFor = (en: string) => uiLabel(en, locale, navigationArabic(en));
   return <main className="authwrap" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'}>
     <section className="authpanel" style={{ maxWidth: 510 }}>
-      <h1>{labelFor("Forgot your password?")}</h1>
-      <p>{labelFor("We will email a 30-minute recovery link if an active account exists.")}</p>
+      <h1><UiText text={labelFor("Forgot your password?")} /></h1>
+      <p><UiText text={labelFor("We will email a 30-minute recovery link if an active account exists.")} /></p>
       <RecoveryRequestForm lang={lang} />
-      <p><Link href="/login">{labelFor("Back to sign in")}</Link></p>
+      <p><Link href="/login"><UiText text={labelFor("Back to sign in")} /></Link></p>
     </section>
   </main>;
 }

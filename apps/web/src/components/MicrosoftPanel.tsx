@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 
@@ -114,7 +116,7 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
     finally { setBusy(''); }
   }
 
-  if (!status) return <section className="panel"><p className="dim">{t('Checking…')}</p></section>;
+  if (!status) return <section className="panel"><p className="dim"><UiText text={t('Checking…')} /></p></section>;
 
   const c = status.connection;
   const hasPowerBi = Boolean(c?.scopes?.includes(POWERBI_SCOPE));
@@ -123,23 +125,23 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
   return (
     <section className={`panel integ ms ${c ? 's-connected' : 's-pending'}`}>
       <header>
-        <strong>{t('Microsoft 365')}</strong>
+        <strong><UiText text={t('Microsoft 365')} /></strong>
         <span className={`pill ${c ? 'on_track' : 's-closed'}`}>
           {c ? t('connected') : t('not connected')}
         </span>
       </header>
-      <p className="dim">{t('SharePoint, OneDrive and Power BI, in the customer’s own Microsoft tenant. Documents uploaded here are written to their storage and stay there — under their retention, their permissions and their legal hold. The EPMO keeps a pointer, never a copy.')}</p>
+      <p className="dim"><UiText text={t('SharePoint, OneDrive and Power BI, in the customer’s own Microsoft tenant. Documents uploaded here are written to their storage and stay there — under their retention, their permissions and their legal hold. The EPMO keeps a pointer, never a copy.')} /></p>
 
       {flash?.connected && !error && (
-        <p className="okmsg" role="status">{t('Microsoft is connected.')}</p>
+        <p className="okmsg" role="status"><UiText text={t('Microsoft is connected.')} /></p>
       )}
       {error && <p className="formerr" role="alert">{error}</p>}
       {c?.lastError && !error && <p className="formerr">{c.lastError}</p>}
 
       {!status.configured && (
         <div className="notset">
-          <p><strong>{t('Not configured on this server yet')}</strong></p>
-          <p className="dim">{t('An administrator needs to register The EPMO as a multi-tenant application in Entra ID, then set MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI and MS_TOKEN_KEY. Until then there is nothing for a customer to connect to. The steps are in docs/microsoft-setup.md.')}</p>
+          <p><strong><UiText text={t('Not configured on this server yet')} /></strong></p>
+          <p className="dim"><UiText text={t('An administrator needs to register The EPMO as a multi-tenant application in Entra ID, then set MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI and MS_TOKEN_KEY. Until then there is nothing for a customer to connect to. The steps are in docs/microsoft-setup.md.')} /></p>
         </div>
       )}
 
@@ -149,25 +151,25 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
                   onClick={() => void connect('graph')}>
             {busy === 'graph' ? t('Opening Microsoft…') : t('Connect Microsoft')}
           </button>
-          {!mayManage && <span className="dim">{t('Only an administrator can connect this.')}</span>}
+          {!mayManage && <span className="dim"><UiText text={t('Only an administrator can connect this.')} /></span>}
         </div>
       )}
 
       {c && (
         <>
-          {!mayManage && <p className="dim">{t('Only workspace administrators can view Microsoft connection details.')}</p>}
+          {!mayManage && <p className="dim"><UiText text={t('Only workspace administrators can view Microsoft connection details.')} /></p>}
           {mayManage && <dl>
-            <div><dt>{t('Account')}</dt>
+            <div><dt><UiText text={t('Account')} /></dt>
                  <dd>{c.accountName ? `${c.accountName} · ` : ''}{c.accountEmail ?? '—'}</dd></div>
-            <div><dt>{t('Files go to')}</dt>
+            <div><dt><UiText text={t('Files go to')} /></dt>
                  <dd>{hasLocation
                    ? <a href={c.siteUrl ?? '#'} target="_blank" rel="noreferrer">
                        {[c.siteName, c.driveName, c.rootPath].filter(Boolean).join(' / ')}
                      </a>
-                   : <span className="dim">{t('nowhere yet — choose a library below')}</span>}</dd></div>
-            <div><dt>{t('Power BI')}</dt>
-                 <dd>{hasPowerBi ? t('approved') : <span className="dim">{t('not approved')}</span>}</dd></div>
-            <div><dt>{t('Connected')}</dt>
+                   : <span className="dim"><UiText text={t('nowhere yet — choose a library below')} /></span>}</dd></div>
+            <div><dt><UiText text={t('Power BI')} /></dt>
+                 <dd>{hasPowerBi ? t('approved') : <span className="dim"><UiText text={t('not approved')} /></span>}</dd></div>
+            <div><dt><UiText text={t('Connected')} /></dt>
                  <dd>{c.connectedAt
                    ? new Date(c.connectedAt).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB',
                        { day: 'numeric', month: 'short', year: 'numeric' })
@@ -183,7 +185,7 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
               )}
               {hasLocation && (
                 <button className="btn ghost" disabled={busy === 'places'} onClick={() => void findPlaces()}>
-                  {t('Change location')}
+                  <UiText text={t('Change location')} />
                 </button>
               )}
               {!hasPowerBi && (
@@ -208,19 +210,19 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
             <>
               <form className="act inline" onSubmit={(e) => { e.preventDefault(); void findPlaces(search); }}>
                 <label>
-                  {t('Find a SharePoint site')}
+                  <UiText text={t('Find a SharePoint site')} />
                   <input value={search} onChange={(e) => setSearch(e.target.value)}
                          placeholder={t('name or part of one')} />
                 </label>
-                <button className="btn ghost" type="submit" disabled={busy === 'places'}>{t('Search')}</button>
+                <button className="btn ghost" type="submit" disabled={busy === 'places'}><UiText text={t('Search')} /></button>
               </form>
               <ul className="pick">
                 {places.oneDrive && (
                   <li>
                     <button type="button" onClick={() => void chooseDrive(places.oneDrive!.driveId)}
                             disabled={busy === 'location'}>
-                      <strong>{t('My OneDrive')}</strong>
-                      <small className="dim">{t('Only this account can reach it. Fine for a trial; a SharePoint library is what a team wants.')}</small>
+                      <strong><UiText text={t('My OneDrive')} /></strong>
+                      <small className="dim"><UiText text={t('Only this account can reach it. Fine for a trial; a SharePoint library is what a team wants.')} /></small>
                     </button>
                   </li>
                 )}
@@ -233,7 +235,7 @@ export function MicrosoftPanel({ lang, mayManage, flash, initial }: {
                   </li>
                 ))}
                 {places.sites.length === 0 && !places.oneDrive && (
-                  <li className="dim">{t('No SharePoint sites came back for that account.')}</li>
+                  <li className="dim"><UiText text={t('No SharePoint sites came back for that account.')} /></li>
                 )}
               </ul>
             </>

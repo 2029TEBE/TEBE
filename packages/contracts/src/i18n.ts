@@ -1,3 +1,5 @@
+import { UI_TRANSLATIONS } from './generated-translations';
+import { resolveLocale } from './locales';
 /**
  * Translation, keyed by the English source string.
  *
@@ -1117,9 +1119,10 @@ const AR: Record<string, string> = {
 export type T = (s: string) => string;
 
 /** A translate function for this request. Unknown strings come back as English. */
-export function translator(lang: Lang): T {
-  if (lang === 'en') return (s) => s;
-  return (s) => AR[s] ?? s;
+export function translator(lang: string): T {
+  const locale = resolveLocale(lang);
+  if (locale === 'en-US') return (s) => s;
+  return (s) => (locale === 'ar' ? AR[s] : undefined) ?? UI_TRANSLATIONS[locale]?.[s] ?? s;
 }
 
 /**

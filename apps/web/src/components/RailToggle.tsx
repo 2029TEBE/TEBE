@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useState } from 'react';
 
 /**

@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { getLang, getFrontendLocale } from '@/lib/i18n';
 import { navigationArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
@@ -12,7 +13,7 @@ export default async function ResetPasswordPage() {
   const labelFor = (en: string) => uiLabel(en, locale, navigationArabic(en));
   return <main className="authwrap" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'}>
     <section className="authpanel" style={{ maxWidth: 510 }}>
-      <h1>{labelFor("Choose a new password")}</h1>
+      <h1><UiText text={labelFor("Choose a new password")} /></h1>
       <ResetPasswordForm lang={lang} />
     </section>
   </main>;

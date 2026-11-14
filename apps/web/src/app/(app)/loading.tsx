@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { tr } from '@/lib/i18n';
 /** Shown while a server component fetches. Mirrors the real layout so the
  *  page does not jump when data arrives. */
@@ -21,7 +22,7 @@ export default async function Loading() {
           <div key={i}><div className="skel" style={{ width: `${88 - i * 7}%` }} /></div>
         ))}
       </div>
-      <span className="visually-hidden">{t('Loading…')}</span>
+      <span className="visually-hidden"><UiText text={t('Loading…')} /></span>
     </div>
   );
 }

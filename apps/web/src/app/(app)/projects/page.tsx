@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api, getSession } from '@/lib/api';
 import { can, type Capability } from '@pmo/contracts';
 import Link from 'next/link';
@@ -26,25 +27,25 @@ export default async function ProjectsPage({ searchParams }:
         {({ d, o }) => (
           <>
             {d.items.length > 0 && <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المشاريع' : 'Project snapshot'}>
-              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'متابعة التنفيذ' : 'DELIVERY SNAPSHOT'}</span>
-                <h2>{lang === 'ar' ? 'صحة المشاريع الحالية' : 'Project delivery at a glance'}</h2>
-                <p>{lang === 'ar' ? 'مؤشرات من سجلات المشاريع المسترجعة في الصفحة الحالية فقط.' : 'Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.'}</p>
+              <div className="design-context-head"><span className="design-kicker"><UiText text={lang === 'ar' ? 'متابعة التنفيذ' : 'DELIVERY SNAPSHOT'} /></span>
+                <h2><UiText text={lang === 'ar' ? 'صحة المشاريع الحالية' : 'Project delivery at a glance'} /></h2>
+                <p><UiText text={lang === 'ar' ? 'مؤشرات من سجلات المشاريع المسترجعة في الصفحة الحالية فقط.' : 'Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.'} /></p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'السجلات المعروضة' : 'Returned projects'}</small><strong>{d.items.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'وفق الخطة' : 'On track'}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج انتباها' : 'Need attention'}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'السجلات المعروضة' : 'Returned projects'} /></small><strong>{d.items.length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'وفق الخطة' : 'On track'} /></small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'تحتاج انتباها' : 'Need attention'} /></small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
               </div>
             </section>}
             {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
               <h2 className="sec" style={{ marginTop: 0 }}>
-                {lang === 'ar' ? 'جهّز هيكل مشروعك' : 'Set up your project structure'}
+                <UiText text={lang === 'ar' ? 'جهّز هيكل مشروعك' : 'Set up your project structure'} />
               </h2>
-              <p className="dim">{lang === 'ar'
+              <p className="dim"><UiText text={lang === 'ar'
                 ? 'يمكنك إنشاء مشروع مستقل الآن، لكن ننصح بإنشاء محفظة وبرنامج أولاً لربطه بالأهداف الاستراتيجية.'
-                : 'You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.'}</p>
+                : 'You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.'} /></p>
               <Link href="/portfolios?new=portfolio">
-                {lang === 'ar' ? 'فتح إعداد المحفظة والبرنامج' : 'Set up portfolio and programme'}
+                <UiText text={lang === 'ar' ? 'فتح إعداد المحفظة والبرنامج' : 'Set up portfolio and programme'} />
               </Link>
             </section>}
             {mayCreate ? <NewRecord lang={lang} kind="project" title="New project" cta="Create project" returnTo="/projects" initialOpen={openForm === 'project'}
@@ -67,16 +68,16 @@ export default async function ProjectsPage({ searchParams }:
                 { name: 'startDate', label: 'Start date', type: 'date' },
                 { name: 'endDate', label: 'Target finish', type: 'date' },
                 { name: 'withGates', label: 'Create the seven stage gates', type: 'checkbox', defaultChecked: true },
-              ]} /> : <p className="dim">{lang === 'ar'
+              ]} /> : <p className="dim"><UiText text={lang === 'ar'
                 ? 'إنشاء المشاريع يتطلب الصلاحية المناسبة وتفعيل وحدة إدارة المشاريع.'
-                : 'Creating projects requires project-management permission and an enabled PMO module.'}</p>}
-            {programFilter && <p className="filtered">{lang === 'ar' ? 'البرنامج:' : 'Programme:'}{' '}
+                : 'Creating projects requires project-management permission and an enabled PMO module.'} /></p>}
+            {programFilter && <p className="filtered"><UiText text={lang === 'ar' ? 'البرنامج:' : 'Programme:'} />{' '}
               <strong>{o.programs.find((p: any) => p.id === programFilter)?.name ??
                 (lang === 'ar' ? 'غير متاح' : 'Unavailable')}</strong>{' '}
-              <Link href="/projects">{lang === 'ar' ? 'عرض كل المشاريع' : 'Show all projects'}</Link>
+              <Link href="/projects"><UiText text={lang === 'ar' ? 'عرض كل المشاريع' : 'Show all projects'} /></Link>
             </p>}
             {d.items.length === 0 ? (
-              <div className="empty"><strong>{lang === 'ar' ? 'لا توجد مشاريع بعد' : 'No projects yet'}</strong>
+              <div className="empty"><strong><UiText text={lang === 'ar' ? 'لا توجد مشاريع بعد' : 'No projects yet'} /></strong>
                 <p>{mayCreate
                   ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
                   : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p></div>
@@ -84,8 +85,8 @@ export default async function ProjectsPage({ searchParams }:
               <>
                 {health && (
                   <p className="filtered">
-                    {t('Showing only')} <strong>{t(health.replace(/_/g, ' '))}</strong> {t('projects')}.{' '}
-                    <a href="/projects">{t('Show all')}</a>
+                    <UiText text={t('Showing only')} /> <strong><UiText text={t(health.replace(/_/g, ' '))} /></strong> <UiText text={t('projects')} />.{' '}
+                    <a href="/projects"><UiText text={t('Show all')} /></a>
                   </p>
                 )}
                 <ProjectsTable lang={lang}

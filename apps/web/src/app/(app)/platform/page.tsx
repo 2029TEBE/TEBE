@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
@@ -18,7 +19,7 @@ export default async function Platform({ searchParams }:
     <Page title="Platform & Modules"
           sub="The EPMO is a set of modules on one platform. Enable what this workspace has licensed — the server enforces it, so a disabled module refuses even if its address is typed directly.">
       {error && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{error}</p>}
-      {done && !error && <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}>{t('Saved.')}</p>}
+      {done && !error && <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}><UiText text={t('Saved.')} /></p>}
       <Loaded load={api.platformModules}>
         {(all) => {
           // Modules still in development are not shown at all. Advertising
@@ -29,16 +30,16 @@ export default async function Platform({ searchParams }:
           return (
             <>
               <div className="tiles">
-                <div className="tile"><span>{t('Modules enabled')}</span><strong>{on}</strong>
-                  <div className="split"><i className="dim">{t('of')} {built} {t('available')}</i></div></div>
-                <div className="tile"><span>{t('In the catalogue')}</span><strong>{mods.length}</strong>
-                  <div className="split"><i className="dim">{t('licensable modules')}</i></div></div>
-                <div className="tile"><span>{t('Platform version')}</span>
-                  <strong style={{ fontSize: '1.3rem' }}>{t('The EPMO')}</strong>
-                  <div className="split"><i className="dim">{t('modular monolith')}</i></div></div>
+                <div className="tile"><span><UiText text={t('Modules enabled')} /></span><strong>{on}</strong>
+                  <div className="split"><i className="dim"><UiText text={t('of')} /> {built} <UiText text={t('available')} /></i></div></div>
+                <div className="tile"><span><UiText text={t('In the catalogue')} /></span><strong>{mods.length}</strong>
+                  <div className="split"><i className="dim"><UiText text={t('licensable modules')} /></i></div></div>
+                <div className="tile"><span><UiText text={t('Platform version')} /></span>
+                  <strong style={{ fontSize: '1.3rem' }}><UiText text={t('The EPMO')} /></strong>
+                  <div className="split"><i className="dim"><UiText text={t('modular monolith')} /></i></div></div>
               </div>
 
-              <h2 className="sec">{t('Modules')}</h2>
+              <h2 className="sec"><UiText text={t('Modules')} /></h2>
               <div className="modgrid">
                 {mods.map((m: any) => {
                   const st = STATUS[m.status] ?? STATUS.ga;
@@ -49,9 +50,9 @@ export default async function Platform({ searchParams }:
                           <strong>{m.name}</strong>
                           <code>{m.id} · v{m.version}</code>
                         </div>
-                        <span className={`pill ${st.cls}`}>{t(st.label)}</span>
+                        <span className={`pill ${st.cls}`}><UiText text={t(st.label)} /></span>
                       </header>
-                      <p>{t(m.summary)}</p>
+                      <p><UiText text={t(m.summary)} /></p>
                       <footer>
                         <span className="dim">
                           {m.isCore ? t('Part of the platform')
@@ -60,13 +61,13 @@ export default async function Platform({ searchParams }:
                           {m.enabled && m.enabledAt ? ` · ${t('on since')} ${when(m.enabledAt, lang)}` : ''}
                         </span>
                         {m.isCore ? (
-                          <span className="pill on_track">{t('always on')}</span>
+                          <span className="pill on_track"><UiText text={t('always on')} /></span>
                         ) : (
                           <form method="post" action="/api/platform">
                             <input type="hidden" name="id" value={m.id} />
                             <input type="hidden" name="enabled" value={m.enabled ? 'false' : 'true'} />
                             <button className={`btn ${m.enabled ? 'ghost' : ''}`} type="submit">
-                              {t(m.enabled ? 'Disable' : 'Enable')}
+                              <UiText text={t(m.enabled ? 'Disable' : 'Enable')} />
                             </button>
                           </form>
                         )}
@@ -77,10 +78,8 @@ export default async function Platform({ searchParams }:
               </div>
 
               <details className="explain">
-                <summary>{t('Why modules are enforced in the API, not the menu')}</summary>
-                <p>{t('Hiding a link stops nobody: the URL is still there and the data behind it is still reachable. Every module-owned route carries the module that owns it, and a guard checks the workspace entitlement on each request — so a workspace on a PMO-only plan gets a clear refusal from')} <code>/api/v1/financials</code>, not an empty page. Dependencies are
-                  enforced both ways: a module cannot be enabled before what it needs, or disabled while
-                  something else depends on it.</p>
+                <summary><UiText text={t('Why modules are enforced in the API, not the menu')} /></summary>
+                <p><UiText text={t('Hiding a link stops nobody: the URL is still there and the data behind it is still reachable. Every module-owned route carries the module that owns it, and a guard checks the workspace entitlement on each request — so a workspace on a PMO-only plan gets a clear refusal from')} /> <code>/api/v1/financials</code><UiText text={", not an empty page. Dependencies are enforced both ways: a module cannot be enabled before what it needs, or disabled while something else depends on it."} /></p>
               </details>
             </>
           );

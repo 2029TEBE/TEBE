@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 
@@ -57,24 +59,24 @@ export function DocumentUpload({ lang, projects }: { lang?: Lang; projects: Proj
 
   return (
     <section className="panel upload">
-      <h2>{t('Upload to SharePoint')}</h2>
+      <h2><UiText text={t('Upload to SharePoint')} /></h2>
       <p className="dim">
-        {t('The file is written to your own Microsoft storage, in a folder named for the project. The EPMO records where it is — it never keeps a copy.')}
+        <UiText text={t('The file is written to your own Microsoft storage, in a folder named for the project. The EPMO records where it is — it never keeps a copy.')} />
         {where && <> {' '}<strong>{where}</strong></>}
       </p>
       <form ref={form} className="act inline" onSubmit={submit}>
         <input type="file" name="file" required onChange={() => { setDone(null); setError(''); }} />
         <label>
-          {t('Project')}
+          <UiText text={t('Project')} />
           <select name="projectId" defaultValue="">
-            <option value="">{t('— workspace folder —')}</option>
+            <option value=""><UiText text={t('— workspace folder —')} /></option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
             ))}
           </select>
         </label>
         <label>
-          {t('Type')}
+          <UiText text={t('Type')} />
           <input name="kind" placeholder={t('Contract')} defaultValue="File" />
         </label>
         <button className="btn" type="submit" disabled={busy}>
@@ -84,8 +86,8 @@ export function DocumentUpload({ lang, projects }: { lang?: Lang; projects: Proj
       {error && <p className="formerr" role="alert">{error}</p>}
       {done && (
         <p className="okmsg" role="status">
-          {t('Uploaded')} <strong>{done.name}</strong>{' · '}
-          <a href={done.webUrl} target="_blank" rel="noreferrer">{t('Open in SharePoint')}</a>
+          <UiText text={t('Uploaded')} /> <strong>{done.name}</strong>{' · '}
+          <a href={done.webUrl} target="_blank" rel="noreferrer"><UiText text={t('Open in SharePoint')} /></a>
         </p>
       )}
     </section>

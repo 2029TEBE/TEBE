@@ -1,3 +1,4 @@
+import { UiText, UiField } from '@/components/UiLocale';
 import { superadminArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -52,7 +53,7 @@ export default async function SuperAdmin({ searchParams }: {
         <h2>{tx("Create subscription plan")}</h2>
         <form method="post" action="/api/super-admin" style={{display:'flex',flexWrap:'wrap',gap:12,alignItems:'end'}}>
           <input name="action" type="hidden" value="create-plan"/>
-          <label>{tx("Code")}<input required name="code" placeholder="enterprise_yearly" pattern="[a-z][a-z0-9_-]{2,39}"/></label>
+          <label>{tx("Code")}<UiField as="input" copy={["placeholder"]} required name="code" placeholder="enterprise_yearly" pattern="[a-z][a-z0-9_-]{2,39}"/></label>
           <label>{tx("Name")}<input required name="name" minLength={3} maxLength={120}/></label>
           <label>{tx("Price in minor units")}<input required type="number" min="0" name="priceMinor" defaultValue="0"/></label>
           <label>{tx("Currency")}<input required name="currency" maxLength={3} defaultValue="SAR"/></label>
@@ -89,7 +90,7 @@ export default async function SuperAdmin({ searchParams }: {
               <form method="post" action="/api/super-admin" style={{display:'grid',gap:8}}>
                 <input name="action" value="manual-grant" type="hidden"/>
                 <input name="tenantId" value={tenant.id} type="hidden"/>
-                <label>{tx("Active plan code")}<input name="planCode" required placeholder="enterprise_yearly"/></label>
+                <label>{tx("Active plan code")}<UiField as="input" copy={["placeholder"]} name="planCode" required placeholder="enterprise_yearly"/></label>
                 <label>{tx("License type")}<select name="status"><option value="active">{tx("Active")}</option><option value="trialing">{tx("Trial")}</option></select></label>
                 <label>{tx("Starts at (UTC)")}<input required name="periodStartsAt" type="datetime-local"/></label>
                 <label>{tx("Ends at (UTC)")}<input required name="periodEndsAt" type="datetime-local"/></label>
@@ -116,8 +117,7 @@ export default async function SuperAdmin({ searchParams }: {
         <h2>{tx("Plan audit history")}</h2>
         <Loaded load={api.superAdminAudit}>{entries => <ul>
           {entries.slice(0, 20).map((e: any) => <li key={e.id}>
-            <strong>{e.action}</strong> · {e.entityId} · <time>{new Date(e.createdAt).toISOString().slice(0,16).replace('T',' ')}</time> UTC
-          </li>)}
+            <strong>{e.action}</strong> · {e.entityId} · <time>{new Date(e.createdAt).toISOString().slice(0,16).replace('T',' ')}</time> <UiText text={" UTC"} /></li>)}
         </ul>}</Loaded>
       </section>
     </Page>

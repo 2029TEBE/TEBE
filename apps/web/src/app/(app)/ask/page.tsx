@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { tr, getLang } from '@/lib/i18n';
@@ -20,7 +21,7 @@ export default async function Ask({ searchParams }:
   return (
     <Page title="Ask X"
           sub="A question answered from this workspace's own records — and only from those. Every figure it gives you traces to a row you can open.">
-      {error && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{t(error)}</p>}
+      {error && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}><UiText text={t(error)} /></p>}
 
       <Loaded load={async () => ({
         status: await api.askStatus(),
@@ -37,14 +38,14 @@ export default async function Ask({ searchParams }:
               <div className="askmain">
                 {messages.length === 0 ? (
                   <div className="panel askintro">
-                    <h2>{t('Ask about this portfolio')}</h2>
-                    <p className="dim">{t('It reads the same records the screens do — every project, gate, register item, approval, benefit and slipped schedule item in this workspace. It has no access to anything else, and it will tell you when a question cannot be answered from them rather than guessing.')}</p>
+                    <h2><UiText text={t('Ask about this portfolio')} /></h2>
+                    <p className="dim"><UiText text={t('It reads the same records the screens do — every project, gate, register item, approval, benefit and slipped schedule item in this workspace. It has no access to anything else, and it will tell you when a question cannot be answered from them rather than guessing.')} /></p>
                     <div className="suggest">
                       {SUGGESTED.map((q) => (
                         <form method="post" action="/api/ask" key={q}>
                           <input type="hidden" name="question" value={q} />
                           <input type="hidden" name="lang" value={lang} />
-                          <button type="submit" className="chip">{t(q)}</button>
+                          <button type="submit" className="chip"><UiText text={t(q)} /></button>
                         </form>
                       ))}
                     </div>
@@ -71,19 +72,19 @@ export default async function Ask({ searchParams }:
                   <input type="hidden" name="lang" value={lang} />
                   <input name="question" required autoComplete="off"
                          placeholder={t('Ask anything about this portfolio…')} />
-                  <button className="btn" type="submit">{t('Ask')}</button>
+                  <button className="btn" type="submit"><UiText text={t('Ask')} /></button>
                 </form>
                 {messages.length > 0 && (
                   <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>
-                    <a href="/ask">{t('Start a new conversation')}</a>
+                    <a href="/ask"><UiText text={t('Start a new conversation')} /></a>
                   </p>
                 )}
               </div>
 
               <aside className="askside">
-                <h3>{t('Recent')}</h3>
+                <h3><UiText text={t('Recent')} /></h3>
                 {threads.length === 0
-                  ? <p className="dim">{t('Nothing asked yet.')}</p>
+                  ? <p className="dim"><UiText text={t('Nothing asked yet.')} /></p>
                   : (
                     <ul className="threadlist">
                       {threads.map((x: any) => (
@@ -100,9 +101,9 @@ export default async function Ask({ searchParams }:
             </div>
 
             <details className="explain">
-              <summary>{t('How it is kept honest')}</summary>
-              <p>{t('The assistant is given this workspace’s records as facts and instructed to use nothing else — no general knowledge, no estimates, no filling in gaps. It is told to name the specific project, gate or register item behind every claim, and to say plainly when the records do not answer the question. That last rule matters most: a governance assistant that guesses produces a number somebody repeats to a board, and the whole point of this platform is that a figure can be traced to a record.')}</p>
-              <p>{t('Questions and answers are stored, along with a summary of the facts the answer was based on, so an answer someone acted on can be checked afterwards rather than remembered.')}</p>
+              <summary><UiText text={t('How it is kept honest')} /></summary>
+              <p><UiText text={t('The assistant is given this workspace’s records as facts and instructed to use nothing else — no general knowledge, no estimates, no filling in gaps. It is told to name the specific project, gate or register item behind every claim, and to say plainly when the records do not answer the question. That last rule matters most: a governance assistant that guesses produces a number somebody repeats to a board, and the whole point of this platform is that a figure can be traced to a record.')} /></p>
+              <p><UiText text={t('Questions and answers are stored, along with a summary of the facts the answer was based on, so an answer someone acted on can be checked afterwards rather than remembered.')} /></p>
             </details>
           </>
         )}

@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -53,29 +54,29 @@ export default async function Financials({ searchParams }:
           return (
             <>
               <div className="tiles">
-                <div className="tile"><span>{t('Approved budget')}</span><strong>{money(tot.budget)}</strong>
-                  <div className="split"><i className="dim">SAR</i></div></div>
-                <div className="tile"><span>{t('Committed')}</span><strong>{money(tot.committed)}</strong>
+                <div className="tile"><span><UiText text={t('Approved budget')} /></span><strong>{money(tot.budget)}</strong>
+                  <div className="split"><i className="dim"><UiText text={"SAR"} /></i></div></div>
+                <div className="tile"><span><UiText text={t('Committed')} /></span><strong>{money(tot.committed)}</strong>
                   <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.committed, tot.budget)}%` }} /></div></div>
-                <div className="tile"><span>{t('Actual spend')}</span><strong>{money(tot.actual)}</strong>
+                <div className="tile"><span><UiText text={t('Actual spend')} /></span><strong>{money(tot.actual)}</strong>
                   <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.actual, tot.budget)}%` }} /></div></div>
                 <div className={`tile${over > 0 ? ' alarm' : ''}`}>
-                  <span>{t('Forecast variance')}</span>
-                  <strong className={over > 0 ? 'crit' : 'good'}>{over > 0 ? '+' : ''}{money(over)}</strong>
-                  <div className="split"><i className="dim">{t('forecast vs approved')}</i></div></div>
+                  <span><UiText text={t('Forecast variance')} /></span>
+                  <strong className={over > 0 ? 'crit' : 'good'}><UiText text={over > 0 ? '+' : ''} />{money(over)}</strong>
+                  <div className="split"><i className="dim"><UiText text={t('forecast vs approved')} /></i></div></div>
               </div>
 
-              <h2 className="sec">{t('By project')}</h2>
+              <h2 className="sec"><UiText text={t('By project')} /></h2>
               <div className="scrollx" role="region" aria-label={t('By project')} tabIndex={0}>
                 <table>
                   <thead><tr>
-                    <th scope="col">{t('Project')}</th><th scope="col">{t('Budget')}</th><th scope="col">{t('Committed')}</th><th scope="col">{t('Actual')}</th>
-                    <th scope="col">{t('Earned value')}</th><th scope="col">{t('CPI')}</th><th scope="col">{t('Forecast')}</th><th scope="col">{t('Variance')}</th>
+                    <th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Budget')} /></th><th scope="col"><UiText text={t('Committed')} /></th><th scope="col"><UiText text={t('Actual')} /></th>
+                    <th scope="col"><UiText text={t('Earned value')} /></th><th scope="col"><UiText text={t('CPI')} /></th><th scope="col"><UiText text={t('Forecast')} /></th><th scope="col"><UiText text={t('Variance')} /></th>
                   </tr></thead>
                   <tbody>
                     {d.byProject.map((r: any) => (
                       <tr key={r.id}>
-                        <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% {labelFor("complete")}</div></td>
+                        <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% <UiText text={labelFor("complete")} /></div></td>
                         <td className="num">{money(r.budget)}</td>
                         <td className="num">{money(r.committed)}</td>
                         <td className="num">{money(r.actual)}</td>
@@ -92,7 +93,7 @@ export default async function Financials({ searchParams }:
                         <td className="num">{money(r.forecast)}
                           {r.forecastCoverage < 1 && (
                             <div className="dim" title={labelFor("Categories without their own forecast fall back to budget")}>
-                              {Math.round(r.forecastCoverage * 100)}% {labelFor("forecast, rest at budget")}
+                              {Math.round(r.forecastCoverage * 100)}% <UiText text={labelFor("forecast, rest at budget")} />
                             </div>)}</td>
                         <td className="num">{r.variance > 0
                           ? <span className="crit">+{money(r.variance)}</span>
@@ -104,18 +105,14 @@ export default async function Financials({ searchParams }:
               </div>
 
               <details className="explain">
-                <summary>{t('What CPI and earned value mean')}</summary>
-                <p><strong>{t('Earned value')}</strong> is the budget you have genuinely earned: percent complete ×
-                  budget. <strong>CPI</strong> (cost performance index) is earned value ÷ actual spend. Above
-                  1.00 means you are getting more work per riyal than planned; below 1.00 means the opposite,
-                  and the gap grows as the project runs. It is the earliest reliable signal of an overrun —
-                  well before the money is gone.</p>
-                <p>{t('It only becomes meaningful once spend covers a comparable scope, so projects with less than 15% of budget drawn show')} <em>too early</em> rather than a misleadingly high number.</p>
+                <summary><UiText text={t('What CPI and earned value mean')} /></summary>
+                <p><strong><UiText text={t('Earned value')} /></strong> <UiText text={" is the budget you have genuinely earned: percent complete × budget. "} /><strong><UiText text={"CPI"} /></strong> <UiText text={" (cost performance index) is earned value ÷ actual spend. Above 1.00 means you are getting more work per riyal than planned; below 1.00 means the opposite, and the gap grows as the project runs. It is the earliest reliable signal of an overrun — well before the money is gone."} /></p>
+                <p><UiText text={t('It only becomes meaningful once spend covers a comparable scope, so projects with less than 15% of budget drawn show')} /> <em><UiText text={"too early"} /></em> <UiText text={" rather than a misleadingly high number."} /></p>
               </details>
 
-              <h2 className="sec">{t('By category')}</h2>
+              <h2 className="sec"><UiText text={t('By category')} /></h2>
               <div className="design-table-scroll" role="region" aria-label={t('By category')} tabIndex={0}><table>
-                <thead><tr><th scope="col">{t('Category')}</th><th scope="col">{t('Budget')}</th><th scope="col">{t('Actual')}</th><th scope="col">{t('Drawn')}</th></tr></thead>
+                <thead><tr><th scope="col"><UiText text={t('Category')} /></th><th scope="col"><UiText text={t('Budget')} /></th><th scope="col"><UiText text={t('Actual')} /></th><th scope="col"><UiText text={t('Drawn')} /></th></tr></thead>
                 <tbody>
                   {d.byCategory.map((c: any) => (
                     <tr key={c.category}>

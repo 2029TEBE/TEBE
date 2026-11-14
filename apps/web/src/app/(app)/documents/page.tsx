@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -49,17 +50,17 @@ export default async function Documents({ searchParams }:
         {(list) => (
           <>
             <section className="design-context" aria-label={t('Document overview')}>
-              <div className="design-context-head"><span className="design-kicker">{t('Document overview')}</span>
-                <h2>{t('Evidence inventory')}</h2>
-                <p>{t('Document status and evidence linkage shown from authorized workspace records. File access remains governed by its existing integration.')}</p></div>
+              <div className="design-context-head"><span className="design-kicker"><UiText text={t('Document overview')} /></span>
+                <h2><UiText text={t('Evidence inventory')} /></h2>
+                <p><UiText text={t('Document status and evidence linkage shown from authorized workspace records. File access remains governed by its existing integration.')} /></p></div>
               <div className="design-summary">
-                <div className="design-metric"><small>{t('Documents')}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{t('Approved')}</small><strong>{list.filter((d: any) => d.status === 'approved').length}</strong></div>
-                <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
+                <div className="design-metric"><small><UiText text={t('Documents')} /></small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small><UiText text={t('Approved')} /></small><strong>{list.filter((d: any) => d.status === 'approved').length}</strong></div>
+                <div className="design-metric"><small><UiText text={t('Linked to evidence')} /></small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Document register")} tabIndex={0}><table>
-              <thead><tr><th scope="col">{t('Document')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Type')}</th><th scope="col">{t('Ver')}</th><th scope="col">{t('Evidence for')}</th><th scope="col">{t('Size')}</th><th scope="col">{t('Updated')}</th><th scope="col">{t('Status')}</th></tr></thead>
+              <thead><tr><th scope="col"><UiText text={t('Document')} /></th><th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Type')} /></th><th scope="col"><UiText text={t('Ver')} /></th><th scope="col"><UiText text={t('Evidence for')} /></th><th scope="col"><UiText text={t('Size')} /></th><th scope="col"><UiText text={t('Updated')} /></th><th scope="col"><UiText text={t('Status')} /></th></tr></thead>
               <tbody>{list.map((d: any) => (
                 <tr key={d.id}>
                   {/* A document held in their Microsoft tenant opens through
@@ -73,7 +74,7 @@ export default async function Documents({ searchParams }:
                       ? <a href={d.url} target="_blank" rel="noreferrer">{d.name}</a>
                       : d.name}</strong>
                     {d.storageProvider === 'microsoft' && (
-                      <div className="dim">{t('in SharePoint')}</div>
+                      <div className="dim"><UiText text={t('in SharePoint')} /></div>
                     )}
                     {d.owner && <div className="dim">{d.owner}</div>}</td>
                   <td className="num">{d.projectCode ?? '—'}</td>
@@ -90,8 +91,8 @@ export default async function Documents({ searchParams }:
                 </tr>))}</tbody>
             </table></div>
             <details className="explain">
-              <summary>{t('How documents connect to governance')}</summary>
-              <p>{labelFor("Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.")}</p>
+              <summary><UiText text={t('How documents connect to governance')} /></summary>
+              <p><UiText text={labelFor("Linking a document to a specific gate criterion helps substantiate approval decisions during reviews and audits. The document register shows the evidence name, version, owner and update date where available, without assuming a fixed number of linked documents.")} /></p>
             </details>
           </>
         )}

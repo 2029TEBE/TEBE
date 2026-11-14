@@ -22,8 +22,8 @@ test('missing translations safely fall back to English', () => {
   assert.equal(uiLabel('Executive decision journey', 'ar-SA', 'مسار القرار التنفيذي'), 'مسار القرار التنفيذي');
 });
 test('coverage enumerates untranslated strings without duplication', () => {
-  assert.deepEqual(uiLabelCoverage(['Projects','Projects','Unknown'], 'fr-FR'), {
-    total: 2, translated: 1, missing: ['Unknown'], invalidPlaceholders: [],
+  assert.deepEqual(uiLabelCoverage(['Projects','Projects','Uncatalogued test fixture XYZ'], 'fr-FR'), {
+    total: 2, translated: 1, missing: ['Uncatalogued test fixture XYZ'], invalidPlaceholders: [],
   });
 });
 test('all shared nav group headings have four catalogue translations', () => {
@@ -69,8 +69,8 @@ test('shared executive journey has all six translations without separate dashboa
 });
 
 test('Arabic missing labels are not falsely recorded as translated', () => {
-  assert.deepEqual(uiLabelCoverage(['Projects', 'Unknown'], 'ar-SA', { Projects: 'المشاريع' }), {
-    total: 2, translated: 1, missing: ['Unknown'], invalidPlaceholders: [],
+  assert.deepEqual(uiLabelCoverage(['Projects', 'Uncatalogued test fixture XYZ'], 'ar-SA', { Projects: 'المشاريع' }), {
+    total: 2, translated: 1, missing: ['Uncatalogued test fixture XYZ'], invalidPlaceholders: [],
   });
 });
 

@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 
@@ -70,15 +72,15 @@ export function PowerBiReport({ lang }: { lang?: Lang }) {
     }
   }
 
-  if (loading) return <p className="dim">{t('Checking…')}</p>;
+  if (loading) return <p className="dim"><UiText text={t('Checking…')} /></p>;
 
   if (needsPowerBi) {
     return (
       <section className="panel">
-        <h2>{t('Power BI is not connected yet')}</h2>
+        <h2><UiText text={t('Power BI is not connected yet')} /></h2>
         <p className="dim">{error}</p>
-        <p className="dim">{t('Reports use the workspace-connected Microsoft account; an administrator must approve Power BI before reports appear.')}</p>
-        <a className="btn" href="/integrations">{t('Go to Integrations')}</a>
+        <p className="dim"><UiText text={t('Reports use the workspace-connected Microsoft account; an administrator must approve Power BI before reports appear.')} /></p>
+        <a className="btn" href="/integrations"><UiText text={t('Go to Integrations')} /></a>
       </section>
     );
   }
@@ -88,12 +90,12 @@ export function PowerBiReport({ lang }: { lang?: Lang }) {
       {reports && reports.length > 0 && (
         <form className="act inline" style={{ marginBlockEnd: 'var(--sp-4)' }}>
           <label>
-            {t('Report')}
+            <UiText text={t('Report')} />
             <select value={chosen?.id ?? ''} onChange={(e) => {
               const r = reports.find((x) => x.id === e.target.value);
               if (r) void show(r);
             }}>
-              <option value="" disabled>{t('Choose…')}</option>
+              <option value="" disabled><UiText text={t('Choose…')} /></option>
               {reports.map((r) => (
                 <option key={`${r.groupId ?? 'me'}:${r.id}`} value={r.id}>
                   {r.groupName} — {r.name}
@@ -103,7 +105,7 @@ export function PowerBiReport({ lang }: { lang?: Lang }) {
           </label>
           {chosen && (
             <a className="btn ghost" href={chosen.webUrl} target="_blank" rel="noreferrer">
-              {t('Open in Power BI')}
+              <UiText text={t('Open in Power BI')} />
             </a>
           )}
         </form>
@@ -112,7 +114,7 @@ export function PowerBiReport({ lang }: { lang?: Lang }) {
       {error && <p className="formerr" role="alert">{error}</p>}
 
       {reports && reports.length === 0 && (
-        <p className="dim">{t('That Microsoft account can see no Power BI reports. Someone has to share a workspace with it, or publish a report into one.')}</p>
+        <p className="dim"><UiText text={t('That Microsoft account can see no Power BI reports. Someone has to share a workspace with it, or publish a report into one.')} /></p>
       )}
 
       {/* Kept in the DOM rather than mounted on demand: the SDK embeds into a

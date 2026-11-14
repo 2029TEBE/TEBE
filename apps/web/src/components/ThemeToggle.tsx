@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useState } from 'react';
 import { navigationArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
@@ -56,7 +58,7 @@ export function ThemeToggle({ locale = 'en-US' }: { locale?: FrontendLocale }) {
         <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M10 2a8 8 0 108 8 6 6 0 01-8-8z" />
         </svg>
-        <span>{t('Dark')}</span>
+        <span><UiText text={t('Dark')} /></span>
       </button>
       <button type="button" onClick={() => choose('light')}
               aria-pressed={mode === 'light'} title={t('Light')}>
@@ -66,7 +68,7 @@ export function ThemeToggle({ locale = 'en-US' }: { locale?: FrontendLocale }) {
           <path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M15.8 4.2l-1.4 1.4M5.6 14.4l-1.4 1.4"
                 strokeLinecap="round" />
         </svg>
-        <span>{t('Light')}</span>
+        <span><UiText text={t('Light')} /></span>
       </button>
     </div>
   );

@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { translator } from '@/lib/i18n-dict';
@@ -68,7 +70,7 @@ export function MobileNav({ children, ar = false }: { children: React.ReactNode;
                aria-label={t('Modules')}>
             <button type="button" ref={closeButton} className="drawer-close"
                     onClick={() => close()} aria-label={t('Close navigation')}>
-              <span aria-hidden="true">×</span> {t('Close')}
+              <span aria-hidden="true">×</span> <UiText text={t('Close')} />
             </button>
             {children}
           </nav>

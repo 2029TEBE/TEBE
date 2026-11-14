@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { Page } from '@/components/Page';
 import { getLang, tr } from '@/lib/i18n';
 import { PowerBiReport } from '@/components/PowerBiReport';
@@ -16,8 +17,8 @@ export default async function PowerBi() {
           sub="Workspace administrators can view reports available to the Microsoft account connected to this workspace.">
       <PowerBiReport lang={lang} />
       <details className="explain">
-        <summary>{t('Why the reports are theirs and not ours')}</summary>
-        <p>{t('Reports use the workspace-connected Microsoft account, not each EPMO user’s personal Power BI identity. Restrict that account to the minimum datasets necessary and grant access only to workspace administrators.')}</p>
+        <summary><UiText text={t('Why the reports are theirs and not ours')} /></summary>
+        <p><UiText text={t('Reports use the workspace-connected Microsoft account, not each EPMO user’s personal Power BI identity. Restrict that account to the minimum datasets necessary and grant access only to workspace administrators.')} /></p>
       </details>
     </Page>
   );

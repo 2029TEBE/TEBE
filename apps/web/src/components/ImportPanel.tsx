@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 
@@ -85,14 +87,14 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
   return (
     <>
       <section className="panel">
-        <h2>{t('Upload a workbook')}</h2>
-        <p className="dim">{t('The whole file loads at once or not at all, so a failure part-way cannot leave a project with a schedule and no gates. Columns are matched by name in either language.')}</p>
+        <h2><UiText text={t('Upload a workbook')} /></h2>
+        <p className="dim"><UiText text={t('The whole file loads at once or not at all, so a failure part-way cannot leave a project with a schedule and no gates. Columns are matched by name in either language.')} /></p>
         <form className="act inline" method="post" action="/api/excel/upload"
               encType="multipart/form-data"
               onSubmit={(e) => { e.preventDefault(); void send('create'); }}>
           <input ref={fileRef} type="file" name="file" accept=".xlsx" required
                  onChange={() => { setReport(null); setPreflight(null); setError(''); }} />
-          <button className="btn ghost" type="button" disabled={busy} onClick={() => void preview()}>{lang === 'ar' ? 'معاينة دون تعديل البيانات' : 'Preview (no changes)'}</button>
+          <button className="btn ghost" type="button" disabled={busy} onClick={() => void preview()}><UiText text={lang === 'ar' ? 'معاينة دون تعديل البيانات' : 'Preview (no changes)'} /></button>
           <button className="btn" type="submit" disabled={busy || !!preflight && !preflight.ok}>
             {busy ? t('Reading…') : t('Import')}
           </button>
@@ -101,23 +103,23 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
       </section>
 
       {preflight && <section className="panel wide" role="status">
-        <h3>{lang === 'ar' ? 'معاينة التحقق من ملف العمل - لم تتغير أي بيانات' : 'Workbook validation preview — no data changed'}</h3>
+        <h3><UiText text={lang === 'ar' ? 'معاينة التحقق من ملف العمل - لم تتغير أي بيانات' : 'Workbook validation preview — no data changed'} /></h3>
         <p>{preflight.ok
           ? (lang === 'ar' ? 'اجتاز الملف الفحوص الأولية. قد يرفض الخادم الاستيراد بعد إجراء التحقق الكامل.' : 'Basic workbook checks passed. Import may still fail server-side validation.')
           : (lang === 'ar' ? 'صحح المشكلات قبل الاستيراد.' : 'Fix the problems before importing.')}</p>
-        <ul>{preflight.sheets.map(s => <li key={s.sheet}>{s.sheet}: {s.records} {lang === 'ar' ? 'سجل' : 'records'}</li>)}</ul>
+        <ul>{preflight.sheets.map(s => <li key={s.sheet}>{s.sheet}: {s.records} <UiText text={lang === 'ar' ? 'سجل' : 'records'} /></li>)}</ul>
         {preflight.problems.map((p,i) => <p className="crit" key={i}>{p}</p>)}
         {preflight.warnings.map((w,i) => <p className="dim" key={i}>{w}</p>)}
       </section>}
       {conflict && (
         <section className="panel importask wide" role="alert">
-          <h2>{t('That code is already in use')}</h2>
+          <h2><UiText text={t('That code is already in use')} /></h2>
           {/* Code and name, no verb between them: a bare "is" is not a string
               that can be translated on its own. */}
           <p>
             <strong>{conflict.code}</strong> — <strong>{conflict.name}</strong>
             {conflict.createdAt && (
-              <span className="dim"> · {t('in this workspace since')} {new Date(conflict.createdAt)
+              <span className="dim"> · <UiText text={t('in this workspace since')} /> {new Date(conflict.createdAt)
                 .toLocaleDateString(lang === 'ar' ? 'ar' : 'en-GB',
                   { day: 'numeric', month: 'short', year: 'numeric' })}</span>
             )}
@@ -125,7 +127,7 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
           {Object.keys(conflict.holds).length > 0 && (
             <ul className="counts">
               {Object.entries(conflict.holds).map(([k, n]) => (
-                <li key={k}><strong>{n}</strong> {t(COUNTED[k] ?? k)}</li>
+                <li key={k}><strong>{n}</strong> <UiText text={t(COUNTED[k] ?? k)} /></li>
               ))}
             </ul>
           )}
@@ -134,18 +136,18 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
               one list of five things under the first heading. */}
           <div className="whathappens">
             <div>
-              <p>{t('Updating it would')}</p>
+              <p><UiText text={t('Updating it would')} /></p>
               <ul>
-                <li>{t('replace the schedule, cost lines, benefits, stakeholders and resourcing with what is in the sheet')}</li>
-                <li>{t('update register items and documents that match by name, and add the ones that do not')}</li>
-                <li>{t('add any new update entries, skipping ones already recorded word for word')}</li>
+                <li><UiText text={t('replace the schedule, cost lines, benefits, stakeholders and resourcing with what is in the sheet')} /></li>
+                <li><UiText text={t('update register items and documents that match by name, and add the ones that do not')} /></li>
+                <li><UiText text={t('add any new update entries, skipping ones already recorded word for word')} /></li>
               </ul>
             </div>
             <div>
-              <p>{t('It would not touch')}</p>
+              <p><UiText text={t('It would not touch')} /></p>
               <ul>
-                <li>{t('the gates, their checklists, or anything already signed off')}</li>
-                <li>{t('register items and documents that are not named in the sheet')}</li>
+                <li><UiText text={t('the gates, their checklists, or anything already signed off')} /></li>
+                <li><UiText text={t('register items and documents that are not named in the sheet')} /></li>
               </ul>
             </div>
           </div>
@@ -154,10 +156,10 @@ export function ImportPanel({ lang }: { lang?: Lang }) {
               {busy ? t('Updating…') : `${t('Update')} ${conflict.code}`}
             </button>
             <button className="btn ghost" type="button" onClick={() => setReport(null)}>
-              {t('Cancel')}
+              <UiText text={t('Cancel')} />
             </button>
           </div>
-          <p className="dim">{t('To load it as a separate project instead, change the project code in the sheet and upload again.')}</p>
+          <p className="dim"><UiText text={t('To load it as a separate project instead, change the project code in the sheet and upload again.')} /></p>
         </section>
       )}
 
@@ -177,18 +179,18 @@ export function Report({ t, r }: { t: (s: string) => string; r: ImportReport }) 
       {r.ok && (
         <ul className="counts">
           {Object.entries(r.created).map(([k, n]) => (
-            <li key={k}><strong>{n}</strong> {t(COUNTED[k] ?? k)}</li>
+            <li key={k}><strong>{n}</strong> <UiText text={t(COUNTED[k] ?? k)} /></li>
           ))}
         </ul>
       )}
       {r.problems.map((p, i) => <p className="crit" key={i}>{p}</p>)}
       {r.warnings.length > 0 && (
         <>
-          <h3>{t('Worth knowing')}</h3>
+          <h3><UiText text={t('Worth knowing')} /></h3>
           <ul className="warns">{r.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
         </>
       )}
-      {r.ok && r.projectCode && <a className="btn" href="/governance">{t('Govern it')}</a>}
+      {r.ok && r.projectCode && <a className="btn" href="/governance"><UiText text={t('Govern it')} /></a>}
     </div>
   );
 }

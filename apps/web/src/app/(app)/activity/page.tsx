@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -19,35 +20,35 @@ export default async function Activity() {
           <>
             <section className="design-context" aria-label={labelFor("Activity and attention snapshot")}>
               <div className="design-context-head">
-                <span className="design-kicker">{labelFor("EXECUTIVE ATTENTION")}</span>
-                <h2>{labelFor("Decisions and recorded activity")}</h2>
-                <p>{labelFor("These figures reflect the records returned by the current API response, not necessarily all historical events.")}</p>
+                <span className="design-kicker"><UiText text={labelFor("EXECUTIVE ATTENTION")} /></span>
+                <h2><UiText text={labelFor("Decisions and recorded activity")} /></h2>
+                <p><UiText text={labelFor("These figures reflect the records returned by the current API response, not necessarily all historical events.")} /></p>
               </div>
               <div className="design-summary">
                 <div className="design-metric">
-                  <small>{t('Needs a decision')}</small><strong>{d.needs.length}</strong>
+                  <small><UiText text={t('Needs a decision')} /></small><strong>{d.needs.length}</strong>
                 </div>
                 <div className="design-metric">
-                  <small>{labelFor("Returned audit entries")}</small><strong>{d.feed.length}</strong>
+                  <small><UiText text={labelFor("Returned audit entries")} /></small><strong>{d.feed.length}</strong>
                 </div>
                 <div className="design-metric">
-                  <small>{labelFor("Items with due dates")}</small>
+                  <small><UiText text={labelFor("Items with due dates")} /></small>
                   <strong>{d.needs.filter((item: { due?: string | null }) => Boolean(item.due)).length}</strong>
                 </div>
               </div>
             </section>
-            <h2 className="sec" style={{ marginTop: 0 }}>{t('Needs a decision')}</h2>
-            {d.needs.length === 0 ? <p className="quietempty">{t('Nothing outstanding.')}</p> : (
+            <h2 className="sec" style={{ marginTop: 0 }}><UiText text={t('Needs a decision')} /></h2>
+            {d.needs.length === 0 ? <p className="quietempty"><UiText text={t('Nothing outstanding.')} /></p> : (
               <div className="design-table-scroll" role="region"
                    aria-label={labelFor("Items requiring a decision")} tabIndex={0}>
                 <table>
-                <thead><tr><th>{t('Type')}</th><th>{t('Project')}</th><th>{t('Detail')}</th><th>{t('Due')}</th></tr></thead>
+                <thead><tr><th><UiText text={t('Type')} /></th><th><UiText text={t('Project')} /></th><th><UiText text={t('Detail')} /></th><th><UiText text={t('Due')} /></th></tr></thead>
                 <tbody>{d.needs.map((n: any, i: number) => (
                   <tr key={i}>
                     <td><span className={`kind ${n.kind === 'Gate blocked' ? 'k-dependency' : n.kind === 'Overdue task' ? 'k-risk' : ''}`}>
                       {/* The API sends these as words, not codes, so they are
                           UI text and need translating like any other label. */}
-                      {t(n.kind)}</span></td>
+                      <UiText text={t(n.kind)} /></span></td>
                     <td className="num">{n.ref}</td>
                     <td>{n.detail}</td>
                     <td className={n.due && new Date(n.due) < new Date() ? 'crit' : undefined}>
@@ -57,9 +58,9 @@ export default async function Activity() {
               </div>
             )}
 
-            <h2 className="sec">{t('Audit trail')}</h2>
+            <h2 className="sec"><UiText text={t('Audit trail')} /></h2>
             {d.feed.length === 0
-              ? <p className="quietempty">{t('No activity recorded yet. Create or change a project and it will appear here.')}</p>
+              ? <p className="quietempty"><UiText text={t('No activity recorded yet. Create or change a project and it will appear here.')} /></p>
               : (
                 <ol className="feed">
                   {d.feed.map((e: any) => (

@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { pageArabic } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -48,20 +49,20 @@ export default async function Benefits({ searchParams }:
           <>
             <section className="design-context" aria-label={labelFor("Benefits snapshot")}>
               <div className="design-context-head">
-                <span className="design-kicker">{labelFor("BENEFIT REALIZATION")}</span>
-                <h2>{labelFor("Recorded benefit status")}</h2>
-                <p>{labelFor("These counts reflect the status of benefits returned by the authorized API, not an independently calculated assessment of value realized.")}</p>
+                <span className="design-kicker"><UiText text={labelFor("BENEFIT REALIZATION")} /></span>
+                <h2><UiText text={labelFor("Recorded benefit status")} /></h2>
+                <p><UiText text={labelFor("These counts reflect the status of benefits returned by the authorized API, not an independently calculated assessment of value realized.")} /></p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{labelFor("Returned benefits")}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{labelFor("Marked realized")}</small><strong>{list.filter((b: { status: string }) => b.status === 'realized').length}</strong></div>
-                <div className="design-metric"><small>{labelFor("Marked missed")}</small><strong>{list.filter((b: { status: string }) => b.status === 'missed').length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("Returned benefits")} /></small><strong>{list.length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("Marked realized")} /></small><strong>{list.filter((b: { status: string }) => b.status === 'realized').length}</strong></div>
+                <div className="design-metric"><small><UiText text={labelFor("Marked missed")} /></small><strong>{list.filter((b: { status: string }) => b.status === 'missed').length}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Benefits register")} tabIndex={0}><table>
               <thead><tr>
-                <th scope="col">{t('Benefit')}</th><th scope="col">{t('Project')}</th><th scope="col">{t('Measure')}</th><th scope="col">{t('Baseline')}</th>
-                <th scope="col">{t('Target')}</th><th scope="col">{t('Actual')}</th><th scope="col">{t('Progress')}</th><th scope="col">{t('Review')}</th><th scope="col">{t('Status')}</th>
+                <th scope="col"><UiText text={t('Benefit')} /></th><th scope="col"><UiText text={t('Project')} /></th><th scope="col"><UiText text={t('Measure')} /></th><th scope="col"><UiText text={t('Baseline')} /></th>
+                <th scope="col"><UiText text={t('Target')} /></th><th scope="col"><UiText text={t('Actual')} /></th><th scope="col"><UiText text={t('Progress')} /></th><th scope="col"><UiText text={t('Review')} /></th><th scope="col"><UiText text={t('Status')} /></th>
               </tr></thead>
               <tbody>
                 {list.map((b: any) => (
@@ -70,7 +71,7 @@ export default async function Benefits({ searchParams }:
                       {b.owner && <div className="dim">{b.owner}</div>}</td>
                     <td className="num">{b.projectCode ?? '—'}</td>
                     <td className="dim">{b.measure}
-                      {b.direction === 'decrease' && <div className="kind">{labelFor("lower is better")}</div>}</td>
+                      {b.direction === 'decrease' && <div className="kind"><UiText text={labelFor("lower is better")} /></div>}</td>
                     <td className="num">{num(b.baseline)}</td>
                     <td className="num">{num(b.target)}</td>
                     <td className="num">{num(b.actual)}</td>
@@ -79,14 +80,14 @@ export default async function Benefits({ searchParams }:
                         <i aria-hidden="true" style={{ width: `${benefitBarWidth(Number(b.pctOfTarget))}%` }} /></div>
                         <span className="dim">{fill(labelFor('{pct}% of the way from baseline to target'), {pct: b.pctOfTarget})}</span></>)}</td>
                     <td>{when(b.reviewDate, lang)}</td>
-                    <td><span className={`pill b-${b.status}`}>{localizedStatus('benefits', b.status, locale)}</span></td>
+                    <td><span className={`pill b-${b.status}`}><UiText text={localizedStatus('benefits', b.status, locale)} /></span></td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
             <details className="explain">
-              <summary>{t('Why benefits are tracked separately from delivery')}</summary>
-              <p>{t('A project can finish on time and on budget and still deliver nothing of value. Benefits have their own owner and their own review date — often a year or more after handover — so the question &ldquo;was this worth doing?&rdquo; still gets asked once the delivery team has moved on. Baseline is where you started, target is what you promised, actual is where you are.')}</p>
+              <summary><UiText text={t('Why benefits are tracked separately from delivery')} /></summary>
+              <p><UiText text={t('A project can finish on time and on budget and still deliver nothing of value. Benefits have their own owner and their own review date — often a year or more after handover — so the question &ldquo;was this worth doing?&rdquo; still gets asked once the delivery team has moved on. Baseline is where you started, target is what you promised, actual is where you are.')} /></p>
             </details>
           </>
         )}

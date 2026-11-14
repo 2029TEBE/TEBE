@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { usePathname } from 'next/navigation';
 import { NAV } from '@/lib/nav';
 import { navigationArabic } from '@pmo/contracts';
@@ -28,7 +30,7 @@ export function Crumbs({ ar, locale = 'en-US' }: { ar: boolean; locale?: Fronten
   }
   return (
     <nav className="crumbs" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'} aria-label={labelFor('Breadcrumb')}>
-      <span>{labelFor('The EPMO')}</span>
+      <span><UiText text={labelFor('The EPMO')} /></span>
       {group && <><span className="sep" aria-hidden="true">/</span><span>{group}</span></>}
       <span className="sep" aria-hidden="true">/</span><b aria-current="page">{label}</b>
     </nav>

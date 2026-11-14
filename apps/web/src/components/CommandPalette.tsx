@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,8 +49,8 @@ export function CommandPalette({ commands, lang }: { commands: Cmd[]; lang?: Lan
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
           <circle cx="7" cy="7" r="4.3" /><path d="M10.3 10.3L14 14" strokeLinecap="round" />
         </svg>
-        {t('Search')}
-        <kbd>⌘K</kbd>
+        <UiText text={t('Search')} />
+        <kbd><UiText text={"⌘K"} /></kbd>
       </button>
 
       {open && (
@@ -57,7 +59,7 @@ export function CommandPalette({ commands, lang }: { commands: Cmd[]; lang?: Lan
             <input ref={input} value={q} placeholder={t('Jump to a module…')}
                    onChange={(e) => { setQ(e.target.value); setI(0); }} onKeyDown={onKeyDown}
                    aria-label={t('Search')} dir="auto" />
-            {hits.length === 0 ? <div className="none">{t('Nothing matches')} “{q}”.</div> : (
+            {hits.length === 0 ? <div className="none"><UiText text={t('Nothing matches')} /> “{q}”.</div> : (
               <ul>
                 {hits.map((c, n) => (
                   <li key={c.href} data-active={n === i} onMouseEnter={() => setI(n)}>
@@ -68,7 +70,7 @@ export function CommandPalette({ commands, lang }: { commands: Cmd[]; lang?: Lan
                 ))}
               </ul>
             )}
-            <footer><span><kbd>↑↓</kbd> {t('move')}</span><span><kbd>↵</kbd> {t('open')}</span><span><kbd>esc</kbd> {t('close')}</span></footer>
+            <footer><span><kbd>↑↓</kbd> <UiText text={t('move')} /></span><span><kbd>↵</kbd> <UiText text={t('open')} /></span><span><kbd><UiText text={"esc"} /></kbd> <UiText text={t('close')} /></span></footer>
           </div>
         </div>
       )}

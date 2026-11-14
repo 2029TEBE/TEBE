@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useEffect, useId, useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { validateCreateForm, formErrorText } from '@/lib/create-form-validation.mjs';
@@ -116,7 +118,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
   if (!open) {
     return (
       <button className="btn newbtn" type="button" onClick={() => setOpen(true)}>
-        <span aria-hidden="true">+</span> {t(title)}
+        <span aria-hidden="true">+</span> <UiText text={t(title)} />
       </button>
     );
   }
@@ -126,10 +128,10 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
       <input type="hidden" name="__kind" value={kind} />
       <input type="hidden" name="__returnTo" value={returnTo} />
       <header>
-        <strong>{t(title)}</strong>
+        <strong><UiText text={t(title)} /></strong>
         <button type="button" className="x" disabled={busy} onClick={() => setOpen(false)} aria-label={t('Cancel')}>×</button>
       </header>
-      {intro && <p className="dim intro">{t(intro)}</p>}
+      {intro && <p className="dim intro"><UiText text={t(intro)} /></p>}
       {error && <p className="formerr" role="alert">{error}</p>}
       <div className="grid">
         {fields.map(f => {
@@ -142,18 +144,18 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
               {f.type === 'checkbox' ? (
                 <span className="check">
                   <input type="checkbox" name={f.name} defaultChecked={f.defaultChecked} onChange={() => clearFieldError(f.name)} />
-                  {t(f.label)}
+                  <UiText text={t(f.label)} />
                 </span>
               ) : (
                 <>
-                  <span className="cap">{t(f.label)}{f.required && <em aria-hidden="true">*</em>}</span>
-                  {f.hint && <small className="dim" id={hintId}>{t(f.hint)}</small>}
+                  <span className="cap"><UiText text={t(f.label)} />{f.required && <em aria-hidden="true">*</em>}</span>
+                  {f.hint && <small className="dim" id={hintId}><UiText text={t(f.hint)} /></small>}
                   {f.type === 'select' ? (
                     <select name={f.name} required={f.required} defaultValue={f.defaultValue ?? ''}
                             aria-invalid={invalid} aria-describedby={describedBy}
                             onChange={() => clearFieldError(f.name)} onKeyDown={openPicker}>
-                      <option value="">{t(f.required ? 'Choose…' : '— none —')}</option>
-                      {f.options.map(o => <option key={o.value} value={o.value}>{t(o.label)}</option>)}
+                      <option value=""><UiText text={t(f.required ? 'Choose…' : '— none —')} /></option>
+                      {f.options.map(o => <option key={o.value} value={o.value}><UiText text={t(o.label)} /></option>)}
                     </select>
                   ) : f.type === 'textarea' ? (
                     <textarea name={f.name} rows={3} placeholder={f.placeholder}
@@ -179,7 +181,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         <button className="btn" type="submit" disabled={busy}>
           {busy ? t('Saving…') : t(cta ?? 'Create')}
         </button>
-        <button className="btn ghost" type="button" disabled={busy} onClick={() => setOpen(false)}>{t('Cancel')}</button>
+        <button className="btn ghost" type="button" disabled={busy} onClick={() => setOpen(false)}><UiText text={t('Cancel')} /></button>
       </footer>
     </form>
   );
@@ -196,6 +198,6 @@ export function Flash({ error, done, lang }: { error?: string; done?: string; la
   const t = translator(lang ?? 'en');
   if (error) return <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{lang === 'ar' ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.' : t(error)}</p>;
   if (done) return <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}>
-    {t('Created')}: {t(done)}</p>;
+    <UiText text={t('Created')} />: <UiText text={t(done)} /></p>;
   return null;
 }

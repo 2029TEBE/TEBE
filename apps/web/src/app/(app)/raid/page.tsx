@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
@@ -38,14 +39,14 @@ export default async function RaidPage({ searchParams }:
 
             {items.length === 0 ? (
               <div className="empty">
-                <strong>{t('The register is empty')}</strong>
-                <p>{t('Add risks, issues and dependencies above. Pointing one at a gate is what turns a register entry into a control.')}</p>
+                <strong><UiText text={t('The register is empty')} /></strong>
+                <p><UiText text={t('Add risks, issues and dependencies above. Pointing one at a gate is what turns a register entry into a control.')} /></p>
               </div>
             ) : (
               <div className="design-table-scroll" role="region" aria-label={t('Risk and issue register')} tabIndex={0}><table>
                 <thead>
-                  <tr><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Item')}</th><th>{t('Risk')}</th>
-                      <th>{t('Owner')}</th><th>{t('Blocks')}</th><th>{t('Status')}</th></tr>
+                  <tr><th><UiText text={t('Project')} /></th><th><UiText text={t('Type')} /></th><th><UiText text={t('Item')} /></th><th><UiText text={t('Risk')} /></th>
+                      <th><UiText text={t('Owner')} /></th><th><UiText text={t('Blocks')} /></th><th><UiText text={t('Status')} /></th></tr>
                 </thead>
                 <tbody>
                   {items.map((r: any) => (
@@ -55,9 +56,9 @@ export default async function RaidPage({ searchParams }:
                       <td><strong>{r.title}</strong>{r.detail && <div className="dim">{r.detail}</div>}</td>
                       <td className="num">{r.severity && r.likelihood
                         ? <span className={r.severity * r.likelihood >= 15 ? 'crit' : 'warnt'}>
-                            {r.severity * r.likelihood} of 25</span>
+                            {r.severity * r.likelihood} <UiText text={" of 25"} /></span>
                         : <span className="dim">—</span>}</td>
-                      <td>{r.owner ?? <span className="dim">unassigned</span>}</td>
+                      <td>{r.owner ?? <span className="dim"><UiText text={"unassigned"} /></span>}</td>
                       <td>{r.blocksGate
                         ? <span className="crit">{r.blocksGate}</span>
                         : <span className="dim">—</span>}</td>

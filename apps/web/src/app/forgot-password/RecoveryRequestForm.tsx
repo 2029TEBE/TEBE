@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { authFormLabel } from '@pmo/contracts';
 import { useState, type FormEvent } from 'react';
 export function RecoveryRequestForm({ lang }: { lang: 'en' | 'ar' }) {
@@ -17,9 +19,9 @@ export function RecoveryRequestForm({ lang }: { lang: 'en' | 'ar' }) {
       setComplete(true); setEmail('');
     } catch(e) { setError((e as Error).message); } finally { setBusy(false); }
   }
-  if (complete) return <p role="status">{t("If an active account exists, a recovery link will be emailed.")}</p>;
+  if (complete) return <p role="status"><UiText text={t("If an active account exists, a recovery link will be emailed.")} /></p>;
   return <form className="authform" onSubmit={submit}>
-    <label>{t("Account email")}
+    <label><UiText text={t("Account email")} />
       <input type="email" autoComplete="email" value={email} required maxLength={254}
         onChange={e => setEmail(e.target.value)} /></label>
     {error && <p role="alert" className="formerr">{error}</p>}

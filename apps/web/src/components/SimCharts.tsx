@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import type { T } from '@pmo/contracts';
 
 /**
@@ -26,10 +27,10 @@ export function TrendPanel({ t, points, eyebrow, title, note }:
     return (
       <section className="simpanel">
         <div className="simpanel-head">
-          <div><small>{t(eyebrow)}</small><h3>{t(title)}</h3></div>
+          <div><small><UiText text={t(eyebrow)} /></small><h3><UiText text={t(title)} /></h3></div>
         </div>
         <p className="dim" style={{ margin: '18px 0 4px' }}>
-          {t('Not enough history yet to draw a trend.')}
+          <UiText text={t('Not enough history yet to draw a trend.')} />
         </p>
       </section>
     );
@@ -45,8 +46,8 @@ export function TrendPanel({ t, points, eyebrow, title, note }:
   return (
     <section className="simpanel">
       <div className="simpanel-head">
-        <div><small>{t(eyebrow)}</small><h3>{t(title)}</h3></div>
-        {note && <span>{t(note)}</span>}
+        <div><small><UiText text={t(eyebrow)} /></small><h3><UiText text={t(title)} /></h3></div>
+        {note && <span><UiText text={t(note)} /></span>}
       </div>
       <svg className="simchart" viewBox={`0 0 ${VB_W} ${VB_H}`} role="img"
            aria-label={t(title)} preserveAspectRatio="none">
@@ -63,8 +64,8 @@ export function TrendPanel({ t, points, eyebrow, title, note }:
         </g>
       </svg>
       <div className="simlegend">
-        <span><i className="is-line" />{t('Spent to date')}</span>
-        <span><i className="is-target" />{t('Planned')}</span>
+        <span><i className="is-line" /><UiText text={t('Spent to date')} /></span>
+        <span><i className="is-target" /><UiText text={t('Planned')} /></span>
       </div>
     </section>
   );
@@ -84,18 +85,18 @@ export function HealthDonut({ t, onTrack, atRisk, critical, eyebrow, title }:
   return (
     <section className="simpanel">
       <div className="simpanel-head">
-        <div><small>{t(eyebrow)}</small><h3>{t(title)}</h3></div>
+        <div><small><UiText text={t(eyebrow)} /></small><h3><UiText text={t(title)} /></h3></div>
       </div>
       <div className="simdonut-wrap">
         <div className="simdonut" style={{ background: ring }}
              role="img" aria-label={`${onTrack} ${t('on track')}, ${atRisk} ${t('at risk')}, ${critical} ${t('critical')}`}>
-          <span>{total}</span><small>{t('projects')}</small>
+          <span>{total}</span><small><UiText text={t('projects')} /></small>
         </div>
       </div>
       <div className="simstatus">
-        <span><i className="green" />{t('On track')}<b>{onTrack}</b></span>
-        <span><i className="amber" />{t('At risk')}<b>{atRisk}</b></span>
-        <span><i className="red" />{t('Critical')}<b>{critical}</b></span>
+        <span><i className="green" /><UiText text={t('On track')} /><b>{onTrack}</b></span>
+        <span><i className="amber" /><UiText text={t('At risk')} /><b>{atRisk}</b></span>
+        <span><i className="red" /><UiText text={t('Critical')} /><b>{critical}</b></span>
       </div>
     </section>
   );

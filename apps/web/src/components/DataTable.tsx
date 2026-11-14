@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { useMemo, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { compareTableValues, formatTableCount } from '@/lib/table-locale.mjs';
@@ -75,8 +77,8 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
 
       {view.length === 0 ? (
         <div className="empty">
-          <strong>{t(q ? 'Nothing matches that filter' : (empty ?? 'Nothing here yet'))}</strong>
-          {q && <p>{t('Try a shorter search, or clear the filter.')}</p>}
+          <strong><UiText text={t(q ? 'Nothing matches that filter' : (empty ?? 'Nothing here yet'))} /></strong>
+          {q && <p><UiText text={t('Try a shorter search, or clear the filter.')} /></p>}
         </div>
       ) : (
         <div className="scrollx" role="region" aria-label={locale === 'ar' ? 'نتائج الجدول' : 'Table results'} tabIndex={0}>
@@ -93,7 +95,7 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
                         <button type="button" className={`sortbtn${on ? ' on' : ''}`}
                                 aria-label={locale === 'ar' ? `ترتيب حسب ${t(c.head)}` : `Sort by ${t(c.head)}`}
                                 onClick={() => toggle(c.key)}>
-                          {t(c.head)}
+                          <UiText text={t(c.head)} />
                           <span className="arrow" aria-hidden="true">{on ? (sort!.dir === 'asc' ? '↑' : '↓') : '↕'}</span>
                         </button>
                       ) : t(c.head)}

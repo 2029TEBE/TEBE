@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api, getSession } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
@@ -40,69 +41,69 @@ export default async function Settings({ searchParams }:
       <Flash error={error} done={done} lang={lang} />
       <Loaded load={api.workspaceProfile}>
         {(profile) => <section className="panel" style={{ marginBottom: 18 }}>
-          <h2 className="sec" style={{ marginTop: 0 }}>{labelFor("Organization profile")}</h2>
+          <h2 className="sec" style={{ marginTop: 0 }}><UiText text={labelFor("Organization profile")} /></h2>
           {mayEditProfile ? <form action="/api/onboarding" method="post" style={{ display: 'grid', gap: 10, maxWidth: 500 }}>
             <input type="hidden" name="action" value="profile" />
-            <label>{labelFor("Display name")}<input name="displayName" defaultValue={profile.displayName} required minLength={2} maxLength={120} /></label>
-            <label>{labelFor("Arabic name")}<input name="nameAr" defaultValue={profile.nameAr ?? ''} dir="auto" maxLength={120} /></label>
-            <label>{labelFor("Contact email")}<input type="email" name="contactEmail" defaultValue={profile.contactEmail ?? ''} maxLength={254} /></label>
-            <p className="dim">{labelFor("Permanent identifier:")} <code>{profile.slug}</code></p>
-            <button type="submit">{labelFor("Save profile")}</button>
+            <label><UiText text={labelFor("Display name")} /><input name="displayName" defaultValue={profile.displayName} required minLength={2} maxLength={120} /></label>
+            <label><UiText text={labelFor("Arabic name")} /><input name="nameAr" defaultValue={profile.nameAr ?? ''} dir="auto" maxLength={120} /></label>
+            <label><UiText text={labelFor("Contact email")} /><input type="email" name="contactEmail" defaultValue={profile.contactEmail ?? ''} maxLength={254} /></label>
+            <p className="dim"><UiText text={labelFor("Permanent identifier:")} /> <code>{profile.slug}</code></p>
+            <button type="submit"><UiText text={labelFor("Save profile")} /></button>
           </form> : <div><strong>{profile.displayName}</strong><p className="dim">{profile.nameAr ?? ''} · {profile.contactEmail ?? ''}</p></div>}
         </section>}
       </Loaded>
       {mayAddPeople ? <section className="panel" style={{ marginBottom: 18 }}>
-        <h2 className="sec" style={{ marginTop: 0 }}>{labelFor("Invite a colleague by email")}</h2>
-        <p className="dim">{labelFor("A secure, single-use link that expires after 72 hours. Amazon SES email delivery must be configured.")}</p>
+        <h2 className="sec" style={{ marginTop: 0 }}><UiText text={labelFor("Invite a colleague by email")} /></h2>
+        <p className="dim"><UiText text={labelFor("A secure, single-use link that expires after 72 hours. Amazon SES email delivery must be configured.")} /></p>
         <form action="/api/onboarding" method="post" style={{ display: 'grid', gap: 10, maxWidth: 500 }}>
           <input type="hidden" name="action" value="invite" />
           <input type="hidden" name="lang" value={lang} />
-          <label>{labelFor("Email address")}<input name="email" type="email" required maxLength={254} /></label>
-          <label>{labelFor("Role")}
+          <label><UiText text={labelFor("Email address")} /><input name="email" type="email" required maxLength={254} /></label>
+          <label><UiText text={labelFor("Role")} />
             <select name="role" required>{ASSIGNABLE_ROLES.map(r => <option key={r} value={r}>{(lang === 'ar' ? ROLE_LABELS[r]?.ar : ROLE_LABELS[r]?.en) ?? r}</option>)}</select>
           </label>
-          <button type="submit">{labelFor("Send invitation")}</button>
+          <button type="submit"><UiText text={labelFor("Send invitation")} /></button>
         </form>
         <Loaded load={api.workspaceInvitations}>
           {(invites) => invites.length ? <div style={{ marginTop: 18 }}>
-            <h3>{labelFor("Recent invitations")}</h3>
-            <div className="design-table-scroll" role="region" aria-label={labelFor("Recent invitations")} tabIndex={0}><table><thead><tr><th>{labelFor("Email")}</th><th>{labelFor("Role")}</th><th>{labelFor("Status")}</th><th>{labelFor("Action")}</th></tr></thead>
+            <h3><UiText text={labelFor("Recent invitations")} /></h3>
+            <div className="design-table-scroll" role="region" aria-label={labelFor("Recent invitations")} tabIndex={0}><table><thead><tr><th><UiText text={labelFor("Email")} /></th><th><UiText text={labelFor("Role")} /></th><th><UiText text={labelFor("Status")} /></th><th><UiText text={labelFor("Action")} /></th></tr></thead>
               <tbody>{invites.map(i => <tr key={i.id}><td>{i.email}</td>
                 <td>{(lang === 'ar' ? ROLE_LABELS[i.role]?.ar : ROLE_LABELS[i.role]?.en) ?? i.role}</td>
                 <td>{i.consumedAt ? (labelFor("Accepted")) : i.revokedAt ? (labelFor("Revoked")) : i.deliveryStatus}</td>
                 <td>{!i.revokedAt && !i.consumedAt ? <form action="/api/onboarding" method="post">
                   <input type="hidden" name="action" value="revoke" /><input type="hidden" name="id" value={i.id} />
-                  <button type="submit">{labelFor("Revoke")}</button>
+                  <button type="submit"><UiText text={labelFor("Revoke")} /></button>
                 </form> : null}</td></tr>)}</tbody></table></div>
-          </div> : <p className="dim">{labelFor("No invitations yet.")}</p>}
+          </div> : <p className="dim"><UiText text={labelFor("No invitations yet.")} /></p>}
         </Loaded>
-      </section> : <p className="dim">{labelFor("Only authorized workspace administrators can invite members.")}</p>}
+      </section> : <p className="dim"><UiText text={labelFor("Only authorized workspace administrators can invite members.")} /></p>}
       <Loaded load={api.settings}>
         {(d) => (
           <>
             <div className="tiles">
-              <div className="tile"><span>{t('Members')}</span><strong>{d.counts.members}</strong></div>
-              <div className="tile"><span>{t('Projects')}</span><strong>{d.counts.projects}</strong></div>
-              <div className="tile"><span>{t('Custom fields')}</span><strong>{d.counts.customFields}</strong></div>
-              <div className="tile"><span>{t('Active automations')}</span><strong>{d.counts.automations}</strong></div>
-              <div className="tile"><span>{t('Connected systems')}</span><strong>{d.counts.integrations}</strong></div>
+              <div className="tile"><span><UiText text={t('Members')} /></span><strong>{d.counts.members}</strong></div>
+              <div className="tile"><span><UiText text={t('Projects')} /></span><strong>{d.counts.projects}</strong></div>
+              <div className="tile"><span><UiText text={t('Custom fields')} /></span><strong>{d.counts.customFields}</strong></div>
+              <div className="tile"><span><UiText text={t('Active automations')} /></span><strong>{d.counts.automations}</strong></div>
+              <div className="tile"><span><UiText text={t('Connected systems')} /></span><strong>{d.counts.integrations}</strong></div>
             </div>
 
-            <h2 className="sec">{t('Workspace')}</h2>
+            <h2 className="sec"><UiText text={t('Workspace')} /></h2>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Workspace details")} tabIndex={0}><table>
               <tbody>
-                <tr><td style={{ width: 200 }}><strong>{labelFor("Name")}</strong></td><td>{d.tenant.name}</td></tr>
-                <tr><td><strong>{t('Identifier')}</strong></td><td><code>{d.tenant.slug}</code></td></tr>
-                <tr><td><strong>{t('Created')}</strong></td><td>{when(d.tenant.createdAt, lang)}</td></tr>
-                <tr><td><strong>{t('Data isolation')}</strong></td>
-                    <td><span className="pill on_track">{labelFor("enforced by the database")}</span>
-                      <div className="dim">{t('No query from this workspace can return another workspace’s rows.')}</div></td></tr>
+                <tr><td style={{ width: 200 }}><strong><UiText text={labelFor("Name")} /></strong></td><td>{d.tenant.name}</td></tr>
+                <tr><td><strong><UiText text={t('Identifier')} /></strong></td><td><code>{d.tenant.slug}</code></td></tr>
+                <tr><td><strong><UiText text={t('Created')} /></strong></td><td>{when(d.tenant.createdAt, lang)}</td></tr>
+                <tr><td><strong><UiText text={t('Data isolation')} /></strong></td>
+                    <td><span className="pill on_track"><UiText text={labelFor("enforced by the database")} /></span>
+                      <div className="dim"><UiText text={t('No query from this workspace can return another workspace’s rows.')} /></div></td></tr>
               </tbody>
             </table></div>
 
-            <h2 className="sec">{t('Members')}</h2>
+            <h2 className="sec"><UiText text={t('Members')} /></h2>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Workspace members")} tabIndex={0}><table>
-              <thead><tr><th>{t('Name')}</th><th>{t('Email')}</th><th>{t('Role')}</th></tr></thead>
+              <thead><tr><th><UiText text={t('Name')} /></th><th><UiText text={t('Email')} /></th><th><UiText text={t('Role')} /></th></tr></thead>
               <tbody>{d.members.map((m: any) => (
                 <tr key={m.email}>
                   <td><strong>{m.name}</strong></td>
@@ -115,23 +116,23 @@ export default async function Settings({ searchParams }:
                 </tr>))}</tbody>
             </table></div>
 
-            <h2 className="sec">{t('What your role can do')}</h2>
+            <h2 className="sec"><UiText text={t('What your role can do')} /></h2>
             <p className="dim" style={{ marginTop: '-8px' }}>
-              {t('You are signed in as')} <strong>{(lang === 'ar'
+              <UiText text={t('You are signed in as')} /> <strong>{(lang === 'ar'
                 ? ROLE_LABELS[d.yourRole as keyof typeof ROLE_LABELS]?.ar
                 : ROLE_LABELS[d.yourRole as keyof typeof ROLE_LABELS]?.en) ?? d.yourRole.replace(/_/g, ' ')}</strong>.
-              {' '}{labelFor("Permissions are checked per capability, never per role — which is why adding a role never means rewriting a permission check.")}
+              {' '}<UiText text={labelFor("Permissions are checked per capability, never per role — which is why adding a role never means rewriting a permission check.")} />
             </p>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Current role capabilities")} tabIndex={0}><table>
-              <thead><tr><th>{t('Capability')}</th><th>{t('What it allows')}</th><th>{t('You')}</th></tr></thead>
+              <thead><tr><th><UiText text={t('Capability')} /></th><th><UiText text={t('What it allows')} /></th><th><UiText text={t('You')} /></th></tr></thead>
               <tbody>{Object.entries(CAP_MEANING).map(([cap, meaning]) => {
                 const has = d.yourCapabilities.includes(cap);
                 return (
                   <tr key={cap}>
                     <td><code>{cap}</code></td>
-                    <td className="dim">{t(meaning)}</td>
-                    <td>{has ? <span className="pill on_track">{t('yes')}</span>
-                             : <span className="pill s-closed">{t('no')}</span>}</td>
+                    <td className="dim"><UiText text={t(meaning)} /></td>
+                    <td>{has ? <span className="pill on_track"><UiText text={t('yes')} /></span>
+                             : <span className="pill s-closed"><UiText text={t('no')} /></span>}</td>
                   </tr>);
               })}</tbody>
             </table></div>

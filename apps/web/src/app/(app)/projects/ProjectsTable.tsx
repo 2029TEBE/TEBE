@@ -1,4 +1,6 @@
 'use client';
+
+import { UiText } from '@/components/UiLocale';
 import { DataTable, type Col } from '@/components/DataTable';
 import { money, when } from '@/lib/fmt';
 import { translator, type Lang } from '@/lib/i18n-dict';
@@ -18,14 +20,14 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
     cell: (r) => <span className="num">{r.code}</span> },
   { key: 'name', head: 'Project', value: (r) => r.name,
     cell: (r) => <><strong>{r.name}</strong><div><Link href={`/governance/${r.id}`}>
-      {lang === 'ar' ? 'فتح الحوكمة' : 'Open governance'}
+      <UiText text={lang === 'ar' ? 'فتح الحوكمة' : 'Open governance'} />
     </Link></div></> },
   { key: 'status', head: 'Status', value: (r) => r.status,
-    cell: (r) => <span className="kind">{t(r.status.replace('_', ' '))}</span> },
+    cell: (r) => <span className="kind"><UiText text={t(r.status.replace('_', ' '))} /></span> },
   { key: 'health', head: 'Health',
     // Sort by severity, not alphabetically — critical must come first.
     value: (r) => ({ critical: 0, at_risk: 1, on_track: 2 } as any)[r.health] ?? 3,
-    cell: (r) => <span className={`pill ${r.health}`}>{t(r.health.replace('_', ' '))}</span> },
+    cell: (r) => <span className={`pill ${r.health}`}><UiText text={t(r.health.replace('_', ' '))} /></span> },
   { key: 'progress', head: 'Progress', value: (r) => r.progressPct,
     cell: (r) => (
       <>

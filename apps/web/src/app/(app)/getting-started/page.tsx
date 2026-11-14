@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { gettingStartedExtraArabic, fill } from '@pmo/contracts';
 import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
@@ -28,13 +29,13 @@ export default async function GettingStarted() {
   return (
     <Page title={text.title} sub={text.sub}>
       {licenseStatus === 'trialing' && <section className="panel" aria-label={labelFor("Trial guidance")} style={{ marginBlockEnd: 16 }}>
-        <strong>{labelFor("Your workspace trial")}</strong>
+        <strong><UiText text={labelFor("Your workspace trial")} /></strong>
         <p>{fill(labelFor('Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.'), {days: trialDays ?? '—'})}</p>
-        <Link href="/billing">{labelFor("Review plan and renewal")}</Link>
+        <Link href="/billing"><UiText text={labelFor("Review plan and renewal")} /></Link>
       </section>}
       {licenseStatus === 'expired' && <section className="panel" role="status" style={{ marginBlockEnd: 16 }}>
-        <p>{labelFor("The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.")}</p>
-        <Link href="/billing">{labelFor("Open billing")}</Link>
+        <p><UiText text={labelFor("The subscription has expired. Commercial modules may be unavailable until renewal is confirmed.")} /></p>
+        <Link href="/billing"><UiText text={labelFor("Open billing")} /></Link>
       </section>}
       <Loaded load={async () => ({
         data: await api.onboarding(),
@@ -65,12 +66,12 @@ export default async function GettingStarted() {
               </div>
               {data.completed === data.total && <p>{text.finished}</p>}
               {licenseStatus === 'trialing' && <div style={{ marginTop: 16 }} aria-label={labelFor("Trial success checklist")}>
-                <h3>{labelFor("Trial success goals")}</h3>
+                <h3><UiText text={labelFor("Trial success goals")} /></h3>
                 <ol>{trialChecklist(data.tasks, lang).map(step => <li key={step.key}>
-                  {step.completed ? '✓ ' : '○ '}{step.label}
+                  <UiText text={step.completed ? '✓ ' : '○ '} />{step.label}
                 </li>)}</ol>
-                <p className="dim">{labelFor("Illustrative sample only — not real data or a saved project:")}
-                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} {labelFor("risks")} · {TRIAL_EXAMPLE.decisions} {labelFor("decision")}.
+                <p className="dim"><UiText text={labelFor("Illustrative sample only — not real data or a saved project:")} />
+                  {' '}{TRIAL_EXAMPLE.project} · {TRIAL_EXAMPLE.risks} <UiText text={labelFor("risks")} /> · {TRIAL_EXAMPLE.decisions} <UiText text={labelFor("decision")} />.
                 </p>
               </div>}
             </section>

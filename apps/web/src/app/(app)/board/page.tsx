@@ -1,3 +1,4 @@
+import { UiText } from '@/components/UiLocale';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { Flash } from '@/components/NewRecord';
@@ -46,16 +47,16 @@ export default async function BoardPage({ searchParams }:
           <>
             <section className="design-context" aria-label={lang === 'ar' ? 'ملخص لوحة العمل' : 'Work board snapshot'}>
               <div className="design-context-head">
-                <span className="design-kicker">{lang === 'ar' ? 'متابعة المهام' : 'TASK DELIVERY'}</span>
-                <h2>{lang === 'ar' ? 'وضع المهام المعروضة' : 'Status of returned tasks'}</h2>
-                <p>{lang === 'ar'
+                <span className="design-kicker"><UiText text={lang === 'ar' ? 'متابعة المهام' : 'TASK DELIVERY'} /></span>
+                <h2><UiText text={lang === 'ar' ? 'وضع المهام المعروضة' : 'Status of returned tasks'} /></h2>
+                <p><UiText text={lang === 'ar'
                   ? 'تعكس المؤشرات المهام التي أعادتها واجهة البيانات الحالية، ولا تمثل بالضرورة جميع مهام المؤسسة.'
-                  : 'These figures count tasks returned by this API response, not necessarily every task across the workspace.'}</p>
+                  : 'These figures count tasks returned by this API response, not necessarily every task across the workspace.'} /></p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'المهام المعروضة' : 'Returned tasks'}</small><strong>{tasks.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام متعثرة' : 'Blocked tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'blocked').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام مكتملة' : 'Completed tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'done').length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'المهام المعروضة' : 'Returned tasks'} /></small><strong>{tasks.length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'مهام متعثرة' : 'Blocked tasks'} /></small><strong>{tasks.filter((task: { state: string }) => task.state === 'blocked').length}</strong></div>
+                <div className="design-metric"><small><UiText text={lang === 'ar' ? 'مهام مكتملة' : 'Completed tasks'} /></small><strong>{tasks.filter((task: { state: string }) => task.state === 'done').length}</strong></div>
               </div>
             </section>
             <div className="board">
@@ -74,7 +75,7 @@ export default async function BoardPage({ searchParams }:
                           <strong><bdi>{t.title}</bdi></strong>
                           <div className="dim">
                             <bdi>{t.assignee ?? (lang === 'ar' ? 'غير معين' : 'unassigned')}</bdi>
-                            {t.dueDate && <> {' · '}{lang === 'ar' ? 'الاستحقاق' : 'due'} <time dateTime={t.dueDate}>{when(t.dueDate, lang)}</time></>}
+                            {t.dueDate && <> {' · '}<UiText text={lang === 'ar' ? 'الاستحقاق' : 'due'} /> <time dateTime={t.dueDate}>{when(t.dueDate, lang)}</time></>}
                           </div>
                           <div className="moverow">
                             {prev ? <Move id={t.id} to={prev[0]} label={lang === 'ar' ? prev[2] : prev[1]}
