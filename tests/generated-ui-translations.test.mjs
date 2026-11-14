@@ -25,3 +25,29 @@ test('locale context translates only explicitly marked copy and preserves form v
   assert.doesNotMatch(source,/MutationObserver|querySelectorAll|innerHTML|fetch\(/);
   assert.match(read('apps/web/src/app/layout.tsx'),/UiLocaleProvider locale=\{locale\}/);
 });
+
+test('Spanish interpolation gaps are genuinely translated and preserve parameters', () => {
+  const cases = [
+    'Showing the first {shown} of {total} projects needing review.',
+    'The blocker is: {reason}.',
+    'Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.',
+    'Trial: {days} days',
+  ];
+  const params = value => [...value.matchAll(/\\{([a-zA-Z][\\w]*)\\}/g)].map(m => m[1]).sort();
+  for (const key of cases) {
+    assert.equal(typeof UI_TRANSLATIONS.es[key], 'string');
+    assert.notEqual(UI_TRANSLATIONS.es[key], key);
+    assert.deepEqual(params(UI_TRANSLATIONS.es[key]), params(key), key);
+  }
+});
+
+test('regional language variants cover the static inventory (regional copy still needs review)', () => {
+  for (const locale of ['es', 'es-419', 'pt-BR', 'pt-PT']) {
+    assert.deepEqual(report[locale].missing, [], `${locale}: expected inventory-complete catalog`);
+  }
+  assert.equal(UI_TRANSLATIONS['es-419']['Human confirmation required'],
+    UI_TRANSLATIONS.es['Human confirmation required']);
+  assert.equal(UI_TRANSLATIONS['pt-PT']['Human confirmation required'],
+    UI_TRANSLATIONS['pt-BR']['Human confirmation required']);
+  assert.ok(report.sw.missing.length > 0, 'do not treat still-untranslated locales as complete');
+});
