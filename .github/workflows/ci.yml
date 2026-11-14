@@ -198,7 +198,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.event_name == 'push' && github.ref == 'refs/heads/main' && '["self-hosted","linux","x64","servitro-tebe"]' || '["ubuntu-latest"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
