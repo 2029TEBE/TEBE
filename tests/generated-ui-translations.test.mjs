@@ -57,7 +57,7 @@ test('regional language variants cover the static inventory (regional copy still
 });
 
 test('bulk completion fills the selected static catalogs without masking other locales', () => {
-  const completedThisPass = ['fil', 'fr', 'id', 'it'];
+  const completedThisPass = ['fil', 'fr', 'id', 'it', 'ko'];
   for (const locale of completedThisPass) {
     assert.deepEqual(report[locale].missing, [], locale);
     assert.equal(COMPLETE_UI_LOCALES.includes(locale), true);
