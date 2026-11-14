@@ -33,7 +33,7 @@ test('Spanish interpolation gaps are genuinely translated and preserve parameter
     'Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.',
     'Trial: {days} days',
   ];
-  const params = value => [...value.matchAll(/\\{([a-zA-Z][\\w]*)\\}/g)].map(m => m[1]).sort();
+  const params = value => [...value.matchAll(/\{([a-zA-Z][\w]*)\}/g)].map(m => m[1]).sort();
   for (const key of cases) {
     assert.equal(typeof UI_TRANSLATIONS.es[key], 'string');
     assert.notEqual(UI_TRANSLATIONS.es[key], key);
