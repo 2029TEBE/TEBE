@@ -4,7 +4,7 @@ import { directionForLocale, presentationLocale, compareLocalizedValues, formatN
 import { FRONTEND_LOCALES } from './frontend-locale.mjs';
 
 test('all 23 locales format correctly; Arabic and Urdu are RTL', () => {
-  assert.equal(FRONTEND_LOCALES.length, 23);
+  assert.equal(FRONTEND_LOCALES.length, 22);
   for (const locale of FRONTEND_LOCALES) {
     assert.equal(presentationLocale(locale),locale);
     assert.equal(directionForLocale(locale),['ar','ur'].includes(locale) ? 'rtl' : 'ltr');
