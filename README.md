@@ -1,4 +1,15 @@
-# The EPMO — المكتب التنفيذي لإدارة المشاريع
+# THEEPMO — Enterprise governance application by Orgaiz
+
+> **Approved brand direction (14 Nov 2026):** Orgaiz is the master public brand; **THEEPMO is its enterprise application/product**, retaining existing governance, strategy, portfolio, project and reporting functionality. Plan for **two customer-facing web experiences** only: Orgaiz public/tools and authenticated THEEPMO; no TheOrg public site or third marketing frontend. Official planned encrypted-file extension: **`.gaiz`**.
+>
+> **App URLs in the existing documentation are current/legacy deployment references, not an approved final domain migration.** Preserve auth, tenant isolation/RLS, audits and licensing. Branding decisions do not authorize database or production-routing changes.
+>
+> **Developer rules:** [AGENTS.md](AGENTS.md) · [Cross-repository brand architecture](https://github.com/faisalwrokksa-hub/TO/blob/docs/orgaiz-brand-ownership-20261114/docs/BRAND_ARCHITECTURE.md). Legacy public marketing source: [TEFE](https://github.com/2029TEFE/TEFE).
+
+---
+
+## Existing technical and deployment notes (legacy names preserved)
+
 
 A multi-tenant delivery-governance platform: portfolios, programmes and projects
 governed by stage gates that the software actually enforces, sold as licensable
