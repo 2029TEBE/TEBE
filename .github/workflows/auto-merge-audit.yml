@@ -1,0 +1,35 @@
+name: Pull request eligibility audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+jobs:
+  audit:
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BASE: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Report pull request readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr list --repo "$GH_REPO" --base "$BASE" --limit 100 --json number,isDraft,isCrossRepository,mergeable,reviewDecision,labels,statusCheckRollup |
+            jq -r '
+              if length == 0 then "No open pull requests."
+              else .[] | "PR #\(.number): " + (
+                if .isDraft then "draft"
+                elif .isCrossRepository then "external head repository"
+                elif .mergeable != "MERGEABLE" then "mergeability: \(.mergeable)"
+                elif .reviewDecision == "CHANGES_REQUESTED" or .reviewDecision == "REVIEW_REQUIRED" then "review pending"
+                elif any(.labels[]; .name == "hold" or .name == "do-not-merge") then "hold label"
+                elif (.statusCheckRollup | length) == 0 then "no checks"
+                elif any(.statusCheckRollup[]; ((.conclusion // .state // .status) | IN("SUCCESS", "SKIPPED", "NEUTRAL") | not)) then "checks pending or unsuccessful"
+                else "candidate; GitHub branch rules still apply"
+                end)
+              end' | tee -a "$GITHUB_STEP_SUMMARY"
