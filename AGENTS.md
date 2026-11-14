@@ -21,3 +21,7 @@ Read the cross-repository [Orgaiz brand architecture](https://github.com/faisalw
 ## Change/release controls
 - Documentation-only work must not modify migrations, RLS, CI/CD, production data, deployments, Cloudflare/DNS, credentials, charging or API permissions.
 - Use reviewed PRs with tests for any future behavior changes; preserve existing THEEPMO app URLs until migration accepted and separately authorized.
+
+## Modern Web Guidance — THEEPMO application UI
+
+Consult [the repository-local Modern Web Guidance skill](.agents/skills/modern-web-guidance/SKILL.md) for the Next.js `apps/web` UI, browser JS, forms, dashboard responsiveness, keyboard accessibility and modern CSS changes. Preserve Next.js SSR/client boundaries; guard access to browser globals, adapt guides to React and existing contracts, and test RTL/Arabic, mobile/touch, keyboard and reduced-motion behavior. Do not substitute CSS/UI behavior for server-side authorization, module licensing, tenant RLS, audit immutability or API-side validation. The guidance does **not** apply to NestJS APIs, SQL, migrations or infrastructure. No auto npm install or production changes are authorized.
