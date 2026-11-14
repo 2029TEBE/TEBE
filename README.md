@@ -4,7 +4,7 @@
 >
 > **App URLs in the existing documentation are current/legacy deployment references, not an approved final domain migration.** Preserve auth, tenant isolation/RLS, audits and licensing. Branding decisions do not authorize database or production-routing changes.
 >
-> **Developer rules:** [AGENTS.md](AGENTS.md) · [Cross-repository brand architecture](https://github.com/faisalwrokksa-hub/TO/blob/docs/orgaiz-brand-ownership-20261114/docs/BRAND_ARCHITECTURE.md). Legacy public marketing source: [TEFE](https://github.com/2029TEFE/TEFE).
+> **Developer rules:** [AGENTS.md](AGENTS.md) · [Cross-repository brand architecture](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/BRAND_ARCHITECTURE.md). Legacy public marketing source: [TEFE](https://github.com/2029TEFE/TEFE).
 
 ---
 
