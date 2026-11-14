@@ -55,3 +55,33 @@ test('regional language variants cover the static inventory (regional copy still
   }
   assert.ok(report.sw.missing.length > 0, 'do not treat still-untranslated locales as complete');
 });
+
+test('bulk completion fills the selected static catalogs without masking other locales', () => {
+  const completedThisPass = ['fil', 'fr', 'id', 'it'];
+  for (const locale of completedThisPass) {
+    assert.deepEqual(report[locale].missing, [], locale);
+    assert.equal(COMPLETE_UI_LOCALES.includes(locale), true);
+    assert.equal(Object.keys(UI_TRANSLATIONS[locale]).length, keys.length, locale);
+  }
+  for (const locale of ['sw', 'tr', 'ur', 'vi', 'zh-TW']) {
+    assert.ok(report[locale].missing.length > 1000,
+      locale + ' must remain flagged incomplete until reviewed translations exist');
+    assert.equal(COMPLETE_UI_LOCALES.includes(locale), false);
+  }
+});
+
+test('bulk translations preserve English-source interpolation names', () => {
+  const parameters = value => [...value.matchAll(/\{([A-Za-z][\w]*)\}/g)].map(m => m[1]).sort();
+  const cases = {
+    id: ['The blocker is: {reason}.', '{count} criteria outstanding'],
+    fil: ['Showing the first {shown} of {total} projects needing review.',
+      'The portfolio holds {total} projects: {onTrack} on track, {atRisk} at risk and {critical} critical. Average delivery progress is {progress}.'],
+    fr: ['Trial time remaining: {days} days. Finish workspace setup and review your plan before the trial ends.'],
+  };
+  for (const [locale, sourceKeys] of Object.entries(cases)) {
+    for (const source of sourceKeys) {
+      assert.deepEqual(parameters(UI_TRANSLATIONS[locale][source]), parameters(source),
+        locale + ': ' + source);
+    }
+  }
+});
