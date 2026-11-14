@@ -45,9 +45,13 @@ test('regional language variants cover the static inventory (regional copy still
   for (const locale of ['es', 'es-419', 'pt-BR', 'pt-PT']) {
     assert.deepEqual(report[locale].missing, [], `${locale}: expected inventory-complete catalog`);
   }
-  assert.equal(UI_TRANSLATIONS['es-419']['Human confirmation required'],
-    UI_TRANSLATIONS.es['Human confirmation required']);
-  assert.equal(UI_TRANSLATIONS['pt-PT']['Human confirmation required'],
-    UI_TRANSLATIONS['pt-BR']['Human confirmation required']);
+  // These currently inherit same-language wording. Regional reviewers may improve
+  // their wording without invalidating the completeness/parameter regression tests.
+  for (const locale of ['es-419', 'pt-PT']) {
+    const text = UI_TRANSLATIONS[locale]['Human confirmation required'];
+    assert.equal(typeof text, 'string');
+    assert.ok(text.trim());
+    assert.notEqual(text, 'Human confirmation required');
+  }
   assert.ok(report.sw.missing.length > 0, 'do not treat still-untranslated locales as complete');
 });
