@@ -129,7 +129,7 @@ test('shared contract and frontend locale lists remain identical', async () => {
   const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
   const registry = read('packages/contracts/src/locales.ts');
   const codes = [...registry.matchAll(/\{ code: '([^']+)', name:/g)].map(m => m[1]);
-  assert.equal(codes.length, 23);
+  assert.equal(codes.length, 22);
   assert.deepEqual([...FRONTEND_LOCALES], codes, 'frontend and backend locale registries have drifted');
 });
 

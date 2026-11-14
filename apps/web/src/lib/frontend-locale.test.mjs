@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FRONTEND_LOCALES, normalizeFrontendLocale, chooseFrontendLocale, isSupportedFrontendLocale } from './frontend-locale.mjs';
 
-test('registers 23 TheOrg variants and keeps 19 language families', () => {
-  assert.equal(FRONTEND_LOCALES.length, 23);
+test('registers 22 TheOrg variants and keeps 19 language families', () => {
+  assert.equal(FRONTEND_LOCALES.length, 22);
   assert.equal(new Set(FRONTEND_LOCALES.map(s => s.split('-')[0])).size, 19);
   assert.equal(isSupportedFrontendLocale('ur'), true);
   assert.equal(isSupportedFrontendLocale('es-419'), true);
@@ -11,7 +11,7 @@ test('registers 23 TheOrg variants and keeps 19 language families', () => {
 });
 
 test('retains exact Chinese scripts and regional English variants', () => {
-  assert.equal(normalizeFrontendLocale('en-GB'), 'en-GB');
+  assert.equal(normalizeFrontendLocale('en-GB'), 'en-US');
   assert.equal(normalizeFrontendLocale('en-US'), 'en-US');
   assert.equal(normalizeFrontendLocale('ar-SA'), 'ar');
   assert.equal(normalizeFrontendLocale('zh-Hant'), 'zh-TW');
@@ -33,12 +33,12 @@ test('browser preference precedes country hints; unknown defaults to English', (
 });
 
 test('preserves supported regional variants with browser extension subtags', () => {
-  assert.equal(normalizeFrontendLocale('en-GB-oxendict'), 'en-GB');
-  assert.equal(normalizeFrontendLocale('en-GB-u-ca-gregory'), 'en-GB');
+  assert.equal(normalizeFrontendLocale('en-GB-oxendict'), 'en-US');
+  assert.equal(normalizeFrontendLocale('en-GB-u-ca-gregory'), 'en-US');
   assert.equal(normalizeFrontendLocale('es-419-u-nu-latn'), 'es-419');
   assert.equal(normalizeFrontendLocale('pt-BR-u-nu-latn'), 'pt-BR');
   assert.equal(normalizeFrontendLocale('pt-PT-u-ca-gregory'), 'pt-PT');
-  assert.equal(chooseFrontendLocale({browserLanguages:['en-GB-u-ca-gregory']}), 'en-GB');
+  assert.equal(chooseFrontendLocale({browserLanguages:['en-GB-u-ca-gregory']}), 'en-US');
 });
 
 test('Chinese region and script extensions retain the intended writing system', () => {

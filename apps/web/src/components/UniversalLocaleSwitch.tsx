@@ -1,8 +1,7 @@
 'use client';
-import { useEffect, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { LOCALE_REGISTRY, navigationArabic, type LocaleCode } from '@pmo/contracts';
-import { chooseFrontendLocale } from '@/lib/frontend-locale.mjs';
 
 /** Display language only. Never change pmo_session or other auth/tenant cookies. */
 function persistSharedLocale(locale: string) {
@@ -16,21 +15,9 @@ function persistSharedLocale(locale: string) {
 export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const fallback = !['en-US', 'en-GB', 'ar'].includes(locale);
+  const fallback = !['en-US', 'ar'].includes(locale);
   const label = locale === 'ar' ? navigationArabic('Interface language') : 'Interface language';
 
-  useEffect(() => {
-    const hasPreference = document.cookie.split(';').some(part =>
-      /^\s*(pmo_locale|pmo_lang)=/.test(part));
-    if (hasPreference) return;
-    const languages = navigator.languages?.length ? Array.from(navigator.languages) : [navigator.language];
-    const detected = chooseFrontendLocale({ browserLanguages: languages });
-    if (detected === 'en-US') return;
-    persistSharedLocale(detected);
-    document.cookie = `pmo_locale=${encodeURIComponent(detected)}; path=/; max-age=31536000; samesite=lax`;
-    document.cookie = `pmo_lang=${detected === 'ar' ? 'ar' : 'en'}; path=/; max-age=31536000; samesite=lax`;
-    router.refresh();
-  }, [router]);
 
   function setLocale(next: string) {
     if (!LOCALE_REGISTRY.some(item => item.code === next)) return;
@@ -54,3 +41,4 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
     </span>}
   </div>;
 }
+

@@ -4,9 +4,8 @@
  * English remains the source; all unverified strings fall back to English.
  */
 export const LOCALE_REGISTRY = [
+  { code: 'en-US', name: 'English', language: 'en', direction: 'ltr' },
   { code: 'ar', name: 'العربية', language: 'ar', direction: 'rtl' },
-  { code: 'en-US', name: 'English (US)', language: 'en', direction: 'ltr' },
-  { code: 'en-GB', name: 'English (UK)', language: 'en', direction: 'ltr' },
   { code: 'bn', name: 'বাংলা', language: 'bn', direction: 'ltr' },
   { code: 'de', name: 'Deutsch', language: 'de', direction: 'ltr' },
   { code: 'es', name: 'Español', language: 'es', direction: 'ltr' },
@@ -49,7 +48,7 @@ export function resolveLocale(value: unknown): LocaleCode {
   if (exact) return exact;
   if (v === 'ar-sa' || v.startsWith('ar-')) return 'ar';
   if (v === 'en') return 'en-US';
-  if (v.startsWith('en-gb')) return 'en-GB';
+  if (v.startsWith('en-gb')) return 'en-US';
   if (v.startsWith('en-')) return 'en-US';
   // Keep all region aliases consistent with the browser-facing resolver.
   if (v === 'es-419' || v.startsWith('es-419-')) return 'es-419';

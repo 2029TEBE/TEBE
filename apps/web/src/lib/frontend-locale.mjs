@@ -1,6 +1,6 @@
 /** UI locale normalization. Language coverage is tracked separately. */
 export const FRONTEND_LOCALES = Object.freeze([
-  'ar','en-US','en-GB','bn','de','es','es-419','fil','fr','hi','id','it','ja','ko','pt-BR','pt-PT','ru','sw','tr','ur','vi','zh-CN','zh-TW',
+  'en-US','ar','bn','de','es','es-419','fil','fr','hi','id','it','ja','ko','pt-BR','pt-PT','ru','sw','tr','ur','vi','zh-CN','zh-TW',
 ]);
 const CODES = new Map(FRONTEND_LOCALES.map(code => [code.toLowerCase(), code]));
 export function normalizeFrontendLocale(input) {
@@ -8,7 +8,7 @@ export function normalizeFrontendLocale(input) {
   const value = input.trim().replaceAll('_','-').toLowerCase();
   if (CODES.has(value)) return CODES.get(value);
   // Preserve known regional variants even when the browser supplies extra subtags.
-  if (value === 'en-gb' || value.startsWith('en-gb-')) return 'en-GB';
+  if (value === 'en-gb' || value.startsWith('en-gb-')) return 'en-US';
   if (value === 'en' || value.startsWith('en-')) return 'en-US';
   if (value === 'es-419' || value.startsWith('es-419-')) return 'es-419';
   if (value === 'pt-br' || value.startsWith('pt-br-')) return 'pt-BR';
@@ -25,7 +25,7 @@ export function chooseFrontendLocale({selected=null,saved=null,browserLanguages=
     const normalized=normalizeFrontendLocale(value);
     if (normalized) return normalized;
   }
-  const hints={SA:'ar',AE:'ar',QA:'ar',BH:'ar',KW:'ar',OM:'ar',DE:'de',CN:'zh-CN',TW:'zh-TW',FR:'fr',JP:'ja',GB:'en-GB',US:'en-US'};
+  const hints={SA:'ar',AE:'ar',QA:'ar',BH:'ar',KW:'ar',OM:'ar',DE:'de',CN:'zh-CN',TW:'zh-TW',FR:'fr',JP:'ja',GB:'en-US',US:'en-US'};
   return hints[String(country??'').toUpperCase()] ?? 'en-US';
 }
 export function isSupportedFrontendLocale(value){return FRONTEND_LOCALES.includes(value);}
