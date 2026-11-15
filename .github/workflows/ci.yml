@@ -6,9 +6,12 @@ on:
 permissions:
   contents: read
 jobs:
+  # This label must exist ONLY on an isolated, disposable CI runner.
+  # Never assign it to the production Servitro runner or expose production
+  # secrets, Docker daemon sockets, or customer networks to PR code.
   source-guards:
     name: Dependency-free source checks
-    runs-on: ${{ fromJSON(github.event_name == 'push' && github.ref == 'refs/heads/main' && '["self-hosted","linux","x64","servitro-tebe"]' || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, linux, x64, servitro-tebe-ci]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +26,7 @@ jobs:
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
   verify:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, servitro-tebe-ci]
     timeout-minutes: 90
     services:
       postgres:
@@ -198,7 +201,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   audit:
-    runs-on: ${{ fromJSON(github.event_name == 'push' && github.ref == 'refs/heads/main' && '["self-hosted","linux","x64","servitro-tebe"]' || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, linux, x64, servitro-tebe-ci]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
