@@ -116,3 +116,17 @@ test('password recovery and reset forms use the shared frontend locale catalog',
   assert.equal(uiLabel('Forgot password?', 'es'), '¿Has olvidado tu contraseña?');
   assert.equal(uiLabel('Password', 'ur'), 'پاس ورڈ');
 });
+
+test('recovery headings and reset action have translations for each offered non-English locale', () => {
+  const locales = ['ar', 'bn', 'de', 'es', 'es-419', 'fil', 'fr', 'hi', 'id',
+    'it', 'ja', 'ko', 'pt-BR', 'pt-PT', 'ru', 'sw', 'tr', 'ur', 'vi', 'zh-CN', 'zh-TW'];
+  const keys = ['Forgot your password?', 'Back to sign in',
+    'Choose a new password', 'Reset password'];
+  for (const locale of locales) {
+    const result = uiLabelCoverage(keys, locale);
+    assert.deepEqual(result.missing, [], `${locale}: missing recovery copy`);
+    assert.deepEqual(result.invalidPlaceholders, [], `${locale}: invalid recovery markup`);
+  }
+  assert.equal(uiLabel('Choose a new password', 'es'), 'Elige una contraseña nueva');
+  assert.equal(uiLabel('Reset password', 'zh-TW'), '重設密碼');
+});
