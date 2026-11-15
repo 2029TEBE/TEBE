@@ -1,9 +1,10 @@
 'use client';
 import { authFormLabel } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
-  const t = (english: string) => authFormLabel('reset', english, lang);
+export function ResetPasswordForm({ lang, locale }: { lang: 'en' | 'ar'; locale: string }) {
+  const t = (english: string) => uiLabel(english, locale, authFormLabel('reset', english, lang));
   const [ready, setReady] = useState(false);
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
