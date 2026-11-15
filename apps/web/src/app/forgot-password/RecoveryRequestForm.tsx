@@ -1,8 +1,9 @@
 'use client';
 import { authFormLabel } from '@pmo/contracts';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { useState, type FormEvent } from 'react';
-export function RecoveryRequestForm({ lang }: { lang: 'en' | 'ar' }) {
-  const t = (english: string) => authFormLabel('recovery', english, lang);
+export function RecoveryRequestForm({ lang, locale }: { lang: 'en' | 'ar'; locale: string }) {
+  const t = (english: string) => uiLabel(english, locale, authFormLabel('recovery', english, lang));
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [complete, setComplete] = useState(false);
