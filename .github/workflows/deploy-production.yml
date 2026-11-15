@@ -21,7 +21,7 @@ jobs:
           github.event.workflow_run.head_branch == 'main' &&
           github.event.workflow_run.head_repository.full_name == github.repository &&
           vars.EPMO_DEPLOY_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
     timeout-minutes: 90
     environment: production
     steps:
@@ -49,53 +49,35 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
-      - name: Set up Node and pnpm
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.0
-      - name: Install frozen dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Validate pinned SSH deployment configuration
-        env:
-          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
-          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_KEY" && test -n "$DEPLOY_KNOWN_HOSTS" || {
-            echo "::error::Missing server-approved production SSH deployment secrets."
-            exit 1
-          }
-          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$ ]] || {
-            echo "::error::Production deploy host must be user@verified-hostname."
-            exit 1
-          }
-          umask 077
-          mkdir -p "$HOME/.ssh"
-          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/epmo_prod"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/epmo_prod" "$HOME/.ssh/known_hosts"
-      - name: Verify and deploy with mandatory backup and runtime health gates
+      - name: Deploy and record the verified production revision
         env:
           EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
           EPMO_CI_VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
           EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
-          export EPMO_DEPLOY_SSH_KEY="$HOME/.ssh/epmo_prod"
-          bash infra/deploy.sh prod
-      - name: Record deployed revision on the VPS
-        env:
-          EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
-          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          set -euo pipefail
+          for tool in git bash ssh rsync curl jq; do
+            command -v "$tool" >/dev/null || { echo "::error::Missing runner tool: $tool"; exit 1; }
+          done
+          test -n "$DEPLOY_KEY" && test -n "$DEPLOY_KNOWN_HOSTS" || {
+            echo "::error::Missing pinned SSH deployment credentials."
+            exit 1
+          }
+          umask 077
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/epmo-deploy-ssh.XXXXXXXX")
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          export EPMO_DEPLOY_SSH_KEY="$ssh_dir/key"
+          export EPMO_DEPLOY_SSH_KNOWN_HOSTS="$ssh_dir/known_hosts"
+          printf '%s\n' "$DEPLOY_KEY" > "$EPMO_DEPLOY_SSH_KEY"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$EPMO_DEPLOY_SSH_KNOWN_HOSTS"
+          unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
           SHA_PATTERN='^[a-f0-9]{40}$'
-          [[ "$EXPECTED_SHA" =~ $SHA_PATTERN ]]
-          ssh -i "$HOME/.ssh/epmo_prod" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$EPMO_DEPLOY_HOST" \
-            "test -d /opt/the-epmo && printf '%s\\n' '$EXPECTED_SHA' > /opt/the-epmo/.deployed-revision"
-          echo "Deployed revision: $EXPECTED_SHA" >> "$GITHUB_STEP_SUMMARY"
+          [[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]
+          bash infra/deploy.sh prod
+          ssh -i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
+            -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
+            "test -d /opt/the-epmo && printf '%s\\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
+          echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
