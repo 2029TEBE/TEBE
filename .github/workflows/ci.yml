@@ -22,8 +22,8 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+  # The PostgreSQL 16 client is available from Ubuntu 24.04 APT repositories.
   verify:
-    # The PostgreSQL 16 client is available from Ubuntu 24.04 APT repositories.
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     services:
