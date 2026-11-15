@@ -49,15 +49,8 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
-      - name: Set up Node and pnpm
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.17.0
-      - name: Install frozen dependencies
-        run: pnpm install --frozen-lockfile
+      # The deploy transport uses the successful CI attestation for this exact SHA.
+      # The VPS performs the production image builds.
       - name: Validate pinned SSH deployment configuration
         env:
           DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
