@@ -73,6 +73,8 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > "$EPMO_DEPLOY_SSH_KEY"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$EPMO_DEPLOY_SSH_KNOWN_HOSTS"
           unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
+          SHA_PATTERN='^[a-f0-9]{40}$'
+          [[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]
           bash infra/deploy.sh prod
           ssh -i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
             -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
