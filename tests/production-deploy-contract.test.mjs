@@ -48,10 +48,11 @@ test('deployment does not include an unguarded direct push trigger or bypass che
 });
 
 test('successful deployment records exactly one validated revision marker',()=>{
-  const section = workflow.split('      - name: Record deployed revision on the VPS\n')[1];
+  const section = workflow.split('      - name: Deploy and record the verified production revision\n')[1];
   assert.ok(section, 'Missing revision recording step');
   assert.equal((section.match(/\.deployed-revision/g) || []).length,1);
   assert.ok(section.includes("SHA_PATTERN='^[a-f0-9]{40}$'"));
-  assert.ok(section.includes('[[ "$EXPECTED_SHA" =~ $SHA_PATTERN ]]'));
+  assert.ok(section.includes('[[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]'));
+  assert.match(section, /bash infra\/deploy\.sh prod[\s\S]*ssh [\s\S]*\.deployed-revision/);
   assert.ok(section.includes('StrictHostKeyChecking=yes'));
 });
