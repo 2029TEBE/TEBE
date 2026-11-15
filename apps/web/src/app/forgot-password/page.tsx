@@ -12,7 +12,7 @@ export default async function ForgotPasswordPage() {
     <section className="authpanel" style={{ maxWidth: 510 }}>
       <h1>{labelFor("Forgot your password?")}</h1>
       <p>{labelFor("We will email a 30-minute recovery link if an active account exists.")}</p>
-      <RecoveryRequestForm lang={lang} />
+      <RecoveryRequestForm lang={lang} locale={locale} />
       <p><Link href="/login">{labelFor("Back to sign in")}</Link></p>
     </section>
   </main>;
