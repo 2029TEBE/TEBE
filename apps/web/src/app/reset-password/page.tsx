@@ -13,7 +13,7 @@ export default async function ResetPasswordPage() {
   return <main className="authwrap" dir={locale === 'ar' || locale === 'ur' ? 'rtl' : 'ltr'}>
     <section className="authpanel" style={{ maxWidth: 510 }}>
       <h1>{labelFor("Choose a new password")}</h1>
-      <ResetPasswordForm lang={lang} />
+      <ResetPasswordForm lang={lang} locale={locale} />
     </section>
   </main>;
 }
