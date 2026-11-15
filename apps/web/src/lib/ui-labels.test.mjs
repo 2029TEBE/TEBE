@@ -107,11 +107,11 @@ test('password recovery and reset forms use the shared frontend locale catalog',
   const resetPage = read('../app/reset-password/page.tsx');
   const recoveryForm = read('../app/forgot-password/RecoveryRequestForm.tsx');
   const resetForm = read('../app/reset-password/ResetPasswordForm.tsx');
-  assert.match(recoveryPage, /<RecoveryRequestForm lang=\\{lang\\} locale=\\{locale\\}/);
-  assert.match(resetPage, /<ResetPasswordForm lang=\\{lang\\} locale=\\{locale\\}/);
+  assert.match(recoveryPage, /<RecoveryRequestForm lang=\{lang\} locale=\{locale\}/);
+  assert.match(resetPage, /<ResetPasswordForm lang=\{lang\} locale=\{locale\}/);
   for (const form of [recoveryForm, resetForm]) {
-    assert.match(form, /uiLabel\\(english, locale, authFormLabel\\(/);
-    assert.match(form, /body: JSON\\.stringify/);
+    assert.match(form, /uiLabel\(english, locale, authFormLabel\(/);
+    assert.match(form, /body: JSON\.stringify/);
   }
   assert.equal(uiLabel('Forgot password?', 'es'), '¿Has olvidado tu contraseña?');
   assert.equal(uiLabel('Password', 'ur'), 'پاس ورڈ');
