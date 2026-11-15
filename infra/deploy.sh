@@ -6,6 +6,7 @@
 #   EPMO_DEPLOY_HOST=deploy@staging.example.com infra/deploy.sh staging
 #   EPMO_DEPLOY_HOST=deploy@production.example.com infra/deploy.sh prod
 # Optional: EPMO_DEPLOY_SSH_KEY=/path/to/key, EPMO_DEPLOY_DIR=/opt/the-epmo
+# EPMO_DEPLOY_SSH_KNOWN_HOSTS selects a separate pinned host-key file.
 # Servers must already have a pinned/trusted SSH host key in known_hosts.
 set -euo pipefail
 
@@ -42,6 +43,10 @@ SSH_CMD=(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes)
 if [[ -n "${EPMO_DEPLOY_SSH_KEY:-}" ]]; then
   [[ -f "$EPMO_DEPLOY_SSH_KEY" ]] || { echo 'BLOCKED: SSH identity file does not exist.' >&2; exit 2; }
   SSH_CMD+=(-i "$EPMO_DEPLOY_SSH_KEY")
+fi
+if [[ -n "${EPMO_DEPLOY_SSH_KNOWN_HOSTS:-}" ]]; then
+  [[ -s "$EPMO_DEPLOY_SSH_KNOWN_HOSTS" ]] || { echo 'BLOCKED: pinned known-hosts file missing or empty.' >&2; exit 2; }
+  SSH_CMD+=(-o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -o GlobalKnownHostsFile=/dev/null -o IdentitiesOnly=yes)
 fi
 # rsync -e accepts a command string. Quote each argument to preserve paths.
 printf -v SSH_FOR_RSYNC '%q ' "${SSH_CMD[@]}"
