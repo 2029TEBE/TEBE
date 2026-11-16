@@ -18,6 +18,18 @@ case "$MODE" in
   *) echo 'Usage: infra/deploy.sh <staging|dev|prod>' >&2; exit 2 ;;
 esac
 
+# An optional registry image pair supports promotion without rebuilding.
+# Supply the same two digests that passed staging smoke tests.
+API_IMAGE=${EPMO_RELEASE_API_IMAGE:-}
+WEB_IMAGE=${EPMO_RELEASE_WEB_IMAGE:-}
+if [[ -n "$API_IMAGE" || -n "$WEB_IMAGE" ]]; then
+  IMAGE_REF='^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$'
+  if [[ "$MODE" == dev || ! "$API_IMAGE" =~ $IMAGE_REF || ! "$WEB_IMAGE" =~ $IMAGE_REF ]]; then
+    echo 'BLOCKED: staging and prod require both registry image references pinned by SHA-256.' >&2
+    exit 2
+  fi
+fi
+
 # Explicit host prevents accidentally deploying a new product to a legacy IP.
 HOST=${EPMO_DEPLOY_HOST:-}
 if [[ -z "$HOST" || ! "$HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]; then
@@ -122,7 +134,13 @@ fi
 
 # Build BEFORE changing the database. A failed image build must leave the
 # currently running application and schema untouched.
-ssh_remote "cd '$DIR' && $COMPOSE build api web"
+if [[ -n "$API_IMAGE" ]]; then
+  APP_COMPOSE="EPMO_RELEASE_API_IMAGE='$API_IMAGE' EPMO_RELEASE_WEB_IMAGE='$WEB_IMAGE' $COMPOSE -f docker-compose.release-images.yml"
+  ssh_remote "cd '$DIR' && $APP_COMPOSE pull api web"
+else
+  APP_COMPOSE="$COMPOSE"
+  ssh_remote "cd '$DIR' && $COMPOSE build api web"
+fi
 # Bring up dependencies for the backup and migration; do not start new API/web
 # containers until both operations succeed.
 ssh_remote "cd '$DIR' && $COMPOSE up -d postgres redis"
@@ -146,7 +164,11 @@ if [[ "$MODE" == staging || "$MODE" == prod ]]; then
   fi
 fi
 ssh_remote "cd '$DIR' && bash infra/bootstrap-db.sh '$MODE'"
-ssh_remote "cd '$DIR' && $COMPOSE up -d api web"
+if [[ -n "$API_IMAGE" ]]; then
+  ssh_remote "cd '$DIR' && $APP_COMPOSE up -d --no-build --pull never api web"
+else
+  ssh_remote "cd '$DIR' && $COMPOSE up -d api web"
+fi
 
 # Never spin forever on an unhealthy deployment. Expose useful logs on failure.
 ssh_remote "cd '$DIR' && \
