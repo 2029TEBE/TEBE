@@ -34,7 +34,7 @@ export class GaizStagingService {
         tenantId, artifactId: receipt.artifactId, issuerId: receipt.issuerId,
         sha256: receipt.sha256, requestedBy: userId,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      }).onConflictDoNothing({ target: [gaizImportRequests.tenantId, gaizImportRequests.sha256] })
+      }).onConflictDoNothing()
         .returning({ id: gaizImportRequests.id });
       const [request] = await tx.select({
         id: gaizImportRequests.id, status: gaizImportRequests.status,
