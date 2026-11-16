@@ -82,13 +82,11 @@ export function createGaizCustomerSessionService({
    await adapter.revokeSession(digest(token),now());
    return Object.freeze({revoked:true});
   },
-  async revokeAll({authenticatedPrincipal}={}){
-   // Do not accept an arbitrary customerId or self-asserted principal.
-   // Revalidate the session in the same request before calling this method.
-   if(!authenticatedPrincipal||authenticatedPrincipal.authenticated!==true||
-      authenticatedPrincipal.identityProvider!=='oidc'||
-      !uuid(authenticatedPrincipal.customerId)||!uuid(authenticatedPrincipal.sessionId))deny();
-   await adapter.revokeAllSessionsForCustomer(authenticatedPrincipal.customerId,now());
+  async revokeAll(token){
+   // Validate the actual session token again; never accept a client-supplied
+   // customerId or projected principal as proof for global logout.
+   const principal=await this.requireCustomer(token);
+   await adapter.revokeAllSessionsForCustomer(principal.customerId,now());
    return Object.freeze({revoked:true});
   }
  });
