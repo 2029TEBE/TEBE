@@ -88,6 +88,7 @@ export class GaizImportAuthorizationService {
         tenantId, stagingReviewId: review.id, custodyAttemptId: custody.id,
         targetId: input.targetId, targetKind: input.targetKind,
         targetSnapshotSha256: input.targetSnapshotSha256, previewSha256: input.previewSha256,
+        mappingProfileId:input.mappingProfileId,
         requestedBy: userId, expiresAt: new Date(Date.now()+30*60*1000),
       }).onConflictDoNothing().returning({id:gaizImportAuthorizations.id});
       if (!inserted) throw new ConflictException('Import review already requested');
