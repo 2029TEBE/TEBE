@@ -29,6 +29,11 @@ jobs:
           node --check apps/api/src/gaiz/gaiz-import-authorization.mjs
       - name: Verify .GAZE display and legacy format boundary
         run: node --test apps/api/src/gaiz/gaze-main-brand.test.mjs
+      - name: .GAZE disabled-by-default custody candidate regression
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.mjs
+          node --check apps/api/src/gaiz/gaiz2-key-release-eligibility.mjs
+          node --test apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.test.mjs apps/api/src/gaiz/gaiz2-key-release-eligibility.test.mjs
       - name: Run independently pinned TO fixture acceptance
         run: node --test apps/api/src/gaiz/to-gaiz2-fixed-interop.test.mjs
       - name: Test inactive GAIZ intake, draft mapping, and mTLS denial

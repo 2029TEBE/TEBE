@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {planGaiz2RecipientKeyTransition as plan} from './gaiz2-recipient-key-lifecycle.mjs';
+const tid='11111111-1111-4111-8111-111111111111';
+const actor='22222222-2222-4222-8222-222222222222';
+const now=1800000000000;
+const row=()=>({tenantId:tid,recipientKeyId:'key-1',keyVersion:'v1',state:'pending',revision:1,notBeforeMs:now-1000,notAfterMs:now+1000,revokedAtMs:null});
+const req=()=>({tenantId:tid,recipientKeyId:'key-1',keyVersion:'v1',expectedRevision:1,nextState:'active',reasonCode:'KEY_ACTIVATION',actorId:actor,nowMs:now});
+const dev=fn=>{const a=process.env.GAIZ_DEV_ONLY,b=process.env.NODE_ENV;try{process.env.GAIZ_DEV_ONLY='true';process.env.NODE_ENV='test';fn()}finally{if(a===undefined)delete process.env.GAIZ_DEV_ONLY;else process.env.GAIZ_DEV_ONLY=a;if(b===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=b}};
+test('activation is a proposal, not KMS release',()=>dev(()=>{const x=plan(row(),req());assert.equal(x.next.state,'active');assert.equal(x.next.revision,2);assert.equal(x.databaseCompareAndSwapRequired,true);assert.equal(x.kmsReleaseAllowed,false);assert.equal(x.importAllowed,false);assert.equal(Object.isFrozen(x),true)}));
+test('revocation is terminal with timestamp',()=>dev(()=>{const a=row();a.state='active';const q=req();q.nextState='revoked';const x=plan(a,q);assert.equal(x.next.revokedAtMs,now);assert.throws(()=>plan(x.next,{...q,expectedRevision:2,nextState:'active'}),/denied/)}));
+test('rejects tenant, version, actor, expiry, replay and bad transitions',()=>dev(()=>{const changes=[(a,q)=>q.tenantId=actor,(a,q)=>q.expectedRevision=2,(a,q)=>q.actorId='invalid',(a,q)=>q.nowMs=now+1000,(a,q)=>q.nextState='retired',(a,q)=>q.reasonCode='',(a,q)=>a.revokedAtMs=now,(a,q)=>a.state='retired',(a,q)=>a.keyVersion='v2',(a,q)=>a.revision=Number.MAX_SAFE_INTEGER];for(const change of changes){const a=row(),q=req();change(a,q);assert.throws(()=>plan(a,q),/denied/)}}));
+test('production is hard-disabled',()=>{const a=process.env.GAIZ_DEV_ONLY,b=process.env.NODE_ENV;try{process.env.GAIZ_DEV_ONLY='true';process.env.NODE_ENV='production';assert.throws(()=>plan(row(),req()),/denied/)}finally{if(a===undefined)delete process.env.GAIZ_DEV_ONLY;else process.env.GAIZ_DEV_ONLY=a;if(b===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=b}});
