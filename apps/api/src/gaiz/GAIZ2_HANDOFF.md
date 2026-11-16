@@ -97,3 +97,11 @@ node --test apps/api/src/gaiz/gaiz-custody-policy.test.mjs
 ```
 
 TEBE Actions still cannot be trusted as a passing validation signal until runner execution is restored. The new policy remains draft code, with no database migration applied and no live decryption ability.
+
+## Step 2 — Protected decryption development handoff
+
+TO PR #30 now contains `gaiz/local-custodian.mjs`: a **development-only in-process customer-held RSA private key** decryption proof of concept. It independently re-verifies the exact GAIZ2 artifact, checks active/approved records, requires audit confirmation before decryption, validates the decrypted governance report and returns only a hash and structural counts. It does not return plaintext or authorize imports. It is **not** a true OS sandbox, remote KMS/HSM, trusted tenant service or memory-zeroization guarantee.
+
+TO also defines a domain-separated Ed25519-signed **metadata-only** custody validation receipt in `gaiz/custody-attestation.mjs`. TEBE independently verifies its exact wire contract in `apps/api/src/gaiz/gaiz-custody-attestation.mjs` and denial tests. The receipt ties a particular GAIZ artifact SHA-256, report digest, tenant scope, recipient key and approved review to a five-minute timestamp, using an out-of-band trusted custodian public key.
+
+No TEBE API endpoint accepts this receipt yet. It cannot grant import, decrypt permission or record mutation. Before integrating, independently review key custody, receipt replay protections, signed key identity/rotation and approval authority, then create a durable append-only receipt store and explicit limited-purpose import transaction only after structured data validation.
