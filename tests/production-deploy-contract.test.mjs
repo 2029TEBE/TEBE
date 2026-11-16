@@ -56,3 +56,15 @@ test('successful deployment records exactly one validated revision marker',()=>{
   assert.match(section, /bash infra\/deploy\.sh prod[\s\S]*ssh [\s\S]*\.deployed-revision/);
   assert.ok(section.includes('StrictHostKeyChecking=yes'));
 });
+
+test('superseded releases are filtered before creating a production deployment',()=>{
+  const preflight = workflow.split('  preflight:\n')[1]?.split('  deploy:\n')[0];
+  assert.ok(preflight);
+  assert.ok(!preflight.includes('environment: production'));
+  assert.ok(preflight.includes('current=false'));
+  assert.ok(preflight.includes('current=true'));
+  const production = workflow.split('  deploy:\n')[1];
+  assert.ok(production.includes('needs: preflight'));
+  assert.ok(production.includes("needs.preflight.outputs.current == 'true'"));
+  assert.ok(production.includes('Refuse to deploy stale or superseded commits'));
+});
