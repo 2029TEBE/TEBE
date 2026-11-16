@@ -92,6 +92,7 @@ export function validateRc1Configuration(env, mode) {
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
     ['Billing mode is recognized', env.BILLING_MODE === undefined || ['stripe','disabled'].includes(env.BILLING_MODE)],
+    ['Active payments require Stripe-only provider selection', billingDisabled ? (!env.BILLING_PROVIDER || env.BILLING_PROVIDER === 'disabled') : env.BILLING_PROVIDER === 'stripe'],
     ['Incomplete Paddle adapter cannot be pre-enabled by retained secrets', paddleSecretsAbsent],
     ['Deployment mode matches this release target', env.DEPLOYMENT_ENV === mode],
     ['HTTPS web origin', httpsOrigin(env.WEB_ORIGIN)],
@@ -129,7 +130,7 @@ export function validateRc1Repository(source) {
   const compose = source.compose;
   const api = section(compose, 'api', 'web');
   const web = section(compose, 'web');
-  const stripeKeys = ['STRIPE_ENABLED', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
+  const stripeKeys = ['BILLING_PROVIDER', 'STRIPE_ENABLED', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
     'DEPLOYMENT_ENV', 'STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION'];
   return [
     ['API container receives explicit Stripe config', stripeKeys.every(key => new RegExp(`^\\s+${key}:`, 'm').test(api))],
