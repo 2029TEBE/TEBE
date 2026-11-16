@@ -16,6 +16,10 @@ ALTER TABLE gaiz_import_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_import_jobs FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_export_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_export_jobs FORCE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_import_proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_import_proposals FORCE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_import_receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_import_receipts FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions FORCE ROW LEVEL SECURITY;
 
@@ -31,6 +35,12 @@ CREATE POLICY tenant_isolation ON gaiz_import_jobs
 CREATE POLICY tenant_isolation ON gaiz_export_jobs
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
+CREATE POLICY tenant_isolation ON gaiz_import_proposals
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
+CREATE POLICY tenant_isolation ON gaiz_import_receipts
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
 CREATE POLICY tenant_isolation ON gaiz_decisions
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
@@ -38,6 +48,8 @@ CREATE POLICY tenant_isolation ON gaiz_decisions
 -- Immutable decisions and immutable artifact identity (enforce more narrowly
 -- with column grants and DB triggers as part of a reviewed migration).
 REVOKE UPDATE, DELETE ON gaiz_decisions FROM pmo_app;
+REVOKE UPDATE, DELETE ON gaiz_import_proposals FROM pmo_app;
+REVOKE UPDATE, DELETE ON gaiz_import_receipts FROM pmo_app;
 REVOKE DELETE ON gaiz_quarantine_blobs FROM pmo_app;
 REVOKE DELETE ON gaiz_artifacts FROM pmo_app;
 REVOKE DELETE ON gaiz_import_jobs, gaiz_export_jobs FROM pmo_app;
@@ -54,6 +66,13 @@ GRANT SELECT (id, tenant_id, requested_by, idempotency_key,
 -- SELECT(envelope_bytes) to the customer-facing application role.
 -- A blanket GRANT SELECT ON ALL TABLES after these statements would undo
 -- the restriction; review and test grant ordering in actual migration tooling.
+
+-- Review who may INSERT gaiz_import_proposals: normal API role must NOT
+-- be able to mark unverified content as validated or overwrite source hashes.
+-- Existing default grants are permissive; a dedicated verifier-worker role
+-- and restricted table/column grants are required before executing this DDL.
+-- The current executor is UNREGISTERED until trusted worker provenance can
+-- be enforced by DB privileges and independent fixture tests.
 
 -- Reviewer must add disposable DB assertions that prove:
 --  A. tenant A cannot SELECT, INSERT, UPDATE, DELETE tenant B GAIZ rows
