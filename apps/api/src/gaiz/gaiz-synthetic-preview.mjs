@@ -37,22 +37,28 @@ export function previewGaizCandidateSynthetic(bytes, {
     plaintext=Buffer.concat([dec.update(cipher),dec.final()]);
     if(plaintext.length>maxPlaintext)deny();
   }catch{deny()}
-  let content;
   try{
-    content=parseBoundedGaizJson(new TextDecoder('utf-8',{fatal:true}).decode(plaintext));
-  }catch{deny()}
-  // Only inert scalar report fields accepted. Do NOT return arbitrary URLs,
-  // HTML, JS, attachments, markdown, CSS or chart definitions.
-  if(!content || Array.isArray(content) || typeof content!=='object' ||
-    Object.keys(content).some(k=>!['schemaVersion','title','summary'].includes(k)) ||
-    content.schemaVersion!==1 ||
-    typeof content.title!=='string' || content.title.length>200 ||
-    typeof content.summary!=='string' || content.summary.length>5000)deny();
-  return Object.freeze({
-    artifactId:verified.manifest.artifactId,
-    tenantScope:verified.manifest.tenantScope,
-    preview:Object.freeze({title:content.title,summary:content.summary}),
-    authorizedToImport:false,
-    syntheticCandidateOnly:true,
-  });
+    let content;
+    try{
+      content=parseBoundedGaizJson(new TextDecoder('utf-8',{fatal:true}).decode(plaintext));
+    }catch{deny()}
+    // Only inert scalar report fields accepted. Do NOT return arbitrary URLs,
+    // HTML, JS, attachments, markdown, CSS or chart definitions.
+    if(!content || Array.isArray(content) || typeof content!=='object' ||
+      Object.keys(content).some(k=>!['schemaVersion','title','summary'].includes(k)) ||
+      content.schemaVersion!==1 ||
+      typeof content.title!=='string' || content.title.length>200 ||
+      typeof content.summary!=='string' || content.summary.length>5000)deny();
+    return Object.freeze({
+      artifactId:verified.manifest.artifactId,
+      tenantScope:verified.manifest.tenantScope,
+      preview:Object.freeze({title:content.title,summary:content.summary}),
+      authorizedToImport:false,
+      syntheticCandidateOnly:true,
+    });
+  }finally{
+    // The plaintext Buffer is not needed after JSON fields are extracted.
+    // Clear the decoder input copy on both success and error paths.
+    plaintext.fill(0);
+  }
 }
