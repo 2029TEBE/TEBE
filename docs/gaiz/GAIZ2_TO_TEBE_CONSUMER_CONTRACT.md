@@ -306,3 +306,47 @@ DB worker credentials, decide import approvals, authenticate KMS
 requests or release plaintext. These operations must only be composed
 under independently audited infrastructure and a single durable,
 tenant-restricted database transaction.
+
+
+## Authenticated mTLS challenge issuance candidate
+
+The disconnected `gaiz-mtls-challenge-issuer-candidate.mjs` now closes
+the **issuance side** of the draft challenge protocol. It begins with the
+actual verified TLS 1.3 peer certificate (not an HTTP header or
+`authenticated` flag), verifies the independently provisioned worker
+fingerprint and role, and calls a **backend-owned work-item entitlement**
+lookup. That lookup must independently check the tenant and work item
+against authoritative records; an arbitrary injected callback is not
+proof of entitlement.
+
+Only after the checks pass does it generate 32 cryptographically random
+bytes, store **only SHA-256(challenge)** along with the exact tenant,
+worker, work item, role, credential issuer and a maximum 30-second
+lifetime, and require an actual affected-row count of one from the
+database. The `gaiz_challenge_issuer` identity is checked using the
+database's `current_user`; the INSERT is deliberately performed
+without RETURNING, so an INSERT-only role does not require SELECT
+privileges. If the transaction fails, the raw challenge is **not
+returned**. The challenge is returned only after transaction success,
+with `authorizationGranted:false` and `importAllowed:false`.
+
+The peer registry, per-work-item authorization and isolated
+`gaiz_challenge_issuer` connection must all be owned by the trusted
+server, never provided through request data. The challenge consumer
+must verify the separately signed credential and **atomically consume**
+this same digest, with the assignment claim and business operation
+inside the same transaction. This is not a full online protocol until
+the server independently binds the issued challenge to the exact live
+connection and the full issue→sign→consume exchange is tested.
+
+The candidate is not registered in Nest or any listener. The existing
+local TLS test suite now has two additional issuance scenarios for
+a successful synthetic issuer transaction, wrong role, failed INSERT
+and denied entitlement. The real test suite and PostgreSQL/RLS
+acceptance are still **unexecuted** in the target repository.
+
+Further release gates include reviewed challenge-issuer credentials,
+actual worker identity directory, issuer trust/revocation,
+dedicated non-owner worker roles, TLS-to-challenge session binding,
+secure audit logging, DB migrations, concurrent single-use tests, and
+key-custody authorization. **No production use or migration.**
