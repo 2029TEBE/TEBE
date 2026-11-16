@@ -26,5 +26,5 @@ jobs:
           node --check apps/api/src/gaiz/gaiz-custody-bridge.mjs
           node --check apps/api/src/gaiz/gaiz-custodian-mtls.mjs
           node --check apps/api/src/gaiz/gaiz-import-authorization.mjs
-      - name: Run GAIZ2 synthetic wire compatibility and negative tests
+      - name: Deny forged GAIZ mTLS peers and production activation\n        run: node --test apps/api/src/gaiz/gaiz-mtls-peer-denial.test.mjs\n      - name: Run GAIZ2 synthetic wire compatibility and negative tests
         run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs apps/api/src/gaiz/gaiz-custody-policy.test.mjs apps/api/src/gaiz/gaiz-custody-attestation.test.mjs apps/api/src/gaiz/gaiz-import-plan.test.mjs apps/api/src/gaiz/gaiz-mapping-preview.test.mjs apps/api/src/gaiz/gaiz-import-authorization.test.mjs apps/api/src/gaiz/gaiz-import-authorization.contract.test.mjs apps/api/src/gaiz/gaiz-snapshot.contract.test.mjs apps/api/src/gaiz/gaiz-isolated-db.contract.test.mjs apps/api/src/gaiz/gaiz-mapping-attestation.test.mjs apps/api/src/gaiz/gaiz-completion.contract.test.mjs apps/api/src/gaiz/gaiz-trust-directory.contract.test.mjs apps/api/src/gaiz/gaiz-custodian-mtls.test.mjs apps/api/src/gaiz/gaiz-custody-bridge.test.mjs apps/api/src/gaiz/gaiz-custody-db.contract.test.mjs apps/api/src/gaiz/gaiz-staging.contract.test.mjs
