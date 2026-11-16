@@ -27,11 +27,34 @@ function canonical(value){
  if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().filter(k=>value[k]!==null&&value[k]!==undefined).map(k=>[k,canonical(value[k])]));
  return value;
 }
+function portableImageConfig(config){
+ // Docker 28.2 removed these synthetic container fields from image inspect;
+ // older daemons return only their defaults. Never ignore a non-default value.
+ // https://docs.docker.com/engine/deprecated/#non-standard-fields-in-image-inspect
+ const result={...config};
+ const legacy={Hostname:'',Domainname:'',AttachStdin:false,AttachStdout:false,
+  AttachStderr:false,Tty:false,OpenStdin:false,StdinOnce:false,Image:'',
+  NetworkDisabled:false,MacAddress:'',StopTimeout:0};
+ for(const [key,empty] of Object.entries(legacy)){
+  if(result[key]!==undefined&&result[key]!==null&&result[key]!==empty)fail();
+  delete result[key];
+ }
+ // Docker 29 omits these known empty fields. Preserve every non-empty value,
+ // nested label/volume key, array order, and every unrecognized config field.
+ for(const key of ['Cmd','Entrypoint','Env','OnBuild']){
+  if(Array.isArray(result[key])&&result[key].length===0)delete result[key];
+ }
+ for(const key of ['Labels','Volumes']){
+  if(result[key]&&Object.getPrototypeOf(result[key])===Object.prototype&&Object.keys(result[key]).length===0)delete result[key];
+ }
+ for(const key of ['User','WorkingDir'])if(result[key]==='')delete result[key];
+ return result;
+}
 export function imageRuntimeIdentity(image){
  if(!image||!ID.test(image.Id)||image.Os!=='linux'||image.Architecture!=='amd64'||image.Config?.User!=='pmo'||!SHA.test(image.Config?.Labels?.['org.opencontainers.image.revision']??'')||image.RootFS?.Type!=='layers'||!Array.isArray(image.RootFS.Layers)||!image.RootFS.Layers.length||!image.RootFS.Layers.every(x=>ID.test(x)))fail();
  // Portable runtime identity: exact execution configuration plus ordered
  // uncompressed layer content hashes. Daemon-local index IDs are not portable.
- const bytes=JSON.stringify(canonical({os:image.Os,architecture:image.Architecture,variant:image.Variant||'',config:image.Config,layers:image.RootFS.Layers}));
+ const bytes=JSON.stringify(canonical({os:image.Os,architecture:image.Architecture,variant:image.Variant||'',config:portableImageConfig(image.Config),layers:image.RootFS.Layers}));
  return {id:image.Id,revision:image.Config.Labels['org.opencontainers.image.revision'],runtimeDigest:'sha256:'+createHash('sha256').update(bytes).digest('hex')};
 }
 async function readImageIdentity(){
@@ -69,3 +92,4 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
  try{if(mode==='identity')console.log(JSON.stringify(await readImageIdentity()));else if(mode==='export')await exportBundle(dir);else if(mode==='verify')console.log(JSON.stringify(await verifyBundle(dir,{revision,runId,repository})));else fail();}
  catch{console.error('BLOCKED: verified CI image bundle unavailable or mismatched');process.exitCode=1;}
 }
+
