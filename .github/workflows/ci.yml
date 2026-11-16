@@ -25,6 +25,16 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: GAIZ standalone report chain acceptance (offline, no payment keys)
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-report-worker.test.mjs \
+            apps/api/src/gaiz/gaiz-queue-storage.test.mjs \
+            apps/api/src/gaiz/gaiz-customer-report-api.test.mjs \
+            apps/api/src/gaiz/gaiz-transactional-report-jobs.test.mjs \
+            apps/api/src/gaiz/gaiz-encrypted-file-object-store.test.mjs \
+            apps/api/src/gaiz/gaiz-executive-brief-pdf.test.mjs
+
       - name: GAIZ v1 read-only verifier adversarial tests
         run: node --test apps/api/src/gaiz/gaiz-verifier.test.mjs
   # The PostgreSQL 16 client is available from Ubuntu 24.04 APT repositories.
