@@ -9,7 +9,7 @@ const actor = Object.freeze({
 });
 const base = (state='approved') => ({
   tenantId: 'tenant-a', artifactId: 'synthetic-artifact', id: 'test-job',
-  state, revision: 2,
+  state, revision: 2, requestedBy:'submitter', approvedBy:'different-approver',
 });
 const importRequest = {
   expectedRevision: 2, nextState: 'importing',
@@ -40,6 +40,8 @@ test('approval cannot bypass signature, GCM, mapping, replay, entitlement or sep
     assert.throws(()=>transitionGaizImport(base(),{...importRequest,[field]:false},actor));
   }
   assert.throws(()=>transitionGaizImport(base(),{...importRequest,approvedBy:actor.userId},actor));
+  assert.throws(()=>transitionGaizImport({...base(),approvedBy:'unrelated'},importRequest,actor));
+  assert.throws(()=>transitionGaizImport({...base(),requestedBy:'different-approver'},importRequest,actor));
   assert.throws(()=>transitionGaizImport(base(),{...importRequest,expectedRevision:1},actor));
   assert.throws(()=>transitionGaizImport(base(),importRequest,{...actor,tenantId:'tenant-b'}));
 });
@@ -75,4 +77,9 @@ test('human approval is a distinct, authorized transition before import',()=>{
   assert.throws(()=>transitionGaizImport(job,{
     expectedRevision:2,nextState:'importing',...importRequest,
   },actor));
+});
+
+test('approval requires identifiable submitter independent of approver',()=>{
+ assert.throws(()=>transitionGaizImport({...base('pending_approval'),requestedBy:null},
+   {expectedRevision:2,nextState:'approved',signatureValid:true,aeadValid:true,mappingValidated:true,entitled:true},actor));
 });
