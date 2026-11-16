@@ -88,7 +88,7 @@ synthetic keys and no production credentials.
 1. Every database transaction sets `app.tenant_id` from an **authenticated,
    server-controlled** claim, never from a document manifest, HTTP parameter,
    message queue body or client-supplied request.
-2. RLS must be **FORCE**d for all seven GAIZ tables. Work roles must not be
+2. RLS must be **FORCE**d for all eight GAIZ tables. Work roles must not be
    table owners, superusers or have `BYPASSRLS`.
 3. The tenant's issuer allow-list and key revocation state must be selected by
    the verifier from backend-owned immutable policy, not from artifact fields.
