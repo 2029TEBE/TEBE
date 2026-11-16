@@ -217,3 +217,25 @@ register Stripe webhooks, set credentials, migrate a database, or deploy code.
 Tests added to CI remain unexecuted until a suitable runner/deployment is
 available. An explicit staging host identity and protected SSH access are
 required by `infra/deploy.sh staging`.
+
+
+## Billing mode/provider consistency correction
+
+The isolated staging preparation audit found a release-gate fixture mismatch:
+a `BILLING_MODE=disabled` case still inherited
+`BILLING_PROVIDER=stripe` from the active-payment fixture. That would
+contradict the fail-closed release policy and make valid disabled-billing
+acceptance fail.
+
+The disabled fixture now explicitly uses `BILLING_PROVIDER=disabled`.
+The staging example specifies both `BILLING_MODE=stripe` and
+`BILLING_PROVIDER=stripe`. The RC1 release validator refuses
+contradictory mode/provider combinations while retaining its existing
+security checks for live/test secrets, exact webhook domain, RLS database
+identity and Redis credentials. Regression cases cover both active and
+disabled configurations.
+
+This is repository-only work. The staging server, Cloudflare DNS, Stripe
+webhook registration, CI runner and live application deployment remain
+unverified/unmodified. Do not activate the actual payment adapter from
+this documentation without end-to-end staging acceptance.
