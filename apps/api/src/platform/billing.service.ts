@@ -123,7 +123,9 @@ export class BillingService {
   async referenceWebhook(rawBody: Buffer | undefined, timestamp: unknown, signature: unknown,
                          body: ReferenceSettlement) {
     const secret = process.env.BILLING_REFERENCE_WEBHOOK_SECRET;
-    if (!referenceBillingModeAllowed(process.env.NODE_ENV, process.env.DEPLOYMENT_ENV) ||
+    // In Stripe-only mode no reference HMAC settlement may activate a license.
+    if (process.env.BILLING_PROVIDER === 'stripe' ||
+        !referenceBillingModeAllowed(process.env.NODE_ENV, process.env.DEPLOYMENT_ENV) ||
         process.env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true' || !secret || Buffer.byteLength(secret) < 32)
       throw new ForbiddenException('Reference billing webhook is disabled');
     if (!verifyReferenceSignature(rawBody, timestamp, signature, secret))
