@@ -131,6 +131,25 @@ negative/positive disposable tenant acceptance.
 - Automated **development checks only**; no GitHub branch protection, checks,
   human approval, security sign-off or release gate is automatically bypassed.
 
+## TO candidate producer conformance fixture (synthetic only)
+- `apps/api/src/gaiz/fixtures/to-producer-synthetic-v1.json` was created
+  locally with the fetched TO `gaiz/core.mjs` candidate `createGaiz`
+  implementation, using a generated Ed25519 test-only keypair and a fixed
+  non-production AES key for reproducibility of the verification data.
+- TO's own `decryptGaiz` successfully decrypted the generated artifact in
+  an isolated local Node 22 test. This is evidence for the **candidate
+  producer**, not for verified TEBE acceptance against PostgreSQL or deployed
+  services.
+- `gaiz-to-candidate-fixture.test.mjs` exercises TEBE signature and tenant
+  validation, AEAD authenticated preview, tamper rejection and inert draft
+  mapping using that fixture. It is wired into offline CI, which remains
+  unavailable. Do not claim its results without executing the new test.
+- The fixture deliberately uses TEBE's candidate `{schemaVersion,title,summary}`
+  payload rather than TO's existing `{report,value}` sample. TO's final
+  canonical governance-report payload and key wrapping remain unapproved.
+- The public key and DEK in the fixture are **test-only material**, never
+  authorized for production use or key custody.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
