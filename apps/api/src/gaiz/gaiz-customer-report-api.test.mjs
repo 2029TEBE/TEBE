@@ -97,3 +97,70 @@ test('HTTP downloads set no-store attachment headers',async()=>{
  assert.equal(r.headers['Content-Type'],'text/html; charset=utf-8');
  assert.equal(r.bytes.toString(),'safe report');
 });
+
+test('customer report service refuses invalid OIDC principals and all tenant-bound identities',async()=>{
+ const invalid=[
+  {...principal,authenticated:false},
+  {...principal,identityProvider:'epmo'},
+  {...principal,epmoTenantBound:true},
+  {...principal,customerId:'not-a-uuid'},
+  {...principal,issuer:''},
+  {...principal,subject:''},
+  {...principal,sessionId:''}
+ ];
+ for(const identity of invalid){
+  const s=service({sessions:{async requireCustomer(){return identity}}});
+  await assert.rejects(s.status({sessionToken,jobId}));
+  await assert.rejects(s.download({sessionToken,jobId,artifactId}));
+ }
+});
+test('session tokens cannot be blank, malformed or arbitrary bearer values',async()=>{
+ const s=service();
+ for(const value of [undefined,'','Bearer token','ogs1.short','ogs1.'+'+'.repeat(43)]){
+  await assert.rejects(s.status({sessionToken:value,jobId}));
+ }
+});
+test('artifact download fails closed for mismatched, expired and unfinished records',async()=>{
+ const another='523e4567-e89b-42d3-a456-426614174000';
+ const variants=[
+  {jobs:{...source.jobs,async getOwnedJob(){return {...job,state:'queued'}}}},
+  {jobs:{...source.jobs,async getOwnedJob(){return {...job,orderId:another}}}},
+  {artifacts:{...source.artifacts,async getMetadata(){return {...artifact,customerId:another}}}},
+  {artifacts:{...source.artifacts,async getMetadata(){return {...artifact,jobId:another}}}},
+  {artifacts:{...source.artifacts,async getMetadata(){return {...artifact,expiresAt:new Date(0)}}}},
+  {artifacts:{...source.artifacts,async readAuthorized(){return {...(await source.artifacts.readAuthorized()),cacheControl:'public'}}}},
+  {artifacts:{...source.artifacts,async readAuthorized(){return {...(await source.artifacts.readAuthorized()),downloadDisposition:'inline'}}}}
+ ];
+ for(const override of variants){
+  await assert.rejects(service(override).download({sessionToken,jobId,artifactId}));
+ }
+});
+test('HTTP adapter denies missing CSRF, wrong host, insecure request and cross-origin submit',async()=>{
+ const handlers=createGaizReportHttpHandlers({
+  enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:service(),productResolver:async()=>({product:{},policy:{}})
+ });
+ const body={orderId,idempotencyKey:'test-idempotency-12345678',
+  request:{toolId:'gaiz.executive-brief.v1',format:'html',inputs:{}}};
+ const normal=req({body});
+ const missingCsrf=req({body,cookies:{'__Host-orgaiz_session':sessionToken}});
+ const invalidHost={...normal,get(k){return k==='host'?'evil.example.test':normal.get(k)}};
+ const badCsrf={...normal,get(k){return k==='x-orgaiz-csrf'?'invalid':normal.get(k)}};
+ for(const value of [missingCsrf,invalidHost,badCsrf,req({body,secure:false}),
+  req({body,origin:'https://evil.example.test'})]){
+  await assert.rejects(handlers.submit(value,res()));
+ }
+});
+test('HTTP download rejects malformed identifiers and unsafe origin host',async()=>{
+ const h=createGaizReportHttpHandlers({
+  enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:service(),productResolver:async()=>({product:{},policy:{}})
+ });
+ const valid=req({params:{jobId,artifactId}});
+ const otherHost={...valid,get(k){return k==='host'?'evil.example.test':valid.get(k)}};
+ for(const value of [
+  req({params:{jobId:'../../outside',artifactId}}),
+  req({params:{jobId,artifactId:'not-a-uuid'}}),
+  req({params:{jobId,artifactId},secure:false}),otherHost
+ ])await assert.rejects(h.download(value,res()));
+});
