@@ -31,11 +31,11 @@ function validate(a){
  });
 }
 export function createGaizTransactionalReportJobs({
- enabled=false,pool,toolPolicy,
+ enabled=false,pool,toolPolicy,settlementVerifier,
  clock=()=>Math.floor(Date.now()/1000),deadlineSeconds=900
 }={}){
  if(enabled!==true||!pool||typeof pool.connect!=='function'||
-    !toolPolicy||typeof toolPolicy.verifyForOrderInTransaction!=='function'||
+    !toolPolicy||typeof toolPolicy.verifyForOrderInTransaction!=='function'||\n    !settlementVerifier||typeof settlementVerifier.requireSettledOrderInTransaction!=='function'||
     typeof clock!=='function'||!Number.isSafeInteger(deadlineSeconds)||
     deadlineSeconds<60||deadlineSeconds>3600)deny();
  async function transaction(fn){
@@ -100,7 +100,7 @@ export function createGaizTransactionalReportJobs({
         AND e.expires_at>$3
       FOR UPDATE`,[a.orderId,a.customerId,new Date(now*1000)]));
     if(!entitlement||!uuid(entitlement.id)||
-       entitlement.grantedBy!=='verified_payment')deny();
+       entitlement.grantedBy!=='verified_payment')deny();\n    const settlement=await settlementVerifier.requireSettledOrderInTransaction(c,{\n      customerId:a.customerId,orderId:a.orderId,entitlementId:entitlement.id\n    });\n    if(!settlement||settlement.verifiedByServer!==true||\n       settlement.settled!==true||settlement.revoked!==false||\n       settlement.orderId!==a.orderId||settlement.customerId!==a.customerId||\n       settlement.entitlementId!==entitlement.id)deny();
     // Validate workerKey, productId, format and catalogue quota using
     // independently trusted server catalog INSIDE this DB transaction.
     const policy=await toolPolicy.verifyForOrderInTransaction(c,{
