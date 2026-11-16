@@ -19,7 +19,7 @@ const eq=(a,b)=>validHash(a)&&validHash(b)&&
 const exactKeys=(obj,keys)=>obj!==null&&typeof obj==='object'&&!Array.isArray(obj)&&
   Object.keys(obj).sort().join('|')===keys.slice().sort().join('|');
 const isTrue=x=>x===true;
-const epoch=x=>Number.isSafeInteger(x)&&x>=0;
+const epoch=x=>Number.isSafeInteger(x)&&x>0;
 
 /**
  * A verifier may only submit a prepared claim associated with the exact
