@@ -75,6 +75,8 @@ jobs:
       # Drizzle-dependent test runs only after pnpm install; never skipped.
       - name: GAIZ workload challenge SQL and replay claims
         run: node --test apps/api/src/gaiz/gaiz-workload-challenge-claim.test.mjs
+      - name: GAIZ custody grant signed policy and replay claims
+        run: node --test apps/api/src/gaiz/gaiz2-custody-grant-claim.test.mjs
       - name: GAIZ real TLS peer and challenge issuance tests
         run: node --test apps/api/src/gaiz/gaiz-mtls-peer-candidate.test.mjs
       - run: pnpm build:packages
