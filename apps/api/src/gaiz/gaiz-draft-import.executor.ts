@@ -76,6 +76,9 @@ export class GaizDraftImportExecutor {
          !job.requestedBy || !job.approvedBy ||
          userId===job.approvedBy || job.requestedBy===job.approvedBy ||
          !job.approvedAt || !job.mappingValidatedAt ||
+         !Number.isFinite(new Date(job.approvedAt).getTime()) ||
+         Date.now()-new Date(job.approvedAt).getTime()>15*60*1000 ||
+         new Date(job.approvedAt).getTime()>Date.now() ||
          job.verificationStatus!=='verified' || !job.integrityVerifiedAt ||
          job.envelopeSha!==job.quarantineSha || job.requestSha!==job.envelopeSha ||
          new Date(job.quarantineExpiresAt).getTime()<=Date.now())
@@ -98,6 +101,7 @@ export class GaizDraftImportExecutor {
       `));
       if(!mapping || mapping.schemaVersion!==1 ||
          mapping.sourceSha!==job.envelopeSha || !mapping.validatedAt ||
+         new Date(mapping.validatedAt).getTime()!==new Date(job.mappingValidatedAt).getTime() ||
          new Date(mapping.validatedAt).getTime()>new Date(job.approvedAt).getTime() ||
          typeof mapping.title!=='string' || mapping.title.length===0 ||
          mapping.title.length>200 || /[<>\x00-\x1f]/.test(mapping.title) ||
