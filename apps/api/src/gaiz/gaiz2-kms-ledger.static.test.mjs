@@ -3,10 +3,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../../../packages/db/sql/gaiz2-kms-release-claim-REVIEW-ONLY.sql',import.meta.url),'utf8');
 const keyRegistry=readFileSync(new URL('../../../../packages/db/sql/gaiz2-recipient-key-registry-REVIEW-ONLY.sql',import.meta.url),'utf8');
+const grant=readFileSync(new URL('../../../../packages/db/sql/gaiz2-custody-grant-review-proposal.sql',import.meta.url),'utf8');
 test('release claims are tenant and grant unique, with no KMS or key bytes',()=>{
  assert.match(source,/PRIMARY KEY\s*\(tenant_id,custody_token_sha256\)/i);
  assert.match(source,/UNIQUE\s*\(tenant_id,kms_operation_id\)/i);
  assert.match(source,/UNIQUE\s*\(custody_token_sha256\)/i);
+ assert.match(source,/CONSTRAINT gaiz2_release_exact_signed_grant FOREIGN KEY/);
+ assert.match(source,/CONSTRAINT gaiz2_release_registered_key FOREIGN KEY/);
+ assert.match(grant,/CONSTRAINT gaiz2_custody_claim_release_reference UNIQUE/);
+ assert.match(grant,/token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id/);
  assert.match(source,/CHECK\s*\(status = 'consumed' OR consumed_at IS NULL\)/i);
  assert.match(source,/CHECK\s*\(consumed_at IS NULL OR consumed_at >= claimed_at\)/i);
  assert.match(source,/octet_length\(custody_token_sha256\)=32/);
