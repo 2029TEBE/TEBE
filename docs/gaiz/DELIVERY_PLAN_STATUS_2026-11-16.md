@@ -77,3 +77,21 @@ Support can confirm billing/policy/runner startup restrictions.
   to retain this draft work.
 - After all blockers are independently cleared, prepare a separately reviewed
   minimal deployment with explicit rollback, observability and tenant opt-in.
+
+
+## Subsequent worker boundary hardening
+
+- The unregistered `gaiz-worker-transaction.ts` coordinator now accepts
+  **signed assignment bytes**, a backend-owned trusted issuer public key and
+  independently attested workload identity; it invokes
+  `bindGaizWorkerIdentity` itself rather than accepting a caller-created
+  object bearing `authenticatedAssignment:true`.
+- Added strict TypeScript declarations for the existing `.mjs` binding
+  seam and static regression tests for signed validation, claim ordering,
+  transaction-local tenant context and production-disable.
+- Three new source-level assertions passed using a V8 source harness.
+  Actual Node/Nest TypeScript build and Postgres acceptance are still pending,
+  and the new type declaration has not been checked by the official compiler.
+- This reduces one accidental bypass path but **does not authenticate mTLS**
+  on its own; the workload identity and issuer key MUST still originate from
+  independent trusted runtime configuration.
