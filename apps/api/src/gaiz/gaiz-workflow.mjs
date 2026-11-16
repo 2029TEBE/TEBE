@@ -58,7 +58,7 @@ export function transitionGaizImport(job, request, actor) {
   if (next === 'pending_approval' && !verified(request.contentValidated)) fail();
   if (next === 'approved') {
     requireGaizOperation(actor, 'approve', job.tenantId);
-    if (job.requestedBy === actor.userId || !verified(request.signatureValid) ||
+    if (!validText(job.requestedBy) || job.requestedBy === actor.userId || !verified(request.signatureValid) ||
         !verified(request.aeadValid) || !verified(request.mappingValidated) ||
         !verified(request.entitled)) fail();
   }
@@ -70,7 +70,9 @@ export function transitionGaizImport(job, request, actor) {
         !verified(request.replayClaimAcquired) ||
         !verified(request.entitled)) fail();
     requireGaizOperation(actor, 'import', job.tenantId);
-    if (!validText(request.approvedBy) || request.approvedBy === actor.userId)
+    if (!validText(job.approvedBy) || job.approvedBy !== request.approvedBy ||
+        !validText(job.requestedBy) || !validText(request.approvedBy) ||
+        request.approvedBy === actor.userId || job.requestedBy === job.approvedBy)
       fail(); // separation of approval and import execution
   }
   if (next === 'rejected') requireGaizOperation(actor, 'reject', job.tenantId);
