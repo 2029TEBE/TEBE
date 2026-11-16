@@ -25,8 +25,8 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
-      - name: GAIZ v1 read-only verifier adversarial tests
-        run: node --test apps/api/src/gaiz/gaiz-verifier.test.mjs
+      - name: GAIZ v1 offline verifier and workflow policy tests
+        run: node --test apps/api/src/gaiz/gaiz-verifier.test.mjs apps/api/src/gaiz/gaiz-workflow.test.mjs
   # The PostgreSQL 16 client is available from Ubuntu 24.04 APT repositories.
   verify:
     runs-on: ubuntu-24.04
