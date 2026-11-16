@@ -2,6 +2,12 @@
 -- Reconcile with real TEBE DB, RLS and worker grants before disposable testing.
 -- No deployment or database modifications are authorized by this file.
 
+-- Existing documents/projects use single-column UUID primary keys. Composite
+-- references below additionally bind the target to its tenant. These two
+-- indexes are additive proposals, not permission to alter production tables.
+CREATE UNIQUE INDEX projects_id_tenant_gaiz_fk ON projects (id, tenant_id);
+CREATE UNIQUE INDEX documents_id_tenant_gaiz_fk ON documents (id, tenant_id);
+
 -- Untrusted ciphertext is quarantined before issuer and payload verification.
 CREATE TABLE gaiz_quarantine_blobs (
   id uuid PRIMARY KEY,
@@ -85,9 +91,10 @@ CREATE TABLE gaiz_import_proposals (
   UNIQUE (tenant_id, import_id),
   UNIQUE (id, tenant_id),
   FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id),
-  FOREIGN KEY (target_project_id) REFERENCES projects(id)
+  FOREIGN KEY (target_project_id, tenant_id)
+    REFERENCES projects(id, tenant_id)
 );
--- The executor must separately confirm the project is in the same tenant.
+-- The executor also rechecks the target project in its own transaction.
 
 CREATE TABLE gaiz_import_receipts (
   id uuid PRIMARY KEY,
@@ -101,7 +108,8 @@ CREATE TABLE gaiz_import_receipts (
   UNIQUE (tenant_id, import_id),
   UNIQUE (tenant_id, document_id),
   FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id),
-  FOREIGN KEY (document_id) REFERENCES documents(id)
+  FOREIGN KEY (document_id, tenant_id)
+    REFERENCES documents(id, tenant_id)
 );
 
 CREATE TABLE gaiz_export_jobs (
