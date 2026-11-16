@@ -24,7 +24,7 @@ esac
   const log=join(dir,state);
   const result=spawnSync(process.execPath,[resolve('scripts/run-safe-auto-merge.mjs')],{env:{...process.env,PATH:dir+':'+process.env.PATH,GH_REPO:'2029TEBE/TEBE',BASE:'main',MOCK_STATE:state,MOCK_LOG:log},encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);
-  const lines=(await readFile(log,'utf8')).trim().split('\\n');
+  const lines=(await readFile(log,'utf8')).trim().split('\n');
   if(state==='SUCCESS'){
    const merge=lines.findIndex(x=>x.startsWith('pr merge ')),dispatch=lines.findIndex(x=>x==='workflow run ci.yml --repo 2029TEBE/TEBE --ref main');
    assert.ok(merge>=0&&dispatch>merge);assert.match(lines[merge],/--match-head-commit a{40}/);
