@@ -13,10 +13,10 @@ test('Stripe proposal is intentionally out of migrations pending GAIZ journal re
 test('all per-tenant binding and events use forced RLS',()=>{
  for(const t of ['stripe_billing_customer_bindings',
   'stripe_billing_subscription_bindings','stripe_billing_event_receipts']){
-  assert.match(sql,new RegExp('ALTER TABLE public\\\\.'+t+' FORCE ROW LEVEL SECURITY'));
-  assert.match(sql,new RegExp('CREATE POLICY [^\\n]+ ON public\\\\.'+t));
-  assert.match(sql,new RegExp('tenant_id = NULLIF\\\\(current_setting'));
-  assert.match(sql,new RegExp('REVOKE INSERT, UPDATE, DELETE ON public\\\\.stripe_billing_approved_prices,'));
+  assert.match(sql,new RegExp('ALTER TABLE public\\.'+t+' FORCE ROW LEVEL SECURITY'));
+  assert.match(sql,new RegExp('CREATE POLICY [^\\n]+ ON public\\.'+t));
+  assert.match(sql,new RegExp('tenant_id = NULLIF\\(current_setting'));
+  assert.match(sql,new RegExp('REVOKE INSERT, UPDATE, DELETE ON public\\.stripe_billing_approved_prices,'));
  }
  assert.match(rls,/GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES/);
 });
