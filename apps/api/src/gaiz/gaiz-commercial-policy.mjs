@@ -4,6 +4,9 @@
 // Do not treat customer input, a checkout return URL or an OIDC token as purchase evidence.
 const deny=()=>{throw Error('ORGAIZ commercial operation denied')};
 const id=x=>typeof x==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(x);
+const issuer=x=>{if(typeof x!=='string'||x.length>512)return false;
+ try{const u=new URL(x);return u.protocol==='https:'&&!u.username&&!u.password&&
+  !u.search&&!u.hash&&u.href===x}catch{return false}};
 const positiveInt=x=>Number.isSafeInteger(x)&&x>0;
 const knownFormats=new Set(['pdf','html','gaiz']);
 const allowedStates=Object.freeze({
@@ -20,7 +23,7 @@ const allowedStates=Object.freeze({
 });
 function customer(p){
  if(!p||p.authenticated!==true||p.identityProvider!=='oidc'||p.epmoTenantBound!==false||
- !id(p.customerId)||!id(p.issuer)||!id(p.subject)||!id(p.sessionId))deny();
+ !id(p.customerId)||!issuer(p.issuer)||!id(p.subject)||!id(p.sessionId))deny();
  return p;
 }
 function order(o){
