@@ -7,7 +7,7 @@ const actor = Object.freeze({
   authenticated: true, entitled: true, workspaceMember: true,
   capabilities: ['read', 'pmoa_manage_projects', 'pmoa_approve', 'pmoa_view_financials'],
 });
-const base = (state='pending_approval') => ({
+const base = (state='approved') => ({
   tenantId: 'tenant-a', artifactId: 'synthetic-artifact', id: 'test-job',
   state, revision: 2,
 });
@@ -59,4 +59,20 @@ test('replay identities bind issuer, tenant and artifact', () => {
   assert.notEqual(a,gaizReplayIdentity({tenantId:'b',issuerKeyId:'issuer',artifactId:'id'}));
   assert.notEqual(a,gaizReplayIdentity({tenantId:'a',issuerKeyId:'other',artifactId:'id'}));
   assert.throws(()=>gaizReplayIdentity({tenantId:'a',issuerKeyId:'',artifactId:'id'}));
+});
+
+test('human approval is a distinct, authorized transition before import',()=>{
+  const job={...base('pending_approval'),requestedBy:'submitter'};
+  const approved=transitionGaizImport(job,{
+    expectedRevision:2,nextState:'approved',
+    signatureValid:true,aeadValid:true,mappingValidated:true,entitled:true,
+  },actor);
+  assert.equal(approved.state,'approved');
+  assert.throws(()=>transitionGaizImport(job,{
+    expectedRevision:2,nextState:'approved',signatureValid:true,aeadValid:true,
+    mappingValidated:true,entitled:true,
+  },{...actor,userId:'submitter'}));
+  assert.throws(()=>transitionGaizImport(job,{
+    expectedRevision:2,nextState:'importing',...importRequest,
+  },actor));
 });
