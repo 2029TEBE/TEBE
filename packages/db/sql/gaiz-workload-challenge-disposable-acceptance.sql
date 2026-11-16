@@ -24,6 +24,7 @@ CREATE ROLE gaiz_verify_worker NOLOGIN NOINHERIT NOBYPASSRLS;
 CREATE ROLE gaiz_execute_worker NOLOGIN NOINHERIT NOBYPASSRLS;
 
 \ir gaiz-workload-challenge-review-proposal.sql
+\ir gaiz2-custody-grant-review-proposal.sql
 
 DO $$
 BEGIN
@@ -131,6 +132,111 @@ BEGIN
 END $$;
 COMMIT;
 
+-- Custody policy claim: real PostgreSQL FORCE RLS, exact-token replay,
+-- same-assignment reissue exclusion and rollback. Synthetic metadata only.
+DO $
+BEGIN
+ IF has_table_privilege('pmo_app','gaiz2_custody_grant_claims','INSERT') OR
+    has_table_privilege('pmo_app','gaiz2_custody_grant_claims','SELECT') THEN
+   RAISE EXCEPTION 'App role unexpectedly granted custody-claim access';
+ END IF;
+ IF NOT (SELECT relforcerowsecurity AND relrowsecurity FROM pg_class
+         WHERE oid='gaiz2_custody_grant_claims'::regclass) THEN
+   RAISE EXCEPTION 'Custody grant ledger is missing FORCE RLS';
+ END IF;
+END $;
+
+BEGIN;
+SET LOCAL ROLE gaiz_verify_worker;
+SELECT set_config('app.tenant_id','22222222-2222-4222-8222-222222222222',true);
+DO $
+DECLARE rows_added integer;
+BEGIN
+ INSERT INTO gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at)
+ SELECT decode(repeat('a1',32),'hex'),
+ '11111111-1111-4111-8111-111111111111',
+ '33333333-3333-4333-8333-333333333333',
+ '22222222-2222-4222-8222-222222222222',
+ '44444444-4444-4444-8444-444444444444',
+ 'synthetic-issuer','synthetic-artifact',decode(repeat('a2',32),'hex'),
+ 'synthetic-recipient',clock_timestamp()+interval '20 seconds'
+ ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS rows_added=ROW_COUNT;
+ IF rows_added<>0 THEN RAISE EXCEPTION 'Wrong-tenant custody claim succeeded'; END IF;
+END $;
+ROLLBACK;
+
+BEGIN;
+SET LOCAL ROLE gaiz_verify_worker;
+SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
+DO $
+DECLARE first_count integer; replay_count integer; reissue_count integer;
+BEGIN
+ INSERT INTO gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at)
+ VALUES(decode(repeat('a1',32),'hex'),
+ '11111111-1111-4111-8111-111111111111',
+ '33333333-3333-4333-8333-333333333333',
+ '22222222-2222-4222-8222-222222222222',
+ '44444444-4444-4444-8444-444444444444',
+ 'synthetic-issuer','synthetic-artifact',decode(repeat('a2',32),'hex'),
+ 'synthetic-recipient',clock_timestamp()+interval '20 seconds')
+ ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS first_count=ROW_COUNT;
+ INSERT INTO gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at)
+ SELECT token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at
+ FROM gaiz2_custody_grant_claims
+ WHERE token_sha256=decode(repeat('a1',32),'hex')
+ ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS replay_count=ROW_COUNT;
+ INSERT INTO gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at)
+ VALUES(decode(repeat('a3',32),'hex'),
+ '11111111-1111-4111-8111-111111111111',
+ '33333333-3333-4333-8333-333333333333',
+ '22222222-2222-4222-8222-222222222222',
+ '44444444-4444-4444-8444-444444444444',
+ 'synthetic-issuer','synthetic-artifact',decode(repeat('a2',32),'hex'),
+ 'synthetic-recipient',clock_timestamp()+interval '20 seconds')
+ ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS reissue_count=ROW_COUNT;
+ IF first_count<>1 OR replay_count<>0 OR reissue_count<>0 THEN
+  RAISE EXCEPTION 'Custody grant single-use/reissue constraint failed: %,%,%',first_count,replay_count,reissue_count;
+ END IF;
+END $;
+ROLLBACK;
+
+-- Rolling back a claim allows the very same one-time grant to be retried.
+BEGIN;
+SET LOCAL ROLE gaiz_verify_worker;
+SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
+DO $
+DECLARE n integer;
+BEGIN
+ INSERT INTO gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,
+ issuer_id,artifact_id,envelope_sha256,recipient_key_id,expires_at)
+ VALUES(decode(repeat('a1',32),'hex'),
+ '11111111-1111-4111-8111-111111111111',
+ '33333333-3333-4333-8333-333333333333',
+ '22222222-2222-4222-8222-222222222222',
+ '44444444-4444-4444-8444-444444444444',
+ 'synthetic-issuer','synthetic-artifact',decode(repeat('a2',32),'hex'),
+ 'synthetic-recipient',clock_timestamp()+interval '20 seconds')
+ ON CONFLICT DO NOTHING;
+ GET DIAGNOSTICS n=ROW_COUNT;
+ IF n<>1 THEN RAISE EXCEPTION 'Custody replay marker persisted across rollback'; END IF;
+END $;
+COMMIT;
+
+DROP TABLE gaiz2_custody_grant_claims;
 DROP TABLE gaiz_workload_challenges;
 DROP ROLE gaiz_challenge_issuer;
 DROP ROLE gaiz_verify_worker;
