@@ -80,6 +80,7 @@ export class GaizImportAuthorizationService {
         eq(gaizCustodyAttempts.id, input.custodyAttemptId),
       )).limit(1);
       if (!review || review.status !== 'approved' || review.expiresAt <= new Date() ||
+          review.sha256 !== input.artifactSha256 ||
           !custody || custody.status !== 'validated' ||
           custody.reviewId !== review.id || custody.artifactSha256 !== review.sha256)
         throw new ConflictException('Review or custody evidence invalid');
