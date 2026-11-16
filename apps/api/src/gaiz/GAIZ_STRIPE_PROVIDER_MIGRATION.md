@@ -1,6 +1,6 @@
 # Payment Provider Direction — Stripe for Future Purchases and Subscriptions
 
-**Requested decision:** use Stripe for NEW one-time GAIZ purchases and future recurring subscriptions. Supersede GAIZ Paddle PR #519. Existing EPMO tenant subscription invoices retain their historical provider, payments, webhook receipts and entitlements. Do **not** reclassify an old Paddle purchase as Stripe or attempt to migrate saved payment methods automatically.
+**Requested decision:** use Stripe for NEW one-time GAIZ purchases and future recurring subscriptions. Retire experimental provider PR #519. Existing EPMO tenant subscription invoices retain their historical provider, payments, webhook receipts and entitlements. Do **not** reclassify an old legacy-provider purchase as Stripe or attempt to migrate saved payment methods automatically.
 
 ## What the repository already supports
 - EPMO TEBE already has `StripeBillingService`, a Stripe Checkout endpoint for **existing renewal invoices** and a signed Stripe webhook service under `apps/api/src/platform/`. These remain in place and are NOT replaced by GAIZ changes.
@@ -18,7 +18,7 @@
 2. Obtain approved Stripe test keys (server-only), a distinct webhook signing secret for GAIZ, products and recurring/one-time Price IDs. Set explicit production versus staging mode guards. Never use third-party accounts or publish credentials.
 3. Design separate server-only customer and order ID bindings, Checkout Session persistence, idempotency keys, uniquely claimed event receipts, locking/CAS, audit, refunds and dispute access revocation. Wire only after independent database and security review.
 4. For recurring plans add **Stripe Billing** Customer+Subscription persistence, invoice-paid reconciliation (not status alone), failed-payment/dunning, pause/cancel, seat/upgrade/proration, portal access, term extension and reconciliation on delayed/out-of-order events.
-5. Preserve all old Paddle subscriptions and purchase entitlements as historical records. Evaluate active Paddle customers individually: cancel at chosen period boundary, obtain new customer consent and create new Stripe subscriptions rather than assuming payment methods automatically transfer. Avoid double charging or customer access loss.
+5. Preserve all old legacy-provider subscriptions and purchase entitlements as historical records. Evaluate active legacy-provider customers individually: cancel at chosen period boundary, obtain new customer consent and create new Stripe subscriptions rather than assuming payment methods automatically transfer. Avoid double charging or customer access loss.
 6. Register separate reviewed GAIZ ingress and customer billing controllers only when all security and staging tests pass. Do not weaken existing EPMO tenant middleware or modify the existing Stripe renewal endpoint without reviewing current tenants and invoices.
 7. Validate genuine Stripe webhooks (payment, invoice success/failure, subscription created/updated/deleted, refunds, disputes) in staging with retries, duplicates and out-of-order delivery. Test account status, account currency/taxes and refund rules. Release only with approved rollback.
 
