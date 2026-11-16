@@ -6,7 +6,7 @@
 --   3. pmo_app has neither SUPERUSER nor BYPASSRLS privilege.
 --   4. Changes reviewed with packages/db/sql/rls.sql and database owner.
 --
--- All seven GAIZ tables contain tenant_id. App cannot use a global owner scope.
+-- All eight GAIZ tables contain tenant_id. App cannot use a global owner scope.
 
 ALTER TABLE gaiz_quarantine_blobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_quarantine_blobs FORCE ROW LEVEL SECURITY;
@@ -20,6 +20,8 @@ ALTER TABLE gaiz_import_proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_import_proposals FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_import_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_import_receipts FORCE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_worker_assignment_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_worker_assignment_claims FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions FORCE ROW LEVEL SECURITY;
 
@@ -39,6 +41,9 @@ CREATE POLICY tenant_isolation ON gaiz_import_proposals
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
 CREATE POLICY tenant_isolation ON gaiz_import_receipts
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
+CREATE POLICY tenant_isolation ON gaiz_worker_assignment_claims
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
 CREATE POLICY tenant_isolation ON gaiz_decisions
@@ -65,6 +70,12 @@ REVOKE INSERT ON gaiz_import_receipts FROM pmo_app;
 REVOKE INSERT, UPDATE, DELETE ON gaiz_import_jobs FROM pmo_app;
 REVOKE INSERT, UPDATE, DELETE ON gaiz_decisions FROM pmo_app;
 REVOKE INSERT, UPDATE, DELETE ON gaiz_export_jobs FROM pmo_app;
+-- Assignment claim rows are private to independently authenticated worker
+-- roles. Never grant pmo_app access (including inherited role membership).
+REVOKE ALL ON gaiz_worker_assignment_claims FROM PUBLIC;
+REVOKE ALL ON gaiz_worker_assignment_claims FROM pmo_app;
+-- The approved worker role must only receive INSERT on this table; its
+-- request identity must be checked in its authenticated job transaction.
 -- No GAIZ customer-facing write workflow is activated by these proposals.
 
 REVOKE DELETE ON gaiz_quarantine_blobs FROM pmo_app;
