@@ -17,7 +17,8 @@ test('trust and consent records are tenant-RLS protected public metadata only',(
  assert.match(migration,/gaiz_trust_key_scope UNIQUE \(tenant_id,key_kind,key_id\)/);
  assert.match(migration,/approved_by<>registered_by/);
  assert.match(migration,/approved_by<>requested_by/);
- assert.doesNotMatch(migration,/private_key|secret_key|encrypted_payload|plaintext|dek\s+bytea/i);
+ // Inspect SQL definitions; comments explicitly prohibit secret columns.
+ assert.doesNotMatch(migration.replace(/--[^\n]*/g,''),/private_key|secret_key|encrypted_payload|plaintext|dek\s+bytea/i);
 });
 test('application role may only read trust roots and customer consent',()=>{
  for(const table of ['gaiz_trust_keys','gaiz_recovery_consents']){

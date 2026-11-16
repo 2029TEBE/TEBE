@@ -40,11 +40,11 @@ export function verifyGaiz2ForPreview(input,{trustedIssuerPublicKey,expectedIssu
  if(binary(doc.nonce,12).length!==12||binary(doc.tag,16).length!==16||binary(doc.signature,64).length!==64)throw Error('Invalid GAIZ2 cryptographic field length');
  binary(doc.ciphertext,MAX);
  if(!Array.isArray(doc.recipients)||doc.recipients.length<1||doc.recipients.length>8)throw Error('Invalid GAIZ2 recipient count');
- const seen=new Set();
+ const seen=new Set();let previous='';
  for(const recipient of doc.recipients){
   fields(recipient,['keyId','wrappedKey']);
-  if(!ident(recipient.keyId)||seen.has(recipient.keyId)||binary(recipient.wrappedKey,1024).length<256)throw Error('Invalid recipient envelope');
-  seen.add(recipient.keyId);
+  if(!ident(recipient.keyId)||seen.has(recipient.keyId)||recipient.keyId<=previous||binary(recipient.wrappedKey,1024).length<384)throw Error('Invalid recipient envelope');
+  seen.add(recipient.keyId);previous=recipient.keyId;
  }
  if(m.issuerId!==expectedIssuerId)throw Error('Issuer denied');
  if(m.tenantScope!==expectedTenantScope)throw Error('Tenant denied');

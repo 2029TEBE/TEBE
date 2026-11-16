@@ -162,3 +162,14 @@ GRANT INSERT (user_id, token_hash, expires_at) ON public.auth_password_resets TO
 GRANT UPDATE (revoked_at) ON public.auth_password_resets TO pmo_app;
 REVOKE ALL ON FUNCTION public.pmo_redeem_password_reset(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pmo_redeem_password_reset(text, text) TO pmo_app;
+
+-- Optional GAIZ runtime: no registry writes are granted to pmo_app.
+DO $$ BEGIN
+ IF to_regclass('public.gaiz_execution_grants') IS NOT NULL THEN
+  REVOKE ALL ON public.gaiz_execution_grants FROM pmo_app;
+  GRANT SELECT,INSERT ON public.gaiz_execution_grants TO pmo_app;
+  GRANT UPDATE(state,consumed_at,result_sha256) ON public.gaiz_execution_grants TO pmo_app;
+  GRANT EXECUTE ON FUNCTION public.gaiz_lock_trust_key(uuid,text,text),
+    public.gaiz_lock_recovery_consent(uuid,text,timestamptz) TO pmo_app;
+ END IF;
+END $$;
