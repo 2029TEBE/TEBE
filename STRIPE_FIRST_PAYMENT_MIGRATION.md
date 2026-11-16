@@ -1,0 +1,41 @@
+# Stripe-first payments — provider transition (2026-11-16)
+
+## Decision and scope
+
+Use **Stripe as the primary payment processor for all future THEEPMO / Orgaiz purchases, subscription invoices and renewals**. Do NOT initiate refunds, move existing payments, overwrite historical provider IDs, or silently change an existing customer's external billing agreement.
+
+The current TEBE backend already implements authenticated tenant-admin Stripe Checkout on an *existing open renewal invoice*, signed Stripe webhook verification, idempotent payment recording, and payment-exception handling. The current Stripe Checkout uses `mode=payment`: **this is a manually invoiced renewal flow, not an automatically recurring Stripe Billing subscription**. The plan comparison page does not currently permit first-purchase self-service.
+
+## Changes in this review branch
+
+- Add `PRIMARY_PAYMENT_PROVIDER='stripe'` policy for future charges, with `BILLING_PAYMENT_PROVIDER` optional configuration. An absent value defaults to Stripe; an explicit different provider causes Stripe checkout to fail closed. This does not activate Stripe.
+- Correct `billing=cancel` redirect to match the billing UI's existing cancel-state handling.
+- Expose `GET /api/v1/subscription/billing/provider` with only accurately supported capabilities. It does not return account secrets or grant subscription access.
+- Add static regression contracts for provider selection, signed webhook settlement and disabled/unimplemented new-purchase flows.
+- Public TEFE pricing preview identifies Stripe as the intended payment processor but continues to state that **public checkout is not activated**.
+
+## Required secure configuration (not provisioned)
+
+Configure ONLY in the deployed API's secret manager, never in source code or browser:
+
+- `BILLING_PAYMENT_PROVIDER=stripe`
+- `STRIPE_ENABLED=true` only after acceptance in the target environment.
+- `STRIPE_SECRET_KEY=sk_test_...` on staging; live-only key in a separately approved production environment.
+- `STRIPE_WEBHOOK_SECRET=whsec_...` for the exact webhook destination `POST /api/v1/billing/stripe-webhook`.
+- `WEB_ORIGIN=https://<trusted-app-origin>` (canonical HTTPS origin).
+- Verify database migrations 0014/0015/0018 and tenant RLS; do not apply migrations without isolated test results.
+- Keep `BILLING_REFERENCE_WEBHOOK_ENABLED` disabled outside explicit local tests.
+
+Set prices, currency and tax policy from an approved **server-owned** plan catalogue. Do not accept browser-defined amounts. A Checkout redirect is **not proof of payment**; access changes require verified signed Stripe events, matched invoice, exact amount/currency, and an idempotent ledger transaction.
+
+## Product readiness and follow-up work
+
+1. **First purchase:** implement an authenticated, tenant-bound plan selection and initial-invoice transaction; use Stripe-hosted Checkout with a server-derived price; provision entitlements only after verified settlement.
+2. **Automatic subscriptions:** explicitly choose whether to use Stripe Billing `mode=subscription`, its Product/Price IDs, customer and subscription binding tables, and a complete recurring webhook lifecycle. Never label the existing one-time `mode=payment` checkout as automatic billing.
+3. **Payment method and cancellations:** require a verified Stripe customer portal binding and explicit migration of any actual external recurring agreements. Current app cancellation is a local subscription policy, not remote Stripe Billing cancellation.
+4. **Historical provider transactions:** preserve their provider/source ledger for refunds, reconciliation, disputes, audit and customer support. Do not fabricate or auto-refund transactions.
+5. **Provider and acceptance:** confirm Stripe account ownership/eligibility, accepted merchant country, currency, tax settings, settlement account, test-mode webhook endpoint and secret, then execute real staging test card flow, replay, cross-tenant test, charge failure and refund/dispute QA. Only after those checks should live payment processing be enabled.
+
+## Verification status
+
+No Stripe account connection, secret provisioning, provider API request, real charge, database mutation, PR merge, or production deployment occurred when preparing this branch. CI has not been treated as a passed release gate. Provider selection is committed as a **reviewable development change**, not as a claim that payments are live.
