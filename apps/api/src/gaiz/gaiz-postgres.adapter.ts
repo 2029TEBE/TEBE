@@ -4,6 +4,8 @@ import { sql } from 'drizzle-orm';
 import { auditEvents, withTenant } from '@pmo/db';
 import type { GaizDecision, GaizExportSubmission, GaizImportSubmission } from '@pmo/contracts';
 import type { GaizEnterpriseAdapter } from './gaiz-orchestrator';
+import { currentContext } from '../tenancy/tenant-context';
+import { requireCapability } from '../common/require-capability';
 
 const rows = (value: unknown) => value as unknown as any[];
 
@@ -41,6 +43,12 @@ export class GaizPostgresAdapter implements GaizEnterpriseAdapter {
   ) {
     if (decision !== 'approve' && decision !== 'reject')
       throw new ConflictException('Unsupported GAIZ decision');
+    // Defense in depth: check the authenticated server-derived context even
+    // when a future caller bypasses the orchestrator and invokes this adapter.
+    const ctx = currentContext();
+    if (!ctx.userId || ctx.userId !== actorId || ctx.tenantId !== tenantId)
+      throw new NotFoundException('GAIZ import not found');
+    requireCapability('pmoa_approve');
     return withTenant(tenantId, async (tx) => {
       // Recheck membership under the same RLS-scoped transaction. The
       // orchestrator already checked session and capability.
