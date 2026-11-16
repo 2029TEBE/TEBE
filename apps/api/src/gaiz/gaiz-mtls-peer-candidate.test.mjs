@@ -43,7 +43,7 @@ async function withLocalMtls(run){
   const peerCert=new X509Certificate(workerIdentity.cert);
   const fingerprint=createHash('sha256').update(peerCert.raw).digest('hex');
   const nowMs=Date.now();
-  const entry={workerId,role:expectedRole,credentialIssuer:'synthetic-mtls-CA',
+  const entry={workerId,role:expectedRole,credentialIssuer:'independent-issuer',
    notBeforeMs:nowMs-30000,expiresAtMs:nowMs+60000,revoked:false};
   const registry=new Map([[fingerprint,entry]]);
   server=createServer({key:serverIdentity.key,cert:serverIdentity.cert,
