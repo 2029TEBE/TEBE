@@ -937,6 +937,18 @@ export const gaizMappingProfiles = pgTable('gaiz_mapping_profiles', {
   tenantStatus: index('gaiz_mapping_profiles_tenant_status_idx').on(t.tenantId,t.status,t.targetKind),
 }));
 
+/** Single-use signed runtime grants; metadata only, never decrypted patches. */
+export const gaizExecutionGrants = pgTable('gaiz_execution_grants', {
+  id: uuid('id').primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(()=>tenants.id),
+  authorizationId: uuid('authorization_id').notNull().references(()=>gaizImportAuthorizations.id),
+  grantSha256: text('grant_sha256').notNull(),
+  envelope: jsonb('envelope').$type<Record<string,unknown>>().notNull(),
+  expiresAt: timestamp('expires_at',{withTimezone:true}).notNull(),
+  state: text('state').notNull().default('issued'),
+  consumedAt: timestamp('consumed_at',{withTimezone:true}),
+  resultSha256: text('result_sha256'),
+},t=>({authorizationOnce:uniqueIndex('gaiz_execution_grants_tenant_authorization_unique').on(t.tenantId,t.authorizationId)}));
 /** Public trust references only. No private keys or customer plaintext. */
 export const gaizTrustKeys = pgTable('gaiz_trust_keys', {
   id: id(),

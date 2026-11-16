@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build && node -e \"const fs=require('node:fs'),path=require('node:path');for(const file of ['excel/import-preflight.mjs','gaiz/gaiz2-verifier.mjs']){const target=path.join('dist',file);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join('src',file),target);}\"",
+    "build": "nest build && node ../../scripts/package-api-runtime.mjs",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit"
   },

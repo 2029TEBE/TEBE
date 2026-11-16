@@ -1,0 +1,11 @@
+{
+  "profile": "gaiz-execution/1",
+  "repository": "faisalwrokksa-hub/TO",
+  "commit": "376934916a04c1e3cd104edb5b24ce66b1400dd2",
+  "files": {
+    "protocol.mjs": "7e60509b15e02d4355089964c21758215a2013ee7ce81be7a09464fbaa1f3159",
+    "PROTOCOL.md": "78c10fcb0b5b596da6048154d3203249e1e56b9151e89b2730c8ac65033bdb71",
+    "vault-transit.mjs": "2f1404a54f593d78a6e3371facb53cb58310e983b3f74eddcddfc3b42bbd8ef1",
+    "workload-token.mjs": "ba2de88d02d5c90752c5ef0b8d4b170611b4dcbabcb0d1b1c09000a2c3230220"
+  }
+}

@@ -49,3 +49,18 @@ The app database role has **SELECT only** on both tables. Key enrollment, revoca
 **Limits that cannot be waived:** A row marked approved in the consent ledger does not itself cryptographically prove the approving user is an authorized customer representative. Membership, customer authority, consent signatures, trust-key enrollment, proof-of-possession, mutual TLS/service identity, customer-managed key custody, remote attestation, KMS/HSM provisioning and production audit must be independently designed and verified. Do not set the new registry or bridge feature flags in production. Neither public-key metadata nor a signed validation receipt gives permission to decrypt or import enterprise records.
 
 New source-level negative/security contract `gaiz-trust-directory.contract.test.mjs` is included for later automated execution. PostgreSQL harness now includes migration 0026; user has requested not to wait for pending GitHub test jobs. **No current CI pass is claimed**, and all 0020–0026 migrations remain unapplied.
+
+## Trusted runtime engineering continuation
+
+The separate trusted-runtime PR now implements the grant/result protocol,
+Vault-backed non-exportable key operations, TEBE-owned public registry adapter,
+independent approved-field digest verification, and same-transaction CAS/import
+consumption/audit executor. It repairs the malformed unapplied 0022 migration,
+adds 0027 execution ledger/tenant-bound read locks, and includes NestJS internal
+composition plus ESM build packaging. See `runtime/PROTOCOL.md` and
+`tests/gaiz-runtime/README.md` for the exact boundary and reproducible acceptance.
+The older statement that no executor code exists describes the prior checkpoint.
+No runtime is configured or enabled and no existing database migration is applied.
+Live workload identities, audited customer authority, hardened isolation, full app
+build, real multi-connection PostgreSQL acceptance, external security review and
+release approval remain operational gates; GitHub CI remains postponed.
