@@ -77,3 +77,20 @@ Added `apps/api/src/platform/stripe-recurring-settlement.mjs`, a conservative, p
 Synthetic positive and negative source tests were added in `stripe-subscription-contract.test.mjs`. **No production endpoint, network request, price/product write, database migration, customer payment or subscription has been created.** The existing renewal `mode=payment` flow remains unchanged.
 
 Before execution: approve a commercial catalogue/tax policy; obtain official Stripe Price IDs; provision webhook destination and account credentials; design unique tenant-bound customer/subscription linkage and idempotent invoice/event store; validate subscription lifecycle and current Stripe Invoice payload in isolated test mode; confirm cancellation and customer portal propagation; complete CI and external security acceptance.
+
+## Unapplied Stripe Billing tenant-binding foundation
+
+Committed as an **SQL proposal only**, not a numbered migration: `packages/db/proposals/stripe_billing_bindings_unapplied.sql`. Main's current migration journal ends at 0019, while the separate GAIZ draft uses migration identifiers 0020–0026. Do not introduce a conflicting 0020 Stripe migration; reconcile both branches and choose the next contiguous index only after GAIZ integration.
+
+The proposal separates four security-authoritative concepts:
+
+- Tenant-to-Stripe account/mode/customer mapping, with unique external Stripe customer association and tenant-scoped RLS.
+- Independently approved Stripe Price catalogue mapping (server-only, with price revision and a second reviewer), never accepted from an HTTP request.
+- Tenant-specific Stripe subscription + Checkout binding with composite foreign keys tying tenant, Stripe account/mode, customer, approved price, plan and catalogue revision.
+- Replay receipt keyed by Stripe account/mode/event ID with tenant/binding composite FK and raw-payload digest, for a future atomic processing pipeline.
+
+The ordinary `pmo_app` role gets **SELECT only** on these records when they exist; the RLS bootstrap now reapplies the read-only restriction after its broad general grants. All trusted registry writes require a separately authenticated and reviewed privileged billing worker, not yet implemented or authorized. A durable replay receipt and entitlement update **must occur in one appropriately locked database transaction**, not in independent webhook handlers.
+
+A pure `stripe-billing-binding-policy.mjs` verifies a loaded tenant/price/customer/subscription identity before recurring settlement review and always reports `entitlementAllowed:false`. Schema and policy negative contract tests are included. These tests have not been independently executed in this turn; the proposed SQL is **not applied to any database**.
+
+**Remaining blockers:** Approved pricing/tax catalogue, account webhook and credentials, real customer onboarding, Stripe API/version-compatible recurring invoice verification, billing-worker roles, isolated Postgres tenant/RLS and replay tests, complete subscription lifecycle and Customer Portal/cancellation parity, required CI and live-account onboarding. Do not imply that existing manually paid renewals are automatic subscriptions.
