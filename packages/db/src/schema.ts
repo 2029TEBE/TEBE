@@ -875,5 +875,6 @@ export const gaizImportRequests = pgTable('gaiz_import_requests', {
   reviewNote: text('review_note'),
 }, t => ({
   tenantHashUnique: uniqueIndex('gaiz_import_requests_tenant_hash_unique').on(t.tenantId, t.sha256),
+  tenantArtifactUnique: uniqueIndex('gaiz_import_requests_tenant_artifact_unique').on(t.tenantId, t.artifactId),
   tenantStatus: index('gaiz_import_requests_tenant_status_idx').on(t.tenantId, t.status, t.requestedAt),
 }));
