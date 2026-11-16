@@ -5,7 +5,7 @@ const good = {
   DEPLOYMENT_ENV:'staging', WEB_ORIGIN:'https://staging.theepmo.com',
   PUBLIC_API_URL:'https://api-staging.theepmo.com',
   STRIPE_WEBHOOK_PUBLIC_URL:'https://api-staging.theepmo.com/api/v1/billing/stripe-webhook',
-  STRIPE_ENABLED:'true', STRIPE_SECRET_KEY:'sk_test_12345678901234567890',
+  BILLING_PROVIDER:'stripe', STRIPE_ENABLED:'true', STRIPE_SECRET_KEY:'sk_test_12345678901234567890',
   STRIPE_WEBHOOK_SECRET:'whsec_1234567890123456789012',
   STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'true', BILLING_REFERENCE_WEBHOOK_ENABLED:'false',
   PG_USER:'pmo_admin', PG_PASSWORD:'strong-admin-password_123', PG_DB:'pmo',
