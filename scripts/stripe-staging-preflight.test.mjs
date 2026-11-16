@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { checkStripeStagingConfig } from './stripe-staging-preflight.mjs';
 const good = {
   BILLING_PROVIDER: 'stripe',
+  BILLING_MODE: 'stripe',
   STRIPE_ENABLED: 'true',
   STRIPE_SECRET_KEY: 'sk_test_1234567890123456',
   STRIPE_WEBHOOK_SECRET: 'whsec_1234567890123456',
