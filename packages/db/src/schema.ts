@@ -918,3 +918,20 @@ export const gaizImportAuthorizations = pgTable('gaiz_import_authorizations', {
   reviewOnce: uniqueIndex('gaiz_import_authorization_review_once').on(t.tenantId,t.stagingReviewId),
   tenantPending: index('gaiz_import_authorizations_tenant_pending_idx').on(t.tenantId,t.status,t.requestedAt),
 }));
+
+/** GAIZ profile metadata: approved exact field paths, no report content. */
+export const gaizMappingProfiles = pgTable('gaiz_mapping_profiles', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  profileId: text('profile_id').notNull(),
+  targetKind: text('target_kind').notNull(),
+  fieldMappings: jsonb('field_mappings').$type<string[]>().notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at', { withTimezone:true }).notNull().defaultNow(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone:true }),
+}, t => ({
+  tenantProfileUnique: uniqueIndex('gaiz_mapping_profiles_tenant_profile_unique').on(t.tenantId,t.profileId),
+  tenantStatus: index('gaiz_mapping_profiles_tenant_status_idx').on(t.tenantId,t.status,t.targetKind),
+}));
