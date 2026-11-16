@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash,generateKeyPairSync} from 'node:crypto';
-import {verifyGaiz2ForQuarantine,verifyGaiz2RecipientForCustody} from './gaiz2-verifier.mjs';
+import {verifyGaiz2ForPreview,verifyGaiz2ForQuarantine,verifyGaiz2RecipientForCustody} from './gaiz2-verifier.mjs';
 
 const root=new URL('./fixtures/to-gaiz2-fixed-001/',import.meta.url);
 const fixture=readFileSync(new URL('valid.gaiz.b64',root),'utf8').trim();
@@ -81,4 +81,21 @@ test('fixed producer vector rejects altered bytes, bogus encoding and missing GA
   assert.throws(()=>verifyGaiz2ForQuarantine(Buffer.concat([
     Buffer.from('GAIZ1\n'),envelope.subarray(6),
   ]),policy));
+});
+
+test('independent GAIZ2 preview and enterprise quarantine profiles agree on TO signed fixture',()=>{
+  const preview=verifyGaiz2ForPreview(envelope,policy);
+  const enterprise=verifyGaiz2ForQuarantine(envelope,policy);
+  assert.equal(preview.verified,true);
+  assert.equal(enterprise.signatureVerified,true);
+  assert.equal(preview.sha256,enterprise.envelopeSha256);
+  assert.equal(preview.sha256,expected.sha256);
+  for(const key of ['format','artifactId','issuerId','tenantScope','authorizationGranted','importAllowed'])
+    assert.equal(preview[key],enterprise[key]);
+  assert.equal(preview.authorizationGranted,false);
+  assert.equal(enterprise.importAllowed,false);
+  const tampered=Buffer.from(envelope);
+  tampered[tampered.length-10]^=1;
+  assert.throws(()=>verifyGaiz2ForPreview(tampered,policy));
+  assert.throws(()=>verifyGaiz2ForQuarantine(tampered,policy));
 });
