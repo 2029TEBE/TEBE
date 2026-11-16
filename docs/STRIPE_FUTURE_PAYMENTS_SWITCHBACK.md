@@ -190,3 +190,30 @@ The account currently has no registered test-mode Stripe webhook
 endpoints. Do not invent or create DNS records or register an endpoint
 until the staging service is actually deployed and independently
 verified. Production payment processing remains disabled.
+
+## Staging deployment provider wiring correction
+
+The next audit found a configuration mismatch: the Stripe service checks
+`BILLING_PROVIDER=stripe`, but the existing Docker Compose API service did
+**not** forward that variable to its process. A staging setup with otherwise
+valid Stripe secrets would have been rejected by the running service.
+
+This draft now forwards `BILLING_PROVIDER` only to the API container
+(default `disabled`), includes it in `.env.staging.example`, and requires it
+at API startup, the RC1 release gate, and the staging configuration
+checker whenever Stripe is enabled. Stripe-only mode rejects the legacy
+reference settlement adapter. No payment secrets are exposed to the web
+container. Test fixtures and offline policy regressions were updated.
+
+**Infrastructure status:** Cloudflare DNS and connected Stripe sandbox
+inspections found no verified public staging API hostname and no registered
+test webhook endpoint. This is an external prerequisite: isolated database,
+Redis, reverse proxy, public TLS and signed webhook secret must be installed
+in a separately approved staging deployment. The current production server
+and its database must not be reused as staging by default.
+
+**No release:** This branch does not provision a server, create DNS records,
+register Stripe webhooks, set credentials, migrate a database, or deploy code.
+Tests added to CI remain unexecuted until a suitable runner/deployment is
+available. An explicit staging host identity and protected SSH access are
+required by `infra/deploy.sh staging`.
