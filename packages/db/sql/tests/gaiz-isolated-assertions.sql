@@ -11,8 +11,22 @@ DO $$ BEGIN
  OR has_column_privilege('pmo_app','public.gaiz_import_authorizations','status','INSERT')
  THEN RAISE EXCEPTION 'GAIZ effective DB privileges are too broad'; END IF;
 END $$;
+-- Synthetic tenant-2 row is seeded by isolated DB superuser to test RLS reads.
+INSERT INTO public.gaiz_import_requests(tenant_id,artifact_id,sha256,issuer_id,requested_by)
+ VALUES('22222222-2222-4222-8222-222222222222','tenant-two-public-test',repeat('f',64),'synthetic-issuer',
+ 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 BEGIN;
 SET LOCAL ROLE pmo_app;
+SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
+DO $ BEGIN
+ IF (SELECT count(*) FROM public.gaiz_import_requests WHERE tenant_id='22222222-2222-4222-8222-222222222222')<>0
+ THEN RAISE EXCEPTION 'tenant-2 records leaked to tenant-1'; END IF;
+END $;
+SELECT set_config('app.tenant_id','22222222-2222-4222-8222-222222222222',true);
+DO $ BEGIN
+ IF (SELECT count(*) FROM public.gaiz_import_requests WHERE tenant_id='22222222-2222-4222-8222-222222222222')<>1
+ THEN RAISE EXCEPTION 'tenant-2 authorized read failed'; END IF;
+END $;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
 DO $ DECLARE blocked boolean:=false; BEGIN
  BEGIN
