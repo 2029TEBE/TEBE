@@ -6,11 +6,23 @@ DO $$ BEGIN
  OR has_table_privilege('pmo_app','public.gaiz_import_authorizations','DELETE')
  OR has_column_privilege('pmo_app','public.gaiz_import_requests','sha256','UPDATE')
  OR has_column_privilege('pmo_app','public.gaiz_import_authorizations','preview_sha256','UPDATE')
+ OR has_column_privilege('pmo_app','public.gaiz_import_requests','status','INSERT')
+ OR has_column_privilege('pmo_app','public.gaiz_custody_attempts','status','INSERT')
+ OR has_column_privilege('pmo_app','public.gaiz_import_authorizations','status','INSERT')
  THEN RAISE EXCEPTION 'GAIZ effective DB privileges are too broad'; END IF;
 END $$;
 BEGIN;
 SET LOCAL ROLE pmo_app;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
+DO $ DECLARE blocked boolean:=false; BEGIN
+ BEGIN
+  INSERT INTO public.gaiz_import_requests
+   (tenant_id,artifact_id,sha256,issuer_id,requested_by,status,reviewed_by,reviewed_at)
+  VALUES ('11111111-1111-4111-8111-111111111111','forged-approval',repeat('e',64),'synthetic-issuer',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now());
+ EXCEPTION WHEN insufficient_privilege THEN blocked:=true; END;
+ IF NOT blocked THEN RAISE EXCEPTION 'forged preapproved stage INSERT accepted'; END IF;
+END $;
 INSERT INTO public.gaiz_import_requests
  (id,tenant_id,artifact_id,sha256,issuer_id,requested_by)
 VALUES
