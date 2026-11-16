@@ -11,6 +11,9 @@ CREATE TABLE gaiz2_custody_grant_claims (
  recipient_key_id text NOT NULL,
  UNIQUE(token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id)
 );
+ALTER TABLE gaiz2_custody_grant_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gaiz2_custody_grant_claims FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON gaiz2_custody_grant_claims FROM PUBLIC;
 \ir gaiz2-recipient-key-registry-REVIEW-ONLY.sql
 \ir gaiz2-kms-release-claim-REVIEW-ONLY.sql
 INSERT INTO gaiz2_recipient_key_registry (
