@@ -858,3 +858,22 @@ export const billingPaymentExceptions = pgTable('billing_payment_exceptions', {
   tenantIdx: index('billing_payment_exceptions_tenant_created_idx').on(t.tenantId, t.createdAt),
   eventUnique: uniqueIndex('billing_exception_event_unique').on(t.provider, t.providerEventId),
 }));
+
+/** GAIZ2 import-request metadata only. No encrypted files, plaintext or key material. */
+export const gaizImportRequests = pgTable('gaiz_import_requests', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  artifactId: text('artifact_id').notNull(),
+  sha256: text('sha256').notNull(),
+  issuerId: text('issuer_id').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewNote: text('review_note'),
+}, t => ({
+  tenantHashUnique: uniqueIndex('gaiz_import_requests_tenant_hash_unique').on(t.tenantId, t.sha256),
+  tenantStatus: index('gaiz_import_requests_tenant_status_idx').on(t.tenantId, t.status, t.requestedAt),
+}));
