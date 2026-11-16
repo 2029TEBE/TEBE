@@ -150,6 +150,22 @@ negative/positive disposable tenant acceptance.
 - The public key and DEK in the fixture are **test-only material**, never
   authorized for production use or key custody.
 
+## Tenant-bound business reference correction
+- The proposed `gaiz_import_proposals.target_project_id` and
+  `gaiz_import_receipts.document_id` now reference composite
+  `(id, tenant_id)` keys on the existing `projects` and `documents`
+  tables. Review-only composite unique indexes are provided for the FK
+  references. This prevents a privileged writer from forming cross-tenant
+  business references solely by knowing another tenant's UUID.
+- The draft executor already checks project tenant membership and creates
+  documents under its active transaction tenant; DB-level constraints provide
+  a separate enforcement layer.
+- The two proposed indexes and all referenced tables require disposable
+  migration/RLS tests before use. Nothing was applied to production.
+- Source-level consistency checked: seven unique GAIZ tables, FORCE RLS
+  references, state constraints, composite tenant FKs and inactive AppModule.
+  A source check is **not** a successful database migration or CI run.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
