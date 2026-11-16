@@ -58,13 +58,20 @@ export class GaizStagingService {
   async list() {
     requireCapability('pmoa_manage_projects');
     const { tenantId } = this.context();
-    return withTenant(tenantId, tx => tx.select({
+    const rows = await withTenant(tenantId, tx => tx.select({
       id: gaizImportRequests.id, artifactId: gaizImportRequests.artifactId,
       sha256: gaizImportRequests.sha256, issuerId: gaizImportRequests.issuerId,
       status: gaizImportRequests.status, requestedAt: gaizImportRequests.requestedAt,
       expiresAt: gaizImportRequests.expiresAt, reviewedAt: gaizImportRequests.reviewedAt,
     }).from(gaizImportRequests).where(eq(gaizImportRequests.tenantId, tenantId))
       .orderBy(desc(gaizImportRequests.requestedAt)).limit(50));
+    // A stale pending request is displayed as expired without rewriting its
+    // immutable request metadata or implying that late approval is possible.
+    const now = Date.now();
+    return rows.map(row => ({
+      ...row, status: row.status === 'pending' && row.expiresAt.getTime() <= now
+        ? 'expired' : row.status,
+    }));
   }
 
   async review(id: string, decision: 'approved'|'rejected', note?: string) {
