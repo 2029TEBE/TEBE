@@ -89,6 +89,16 @@ DO $$ BEGIN
     GRANT UPDATE (status, approved_by, reviewed_at)
       ON public.gaiz_import_authorizations TO pmo_app;
   END IF;
+  -- Public keys are provisioned only by an independently controlled
+  -- administrative path, NEVER by the generic authenticated app role.
+  IF to_regclass('public.gaiz_trust_keys') IS NOT NULL THEN
+    REVOKE INSERT, UPDATE, DELETE ON public.gaiz_trust_keys FROM pmo_app;
+    GRANT SELECT ON public.gaiz_trust_keys TO pmo_app;
+  END IF;
+  IF to_regclass('public.gaiz_recovery_consents') IS NOT NULL THEN
+    REVOKE INSERT, UPDATE, DELETE ON public.gaiz_recovery_consents FROM pmo_app;
+    GRANT SELECT ON public.gaiz_recovery_consents TO pmo_app;
+  END IF;
   IF to_regclass('public.gaiz_mapping_profiles') IS NOT NULL THEN
     REVOKE DELETE, UPDATE, INSERT ON public.gaiz_mapping_profiles FROM pmo_app;
     GRANT INSERT (id, tenant_id, profile_id, target_kind, field_mappings, requested_by)
