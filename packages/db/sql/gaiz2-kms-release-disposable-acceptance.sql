@@ -32,6 +32,17 @@ INSERT INTO gaiz2_custody_grant_claims (
  '44444444-4444-4444-8444-444444444444',
  decode(repeat('bb',32),'hex'),'key-1'
 );
+-- Second authentic synthetic grant: unknown key-version test must reach
+-- the registry FK, rather than failing the missing-grant FK first.
+INSERT INTO gaiz2_custody_grant_claims (
+ token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id
+) VALUES (
+ decode(repeat('dd',32),'hex'),'11111111-1111-4111-8111-111111111111',
+ '22222222-2222-4222-8222-222222222222',
+ '33333333-3333-4333-8333-333333333333',
+ '44444444-4444-4444-8444-444444444444',
+ decode(repeat('bb',32),'hex'),'key-1'
+);
 INSERT INTO gaiz2_kms_release_claims (
  tenant_id,custody_token_sha256,assignment_id,worker_id,work_item_id,
  envelope_sha256,recipient_key_id,key_version,kms_operation_id,expires_at
@@ -45,6 +56,7 @@ INSERT INTO gaiz2_kms_release_claims (
 );
 DO $test$
 DECLARE denied boolean;
+DECLARE violated_constraint text;
 BEGIN
  -- Each invalid synthetic request must be blocked by a REAL PostgreSQL constraint.
  denied:=false;
@@ -99,7 +111,12 @@ BEGIN
    '44444444-4444-4444-8444-444444444444','22222222-2222-4222-8222-222222222222',
    '33333333-3333-4333-8333-333333333333',decode(repeat('bb',32),'hex'),
    'key-1','v999','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',clock_timestamp()+interval '15 seconds');
- EXCEPTION WHEN foreign_key_violation THEN denied:=true;
+ EXCEPTION WHEN foreign_key_violation THEN
+   GET STACKED DIAGNOSTICS violated_constraint = CONSTRAINT_NAME;
+   IF violated_constraint <> 'gaiz2_release_registered_key' THEN
+     RAISE EXCEPTION 'wrong FK rejected unknown key version: %',violated_constraint;
+   END IF;
+   denied:=true;
  END;
  IF NOT denied THEN RAISE EXCEPTION 'unknown key version was accepted'; END IF;
 
