@@ -42,7 +42,6 @@ export function createGaizReportWorker({
 }={}){
  if(enabled!==true||!queue||methods.some(k=>typeof queue[k]!=='function')||
     !artifactStore||typeof artifactStore.stagePrivate!=='function'||
-    typeof artifactStore.discardStaged!=='function'||
     !handlers||typeof handlers!=='object'||Array.isArray(handlers)||
     !Number.isSafeInteger(maxOutputBytes)||maxOutputBytes<1024||
     maxOutputBytes>10_000_000||typeof clock!=='function')deny();
@@ -63,7 +62,7 @@ export function createGaizReportWorker({
      customerId:job.customerId,toolId:job.toolId
     });
     if(!verified||verified.verifiedByServer!==true||
-       verified.paidOrder===false||verified.entitled!==true||
+       verified.paidOrder!==true||verified.entitled!==true||
        verified.orderId!==job.orderId||verified.customerId!==job.customerId||
        verified.jobId!==job.id||verified.toolId!==job.toolId||
        verified.orderState!=='processing')deny();
@@ -91,7 +90,7 @@ export function createGaizReportWorker({
     if(!committed||committed.committed!==true)deny();
     return Object.freeze({status:'completed',jobId:job.id});
    }catch {
-    if(staged){try{await artifactStore.discardStaged(staged.stageId)}catch{}}
+    // Do not delete staged bytes on an uncertain DB commit response: a crash\n    // after COMMIT could leave a legitimate artifact pointer. Staged object\n    // cleanup is an independent TTL/mark-and-sweep reconciliation process.
     // Fenced failure: stale workers must never overwrite a newer lease.
     try{await queue.failClaim({
      jobId:job.id,leaseToken:job.leaseToken,reasonCode:'execution_failed'
