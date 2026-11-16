@@ -14,7 +14,8 @@ const CHECKOUT_HOST = 'checkout.stripe.com';
 function stripeConfig() {
   const key = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (process.env.STRIPE_ENABLED !== 'true' || !key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ||
+  if (process.env.BILLING_PROVIDER !== 'stripe' ||
+      process.env.STRIPE_ENABLED !== 'true' || !key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ||
       !webhookSecret || !/^whsec_[A-Za-z0-9]{16,}$/.test(webhookSecret))
     throw new ServiceUnavailableException('Stripe is not configured');
   if (!stripeDeploymentModeAllowed(key.startsWith('sk_live_'), process.env.NODE_ENV,
