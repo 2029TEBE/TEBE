@@ -14,14 +14,40 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy latest verified main to VPS
+  preflight:
+    name: Skip superseded releases before production
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success' &&
           (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
           github.event.workflow_run.head_branch == 'main' &&
           github.event.workflow_run.head_repository.full_name == github.repository &&
           vars.EPMO_DEPLOY_ENABLED == 'true' }}
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - name: Compare tested revision with current main
+        id: head
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -er '.commit.sha')
+          if [[ "$current" == "$EXPECTED_SHA" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skipped superseded revision $EXPECTED_SHA; main is $current." >> "$GITHUB_STEP_SUMMARY"
+          fi
+  deploy:
+    name: Deploy latest verified main to VPS
+    needs: preflight
+    if: ${{ needs.preflight.outputs.current == 'true' }}
     runs-on: [self-hosted, linux, x64, servitro-tebe]
     timeout-minutes: 90
     environment: production
