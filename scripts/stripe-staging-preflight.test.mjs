@@ -18,6 +18,10 @@ const good = {
 const blocked=(env)=>checkStripeStagingConfig(env).filter(c=>!c.passed).map(c=>c.name);
 test('fully configured staging passes configuration-only checks',()=>assert.deepEqual(blocked(good),[]));
 test('missing keys fail',()=>assert.equal(blocked({...good,STRIPE_SECRET_KEY:''}).length,1));
+test('Stripe billing mode must be explicit and may not be disabled',()=>{
+ assert.ok(blocked({...good,BILLING_MODE:undefined}).includes('Stripe billing mode explicitly selected'));
+ assert.ok(blocked({...good,BILLING_MODE:'disabled'}).includes('Stripe billing mode explicitly selected'));
+});
 test('live key fails the staging check',()=>assert.ok(blocked({...good,STRIPE_SECRET_KEY:'sk_live_1234567890123456'}).length));
 test('missing signing secret fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_SECRET:''}).length));
 test('HTTP staging site fails',()=>assert.ok(blocked({...good,WEB_ORIGIN:'http://staging.theepmo.com'}).length));
