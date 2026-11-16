@@ -15,6 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import postgres from 'postgres';
+import { randomUUID } from 'node:crypto';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const env=process.env;
@@ -86,12 +87,53 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
     for(const tenant of [tenantA,tenantB]){
       await db.begin(async tx=>{
         await tx`SELECT set_config('app.tenant_id',${tenant},true)`;
-        const imported=await tx`SELECT tenant_id FROM gaiz_import_jobs LIMIT 100`;
-        const quarantined=await tx`SELECT tenant_id FROM gaiz_quarantine_blobs LIMIT 100`;
-        for(const record of [...imported,...quarantined])
-          assert.equal(record.tenant_id,tenant);
+        const [imports]=await tx`SELECT count(*)::int AS n FROM gaiz_import_jobs
+          WHERE tenant_id <> ${tenant}`;
+        const [quarantine]=await tx`SELECT count(*)::int AS n FROM gaiz_quarantine_blobs
+          WHERE tenant_id <> ${tenant}`;
+        assert.equal(imports.n,0);
+        assert.equal(quarantine.n,0);
       });
     }
+  }finally{
+    await db.end({timeout:2});
+  }
+});
+
+
+test('GAIZ disposable DB: rollback and cross-tenant audit writes', {skip:!url}, async()=>{
+  checkConfig();
+  const db=postgres(url,{max:2,connect_timeout:5,prepare:false});
+  const auditId=randomUUID();
+  try{
+    const [identity]=await db`SELECT current_database() AS db,
+      current_user AS user_name, rolsuper, rolbypassrls
+      FROM pg_roles WHERE rolname=current_user`;
+    assert.match(identity.db,/^gaiz_(disposable|test)/i);
+    assert.equal(identity.rolsuper,false);
+    assert.equal(identity.rolbypassrls,false);
+    // Test RLS by deliberately attempting a cross-tenant insert into the
+    // existing append-only audit ledger: must fail with tenant A context.
+    await assert.rejects(()=>db.begin(async tx=>{
+      await tx`SELECT set_config('app.tenant_id',${tenantA},true)`;
+      await tx`INSERT INTO audit_events (tenant_id, entity, entity_id, action)
+        VALUES (${tenantB},'gaiz_disposable_test',${auditId},'gaiz.test_cross_tenant')`;
+    }));
+    // A valid tenant A insert in a transaction that deliberately aborts must
+    // not survive rollback. This exercises the actual database transaction.
+    const rollbackId=randomUUID();
+    await assert.rejects(()=>db.begin(async tx=>{
+      await tx`SELECT set_config('app.tenant_id',${tenantA},true)`;
+      await tx`INSERT INTO audit_events (tenant_id, entity, entity_id, action)
+        VALUES (${tenantA},'gaiz_disposable_test',${rollbackId},'gaiz.test_rollback')`;
+      throw new Error('intentional GAIZ acceptance rollback');
+    }),/intentional GAIZ acceptance rollback/);
+    await db.begin(async tx=>{
+      await tx`SELECT set_config('app.tenant_id',${tenantA},true)`;
+      const [count]=await tx`SELECT count(*)::int AS n FROM audit_events
+        WHERE entity_id=${rollbackId} OR entity_id=${auditId}`;
+      assert.equal(count.n,0,'rollback/cross-tenant write persisted unexpectedly');
+    });
   }finally{
     await db.end({timeout:2});
   }
