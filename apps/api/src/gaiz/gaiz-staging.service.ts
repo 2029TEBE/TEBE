@@ -12,7 +12,9 @@ import { currentContext } from '../tenancy/tenant-context';
 @Injectable()
 export class GaizStagingService {
   private context() {
-    if (process.env.NODE_ENV === 'production' || process.env.GAIZ_STAGING_ENABLED !== 'true') {
+    if (process.env.NODE_ENV !== 'development' ||
+        (process.env.DEPLOYMENT_ENV && process.env.DEPLOYMENT_ENV !== 'development') ||
+        process.env.GAIZ_STAGING_ENABLED !== 'true') {
       throw new ConflictException('GAIZ staging is not available');
     }
     const ctx = currentContext();
