@@ -81,6 +81,24 @@ export class GaizPostgresAdapter implements GaizEnterpriseAdapter {
         if (job.verificationStatus !== 'verified' ||
             !job.contentIntegrityVerifiedAt || !job.mappingValidatedAt)
           throw new ConflictException('Signature, content or mapping evidence is incomplete');
+        // An approval must bind to a persisted, immutable verified mapping,
+        // rather than a timestamp supplied by an arbitrary caller.
+        const [proposal] = rows(await tx.execute(sql`
+          SELECT p.id, p.source_artifact_sha256 AS "sourceSha",
+                 p.validated_at AS "validatedAt",
+                 a.envelope_sha256 AS "artifactSha",
+                 q.envelope_sha256 AS "quarantineSha"
+          FROM gaiz_import_proposals p
+          JOIN gaiz_import_jobs j ON j.id=p.import_id AND j.tenant_id=p.tenant_id
+          JOIN gaiz_artifacts a ON a.id=j.artifact_ref AND a.tenant_id=j.tenant_id
+          JOIN gaiz_quarantine_blobs q ON q.id=j.quarantine_ref AND q.tenant_id=j.tenant_id
+          WHERE p.import_id=${id} AND p.tenant_id=${tenantId}
+          LIMIT 1
+        `));
+        if (!proposal || proposal.sourceSha !== proposal.artifactSha ||
+            proposal.sourceSha !== proposal.quarantineSha ||
+            new Date(proposal.validatedAt).getTime() !== new Date(job.mappingValidatedAt).getTime())
+          throw new ConflictException('Verified mapping and source identity are inconsistent');
       }
 
       const nextState = decision === 'approve' ? 'approved' : 'rejected';
