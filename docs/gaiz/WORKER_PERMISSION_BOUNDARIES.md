@@ -56,6 +56,33 @@ four test cases against fetched source using a test shim for
 `timingSafeEqual`; the actual Node crypto and PostgreSQL tests remain
 unverified until run in an isolated checkout/CI.
 
+## Candidate signed work assignment verification (unregistered)
+
+`gaiz-worker-assignment.mjs` verifies a short-lived Ed25519-signed
+`GAIZ_WORKER_ASSIGNMENT_V1` assignment against a **server-configured**
+issuer public key. It binds a UUID worker, tenant, work item, single
+verifier/executor purpose, issued/expiry timestamps and assignment ID.
+It rejects noncanonical envelopes, duplicate JSON keys, altered
+signatures, missing/incorrect identities, wrong purpose, long TTL
+(above two minutes) and expired assignments. Its private signing keys
+are **not** stored or created by the application.
+
+**Crucial distinction:** the signed claim authenticates an *assignment*,
+not the process making the request. A worker transport credential
+(mTLS or comparable dedicated workload identity) must be independently
+authenticated and its identity matched to the signed workerId.
+Furthermore, `assignmentId` MUST be transactionally claimed just once
+by the correct tenant and worker in PostgreSQL before any
+verification/import action is committed. Otherwise a stolen, still-valid
+assignment could be replayed. Neither workload authentication nor
+single-use claim storage is implemented in this code.
+
+The resulting object sets `importAllowed:false` and
+`databaseClaimRequired:true`. It does not connect to the
+`gaiz-worker-handoff.mjs` policy or to database adapters; do not treat
+the result as an authorization to write a document. The tests use
+synthetic keys and no production credentials.
+
 ## Minimum controls before introducing workers
 
 1. Every database transaction sets `app.tenant_id` from an **authenticated,
