@@ -4,6 +4,8 @@ import { requireCapability } from '../common/require-capability';
 import { GaizCustodyAttemptsService } from './gaiz-custody-attempts.service';
 import { GaizTrustDirectoryService } from './gaiz-trust-directory.service';
 import { requestGaizCustodyValidation } from './gaiz-custody-bridge.mjs';
+import { makeCustodianMtlsTransport } from './gaiz-custodian-mtls.mjs';
+import type { GaizMtlsTransportConfig } from './gaiz-custodian-mtls.mjs';
 
 /** Internal orchestration only. Not exposed to HTTP, not a KMS adapter.
  * There are intentionally no default trusted directory/provider integrations. */
@@ -17,7 +19,7 @@ export class GaizCustodyHandoffService {
     trusted: {
       custodianId:string;
       getVerifiedArtifact(query: unknown): Promise<unknown>;
-      requestAttestation(claim: unknown): Promise<unknown>;
+      mtls:GaizMtlsTransportConfig;
     },
   ) {
     if (process.env.NODE_ENV !== 'development' ||
@@ -28,12 +30,16 @@ export class GaizCustodyHandoffService {
     requireCapability('pmoa_admin');
     const session=currentContext();
     if (!session.userId) throw new ConflictException('Authenticated operator required');
-    if (!trusted || ['getVerifiedArtifact','requestAttestation']
-       .some(k => typeof trusted[k as keyof typeof trusted] !== 'function')) {
+    if (!trusted || typeof trusted.getVerifiedArtifact !== 'function' || !trusted.mtls) {
       throw new ConflictException('Trusted issuer/custodian adapters not configured');
     }
     if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(trusted.custodianId))
       throw new ConflictException('Named custodian required');
+    if(trusted.mtls.custodianId!==trusted.custodianId)
+      throw new ConflictException('Custodian endpoint identity mismatch');
+    // Fail closed until a separately provisioned service identity has been
+    // configured. This does not provide a fallback custodian or key material.
+    const transport=makeCustodianMtlsTransport(trusted.mtls);
     return requestGaizCustodyValidation({
       context:{tenantId:session.tenantId,userId:session.userId,
         capabilities:[...session.capabilities]},
@@ -47,7 +53,7 @@ export class GaizCustodyHandoffService {
       loadCustodianTrust:query=>this.trustDirectory.loadCustodianTrust({
         tenantId:query.tenantId,custodianId:trusted.custodianId,
       }),
-      requestAttestation:claim=>trusted.requestAttestation(claim),
+      requestAttestation:claim=>transport.requestAttestation(claim),
     }});
   }
 }
