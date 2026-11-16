@@ -43,5 +43,6 @@ export const gaizJobReceipt = z.object({
 }).strict();
 
 export type GaizImportSubmission = z.infer<typeof gaizImportSubmission>;
+export type GaizExportSubmission = z.infer<typeof gaizExportSubmission>;
 export type GaizDecision = z.infer<typeof gaizDecision>;
 export type GaizJobReceipt = z.infer<typeof gaizJobReceipt>;
