@@ -11,6 +11,11 @@ production database without a separate approved change.
 - Review/reconcile `PROPOSED_ADDITIVE_SCHEMA.sql` and
   `PROPOSED_RLS_REVIEW.sql` with actual migration ledger, database grants and
   `packages/db/sql/rls.sql`. Do not run conflicting policies twice.
+- Local loopback-only disposable database named `gaiz_disposable_*` or `gaiz_test_*`,
+  using an explicitly restricted non-superuser role. Never use a hosted or
+  customer database for this acceptance script.
+- At least one synthetic GAIZ import job per tenant must be seeded beforehand;
+  empty-table checks are not sufficient evidence of tenant isolation.
 - Synthetic actors in tenant A and tenant B with active memberships; no customer
   records, production keys or network artifact references.
 - A disposable service role without `BYPASSRLS`, not a superuser or table owner.
@@ -65,8 +70,10 @@ No results are claimed for these commands. The read-only RLS/privilege and audit
 tests are now implemented as a dedicated opt-in runner, but **not executed**.
 Quarantine concurrency, draft-import atomicity, seeded RLS fixtures and all
 TO-produced interop acceptance still require real disposable-database runs.
-The runner rejects privileged or non-disposable database names and requires two
-synthetic tenant IDs; it skips when no disposable URL is supplied. GitHub Actions is not a substitute
+The runner rejects remote hosts, privileged or non-disposable database names,
+requires `tenant_isolation` policies and two seeded synthetic tenant IDs,
+and skips when no disposable URL is supplied. The audit test uses rollback-only
+synthetic inserts, not a read-only connection. GitHub Actions is not a substitute
 for independent disposable RLS and concurrency evidence.
 
 ## Non-goals
