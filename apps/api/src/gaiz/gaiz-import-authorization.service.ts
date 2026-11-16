@@ -3,6 +3,7 @@ import { and, eq, gt, ne } from 'drizzle-orm';
 import { withTenant, auditEvents, gaizImportRequests, gaizCustodyAttempts, gaizImportAuthorizations } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
+import { GaizSnapshotService } from './gaiz-snapshot.service';
 
 /**
  * Draft second review ledger, NOT an import engine.
@@ -11,6 +12,7 @@ import { requireCapability } from '../common/require-capability';
  */
 @Injectable()
 export class GaizImportAuthorizationService {
+  constructor(private readonly snapshots: GaizSnapshotService) {}
   private actor() {
     if (process.env.NODE_ENV !== 'development' ||
        (process.env.DEPLOYMENT_ENV && process.env.DEPLOYMENT_ENV !== 'development') ||
@@ -24,16 +26,20 @@ export class GaizImportAuthorizationService {
 
   async request(input: {
     stagingReviewId: string; custodyAttemptId: string; targetKind: 'project'|'portfolio';
-    targetId: string; targetSnapshotSha256: string; previewSha256: string;
+    targetId: string; targetRevision: number; targetSnapshotSha256: string; previewSha256: string;
   }) {
     const { tenantId, userId } = this.actor();
     const HASH = /^[a-f0-9]{64}$/;
     if (!HASH.test(input.targetSnapshotSha256) || !HASH.test(input.previewSha256) ||
+      !Number.isSafeInteger(input.targetRevision) || input.targetRevision < 0 ||
       !['project','portfolio'].includes(input.targetKind))
       throw new ConflictException('Invalid preview identity');
-    // The supplied hashes are not trusted until an independently signed
-    // custodian receipt and RLS target snapshot can be verified server-side.
-    // Therefore this metadata reservation is intentionally NOT executable.
+    // Independent tenant-RLS database read; never trust an incoming snapshot
+    // hash without matching the actual target row and database revision.
+    // Still only reserves a metadata review: the preview hash itself is not a
+    // trusted custody proof, and no import executor consumes this record.
+    await this.snapshots.checkUnchanged(input.targetKind,input.targetId,
+      input.targetRevision,input.targetSnapshotSha256);
     return withTenant(tenantId, async tx => {
       const [review] = await tx.select({
         id: gaizImportRequests.id, status: gaizImportRequests.status,
