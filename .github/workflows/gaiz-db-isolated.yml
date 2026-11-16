@@ -1,0 +1,44 @@
+name: GAIZ isolated PostgreSQL migration, RLS and concurrency
+on:
+  pull_request:
+    paths:
+      - 'packages/db/migrations/002[0-3]_gaiz_*.sql'
+      - 'packages/db/sql/tests/gaiz-*'
+      - 'packages/db/scripts/gaiz-isolated-*.sh'
+      - 'packages/db/sql/rls.sql'
+      - '.github/workflows/gaiz-db-isolated.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gaizci
+          POSTGRES_PASSWORD: synthetic-only
+          POSTGRES_DB: gaiz_ci_isolated
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gaizci -d gaiz_ci_isolated"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      GAIZ_TEST_DB_ACK: DISPOSABLE_DB_ONLY
+      PGHOST: 127.0.0.1
+      PGDATABASE: gaiz_ci_isolated
+      PGUSER: gaizci
+      PGPASSWORD: synthetic-only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Run isolated GAIZ migration and security checks
+        run: bash packages/db/scripts/gaiz-isolated-smoke.sh
