@@ -61,6 +61,11 @@ END $$;
 DO $ BEGIN
   IF to_regclass('public.gaiz_import_requests') IS NOT NULL THEN
     REVOKE DELETE ON public.gaiz_import_requests FROM pmo_app;
+    -- Only review-state columns may change after insertion. Request identity,
+    -- issuer, artifact digest, tenant, requester and expiry remain immutable.
+    REVOKE UPDATE ON public.gaiz_import_requests FROM pmo_app;
+    GRANT UPDATE (status, reviewed_by, reviewed_at, review_note)
+      ON public.gaiz_import_requests TO pmo_app;
   END IF;
 END $;
 
