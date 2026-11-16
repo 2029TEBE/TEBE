@@ -12,6 +12,12 @@ disposable deployment. This document must never be executed as SQL.
 | `gaiz_verify_worker` (future isolated service) | Read quarantined ciphertext under an authenticated tenant/work item claim; record only verified artifacts and immutable validated proposals | Approve customer imports, write business documents, issue execution receipts, access other tenants |
 | `gaiz_execute_worker` (future isolated service) | Execute a single approved import as a tenant-bound, short-lived work item with atomic audit and draft document creation | Forge issuer signature / AEAD evidence; create human approvals; rewrap or release DEKs; change gates/projects to approved |
 
+The RLS proposal now denies direct `pmo_app` writes to import jobs,
+approval decisions and export jobs as well as trusted artifacts, mappings
+and receipts. The unregistered adapter's decision method consequently cannot
+operate under the ordinary app role. This is intentional: it must be replaced
+with an independently reviewed, restricted server-side transaction boundary.
+
 The two worker principals are **not currently implemented or deployed**.
 They must have independently issued, short-lived credentials and be unable to
 `SET ROLE` into each other. Never `GRANT gaiz_verify_worker TO pmo_app` or
