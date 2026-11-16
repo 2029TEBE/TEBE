@@ -1,1 +1,50 @@
-IyEvdXNyL2Jpbi9lbnYgYmFzaAojIFJ1biBmcm9tIGEgZGVkaWNhdGVkLCB1bnByaXZpbGVnZWQgY2hlY2tvdXQgb24gU2Vydml0cm8uCnNldCAtZXVvIHBpcGVmYWlsCgppZiAoKCBFVUlEID09IDAgKSkgfHwgW1sgJCMgIT0gMSB8fCAhICR7MTotfSA9fiBeW2EtZjAtOV17NDB9JCBdXTsgdGhlbgogIGVjaG8gJ1VzYWdlIChub24tcm9vdCk6IGJhc2ggc2NyaXB0cy9zZXJ2aXRyby1zb3VyY2UtY2hlY2tzLnNoIDxyZXZpZXdlZCA0MC1jaGFyYWN0ZXIgY29tbWl0IFNIQT4nID4mMgogIGV4aXQgMgpmaQoKZXhwZWN0ZWRfY29tbWl0PSQxCmNkICIkKGdpdCByZXYtcGFyc2UgLS1zaG93LXRvcGxldmVsKSIKaWYgW1sgJChnaXQgcmV2LXBhcnNlIEhFQUQpICE9ICIkZXhwZWN0ZWRfY29tbWl0IiB8fCAtbiAkKGdpdCBzdGF0dXMgLS1wb3JjZWxhaW4gLS11bnRyYWNrZWQtZmlsZXM9YWxsKSBdXTsgdGhlbgogIGVjaG8gJ0NoZWNrIG91dCB0aGUgcmVxdWVzdGVkIGNvbW1pdCBpbiBhIGNsZWFuLCBkZWRpY2F0ZWQgY2hlY2tvdXQgZmlyc3QuJyA+JjIKICBleGl0IDIKZmkKCmlmIFtbICQobm9kZSAtcCAncHJvY2Vzcy52ZXJzaW9ucy5ub2RlLnNwbGl0KCIuIilbMF0nKSAhPSAyMiBdXTsgdGhlbgogIGVjaG8gJ1VzZSBOb2RlLmpzIDIyLCBtYXRjaGluZyB0aGUgc291cmNlIGNoZWNrcyBpbiBHaXRIdWIgQWN0aW9ucy4nID4mMgogIGV4aXQgMgpmaQoKbG9jaz0iJChnaXQgcmV2LXBhcnNlIC0tcGF0aC1mb3JtYXQ9YWJzb2x1dGUgLS1naXQtY29tbW9uLWRpcikvc2Vydml0cm8tc291cmNlLWNoZWNrcy5sb2NrIgpleGVjIDk+IiRsb2NrIgppZiAhIGZsb2NrIC1uIDk7IHRoZW4KICBlY2hvICdTb3VyY2UgY2hlY2tzIGFyZSBhbHJlYWR5IHJ1bm5pbmcgZm9yIHRoaXMgY2hlY2tvdXQuJyA+JjIKICBleGl0IDEKZmkKCmNoZWNrX2hvbWU9JChta3RlbXAgLWQpCnRyYXAgJ3JtIC1yZiAtLSAiJGNoZWNrX2hvbWUiJyBFWElUCnJ1bl9jaGVjaygpIHsKICBwcmludGYgJ1J1bm5pbmc6ICVzXG4nICIkKiIKICBlbnYgLWkgUEFUSD0iJFBBVEgiIEhPTUU9IiRjaGVja19ob21lIiBDST10cnVlIG5wbV9jb25maWdfaWdub3JlX3NjcmlwdHM9dHJ1ZSAiJEAiCn0KCnJ1bl9jaGVjayBub2RlIHNjcmlwdHMvdmVyaWZ5LWNpLXNhZmV0eS5tanMKcnVuX2NoZWNrIGJhc2ggLW4gaW5mcmEvZGVwbG95LnNoCnJ1bl9jaGVjayBub2RlIHNjcmlwdHMvdmVyaWZ5LXJlbGVhc2Utc3RhdGljLm1qcwpydW5fY2hlY2sgbm9kZSBzY3JpcHRzL3ZlcmlmeS1taWdyYXRpb24tY2hhaW4ubWpzCnJ1bl9jaGVjayBub2RlIHNjcmlwdHMvcmMxLXJlbGVhc2UtZ2F0ZS5tanMKcnVuX2NoZWNrIG5vZGUgc2NyaXB0cy9pMThuLWNvdmVyYWdlLXJlcG9ydC5tanMKcnVuX2NoZWNrIG5wbSBydW4gdGVzdDpvZmZsaW5lCgpzaG9wdCAtcyBudWxsZ2xvYgpnYWl6X3Rlc3RzPShhcHBzL2FwaS9zcmMvZ2Fpei8qLnRlc3QubWpzKQppZiAoKCAkeyNnYWl6X3Rlc3RzW0BdfSApKTsgdGhlbgogIHJ1bl9jaGVjayBub2RlIC0tdGVzdCAiJHtnYWl6X3Rlc3RzW0BdfSIKZmkKCnByaW50ZiAnU291cmNlIGNoZWNrcyBwYXNzZWQgZm9yICVzXG4nICIkZXhwZWN0ZWRfY29tbWl0Igo=
+#!/usr/bin/env bash
+# Run from a dedicated, unprivileged checkout on Servitro.
+set -euo pipefail
+
+if (( EUID == 0 )) || [[ $# != 1 || ! ${1:-} =~ ^[a-f0-9]{40}$ ]]; then
+  echo 'Usage (non-root): bash scripts/servitro-source-checks.sh <reviewed 40-character commit SHA>' >&2
+  exit 2
+fi
+
+expected_commit=$1
+cd "$(git rev-parse --show-toplevel)"
+if [[ $(git rev-parse HEAD) != "$expected_commit" || -n $(git status --porcelain --untracked-files=all) ]]; then
+  echo 'Check out the requested commit in a clean, dedicated checkout first.' >&2
+  exit 2
+fi
+
+if [[ $(node -p 'process.versions.node.split(".")[0]') != 22 ]]; then
+  echo 'Use Node.js 22, matching the source checks in GitHub Actions.' >&2
+  exit 2
+fi
+
+lock="$(git rev-parse --path-format=absolute --git-common-dir)/servitro-source-checks.lock"
+exec 9>"$lock"
+if ! flock -n 9; then
+  echo 'Source checks are already running for this checkout.' >&2
+  exit 1
+fi
+
+check_home=$(mktemp -d)
+trap 'rm -rf -- "$check_home"' EXIT
+run_check() {
+  printf 'Running: %s\n' "$*"
+  env -i PATH="$PATH" HOME="$check_home" CI=true npm_config_ignore_scripts=true "$@"
+}
+
+run_check node scripts/verify-ci-safety.mjs
+run_check bash -n infra/deploy.sh
+run_check node scripts/verify-release-static.mjs
+run_check node scripts/verify-migration-chain.mjs
+run_check node scripts/rc1-release-gate.mjs
+run_check node scripts/i18n-coverage-report.mjs
+run_check npm run test:offline
+
+shopt -s nullglob
+gaiz_tests=(apps/api/src/gaiz/*.test.mjs)
+if (( ${#gaiz_tests[@]} )); then
+  run_check node --test "${gaiz_tests[@]}"
+fi
+
+printf 'Source checks passed for %s\n' "$expected_commit"
