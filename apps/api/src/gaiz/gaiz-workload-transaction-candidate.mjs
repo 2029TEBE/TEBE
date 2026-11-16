@@ -28,7 +28,7 @@ const purposes=new Set(['gaiz_verify_worker','gaiz_execute_worker']);
  * composition, NOT by HTTP. Database claim safety must be reviewed independently.
  */
 export async function withGaizChallengeBoundWorkerCandidate({
-  pool,issueChallengeProof,
+  pool,
   signedWorkloadCredential,trustedCredentialIssuerPublicKey,
   expectedCredentialIssuerId,expectedChallenge,expectedWorkerId,
   signedAssignment,trustedAssignmentIssuerPublicKey,
@@ -36,14 +36,12 @@ export async function withGaizChallengeBoundWorkerCandidate({
 }={}){
   if(process.env.NODE_ENV==='production'||process.env.GAIZ_DEV_ONLY!=='true')deny();
   if(!pool||typeof pool.transaction!=='function'||
-     !issueChallengeProof||issueChallengeProof.transportAuthenticated!==true||
-     issueChallengeProof.challengeIssuedByIngress!==true||
      !UUID.test(tenantId??'')||!UUID.test(workItemId??'')||
      !purposes.has(purpose)||typeof claimAssignment!=='function'||
      typeof operation!=='function')deny();
-  // Both flags above are only annotations; they do NOT authenticate the
-  // transport or prove issuance. This candidate must not be exposed to
-  // untrusted input or enabled without a real ingress/DB trust boundary.
+  // Caller provenance and challenge issuance remain separately untrusted
+  // until independently authenticated ingress and role isolation exist.
+  // No caller-supplied boolean is accepted as authentication evidence.
   const credential=verifyGaizSignedWorkloadCredential(signedWorkloadCredential,{
     trustedCredentialIssuerPublicKey,
     expectedIssuerId:expectedCredentialIssuerId,
