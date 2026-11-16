@@ -90,6 +90,15 @@ test('premature Paddle secret provisioning is blocked in every supported billing
   }
 });
 
+test('billing mode and provider must remain synchronized',()=>{
+ for(const mismatch of [
+   {...good,BILLING_MODE:'stripe',BILLING_PROVIDER:'disabled'},
+   {...good,BILLING_MODE:'disabled',BILLING_PROVIDER:'stripe',STRIPE_ENABLED:'false',STRIPE_SECRET_KEY:'',STRIPE_WEBHOOK_SECRET:'',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'},
+ ])assert.ok(failed(mismatch).some(name=>name.includes('mode and provider agree')));
+ assert.deepEqual(failed({...good,BILLING_MODE:'stripe'}),[]);
+ assert.deepEqual(failed({...disabled,DEPLOYMENT_ENV:'staging'},'staging'),[]);
+});
+
 test('active Stripe release requires Stripe-only provider selection',()=>{
  assert.ok(failed({...good,BILLING_PROVIDER:undefined}).some(x=>x.includes('Stripe-only provider')));
  assert.ok(failed({...good,BILLING_PROVIDER:'reference'}).some(x=>x.includes('Stripe-only provider')));
