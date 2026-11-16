@@ -12,7 +12,7 @@ concurrency:
 jobs:
   recover:
     if: github.repository == '2029TEBE/TEBE'
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
     timeout-minutes: 20
     environment: production
     steps:
