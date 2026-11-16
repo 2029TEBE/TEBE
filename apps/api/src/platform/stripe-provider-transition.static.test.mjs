@@ -43,6 +43,13 @@ test('frontend checkout is Stripe-hosted and staging preflight checks provider m
   assert.match(preflight,/Reference webhook disabled/);
 });
 
+test('cancelled Stripe Checkout return matches billing page status',()=>{
+ const billing=read('../../../web/src/app/(app)/billing/page.tsx');
+ assert.match(stripe,/billing\?billing=cancel`/);
+ assert.match(billing,/billing === 'cancel'/);
+ assert.doesNotMatch(stripe,/billing\?billing=cancelled`/);
+});
+
 test('no automatic recurring subscription claim in one-off payment flow',()=>{
   assert.match(stripe,/createCheckout\(invoiceId: string\)/);
   const policy=read('stripe-policy.ts');
