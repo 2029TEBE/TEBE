@@ -37,6 +37,10 @@ jobs:
           node --test apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.test.mjs apps/api/src/gaiz/gaiz2-key-release-eligibility.test.mjs
       - name: Check review-only .GAZE custody-ledger SQL invariants
         run: node --test apps/api/src/gaiz/gaiz2-kms-ledger.static.test.mjs
+      - name: Check signed custody-grant candidate is fail-closed
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-custody-grant-candidate.mjs
+          node --test apps/api/src/gaiz/gaiz2-custody-grant-candidate.test.mjs
       - name: Run independently pinned TO fixture acceptance
         run: node --test apps/api/src/gaiz/to-gaiz2-fixed-interop.test.mjs
       - name: Test inactive GAIZ intake, draft mapping, and mTLS denial
