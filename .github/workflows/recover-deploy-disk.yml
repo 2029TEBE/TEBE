@@ -1,0 +1,35 @@
+name: Reclaim unused production build cache
+on:
+  push:
+    branches: [ops/recover-deploy-disk-20261116]
+    paths: [.github/workflows/recover-deploy-disk.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: epmo-production-deployment
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: github.repository == '2029TEBE/TEBE'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Reclaim only unused Docker build cache and report storage
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          umask 077
+          keydir=$(mktemp -d)
+          trap 'rm -rf -- "$keydir"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$keydir/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
+          unset DEPLOY_KEY KNOWN_HOSTS
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force; docker system df; df -h /var/lib/docker /var/lib/containerd'
+# No image/container/volume pruning, backup removal, migration or app restart.
