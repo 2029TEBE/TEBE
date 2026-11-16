@@ -13,7 +13,7 @@ const canonical=x=>Array.isArray(x)?'['+x.map(canonical).join(',')+']':
   JSON.stringify(x);
 const b64=x=>Buffer.from(x).toString('base64url');
 const magic='GAIZ2\n';
-const envelope=()=>{
+const envelope=(recipientKey=recipient.publicKey)=>{
   const dek=randomBytes(32),nonce=randomBytes(12);
   const manifest={version:2,schemaVersion:1,contentType:'application/vnd.orgaiz.report+json',
     artifactId:'synthetic-asset',issuerId:'synthetic-issuer',
@@ -24,7 +24,7 @@ const envelope=()=>{
     title:'Synthetic report',summary:'No customer data',
   }))),cipher.final()]);
   const recipients=[{keyId:'recipient-one',wrappedKey:b64(publicEncrypt({
-    key:recipient.publicKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256',
+    key:recipientKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256',
   },dek))}];
   const unsigned={manifest,nonce:b64(nonce),tag:b64(cipher.getAuthTag()),
     ciphertext:b64(ciphertext),recipients};
@@ -69,4 +69,9 @@ test('noncanonical, duplicate keys, unsupported GAIZ1 and unsigned replay inputs
   doc.recipients.push(doc.recipients[0]);
   assert.throws(()=>verifyGaiz2ForQuarantine(
     Buffer.from(magic+canonical(doc)),context));
+});
+
+test('TO GAIZ2 rejects otherwise valid signed RSA-2048 recipient envelopes',()=>{
+  const weakRecipient=generateKeyPairSync('rsa',{modulusLength:2048});
+  assert.throws(()=>verifyGaiz2ForQuarantine(envelope(weakRecipient.publicKey),context));
 });
