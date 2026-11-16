@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkStripeStagingConfig } from './stripe-staging-preflight.mjs';
 const good = {
+  BILLING_PROVIDER: 'stripe',
   STRIPE_ENABLED: 'true',
   STRIPE_SECRET_KEY: 'sk_test_1234567890123456',
   STRIPE_WEBHOOK_SECRET: 'whsec_1234567890123456',
@@ -28,3 +29,6 @@ test('production designation fails staging check',()=>assert.ok(blocked({...good
 test('private IP callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://192.168.1.15/api/v1/billing/stripe-webhook'}).length));
 test('IP localhost callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://[::1]/api/v1/billing/stripe-webhook'}).length));
 test('private internal DNS callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://api-staging.internal/api/v1/billing/stripe-webhook'}).length));
+
+test('Stripe-only provider selection required',()=>assert.ok(blocked({...good,BILLING_PROVIDER:'reference'}).length));
+test('conflicting settlement adapter rejected',()=>assert.ok(blocked({...good,BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}).includes('Stripe and reference providers cannot both be active')));
