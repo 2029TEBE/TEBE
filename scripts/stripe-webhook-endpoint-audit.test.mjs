@@ -5,7 +5,7 @@ import {auditStripeStagingWebhook,inspectStripeWebhookEndpoints}
 
 const url='https://api-staging.theepmo.example/api/v1/billing/stripe-webhook';
 const valid=()=>({
-  BILLING_PROVIDER:'stripe',STRIPE_ENABLED:'true',DEPLOYMENT_ENV:'staging',
+  BILLING_MODE:'stripe',BILLING_PROVIDER:'stripe',STRIPE_ENABLED:'true',DEPLOYMENT_ENV:'staging',
   NODE_ENV:'production',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'true',
   STRIPE_SECRET_KEY:'sk_test_'+'1'.repeat(20),
   STRIPE_WEBHOOK_SECRET:'whsec_'+'2'.repeat(24),
