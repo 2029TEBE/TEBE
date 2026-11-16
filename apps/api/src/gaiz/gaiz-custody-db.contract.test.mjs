@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
-const migration=read('../../../../../packages/db/migrations/0021_gaiz_custody_attempts.sql');
-const roles=read('../../../../../packages/db/sql/rls.sql');
+const migration=read('../../../../packages/db/migrations/0021_gaiz_custody_attempts.sql');
+const roles=read('../../../../packages/db/sql/rls.sql');
 const handoff=read('./gaiz-custody-handoff.service.ts');
 const store=read('./gaiz-custody-attempts.service.ts');
 const controller=read('./gaiz.controller.ts');
