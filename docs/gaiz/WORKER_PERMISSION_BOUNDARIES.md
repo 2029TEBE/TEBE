@@ -74,14 +74,42 @@ authenticated and its identity matched to the signed workerId.
 Furthermore, `assignmentId` MUST be transactionally claimed just once
 by the correct tenant and worker in PostgreSQL before any
 verification/import action is committed. Otherwise a stolen, still-valid
-assignment could be replayed. Neither workload authentication nor
-single-use claim storage is implemented in this code.
+assignment could be replayed. The proposed `gaiz_worker_assignment_claims`
+table and disconnected `gaiz-assignment-claim.ts` transaction seam now model
+this atomic claim, but **no actual database table, worker role, or workload
+authentication is deployed**. The single-use guarantee has NOT been verified
+against live PostgreSQL.
 
 The resulting object sets `importAllowed:false` and
 `databaseClaimRequired:true`. It does not connect to the
 `gaiz-worker-handoff.mjs` policy or to database adapters; do not treat
 the result as an authorization to write a document. The tests use
 synthetic keys and no production credentials.
+
+## Single-use claim transaction design (inactive)
+
+The review-only schema proposes a globally unique `assignment_id` primary
+key, bound to tenant, worker, work item, purpose and expiry. Each worker must
+call `claimGaizWorkerAssignmentInTransaction(tx, assignment, identity)`
+inside the **same database transaction** as its actual verification or draft
+import, after independent credential and assignment checks. The function:
+
+- Requires `GAIZ_DEV_ONLY=true` and refuses production.
+- Checks the connected PostgreSQL `current_user` exactly equals the assigned
+  verifier/executor role and the active `app.tenant_id` matches the signed
+  assignment.
+- Uses the PostgreSQL clock to enforce expiry; conflicting assignment IDs
+  return zero rows and fail, including cross-tenant retries.
+- Returns only an inert `claimAcquired:true` receipt. The calling worker
+  must perform remaining state/revision, provenance, membership, signature,
+  AEAD and audit checks in the **same transaction before commit**.
+
+**Do not call this claim method in an independent transaction**: committing a
+claim without the associated effect can permanently consume an assignment,
+and a rollback must release it for an authorized retry. The helper does not
+establish the authenticity of its two input objects. Its trust boundary still
+requires a verified workload transport, private database credentials, immutable
+signed assignments and a reviewed worker runtime.
 
 ## Minimum controls before introducing workers
 
