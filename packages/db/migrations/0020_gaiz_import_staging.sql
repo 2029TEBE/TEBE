@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.gaiz_import_requests (
  reviewed_at timestamptz,
  review_note text CHECK (review_note IS NULL OR length(review_note) <= 500),
  CONSTRAINT gaiz_import_requests_tenant_hash_unique UNIQUE (tenant_id, sha256),
+ CONSTRAINT gaiz_import_requests_tenant_artifact_unique UNIQUE (tenant_id, artifact_id),
  CONSTRAINT gaiz_import_requests_review_state CHECK (
   (status = 'pending' AND reviewed_by IS NULL AND reviewed_at IS NULL)
   OR
