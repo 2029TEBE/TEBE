@@ -46,6 +46,7 @@ services:
       # variables from --env-file unless each is explicitly mapped here.
       DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-production}
       STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION: ${STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:-false}
+      BILLING_PROVIDER: ${BILLING_PROVIDER:-disabled}
       STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
