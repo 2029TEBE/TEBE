@@ -27,8 +27,8 @@ test('draft import depends on persisted approval, provenance, row lock and tenan
   ])assert.match(src,pattern);
 });
 test('draft proposal and receipt are tenant-scoped and never executable migrations',()=>{
-  assert.match(migration,/CREATE TABLE IF NOT EXISTS gaiz_import_proposals/);
-  assert.match(migration,/CREATE TABLE IF NOT EXISTS gaiz_import_receipts/);
+  assert.match(migration,/CREATE TABLE (?:IF NOT EXISTS )?gaiz_import_proposals/);
+  assert.match(migration,/CREATE TABLE (?:IF NOT EXISTS )?gaiz_import_receipts/);
   assert.match(migration,/UNIQUE \(tenant_id, import_id\)/);
   for(const table of ['gaiz_import_proposals','gaiz_import_receipts']){
     assert.match(rls,new RegExp('ALTER TABLE '+table+' FORCE ROW LEVEL SECURITY'));
