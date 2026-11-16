@@ -110,3 +110,22 @@ GRANT INSERT (user_id, token_hash, expires_at) ON public.auth_password_resets TO
 GRANT UPDATE (revoked_at) ON public.auth_password_resets TO pmo_app;
 REVOKE ALL ON FUNCTION public.pmo_redeem_password_reset(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pmo_redeem_password_reset(text, text) TO pmo_app;
+
+-- Stripe Billing registry tables are security-authoritative, never writable
+-- by the ordinary app role. Conditional because the schema is an unapplied
+-- design proposal until GAIZ migration numbering is reconciled.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'stripe_billing_approved_prices',
+    'stripe_billing_customer_bindings',
+    'stripe_billing_subscription_bindings',
+    'stripe_billing_event_receipts'
+  ] LOOP
+    IF to_regclass('public.' || t) IS NOT NULL THEN
+      EXECUTE format('REVOKE INSERT, UPDATE, DELETE ON TABLE public.%I FROM pmo_app', t);
+      EXECUTE format('GRANT SELECT ON TABLE public.%I TO pmo_app', t);
+    END IF;
+  END LOOP;
+END $$;
