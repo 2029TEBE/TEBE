@@ -11,6 +11,7 @@ const assignment=read('gaiz-worker-assignment.mjs');
 const ddl=read('../../../../docs/gaiz/PROPOSED_ADDITIVE_SCHEMA.sql');
 const rls=read('../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sql');
 const app=read('../app.module.ts');
+const concurrency=read('../../../../packages/db/src/gaiz-worker-replay-acceptance.mjs');
 
 test('assignment claim is unregistered, production-disabled and needs a scoped transaction',()=>{
   assert.doesNotMatch(app,/GaizAssignmentClaim|gaiz-assignment-claim/);
@@ -37,4 +38,15 @@ test('assignment claims are tenant-isolated and inaccessible to interactive API 
   assert.match(rls,/REVOKE ALL ON gaiz_worker_assignment_claims FROM PUBLIC/);
   assert.match(rls,/REVOKE ALL ON gaiz_worker_assignment_claims FROM pmo_app/);
   assert.doesNotMatch(claim,/\.transaction\(/);
+});
+
+test('disposable PostgreSQL replay runner is opt-in, rollback-only, and identity-scoped',()=>{
+  assert.match(concurrency,/GAIZ_VERIFY_WORKER_DATABASE_URL/);
+  assert.match(concurrency,/validateGaizDisposableConfig/);
+  assert.match(concurrency,/gaiz_verify_worker/);
+  assert.match(concurrency,/ON CONFLICT \(assignment_id\) DO NOTHING/);
+  assert.match(concurrency,/assert\.equal\(result\.length,1/);
+  assert.match(concurrency,/gaiz-disposable-rollback/);
+  assert.match(concurrency,/Promise\.all/);
+  assert.doesNotMatch(concurrency,/DROP DATABASE|CREATE ROLE|DELETE FROM gaiz_worker_assignment_claims/);
 });
