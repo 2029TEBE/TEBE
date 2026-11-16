@@ -58,4 +58,7 @@ test('malformed and noncanonical tokens fail closed',()=>{
  for(const token of ['', 'not-base64!', 'AA', 'a'.repeat(2049)])
    assert.throws(()=>verifyGaizWorkerAssignment(token,opts()));
  assert.throws(()=>verifyGaizWorkerAssignment(make(),{...opts(),maxTtlMs:120001}));
+ const raw=Buffer.from(make(),'base64url').toString('utf8');
+ assert.throws(()=>verifyGaizWorkerAssignment(
+   Buffer.from(raw.replace('"version":1','"version":1,"version":1')).toString('base64url'),opts()));
 });
