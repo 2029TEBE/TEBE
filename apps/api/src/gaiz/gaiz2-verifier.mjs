@@ -53,3 +53,8 @@ export function verifyGaiz2ForPreview(input,{trustedIssuerPublicKey,expectedIssu
  if(trusted.asymmetricKeyType!=='ed25519'||!verifySignature(null,toVerify,trusted,binary(doc.signature,64)))throw Error('Invalid GAIZ2 issuer signature');
  return Object.freeze({verified:true,format:'GAIZ2',artifactId:m.artifactId,issuerId:m.issuerId,tenantScope:m.tenantScope,sha256:createHash('sha256').update(data).digest('hex'),authorizationGranted:false,importAllowed:false});
 }
+
+// Independent development-only enterprise consumer. Distinct from the read-only
+// preview profile above; both deny any import or key-release authorization.
+export {verifyGaiz2ForQuarantine,verifyGaiz2RecipientForCustody}
+ from './gaiz2-enterprise-verifier.mjs';

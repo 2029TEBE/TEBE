@@ -1,0 +1,9 @@
+{
+  "source": "TO gaiz/core.mjs candidate producer",
+  "producerBranch": "feat/gaiz-interoperability-v1-20261116",
+  "testOnly": true,
+  "envelopeBase64": "R0FJWjEKeyJtYW5pZmVzdCI6eyJ2ZXJzaW9uIjoxLCJhcnRpZmFjdElkIjoidG8tZ2VuZXJhdGVkLXN5bnRoZXRpYy12MSIsInRlbmFudFNjb3BlIjoidGVuYW50LWludGVyb3BlcmFiaWxpdHkifSwibm9uY2UiOiJfallyanA1M3NsZmIzd0dIIiwidGFnIjoiN196YjlndTN3Y3FydkNzWlNJVVJpZyIsImNpcGhlcnRleHQiOiJDY29mNjJlcHhVLWVtSkE4aldNT043blhjS2Y0VkphbnBfSHJUZzYzd29RQlNobUtPTWJISzNVTzNnVUJaRHgxLVlqRTZhZ0R5a0doVTJDVFhkVTZNWjVnaU9paGJNX1kwM211S25JRXozeEZEbmtWeWVtZk83TlBxUSIsInNpZ25hdHVyZSI6IjFYMDdaZ0FMZ19fR1VhcGc5QWNuQkQyaEoxLV9pOXlRZWExMFBZY3N4UVo2WVoyamlFbHpma1hVOE81M0pENmhiZzdiNklxeWJtQXNmeWNTUDFQOEFnIn0=",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA6dqZj1KiVLZgf0yLHCH6DTbt9C/b9JzNgjplBha084k=\n-----END PUBLIC KEY-----\n",
+  "dekHex": "b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4",
+  "sha256": "3b69e2862ada88d61459c2a67b5115dc854ffd38c3bb3ddd17c0f2dc7d940738"
+}

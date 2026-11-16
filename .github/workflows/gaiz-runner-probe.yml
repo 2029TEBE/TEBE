@@ -1,0 +1,22 @@
+# Temporary GAIZ CI runner diagnostic.
+# Only triggers on a PR that changes this file; does not grant permissions,
+# install packages, use secrets, run tests, or deploy.
+name: GAIZ runner startup probe
+on:
+  pull_request:
+    paths:
+      - .github/workflows/gaiz-runner-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  startup:
+    name: Minimal GitHub-hosted runner startup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prove runner launched
+        run: |
+          echo "GAIZ runner probe launched"
+          uname -s
+          date -u +'%Y-%m-%dT%H:%M:%SZ'
