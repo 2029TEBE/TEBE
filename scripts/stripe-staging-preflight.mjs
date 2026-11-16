@@ -25,6 +25,7 @@ export function checkStripeStagingConfig(env) {
     ['Public HTTPS Stripe webhook URL', httpsEndpoint(env.STRIPE_WEBHOOK_PUBLIC_URL, '/api/v1/billing/stripe-webhook')],
     ['Application PostgreSQL URL present', /^postgres(?:ql)?:\/\//.test(env.DATABASE_URL || '')],
     ['Reference webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
+    ['Stripe and reference providers cannot both be active', !(env.STRIPE_ENABLED === 'true' && env.BILLING_REFERENCE_WEBHOOK_ENABLED === 'true')],
     ['Production-build staging explicitly permitted', env.NODE_ENV !== 'production' || env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === 'true'],
   ];
   return checks.map(([name, passed]) => ({ name, passed }));
