@@ -89,6 +89,13 @@ DO $$ BEGIN
     GRANT UPDATE (status, approved_by, reviewed_at)
       ON public.gaiz_import_authorizations TO pmo_app;
   END IF;
+  IF to_regclass('public.gaiz_mapping_profiles') IS NOT NULL THEN
+    REVOKE DELETE, UPDATE, INSERT ON public.gaiz_mapping_profiles FROM pmo_app;
+    GRANT INSERT (id, tenant_id, profile_id, target_kind, field_mappings, requested_by)
+      ON public.gaiz_mapping_profiles TO pmo_app;
+    GRANT UPDATE (status, reviewed_by, reviewed_at)
+      ON public.gaiz_mapping_profiles TO pmo_app;
+  END IF;
 END $$;
 
 -- The audit ledger is append-only, even for the app role.
