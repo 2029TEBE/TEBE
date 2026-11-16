@@ -24,7 +24,7 @@ test('OIDC fails closed for wrong issuer, audience, nonce and invalid signature'
  for(const changes of [{iss:'https://attacker.example.test'},{aud:'another-client'},{nonce:'other'}, {exp:now-1},{auth_time:now-900}]){
   assert.throws(()=>verifyStandaloneOidcIdentity(make({...claims,...changes}),cfg));
  }
- const token=make().split('.');token[2]=token[2].slice(0,-1)+(token[2].endsWith('A')?'B':'A');
+ const token=make().split('.');token[2]=(token[2][0]==='A'?'B':'A')+token[2].slice(1);
  assert.throws(()=>verifyStandaloneOidcIdentity(token.join('.'),cfg));
 });
 test('OIDC rejects token-supplied key URLs, no trust, ambiguous keys and wrong algorithms',()=>{
