@@ -70,8 +70,8 @@ export async function claimGaizWorkerAssignmentInTransaction(
   const inserted = getRows(await tx.execute(sql`
     INSERT INTO gaiz_worker_assignment_claims
       (assignment_id, tenant_id, worker_id, work_item_id, purpose, expires_at)
-    SELECT ${assignment.assignmentId}, ${assignment.tenantId},
-           ${assignment.workerId}, ${assignment.workItemId},
+    SELECT ${assignment.assignmentId}::uuid, ${assignment.tenantId}::uuid,
+           ${assignment.workerId}::uuid, ${assignment.workItemId}::uuid,
            ${assignment.purpose}, to_timestamp(${assignment.expiresAtMs}::double precision / 1000)
     WHERE clock_timestamp() < to_timestamp(${assignment.expiresAtMs}::double precision / 1000)
     ON CONFLICT (assignment_id) DO NOTHING
