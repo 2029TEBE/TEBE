@@ -25,6 +25,11 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: GAIZ inactive PostgreSQL queue and encrypted storage tests
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-queue-storage.test.mjs \
+            apps/api/src/gaiz/gaiz-encrypted-file-object-store.test.mjs
       - name: GAIZ isolated enterprise integration security checks
         run: |
           node --test \
