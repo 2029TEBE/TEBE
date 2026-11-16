@@ -95,6 +95,14 @@ jobs:
           PGDATABASE: postgres
           PGPASSWORD: postgres
         run: bash scripts/gaiz-disposable-challenge-acceptance.sh
+      - name: GAIZ2 isolated PostgreSQL release-claim uniqueness and default-deny acceptance
+        env:
+          PGHOST: localhost
+          PGPORT: '5433'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: postgres
+        run: bash scripts/gaiz2-kms-release-disposable-acceptance.sh
       - name: Apply production-equivalent SQL-ledger migrations
         run: bash scripts/apply-sql-migrations.sh
         env:
