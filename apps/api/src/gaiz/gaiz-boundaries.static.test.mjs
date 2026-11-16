@@ -27,6 +27,9 @@ test('interactive application cannot forge verifier data or import receipts',()=
     /REVOKE INSERT, UPDATE, DELETE ON gaiz_artifacts FROM pmo_app/,
     /REVOKE INSERT ON gaiz_import_receipts FROM pmo_app/,
     /REVOKE SELECT ON gaiz_quarantine_blobs FROM pmo_app/,
+    /REVOKE INSERT, UPDATE, DELETE ON gaiz_import_jobs FROM pmo_app/,
+    /REVOKE INSERT, UPDATE, DELETE ON gaiz_decisions FROM pmo_app/,
+    /REVOKE INSERT, UPDATE, DELETE ON gaiz_export_jobs FROM pmo_app/,
   ])assert.match(policy,restriction);
 });
 
