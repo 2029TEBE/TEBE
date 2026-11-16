@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS gaiz2_custody_grant_claims(
  recipient_key_id text NOT NULL CHECK(length(recipient_key_id) BETWEEN 1 AND 128),
  claimed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  expires_at timestamptz NOT NULL,
+ CONSTRAINT gaiz2_custody_claim_unique_assignment UNIQUE(tenant_id,assignment_id,envelope_sha256,recipient_key_id),
  CONSTRAINT gaiz2_custody_claim_valid_expiry CHECK(expires_at>claimed_at AND expires_at<=claimed_at+interval '30 seconds')
 );
 ALTER TABLE gaiz2_custody_grant_claims ENABLE ROW LEVEL SECURITY;
@@ -37,6 +38,8 @@ GRANT INSERT ON gaiz2_custody_grant_claims TO gaiz_verify_worker;
 GRANT SELECT(token_sha256) ON gaiz2_custody_grant_claims TO gaiz_verify_worker;
 COMMIT;
 -- Security release blockers:
+-- - Enforce both exact token replay and a second grant for the same assignment,
+--   artifact digest and recipient under the composite uniqueness constraint.
 -- - Test concurrent unique digest contention and transaction rollback.
 -- - Test tenant RLS and deny app role in disposable PostgreSQL.
 -- - Enforce externally authenticated workload identity and independent
