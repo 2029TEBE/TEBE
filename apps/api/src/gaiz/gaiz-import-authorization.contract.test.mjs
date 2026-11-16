@@ -9,7 +9,7 @@ const controller=read('./gaiz.controller.ts');
 test('second import approval is tenant-bound, unique, expiry-limited and never a write',()=>{
  assert.match(sql,/UNIQUE\(tenant_id,staging_review_id\)/);
  assert.match(sql,/FOREIGN KEY \(tenant_id,staging_review_id\)/);
- assert.match(sql,/FOREIGN KEY \(tenant_id,custody_attempt_id\)/);
+ assert.match(sql,/FOREIGN KEY \(tenant_id,staging_review_id,custody_attempt_id\)/);
  assert.match(sql,/FORCE ROW LEVEL SECURITY/);
  assert.match(sql,/approved_by <> requested_by/);
  assert.doesNotMatch(sql,/CREATE TRIGGER.*projects|UPDATE public\.projects|UPDATE public\.portfolios/i);
