@@ -8,7 +8,7 @@ export const gaizArtifactId = z.string().trim().min(1).max(256);
 export const gaizJobId = z.string().uuid();
 export const gaizCorrelationId = z.string().uuid();
 export const gaizImportState = z.enum([
-  'quarantined', 'verified', 'pending_approval', 'rejected',
+  'quarantined', 'verified', 'pending_approval', 'approved', 'rejected',
   'importing', 'imported', 'failed',
 ]);
 export const gaizExportFormat = z.enum(['pdf', 'html', 'gaiz']);
