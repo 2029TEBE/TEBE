@@ -5,6 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
+import { assertStripeForNewCharges } from './payment-provider-policy';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
@@ -12,6 +13,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const CHECKOUT_HOST = 'checkout.stripe.com';
 
 function stripeConfig() {
+  // Fail closed if any future alternative PSP is selected by configuration.
+  try { assertStripeForNewCharges(process.env.BILLING_PAYMENT_PROVIDER); }
+  catch { throw new ServiceUnavailableException('Stripe is the required payment provider'); }
   const key = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (process.env.STRIPE_ENABLED !== 'true' || !key || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(key) ||
@@ -31,7 +35,7 @@ function checkoutRedirects() {
   if (!['http:', 'https:'].includes(base.protocol) || base.origin !== origin ||
       (requiresSecureTransport(process.env.NODE_ENV, process.env.DEPLOYMENT_ENV) && base.protocol !== 'https:'))
     throw new ServiceUnavailableException('Invalid configured web origin');
-  return { success: `${origin}/billing?billing=success`, cancel: `${origin}/billing?billing=cancelled` };
+  return { success: `${origin}/billing?billing=success`, cancel: `${origin}/billing?billing=cancel` };
 }
 
 @Injectable()
