@@ -13,8 +13,8 @@ const executor=read('gaiz-draft-import.executor.ts');
 const roles=read('../../../../docs/gaiz/WORKER_PERMISSION_BOUNDARIES.md');
 const policy=read('../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sql');
 
-test('GAIZ remains unregistered and cannot be activated through an environment flag',()=>{
-  assert.doesNotMatch(app,/GaizModule|GaizDraftImportExecutor|GaizQuarantinePostgres/);
+test('enterprise GAIZ candidate stays unregistered while guarded preview remains isolated',()=>{
+  assert.doesNotMatch(app,/GaizEnterpriseCandidateModule|GaizEnterpriseCandidateController|GaizDraftImportExecutor|GaizQuarantinePostgres/);
   assert.match(orchestrator,/NODE_ENV === 'production'/);
   assert.match(executor,/NODE_ENV === 'production'/);
   assert.match(exporter,/Quarantine and artifact verification are not active/);
