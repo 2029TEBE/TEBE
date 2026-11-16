@@ -74,8 +74,8 @@ test('valid GAIZ2 signature remains metadata only and never supplies mapping aut
     },dek))}],
   };
   dek.fill(0);
-  const signature=base64(sign(null,Buffer.from('GAIZ2\\n'+canonical(unsigned)),issuer.privateKey));
-  const envelope=Buffer.from('GAIZ2\\n'+canonical({...unsigned,signature}));
+  const signature=base64(sign(null,Buffer.from('GAIZ2\n'+canonical(unsigned)),issuer.privateKey));
+  const envelope=Buffer.from('GAIZ2\n'+canonical({...unsigned,signature}));
   const receipt=verifyGaiz2ForQuarantine(envelope,{
     trustedIssuerPublicKey:issuer.publicKey,expectedIssuerId:'issuer-a',
     expectedTenantScope:tenantId,
