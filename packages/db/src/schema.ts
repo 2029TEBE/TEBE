@@ -936,3 +936,42 @@ export const gaizMappingProfiles = pgTable('gaiz_mapping_profiles', {
   tenantProfileUnique: uniqueIndex('gaiz_mapping_profiles_tenant_profile_unique').on(t.tenantId,t.profileId),
   tenantStatus: index('gaiz_mapping_profiles_tenant_status_idx').on(t.tenantId,t.status,t.targetKind),
 }));
+
+/** Public trust references only. No private keys or customer plaintext. */
+export const gaizTrustKeys = pgTable('gaiz_trust_keys', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id,{onDelete:'cascade'}),
+  keyId: text('key_id').notNull(),
+  keyKind: text('key_kind').notNull(),
+  algorithm: text('algorithm').notNull(),
+  ownerType: text('owner_type').notNull(),
+  publicKeyPem: text('public_key_pem').notNull(),
+  publicKeySha256: text('public_key_sha256').notNull(),
+  status: text('status').notNull().default('pending'),
+  validFrom: timestamp('valid_from',{withTimezone:true}).notNull(),
+  validUntil: timestamp('valid_until',{withTimezone:true}).notNull(),
+  registeredBy: uuid('registered_by').notNull().references(() => users.id),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  approvedAt: timestamp('approved_at',{withTimezone:true}),
+  revokedAt: timestamp('revoked_at',{withTimezone:true}),
+}, t => ({
+  tenantKey:uniqueIndex('gaiz_trust_key_scope').on(t.tenantId,t.keyKind,t.keyId),
+  tenantKindStatus:index('gaiz_trust_keys_tenant_kind_status_idx').on(t.tenantId,t.keyKind,t.status),
+}));
+export const gaizRecoveryConsents = pgTable('gaiz_recovery_consents',{
+  id:id(),
+  tenantId:uuid('tenant_id').notNull().references(() => tenants.id,{onDelete:'cascade'}),
+  consentId:text('consent_id').notNull(),
+  recipientKeyId:text('recipient_key_id').notNull(),
+  keyKind:text('key_kind').notNull().default('recipient'),
+  purpose:text('purpose').notNull(),
+  status:text('status').notNull().default('pending'),
+  requestedBy:uuid('requested_by').notNull().references(() => users.id),
+  approvedBy:uuid('approved_by').references(() => users.id),
+  approvedAt:timestamp('approved_at',{withTimezone:true}),
+  expiresAt:timestamp('expires_at',{withTimezone:true}).notNull(),
+  revokedAt:timestamp('revoked_at',{withTimezone:true}),
+}, t=>({
+  tenantConsent:uniqueIndex('gaiz_recovery_consent_scope').on(t.tenantId,t.consentId),
+  tenantStatus:index('gaiz_recovery_consents_tenant_status_idx').on(t.tenantId,t.status,t.recipientKeyId),
+}));
