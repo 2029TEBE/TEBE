@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Post, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Post, ServiceUnavailableException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 import { ZodPipe } from '../common/zod.pipe';
@@ -37,11 +37,16 @@ export class GaizController {
     }
     // expectedTenantScope ALWAYS originates from trusted authenticated context,
     // NEVER the uploaded manifest, query string or caller body.
-    const receipt = verifyGaiz2ForPreview(data, {
-      trustedIssuerPublicKey: publicKey,
-      expectedIssuerId: issuerId,
-      expectedTenantScope: context.tenantId,
-    });
-    return { ...receipt, status: 'signature_verified_only', importAllowed: false };
+    try {
+      const receipt = verifyGaiz2ForPreview(data, {
+        trustedIssuerPublicKey: publicKey,
+        expectedIssuerId: issuerId,
+        expectedTenantScope: context.tenantId,
+      });
+      return { ...receipt, status: 'signature_verified_only', importAllowed: false };
+    } catch {
+      // Never disclose file content, tenant identities, key material or parser details.
+      throw new BadRequestException('GAIZ artifact could not be verified');
+    }
   }
 }
