@@ -12,6 +12,11 @@ Status: **experimental foundation, not deployable**. All new code remains on
 - `apps/api/src/audit/audit.service.ts` writes audit in the same transaction.
 
 ## Included in this branch
+- Bounded quarantine metadata preparation and same-key/different-hash rejection
+  in `apps/api/src/gaiz/gaiz-intake.mjs`, without storing uploaded bytes.
+  A future storage adapter must atomically persist a private ciphertext object
+  and bind `idempotency_request_sha256` to the stored job, then verify actual
+  object digest at consumption. No remote reference fetches (SSRF) are enabled.
 - Independent issuer trust-policy candidate and revocation tests in
   `apps/api/src/gaiz/gaiz-trust.mjs`; issuer key ID is backend-selected,
   not parsed from an untrusted artifact. This registry is not yet wired to key custody.
@@ -80,6 +85,7 @@ node --test apps/api/src/gaiz/gaiz-verifier.test.mjs
 node --test apps/api/src/gaiz/gaiz-workflow.test.mjs
 node --test apps/api/src/gaiz/gaiz-synthetic-preview.test.mjs
 node --test apps/api/src/gaiz/gaiz-trust.test.mjs
+node --test apps/api/src/gaiz/gaiz-intake.test.mjs
 pnpm build:packages
 pnpm typecheck
 pnpm test
