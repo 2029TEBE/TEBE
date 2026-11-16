@@ -68,7 +68,7 @@ INSERT INTO public.gaiz_mapping_profiles
 UPDATE public.gaiz_mapping_profiles SET status='approved',
  reviewed_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',reviewed_at=now()
  WHERE profile_id='binding-profile';
-DO $ DECLARE blocked boolean:=false; BEGIN
+DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_import_authorizations
    (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by)
@@ -99,18 +99,18 @@ INSERT INTO public.gaiz_mapping_profiles
  (tenant_id,profile_id,target_kind,field_mappings,requested_by)
  VALUES ('11111111-1111-4111-8111-111111111111','synthetic-project-v1',
  'project','["project.name"]'::jsonb,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-DO $ DECLARE blocked boolean:=false; BEGIN
+DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   UPDATE public.gaiz_mapping_profiles SET status='approved',
    reviewed_by='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reviewed_at=now()
    WHERE profile_id='synthetic-project-v1';
  EXCEPTION WHEN check_violation THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'mapping registry self-review accepted'; END IF;
-END $;
+END $$;
 UPDATE public.gaiz_mapping_profiles SET status='approved',
  reviewed_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',reviewed_at=now()
  WHERE profile_id='synthetic-project-v1';
-DO $ DECLARE blocked boolean:=false; BEGIN
+DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_mapping_profiles
   (tenant_id,profile_id,target_kind,field_mappings,requested_by,status)
@@ -118,7 +118,7 @@ DO $ DECLARE blocked boolean:=false; BEGIN
   'project','["project.name"]'::jsonb,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved');
  EXCEPTION WHEN insufficient_privilege THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'forged preapproved mapping accepted'; END IF;
-END $;
+END $$;
 ROLLBACK;
 -- Original updates must increment revisions; a transaction rollback must restore them.
 BEGIN;
