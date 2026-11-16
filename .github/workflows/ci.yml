@@ -25,8 +25,14 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
-      - name: GAIZ transactional report job isolation checks
+      - name: GAIZ recovered report isolation checks
         run: node --test apps/api/src/gaiz/gaiz-transactional-report-jobs.test.mjs
+      - name: GAIZ unmounted OIDC and atomic session source policy checks
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-oidc-provider-policy.test.mjs \
+            apps/api/src/gaiz/gaiz-oidc-code-exchange.test.mjs \
+            apps/api/src/gaiz/gaiz-atomic-customer-sessions.test.mjs
       - name: GAIZ isolated report renderer source tests (synthetic; no payments)
         run: |
           node --test \
