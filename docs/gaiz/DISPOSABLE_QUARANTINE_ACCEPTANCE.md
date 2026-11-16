@@ -76,6 +76,39 @@ and skips when no disposable URL is supplied. The audit test uses rollback-only
 synthetic inserts, not a read-only connection. GitHub Actions is not a substitute
 for independent disposable RLS and concurrency evidence.
 
+## Worker assignment replay acceptance (NEW; opt-in only)
+
+The separate test file
+`packages/db/src/gaiz-worker-replay-acceptance.mjs` checks uniqueness
+and rollback semantics against a **local disposable PostgreSQL** instance.
+It requires a non-superuser/non-BYPASSRLS login named
+`gaiz_verify_worker`, explicit table `INSERT` plus
+`SELECT(assignment_id)` for `RETURNING`, FORCE RLS, and two synthetic
+tenants. A worker must **not** receive full `SELECT`, `UPDATE` or
+`DELETE` privileges on the assignment ledger.
+
+```sh
+GAIZ_VERIFY_WORKER_DATABASE_URL="postgres://gaiz_verify_worker:TEST_ONLY@127.0.0.1:5432/gaiz_disposable_test" \
+GAIZ_TEST_TENANT_A="00000000-0000-4000-8000-000000000001" \
+GAIZ_TEST_TENANT_B="00000000-0000-4000-8000-000000000002" \
+node --test packages/db/src/gaiz-worker-replay-acceptance.mjs
+```
+
+The runner uses a globally unique assignment UUID and **only
+rollback-only** synthetic writes; it verifies same-transaction duplicate
+rejection, contention and retry after rollback. It never commits fixtures
+or changes the schema. Tests are skipped when no disposable URL is set.
+**No PostgreSQL acceptance has been run in the authoring environment.**
+
+**Security warning:** `app.tenant_id` is a configurable PostgreSQL
+setting, not proof of identity. The ability to call
+`set_config('app.tenant_id', ...)` alone must not confer tenant rights
+to a worker. Production must bind workload identity, issuer-authorized
+tenant/work-item scope, job ownership, permissioned database role and
+RLS policy independently in the worker runtime and transaction. The
+new test demonstrates uniqueness/rollback only; it cannot certify this
+identity boundary.
+
 ## Non-goals
 No production migration, public file upload, arbitrary URL download, signed
 capability issuance, recipient-key release, automated approval, import execution,
