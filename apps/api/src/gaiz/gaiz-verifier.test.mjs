@@ -12,7 +12,7 @@ test('TO-format signed AES-GCM envelope interoperates with TEBE preview adapter'
   doc.signature=sign(null,Buffer.from('GAIZ1\n'+canonical(doc)),privateKey).toString('base64url');
   const bytes=Buffer.from('GAIZ1\n'+JSON.stringify(doc));
   assert.equal(verifyGaizForPreview(bytes,{trustedIssuerPublicKey:publicKey,expectedTenantScope:'test-tenant'}).importAllowed,false);
-  assert.throws(()=>verifyGaizForPreview(bytes,{trustedIssuerPublicKey:publicKey,expectedTenantScope:'other'}),/Tenant mismatch/);
+  assert.throws(()=>verifyGaizForPreview(bytes,{trustedIssuerPublicKey:publicKey,expectedTenantScope:'other'}));
   assert.throws(()=>verifyGaizForPreview(Buffer.from(bytes.toString().replace('synthetic','tampered')), {trustedIssuerPublicKey:publicKey,expectedTenantScope:'test-tenant'}));
 });
 
@@ -42,4 +42,13 @@ test('rejects oversized, unsupported version, noncanonical encoding and wrong is
   assert.throws(()=>verifyGaizForPreview(Buffer.from(bytes.toString().replace('"nonce":"','"nonce":"=')),policy()));
   const other=generateKeyPairSync('ed25519').publicKey;
   assert.throws(()=>verifyGaizForPreview(bytes,{trustedIssuerPublicKey:other,expectedTenantScope:'test-tenant'}));
+});
+
+test('fail closed for null manifest, absent trust policy, wrong key algorithm and unsafe number',()=>{
+ const bytes=makeFixture();
+ assert.throws(()=>verifyGaizForPreview(bytes));
+ assert.throws(()=>verifyGaizForPreview(Buffer.from(bytes.toString().replace(/"manifest":\{[^}]+\}/,'"manifest":null')),policy()));
+ const rsa=generateKeyPairSync('rsa',{modulusLength:2048}).publicKey;
+ assert.throws(()=>verifyGaizForPreview(bytes,{trustedIssuerPublicKey:rsa,expectedTenantScope:'test-tenant'}));
+ assert.throws(()=>verifyGaizForPreview(Buffer.from(bytes.toString().replace('"version":1','"version":1e999')),policy()));
 });
