@@ -908,6 +908,7 @@ export const gaizImportAuthorizations = pgTable('gaiz_import_authorizations', {
   targetId: uuid('target_id').notNull(),
   targetSnapshotSha256: text('target_snapshot_sha256').notNull(),
   previewSha256: text('preview_sha256').notNull(),
+  mappingProfileId: text('mapping_profile_id').notNull(),
   requestedBy: uuid('requested_by').notNull().references(() => users.id),
   approvedBy: uuid('approved_by').references(() => users.id),
   status: text('status').notNull().default('pending'),
