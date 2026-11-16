@@ -14,6 +14,7 @@ const schema = z.object({
   // Number of trusted reverse-proxy hops; 0 means direct internet exposure.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(1),
   ALLOW_HEADER_AUTH: z.enum(['true', 'false']).default('false'),
+  BILLING_PROVIDER: z.enum(['stripe', 'disabled']).optional(),
   BILLING_REFERENCE_WEBHOOK_ENABLED: z.enum(['true', 'false']).default('false'),
   BILLING_REFERENCE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -64,6 +65,11 @@ export function loadEnv(): Env {
       (!env.BILLING_REFERENCE_WEBHOOK_SECRET || Buffer.byteLength(env.BILLING_REFERENCE_WEBHOOK_SECRET) < 32))
     throw new Error('BILLING_REFERENCE_WEBHOOK_SECRET must be at least 32 bytes when the reference webhook is enabled.');
 
+  // The checkout service, container and boot gate must agree on one PSP.
+  if (env.STRIPE_ENABLED === 'true' && env.BILLING_PROVIDER !== 'stripe')
+    throw new Error('Stripe activation requires BILLING_PROVIDER=stripe.');
+  if (env.BILLING_PROVIDER === 'stripe' && env.BILLING_REFERENCE_WEBHOOK_ENABLED === 'true')
+    throw new Error('Stripe-only mode forbids the reference payment webhook.');
   if (env.STRIPE_ENABLED === 'true') {
     if (!env.STRIPE_SECRET_KEY || !/^sk_(test|live)_[A-Za-z0-9]+$/.test(env.STRIPE_SECRET_KEY) ||
         !env.STRIPE_WEBHOOK_SECRET || !/^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET))
