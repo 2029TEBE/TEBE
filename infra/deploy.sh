@@ -157,15 +157,20 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
   # containers, volumes and database backups for service continuity and rollback.
   ssh_remote "docker builder prune --all --force && docker system df"
   ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
-  for spec in "api|$API_RUNTIME_DIGEST|$API_IMAGE" "web|$WEB_RUNTIME_DIGEST|$WEB_IMAGE"; do
-    IFS='|' read -r service expected_digest release_tag <<< "$spec"
+  # Docker image IDs are the SHA-256 of the image configuration, including
+  # rootfs layer DiffIDs. Unlike inspect's serialized runtime fields, the ID is
+  # content-addressed and stable across Docker daemon versions and save/load.
+  # The manifest and archive were already verified against exact successful CI.
+  API_EXPECTED_ID=$(jq -er .apiId <<< "$TESTED_JSON")
+  WEB_EXPECTED_ID=$(jq -er .webId <<< "$TESTED_JSON")
+  for spec in "api|$API_EXPECTED_ID|$API_IMAGE" "web|$WEB_EXPECTED_ID|$WEB_IMAGE"; do
+    IFS='|' read -r service expected_id release_tag <<< "$spec"
     loaded=$(ssh_remote "docker image inspect 'epmo-$service:ci'")
     identity=$(printf '%s' "$loaded" | node scripts/ci-image-bundle.mjs identity)
     actual=$(jq -er .id <<< "$identity")
-    digest=$(jq -er .runtimeDigest <<< "$identity")
     revision=$(jq -er .revision <<< "$identity")
-    [[ "$digest" == "$expected_digest" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
-      echo 'BLOCKED: loaded image runtime content or revision differs from CI' >&2; exit 1;
+    [[ "$actual" == "$expected_id" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      echo "BLOCKED: $service loaded image content ID or revision differs from attested CI" >&2; exit 1;
     }
     ssh_remote "docker image tag '$actual' '$release_tag'"
     if [[ "$service" == api ]]; then API_IMAGE_ID=$actual; else WEB_IMAGE_ID=$actual; fi
