@@ -4,8 +4,9 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || 'tebe-ci-main' }}
-  cancel-in-progress: true
+  # PRs replace stale checks; main release verification must finish once started.
+  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || format('tebe-ci-main-{0}', github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
