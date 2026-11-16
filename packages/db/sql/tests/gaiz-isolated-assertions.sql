@@ -47,9 +47,9 @@ DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_import_authorizations
    (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,requested_by)
-  VALUES ('11111111-1111-4111-8111-811111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
- EXCEPTION WHEN OTHERS THEN blocked:=true; END;
- IF NOT blocked THEN RAISE EXCEPTION 'cross-tenant replay accepted'; END IF;
+  VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+ EXCEPTION WHEN unique_violation THEN blocked:=true; END;
+ IF NOT blocked THEN RAISE EXCEPTION 'duplicate authorization accepted'; END IF;
 END $$;
 DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
