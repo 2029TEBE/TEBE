@@ -24,5 +24,6 @@ done
 "${psql_run[@]}" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON public.gaiz_import_requests,public.gaiz_custody_attempts,public.gaiz_import_authorizations TO pmo_app"
 awk '/^-- GAIZ staged requests/{show=1} /^-- The audit ledger/{show=0} show {print}' "$here/sql/rls.sql" | "${psql_run[@]}"
 "${psql_run[@]}" -f "$here/sql/tests/gaiz-isolated-assertions.sql"
+bash "$here/scripts/gaiz-isolated-concurrency.sh"
 echo "GAIZ disposable PostgreSQL schema, RLS and revision smoke assertions completed."
 echo "NOTE: this is not a substitute for full TEBE typecheck, customer-key security, or production rollout QA."
