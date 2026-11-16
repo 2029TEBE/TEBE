@@ -112,9 +112,10 @@ BEGIN
  IF EXISTS(SELECT 1 FROM pg_class WHERE relname LIKE 'gaiz2_%'
        AND relkind='r' AND (NOT relrowsecurity OR NOT relforcerowsecurity)) THEN
   RAISE EXCEPTION 'GAIZ2 table without FORCE RLS'; END IF;
- IF EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ IF EXISTS(SELECT 1 FROM pg_class c CROSS JOIN LATERAL
+       aclexplode(coalesce(c.relacl,acldefault('r',c.relowner))) a
        WHERE c.relname IN ('gaiz2_kms_release_claims','gaiz2_recipient_key_registry')
-       AND has_table_privilege('PUBLIC',c.oid,'SELECT')) THEN
+       AND a.grantee=0 AND a.privilege_type='SELECT') THEN
   RAISE EXCEPTION 'public GAIZ2 table access'; END IF;
  RAISE NOTICE 'GAIZ2 disposable PostgreSQL release-ledger constraints PASS';
 END
