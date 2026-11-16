@@ -28,7 +28,7 @@ test('separate database role and challenge digest are checked before returning a
  assert.match(helper,/consumed_at IS NULL/);
  assert.match(helper,/expires_at > clock_timestamp\(\)/);
  assert.match(assignment,/ON CONFLICT \(assignment_id\) DO NOTHING/);
- assert.match(source,/assignmentClaim\.assignmentId!==assignment\.assignmentId/);
+ assert.match(source,/assignmentClaim\?\.assignmentId!==assignment\.assignmentId/);
 });
 test('database proposal requires force RLS and rejects interactive app writes',()=>{
  assert.match(schema,/ENABLE ROW LEVEL SECURITY/);
