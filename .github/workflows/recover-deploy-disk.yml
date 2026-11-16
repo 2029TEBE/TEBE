@@ -1,7 +1,7 @@
 name: Reclaim unused production build cache
 on:
   push:
-    branches: [ops/recover-deploy-disk-20261116]
+    branches: [main]
     paths: [.github/workflows/recover-deploy-disk.yml]
   workflow_dispatch:
 permissions:
