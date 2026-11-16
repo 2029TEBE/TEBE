@@ -25,6 +25,8 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: GAIZ unmounted customer report API isolation checks
+        run: node --test apps/api/src/gaiz/gaiz-customer-report-api.test.mjs
       - name: GAIZ isolated report renderer source tests (synthetic; no payments)
         run: |
           node --test \
