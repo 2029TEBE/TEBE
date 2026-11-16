@@ -24,7 +24,9 @@ export class GaizController {
   constructor(private readonly staging: GaizStagingService) {}
 
   private verifyArtifact(body: z.infer<typeof artifactBody>) {
-    if (process.env.NODE_ENV === 'production' || process.env.GAIZ_PREVIEW_ENABLED !== 'true') {
+    if (process.env.NODE_ENV !== 'development' ||
+        (process.env.DEPLOYMENT_ENV && process.env.DEPLOYMENT_ENV !== 'development') ||
+        process.env.GAIZ_PREVIEW_ENABLED !== 'true') {
       throw new ServiceUnavailableException('GAIZ preview is not enabled');
     }
     const ctx = currentContext();
