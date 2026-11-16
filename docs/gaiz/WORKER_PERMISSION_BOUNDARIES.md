@@ -24,6 +24,38 @@ They must have independently issued, short-lived credentials and be unable to
 `GRANT gaiz_execute_worker TO pmo_app`. Do not use elevated
 `SECURITY DEFINER` handlers without a separate, reviewed threat model.
 
+## Inert worker-handoff policy
+
+`apps/api/src/gaiz/gaiz-worker-handoff.mjs` adds two pure,
+fail-closed policy checks. It has no NestJS injection, database access,
+key custody, command execution or HTTP routes:
+
+- `authorizeGaizVerifyHandoff` requires a declared verifier principal,
+  exact matching tenant and quarantine work-item identifiers, verified
+  signature + authenticated payload evidence, matching SHA-256 and the
+  `quarantined` revision. It only produces `importAllowed=false`.
+- `authorizeGaizExecuteHandoff` requires an independently approved job,
+  separately identified requester, approver and executor, exact revision,
+  unexpired approval, matching artifact/quarantine/mapping hashes and
+  affirmative replay-claim evidence. Its output is a **draft-only**
+  transaction plan requiring an atomic receipt.
+- Both functions reject extra fields. Their inputs are assumed to be
+  **trusted backend evidence**, not values received over HTTP or read
+  from an untrusted GAIZ envelope. These checks do not prove a worker
+  principal is authentic or that evidence is immutable.
+- The policy is not connected to `GaizPostgresAdapter` or
+  `GaizDraftImportExecutor`, because their existing `withTenant`
+  execution uses the interactive app database role. That role has been
+  explicitly denied verification/evidence and receipt write privileges.
+  Wiring it directly would silently contradict the least-privilege design.
+
+`gaiz-worker-handoff.test.mjs` covers wrong role, mismatched tenant,
+altered digest, stale/replayed approvals, tampered provenance and
+insufficient verification. A local V8 compatibility harness passed
+four test cases against fetched source using a test shim for
+`timingSafeEqual`; the actual Node crypto and PostgreSQL tests remain
+unverified until run in an isolated checkout/CI.
+
 ## Minimum controls before introducing workers
 
 1. Every database transaction sets `app.tenant_id` from an **authenticated,
