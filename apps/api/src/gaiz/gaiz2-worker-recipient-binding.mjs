@@ -12,6 +12,7 @@
  */
 import { bindGaizWorkerIdentity } from './gaiz-workload-binding.mjs';
 import { verifyGaiz2RecipientForCustody } from './gaiz2-verifier.mjs';
+import { verifyGaizSignedWorkloadCredential } from './gaiz-signed-workload-credential.mjs';
 
 const deny=()=>{throw new Error('GAIZ2 trusted recipient assignment denied')};
 const validUuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
@@ -65,5 +66,41 @@ export function bindGaiz2RecipientWorkerCandidate(bytes,{
     custodyAuthorizationRequired:true,
     authorizationGranted:false,
     importAllowed:false,
+  });
+}
+
+/**
+ * Signed-credential variant. Credential verification precedes BOTH assignment
+ * and GAIZ2 artifact verification, never trusts a caller-provided workload
+ * descriptor. This remains inert and unregistered. Challenge replay protection
+ * and transport authentication must be enforced by an independent ingress.
+ */
+export function bindGaiz2RecipientWithSignedCredentialCandidate(bytes,{
+  signedWorkloadCredential,trustedCredentialIssuerPublicKey,
+  expectedCredentialIssuerId,expectedWorkerId,expectedChallenge,
+  ...options
+}={}){
+  const credential=verifyGaizSignedWorkloadCredential(signedWorkloadCredential,{
+    trustedCredentialIssuerPublicKey,
+    expectedIssuerId:expectedCredentialIssuerId,
+    expectedWorkerId,
+    expectedPurpose:'gaiz_verify_worker',
+    expectedChallenge,
+    nowMs:options.nowMs,
+  });
+  if(credential.independentTransportAuthenticationRequired!==true||
+     credential.atomicChallengeClaimRequired!==true||
+     credential.importAllowed!==false)deny();
+  // Rebuild the exact workload descriptor from VERIFIED claims, not from
+  // request options. The downstream assignment is verified independently.
+  const {workload:_ignored,...safeOptions}=options;
+  return bindGaiz2RecipientWorkerCandidate(bytes,{
+    ...safeOptions,
+    workload:Object.freeze({
+      workerId:credential.workerId,
+      role:credential.role,
+      credentialIssuer:credential.credentialIssuer,
+      credentialExpiresAtMs:credential.credentialExpiresAtMs,
+    }),
   });
 }
