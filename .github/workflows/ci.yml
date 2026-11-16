@@ -31,6 +31,8 @@ jobs:
             apps/api/src/gaiz/gaiz-oidc-provider-policy.test.mjs \
             apps/api/src/gaiz/gaiz-oidc-code-exchange.test.mjs \
             apps/api/src/gaiz/gaiz-atomic-customer-sessions.test.mjs
+      - name: GAIZ unmounted customer report authorization and HTTP denial tests
+        run: node --test apps/api/src/gaiz/gaiz-customer-report-api.test.mjs
       - name: GAIZ isolated report renderer source tests (synthetic; no payments)
         run: |
           node --test \
