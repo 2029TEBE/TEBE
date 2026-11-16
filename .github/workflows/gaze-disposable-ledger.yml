@@ -1,0 +1,51 @@
+name: .GAZE disposable custody ledger acceptance
+on:
+  pull_request:
+    paths:
+      - 'packages/db/sql/gaiz2-*'
+      - 'scripts/gaiz2-kms-release-disposable-acceptance.sh'
+      - '.github/workflows/gaze-disposable-ledger.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  disposable-postgresql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PHASE15_ACCEPT_DISPOSABLE_DB: YES_RESEED_DISPOSABLE_TEST_DATABASE
+      PGHOST: localhost
+      PGPORT: '5433'
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL 16 client
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+      - name: Ensure disposable acceptance runner has safe targets
+        run: |
+          set -euo pipefail
+          bash -n scripts/gaiz2-kms-release-disposable-acceptance.sh
+          test "$PGHOST" = localhost
+          test "$PGPORT" = 5433
+          test "$PGDATABASE" = postgres
+      - name: Execute real PostgreSQL rejection and RLS assertions
+        run: bash scripts/gaiz2-kms-release-disposable-acceptance.sh
+# Disposable CI only. This never applies production migrations, authorizes KMS
+# unwrap, approves a human import or changes customer data.
