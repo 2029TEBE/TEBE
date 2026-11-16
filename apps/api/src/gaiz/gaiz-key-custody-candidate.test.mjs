@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname} from 'node:path';
-import {createPublicKey} from 'node:crypto';
 import {createGaizTrustPolicy} from './gaiz-trust.mjs';
 import {previewGaizWithCustodyCandidate} from './gaiz-key-custody-candidate.mjs';
 
@@ -15,7 +14,7 @@ const now=1700000000050;
 const context=()=>({authenticated:true,entitled:true,workspaceMember:true,
   tenantId:tenant,userId:'synthetic-actor',capabilities:['read']});
 const trust=()=>createGaizTrustPolicy([{
-  keyId,publicKey:createPublicKey(fixture.publicKeyPem),
+  keyId,publicKey:fixture.publicKeyPem,
   notBefore:1700000000000,notAfter:1700000060000,revoked:false,
 }]);
 const opts=(provider)=>({expectedTenantScope:tenant,issuerKeyId:keyId,
@@ -49,7 +48,7 @@ test('no key release when signature, tenant, issuer or entitlement fail',async()
     {issuerKeyId:'not-allowed'},
     {context:{...context(),entitled:false}},
     {trustPolicy:createGaizTrustPolicy([{
-      keyId,publicKey:createPublicKey(fixture.publicKeyPem),
+      keyId,publicKey:fixture.publicKeyPem,
       notBefore:1700000000000,notAfter:1700000060000,revoked:true,
     }])},
   ])await assert.rejects(previewGaizWithCustodyCandidate(bytes,{...opts(provider),...changed}));
