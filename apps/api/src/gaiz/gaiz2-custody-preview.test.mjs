@@ -120,3 +120,40 @@ test('invalid scope and signature cannot trigger custody release',async()=>{
     else process.env.NODE_ENV=priorNode;
   }
 });
+
+test('production blocks GAIZ2 custody before any provider call',async()=>{
+  const prior=process.env.GAIZ_DEV_ONLY,priorNode=process.env.NODE_ENV;
+  let releases=0;
+  try {
+    process.env.GAIZ_DEV_ONLY='true';
+    process.env.NODE_ENV='production';
+    await assert.rejects(previewGaiz2CustodyCandidate(fixture(),opts({
+      unwrapSyntheticRecipientDek:async()=>{releases++;return Buffer.alloc(32);},
+    })));
+    assert.equal(releases,0);
+  } finally {
+    if(prior===undefined)delete process.env.GAIZ_DEV_ONLY;
+    else process.env.GAIZ_DEV_ONLY=prior;
+    if(priorNode===undefined)delete process.env.NODE_ENV;
+    else process.env.NODE_ENV=priorNode;
+  }
+});
+
+test('wrong synthetic DEK or authenticated-ciphertext failure returns no preview or import grant',async()=>{
+  const prior=process.env.GAIZ_DEV_ONLY,priorNode=process.env.NODE_ENV;
+  try {
+    process.env.GAIZ_DEV_ONLY='true';
+    process.env.NODE_ENV='test';
+    const bytes=fixture();
+    let releases=0;
+    const fake={unwrapSyntheticRecipientDek:async()=>{releases++;return randomBytes(32);}};
+    await assert.rejects(previewGaiz2CustodyCandidate(bytes,opts(fake)),
+      /GAIZ2 recipient custody denied/);
+    assert.equal(releases,1);
+  } finally {
+    if(prior===undefined)delete process.env.GAIZ_DEV_ONLY;
+    else process.env.GAIZ_DEV_ONLY=prior;
+    if(priorNode===undefined)delete process.env.NODE_ENV;
+    else process.env.NODE_ENV=priorNode;
+  }
+});
