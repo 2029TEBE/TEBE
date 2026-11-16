@@ -19,6 +19,14 @@ Unit tests: `node --test apps/api/src/gaiz/gaiz-standalone-oidc.test.mjs`.
 
 This verifies signature/identity claims **only**. It does not prove an account has purchased anything or is entitled to any file.
 
+## Additional implementation: authorization-code/PKCE transaction core
+
+`gaiz-standalone-login-broker.mjs` now creates random one-time state, nonce, PKCE S256 verifier/challenge, and an authorization URL for an **externally approved** HTTPS issuer on the same origin. A server-supplied opaque session binding is hashed into a 10-minute transaction. Callback processing calls an *atomic* `store.take` before token exchange, rechecks the session binding and expiration, then validates the returned ID token using the independently provisioned JWKS verifier. Its result remains a bare identity claim with all GAIZ entitlements false.
+
+**Critical:** The injected `store` must be a durable, atomic, distributed single-use transaction store; the test's local Map is **not** a deployment-ready transaction store. `exchangeCode` must be implemented against an approved provider token endpoint with TLS, code/redirect verification, PKCE, client authentication where required and response bounds. Neither the login HTTP route nor the secure HttpOnly session-cookie issuance exists. User consent, account linking, logout and payment entitlement are separate future tasks.
+
+Test: `node --test apps/api/src/gaiz/gaiz-standalone-login-broker.test.mjs`.
+
 ## Required before a real standalone sign-in may be enabled
 
 1. Select and approve an OIDC issuer/provider and register a dedicated ORGAIZ client and exact redirect URI. Do not invent production endpoints or credentials.
