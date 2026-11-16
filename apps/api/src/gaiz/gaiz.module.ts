@@ -7,9 +7,10 @@ import { GaizImportAuthorizationService } from './gaiz-import-authorization.serv
 import { GaizSnapshotService } from './gaiz-snapshot.service';
 import { GaizMappingRegistryService } from './gaiz-mapping-registry.service';
 import { GaizCommitReadinessService } from './gaiz-commit-readiness.service';
+import { GaizTrustDirectoryService } from './gaiz-trust-directory.service';
 
 @Module({
   controllers: [GaizController],
-  providers: [GaizStagingService,GaizCustodyAttemptsService,GaizCustodyHandoffService,GaizImportAuthorizationService,GaizSnapshotService,GaizMappingRegistryService,GaizCommitReadinessService],
+  providers: [GaizStagingService,GaizCustodyAttemptsService,GaizCustodyHandoffService,GaizImportAuthorizationService,GaizSnapshotService,GaizMappingRegistryService,GaizCommitReadinessService,GaizTrustDirectoryService],
 })
 export class GaizModule {}
