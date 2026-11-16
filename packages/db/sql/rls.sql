@@ -56,6 +56,14 @@ BEGIN
   END LOOP;
 END $$;
 
+-- GAIZ staged requests may transition pending → reviewed but must never be deleted
+-- through the generic app role. Guard for environments that have not migrated.
+DO $ BEGIN
+  IF to_regclass('public.gaiz_import_requests') IS NOT NULL THEN
+    REVOKE DELETE ON public.gaiz_import_requests FROM pmo_app;
+  END IF;
+END $;
+
 -- The audit ledger is append-only, even for the app role.
 REVOKE UPDATE, DELETE ON audit_events FROM pmo_app;
 -- Platform plan changes are recorded in this vendor-wide, append-only ledger.
