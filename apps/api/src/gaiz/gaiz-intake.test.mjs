@@ -31,3 +31,15 @@ test('duplicate request with same bytes is detectable; collision cannot overwrit
     Buffer.from('GAIZ1\n{"different":true}'),policy)));
   assert.throws(()=>checkGaizIntakeCollision(first,{...again,tenantId:actorId}));
 });
+
+
+test('GAIZ2 is not silently downgraded into the GAIZ1 quarantine candidate',()=>{
+ assert.throws(()=>prepareGaizQuarantine(Buffer.from('GAIZ2\n{"candidate":"test"}'),policy),/rejected/);
+});
+test('missing tenant identity and mismatched idempotency replay are denied',()=>{
+ assert.throws(()=>prepareGaizQuarantine(artifact(),{...policy,tenantId:undefined}),/rejected/);
+ assert.throws(()=>prepareGaizQuarantine(artifact(),{...policy,actorId:'wrong'}),/rejected/);
+ const initial=prepareGaizQuarantine(artifact(),policy);
+ assert.equal(Object.isFrozen(initial),true);
+ assert.throws(()=>checkGaizIntakeCollision(initial,{...initial,idempotencyKey:'synthetic-request-0002'}),/rejected/);
+});
