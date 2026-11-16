@@ -57,3 +57,13 @@ Therefore the sandbox is **not yet provisioned for initial purchases or automati
 Next tasks, without guessing commercial terms: confirm approved plan names, server-owned prices, intervals, currencies, and the tax treatment (inclusive/exclusive and whether Stripe Tax applies). Then create the sandbox Product/Price catalogue and webhook endpoint, implement subscription-mode Checkout, customer/subscription-to-tenant bindings, Customer Portal and the complete verified recurring lifecycle (including invoice paid/failed, subscription updated/deleted, disputes and replay). Keep test-mode separate from live keys and webhooks. Never grant access on a Checkout redirect.
 
 No products, prices, customers, webhook endpoints or subscriptions were created in this inventory step. No charges, refunds, or production account changes occurred.
+
+## Approved catalogue import guard (additional no-write step)
+
+The seed file only contains `demo_seed_test_only` (price zero, SAR), a **disposable test subscription**, not a commercial price or approval. It must never be imported as a sellable Stripe plan.
+
+Added `scripts/stripe-approved-catalogue.mjs` and negative tests. The function demands an explicitly approved manifest with a named approver, approval timestamp, plan code/name, currency, positive integer minor-unit price, interval, and confirmed tax collection/price behavior and country approval. It rejects empty/duplicate/malformed plans and unexpected extra fields. Its result is **dry-run only** with zero API calls, database writes or charges.
+
+The connected Stripe account currently has **zero** products, prices, customers, subscriptions and webhook destinations and is **sandbox-only**. A final approved subscription pricing sheet, tax treatment and confirmed merchant jurisdiction have not been found in available Drive/Library/project sources. No catalogue entries were created, and no amount has been inferred from the demo seed.
+
+After the approved manifest is obtained, compare it against the server-owned subscription_plans table and create matching products/prices **in test mode only** with a separately validated, reviewable Stripe change plan. Do not enable first-purchase checkout or recurring live subscriptions until the complete billing lifecycle and webhook acceptance are implemented and tested.
