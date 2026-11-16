@@ -4,8 +4,9 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || 'tebe-ci-main' }}
-  cancel-in-progress: true
+  # PRs replace stale checks; main release verification must finish once started.
+  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || format('tebe-ci-main-{0}', github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
@@ -25,6 +26,8 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: Ensure main CI cannot be cancelled by repeated triggers
+        run: node --test tests/ci-main-concurrency.test.mjs
       - name: GAIZ customer activation boundary source gate
         run: node --test tests/gaiz-customer-activation-boundary.test.mjs
       - name: GAIZ unmounted OIDC and atomic session source policy checks
