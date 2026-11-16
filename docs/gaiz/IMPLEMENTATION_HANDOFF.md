@@ -64,6 +64,30 @@ negative/positive disposable tenant acceptance.
 - Draft approval adapter now revalidates the actual signed-in tenant, actor
   and `pmoa_approve` capability even if called outside the orchestrator.
 
+
+## Durable quarantine and mapping draft (unregistered)
+- `apps/api/src/gaiz/gaiz-quarantine-postgres.ts` drafts a transactionally
+  committed, tenant-scoped ciphertext-byte quarantine: it validates bounds,
+  copies the input bytes before hashing, serializes concurrent tenant claims,
+  revalidates membership, enforces per-tenant count/byte quotas, compares
+  repeated idempotency keys against actor/hash/size, and writes an audit event
+  only for the first insert in the same transaction.
+- It requires `GAIZ_DEV_ONLY=true` and refuses production even then. It is
+  NOT registered with AppModule or any accessible controller. Its proposed
+  table and ciphertext column read restrictions require independent DB review.
+- The proposal includes 24-hour expiry, but secure retention/expiry deletion
+  and backup removal are NOT implemented. No signed-content verification is
+  inferred from successful quarantine storage.
+- `apps/api/src/gaiz/gaiz-draft-mapping.mjs` restricts a synthetic governance
+  report to inert `title` and `summary` proposal fields with provenance,
+  enforcing same-tenant evidence and rejecting HTML, arbitrary keys and
+  unsupported versions. It cannot create records or approve imports.
+- `docs/gaiz/DISPOSABLE_QUARANTINE_ACCEPTANCE.md` is the execution matrix.
+  The tests in that matrix and any real PostgreSQL integration have NOT run.
+- The published API remains inactive; quarantined files cannot be submitted
+  through HTTP. The entire plan remains contingent on TO format decisions,
+  correct key custody, RLS, producer fixtures and security review.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
@@ -97,6 +121,7 @@ node --test apps/api/src/gaiz/gaiz-workflow.test.mjs
 node --test apps/api/src/gaiz/gaiz-synthetic-preview.test.mjs
 node --test apps/api/src/gaiz/gaiz-trust.test.mjs
 node --test apps/api/src/gaiz/gaiz-intake.test.mjs
+node --test apps/api/src/gaiz/gaiz-draft-mapping.test.mjs
 pnpm build:packages
 pnpm typecheck
 pnpm test
