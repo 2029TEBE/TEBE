@@ -89,3 +89,9 @@ test('premature Paddle secret provisioning is blocked in every supported billing
     }
   }
 });
+
+test('active Stripe release requires Stripe-only provider selection',()=>{
+ assert.ok(failed({...good,BILLING_PROVIDER:undefined}).some(x=>x.includes('Stripe-only provider')));
+ assert.ok(failed({...good,BILLING_PROVIDER:'reference'}).some(x=>x.includes('Stripe-only provider')));
+ assert.deepEqual(failed(good),[]);
+});
