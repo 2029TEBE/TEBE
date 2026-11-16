@@ -2,8 +2,6 @@
  // caller MUST verify Stripe signature against raw bytes, locate durable
  // server-owned tenant/customer/subscription/price binding, confirm the invoice
  // from Stripe API, and process atomically with event-id replay protection.
-const ID=/^(in|sub|cus|price)_[A-Za-z0-9]+$/;
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STRICT_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CURRENCY=/^[a-z]{3}$/;
 function reject(){throw Error('Stripe Billing evidence does not authorize entitlement');}
