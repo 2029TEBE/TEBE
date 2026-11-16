@@ -32,7 +32,7 @@ function checkoutRedirects() {
   if (!['http:', 'https:'].includes(base.protocol) || base.origin !== origin ||
       (requiresSecureTransport(process.env.NODE_ENV, process.env.DEPLOYMENT_ENV) && base.protocol !== 'https:'))
     throw new ServiceUnavailableException('Invalid configured web origin');
-  return { success: `${origin}/billing?billing=success`, cancel: `${origin}/billing?billing=cancelled` };
+  return { success: `${origin}/billing?billing=success`, cancel: `${origin}/billing?billing=cancel` };
 }
 
 @Injectable()
