@@ -29,6 +29,9 @@ function absoluteTime(value, description) {
 
 export function validateEvidenceConfig(env) {
   ensure(env.DEPLOYMENT_ENV === 'staging', 'DEPLOYMENT_ENV must be staging');
+  ensure(env.BILLING_PROVIDER === 'stripe', 'Stripe-only billing provider is required for this evidence');
+  ensure(env.STRIPE_ENABLED === 'true', 'Stripe Checkout must be enabled in staging for this evidence');
+  ensure(env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true', 'Reference settlement adapter must be disabled');
   ensure(/^sk_test_[A-Za-z0-9]{12,}$/.test(env.STRIPE_SECRET_KEY || ''), 'A Stripe TEST secret key is required');
   ensure(SESSION.test(env.STRIPE_E2E_SESSION_ID || ''), 'A Stripe test Checkout session ID is required');
   ensure(UUID.test(env.STRIPE_E2E_INVOICE_ID || ''), 'Valid invoice ID required');
