@@ -120,3 +120,21 @@ Support can confirm billing/policy/runner startup restrictions.
   production. TO must define recipient envelope/wrapping/AAD and rotations;
   infrastructure must provide real HSM/KMS or equivalent custody,
   authenticated work identities, key-use audit and revocation.
+
+
+## GAIZ2 signed recipient consumer correction
+
+The TO protocol owner has already implemented **experimental GAIZ2** in
+[faisalwrokksa-hub/TO#30](https://github.com/faisalwrokksa-hub/TO/pull/30).
+Its RSA-OAEP-SHA256 recipient wraps are **inside** the Ed25519-signed
+envelope; this is a safer format boundary than detached unsigned wraps.
+TEBE now has a separate metadata-only GAIZ2 signature verifier, with
+synthetic negative tests and an explicit draft consumer contract:
+`docs/gaiz/GAIZ2_TO_TEBE_CONSUMER_CONTRACT.md`.
+
+The GAIZ1 synthetic custody adapter remains **GAIZ1-only**, inactive and
+incompatible with GAIZ2; do not reuse its 32-byte caller-supplied key path
+for RSA-OAEP recipient envelopes. TEBE must not open or import GAIZ2
+until trusted issuer policy, recipient custody, payload schema and
+approval/workflow contracts are reviewed. The source-parsing checks are
+not equivalent to executed Node or PostgreSQL conformance tests.
