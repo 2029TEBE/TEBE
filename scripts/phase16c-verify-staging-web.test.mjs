@@ -72,9 +72,10 @@ test('fails when protected route serves private content',async()=>{
 test('staging deploy performs smoke acceptance after the health check',()=>{
   const content=readFileSync(resolve(import.meta.dirname,'../infra/deploy.sh'),'utf8');
   const smoke=content.indexOf('node scripts/phase16c-verify-staging-web.mjs');
-  const health=content.indexOf('web did not become healthy');
-  const success=content.indexOf('echo "PASS: $MODE web container healthy');
+  const health=content.indexOf('API/web did not both become healthy');
+  const success=content.indexOf('echo "PASS: $MODE API and web containers healthy');
   assert.ok(health>=0 && smoke>health && success>smoke);
+  assert.match(content,/for service in api web/);
   assert.match(content,/if \[\[ "\$MODE" == staging \]\]; then\s+ssh_remote.*phase16c-verify-staging-web/s);
 });
 test('simulated staging deploy aborts if the post-deploy smoke fails',()=>{

@@ -24,11 +24,15 @@ function withMockDocker(failCase) {
 }
 
 test('CI builds both actual Dockerfiles before recording production evidence', () => {
-  const api = workflow.indexOf('docker build --file apps/api/Dockerfile --tag epmo-api:ci .');
-  const web = workflow.indexOf('docker build --file apps/web/Dockerfile --tag epmo-web:ci .');
+  const api = workflow.indexOf('file: apps/api/Dockerfile');
+  const web = workflow.indexOf('file: apps/web/Dockerfile');
   const verify = workflow.indexOf('bash scripts/verify-ci-docker-images.sh');
   const receipt = workflow.indexOf('record production_build');
   assert.ok(api > 0 && web > api && verify > web && receipt > verify);
+  assert.equal((workflow.match(/uses: docker\/build-push-action@v6/g)||[]).length,2);
+  assert.equal((workflow.match(/load: true/g)||[]).length,2);
+  assert.match(workflow,/tags: epmo-api:ci/);
+  assert.match(workflow,/tags: epmo-web:ci/);
 });
 test('CI Docker steps do not publish images or require credentials', () => {
   assert.doesNotMatch(workflow, /docker (?:push|login)/);
