@@ -1,0 +1,45 @@
+name: .GAZE isolated candidate checks
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/gaiz/**'
+      - 'apps/web/src/app/(app)/gaiz/**'
+      - 'docs/gaiz/**'
+      - 'packages/db/sql/gaiz2-*'
+      - '.github/workflows/gaze-candidate-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gaze-candidate-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  offline-security-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax-check isolated policies
+        run: |
+          set -euo pipefail
+          node --check apps/api/src/gaiz/gaiz2-key-release-eligibility.mjs
+          node --check apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.mjs
+      - name: Run isolated .GAZE and custody regression checks
+        run: |
+          set -euo pipefail
+          node --test \
+            apps/api/src/gaiz/gaze-naming.static.test.mjs \
+            apps/api/src/gaiz/gaiz2-key-release-eligibility.test.mjs \
+            apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.test.mjs \
+            apps/api/src/gaiz/gaiz2-kms-ledger.static.test.mjs
+      - name: Verify inactive production API boundary
+        run: |
+          set -euo pipefail
+          test -f apps/api/src/gaiz/gaiz.module.ts
+          test -f docs/gaiz/GAZE_OFFICIAL_NAME_AND_WIRE_MIGRATION.md
+          ! grep -q 'kmsReleaseAllowed:true' apps/api/src/gaiz/gaiz2-key-release-eligibility.mjs
+# Successful checks mean only that these offline tests ran. They do not
+# authorize a wire-format freeze, KMS release, migration, import or deployment.
