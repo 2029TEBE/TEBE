@@ -6,7 +6,8 @@
 const transitions = Object.freeze({
   quarantined: Object.freeze(['verified', 'failed', 'rejected']),
   verified: Object.freeze(['pending_approval', 'failed', 'rejected']),
-  pending_approval: Object.freeze(['importing', 'rejected', 'failed']),
+  pending_approval: Object.freeze(['approved', 'rejected', 'failed']),
+  approved: Object.freeze(['importing', 'failed']),
   importing: Object.freeze(['imported', 'failed']),
   imported: Object.freeze([]),
   rejected: Object.freeze([]),
@@ -55,6 +56,12 @@ export function transitionGaizImport(job, request, actor) {
   const next = request.nextState;
   if (next === 'verified' && !verified(request.signatureValid)) fail();
   if (next === 'pending_approval' && !verified(request.contentValidated)) fail();
+  if (next === 'approved') {
+    requireGaizOperation(actor, 'approve', job.tenantId);
+    if (job.requestedBy === actor.userId || !verified(request.signatureValid) ||
+        !verified(request.aeadValid) || !verified(request.mappingValidated) ||
+        !verified(request.entitled)) fail();
+  }
   if (next === 'importing') {
     if (!verified(request.humanApproved) ||
         !verified(request.signatureValid) ||
