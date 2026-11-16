@@ -7,6 +7,7 @@ const tenantId = 'c47bf504-3bb0-4f81-9143-a155c0e1a117';
 const subscriptionId = 'c250de9d-a7bf-42fb-9d9e-113f303e1ef6';
 const sessionId = 'cs_test_Example123';
 const env = {
+ BILLING_PROVIDER:'stripe', STRIPE_ENABLED:'true', BILLING_REFERENCE_WEBHOOK_ENABLED:'false',
  DEPLOYMENT_ENV: 'staging', STRIPE_SECRET_KEY: 'sk_test_abcdefghijklmno1234',
  STRIPE_E2E_API_ORIGIN: 'https://api-staging.theepmo.example',
  STRIPE_E2E_SESSION_ID: sessionId, STRIPE_E2E_INVOICE_ID: invoiceId,
