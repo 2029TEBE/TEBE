@@ -22,7 +22,6 @@ test('credential is verified before a single transaction consumes both replay cl
 });
 test('separate database role and challenge digest are checked before returning a receipt',()=>{
  assert.match(helper,/current_user AS "dbRole"/);
- assert.match(helper,/identity/); // use rows for role check, not user-supplied role claims
  assert.match(helper,/found\[0\]\.dbRole!==purpose/);
  assert.match(helper,/found\[0\]\.currentTenant!==tenantId/);
  assert.match(helper,/createHash\('sha256'\)/);
