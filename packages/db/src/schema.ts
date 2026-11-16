@@ -895,3 +895,24 @@ export const gaizCustodyAttempts = pgTable('gaiz_custody_attempts', {
   reviewOnce: uniqueIndex('gaiz_custody_attempt_review_unique').on(t.tenantId, t.reviewId),
   tenantCreated: index('gaiz_custody_attempts_tenant_created_idx').on(t.tenantId,t.reservedAt),
 }));
+
+/** Second-person GAIZ import decision metadata; never a business data import. */
+export const gaizImportAuthorizations = pgTable('gaiz_import_authorizations', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  stagingReviewId: uuid('staging_review_id').notNull().references(() => gaizImportRequests.id,{onDelete:'cascade'}),
+  custodyAttemptId: uuid('custody_attempt_id').notNull().references(() => gaizCustodyAttempts.id,{onDelete:'cascade'}),
+  targetKind: text('target_kind').notNull(),
+  targetId: uuid('target_id').notNull(),
+  targetSnapshotSha256: text('target_snapshot_sha256').notNull(),
+  previewSha256: text('preview_sha256').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at',{withTimezone:true}).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at',{withTimezone:true}).notNull(),
+  reviewedAt: timestamp('reviewed_at',{withTimezone:true}),
+}, t => ({
+  reviewOnce: uniqueIndex('gaiz_import_authorization_review_once').on(t.tenantId,t.stagingReviewId),
+  tenantPending: index('gaiz_import_authorizations_tenant_pending_idx').on(t.tenantId,t.status,t.requestedAt),
+}));
