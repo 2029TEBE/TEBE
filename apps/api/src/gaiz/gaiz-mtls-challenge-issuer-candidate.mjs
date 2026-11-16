@@ -71,9 +71,11 @@ export async function issueGaizMtlsChallengeCandidate(socket,{
           to_timestamp(${expiryMs}::double precision / 1000))
         ON CONFLICT (challenge_sha256) DO NOTHING
       `);
+      // postgres.js (used by TEBE) reports affected rows as .count. Require
+      // exactly one, never infer success from an empty result array.
       // Require the database driver's actual affected-row count; never
       // infer success from a resolved promise or an empty SELECT response.
-      if(!inserted||inserted.rowCount!==1)deny();
+      if(!inserted||inserted.count!==1)deny();
     });
     return Object.freeze({
       challenge,expiresAtMs:expiryMs,
