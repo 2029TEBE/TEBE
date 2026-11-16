@@ -9,6 +9,7 @@ Status: **blocked before first workflow step**, not a confirmed test failure.
 - Three jobs (`Dependency-free source checks`, `verify`, `audit`) reported failure but had **zero recorded steps**.
 - Each job-log retrieval returned 404 `BlobNotFound`.
 - Rerunning the failed dependency-free source-check job also produced failed jobs with **zero steps** (new job IDs 133327747546, 133327750265, 133327750427).
+- The minimal runner probe run https://github.com/2029TEBE/TEBE/actions/runs/43875757063 **also failed with no recorded steps** (job 133328228448). This reproduces the issue without checkout, dependencies, GAIZ code or external actions.
 - A minimal, no-dependency runner probe is isolated in
   `.github/workflows/gaiz-runner-probe.yml`. It triggers on PR edits to
   that file only and contains no checkout, third-party actions, secrets,
@@ -16,8 +17,9 @@ Status: **blocked before first workflow step**, not a confirmed test failure.
 
 ## Interpretation
 
-This is consistent with failure during runner scheduling/initialization,
-but **not enough evidence to assign the root cause**. Do not attribute it
+The minimal repro strongly supports failure during runner scheduling or
+initialization (or upstream account/organization restrictions), but it is
+**not enough evidence to assign a specific root cause**. Do not attribute it
 to GAIZ code, CI YAML, GitHub platform outage or billing without explicit
 job annotations or support confirmation.
 
