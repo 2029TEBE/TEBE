@@ -255,3 +255,54 @@ worker operation has been executed. The SQL is deliberately **not** wired
 into automatic migrations: security review must independently verify DB
 role inheritance, FORCE RLS, grant semantics, issuer enrollment,
 tenant-scoped cleanup and lease/replay retention before promotion.
+
+
+## Verified TLS peer candidate — server-side identity binding
+
+The new inactive GAIZ ingress candidates
+`gaiz-mtls-peer-candidate.mjs` and
+`gaiz-mtls-signed-credential-candidate.mjs`
+introduce a **real TLS-socket source boundary** rather than accepting
+`authenticated:true` flags or request headers. The peer verifier requires
+an actual Node `TLSSocket` with `encrypted===true`,
+`authorized===true`, no TLS authorization error and TLS 1.3.
+It reads the peer certificate's raw DER, computes SHA-256, and requires
+an exact fingerprint entry in an independently administered backend-owned
+worker registry. That entry binds worker UUID, permitted role,
+credential issuer, credential validity window, and `revoked:false`.
+It also independently checks certificate validity.
+
+The composition verifies a **separate signed workload challenge
+credential** against the worker ID and role authenticated from the
+certificate. It rejects a credential from a different worker, role,
+challenge or issuer, and returns immutable inert identity evidence with
+`challengeClaimRequired:true`, `assignmentClaimRequired:true`,
+`custodyAuthorizationRequired:true` and `importAllowed:false`.
+
+The server-side integration contract MUST enforce all the following:
+TLS `requestCert:true`, `rejectUnauthorized:true`,
+`minVersion:'TLSv1.3'`, a separately provisioned trusted client CA,
+no general-purpose web routes, and invocation **only from a trusted
+TLS server's `secureConnection` event**. The certificate fingerprint
+registry and credential issuer public key must be supplied from server
+configuration, never request/GAIZ data. Worker TLS keys and certificates
+need audited provisioning, revocation and renewal. Trust and transport
+configuration must be verified by an independent security review.
+
+A new `gaiz-mtls-peer-candidate.test.mjs` creates **ephemeral**
+self-signed test certificates using local OpenSSL and exercises a real
+localhost Node TLS 1.3 mutual handshake, as well as signed-credential,
+revocation, wrong-registry, expired-credential and production-disable
+negative cases. Test keys never enter the repository. The test is
+registered in deferred CI. A separate local handshake smoke proof
+confirmed `authorized=true`, protocol TLS 1.3 and accessible peer
+certificate bytes. **The entire new Node test file has not been
+executed against the branch**; complete CI, PostgreSQL and KMS
+acceptance remain pending.
+
+**No production service is registered or deployed.** The TLS verifier
+does not pre-issue or consume a challenge, claim assignments, create
+DB worker credentials, decide import approvals, authenticate KMS
+requests or release plaintext. These operations must only be composed
+under independently audited infrastructure and a single durable,
+tenant-restricted database transaction.
