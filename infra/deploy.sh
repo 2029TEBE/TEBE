@@ -157,18 +157,21 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
   # containers, volumes and database backups for service continuity and rollback.
   ssh_remote "docker builder prune --all --force && docker system df"
   ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
-  for spec in "api|$API_RUNTIME_DIGEST|$API_IMAGE" "web|$WEB_RUNTIME_DIGEST|$WEB_IMAGE"; do
-    IFS='|' read -r service expected_digest release_tag <<< "$spec"
+  # The manifest's image Id is a content-addressed SHA-256 of the exact
+  # Docker image configuration and layer DiffIDs. It survives save/load and
+  # Docker inspect API serialization differences. Manifest and archive integrity,
+  # exact successful CI run and revision are validated before SSH.
+  API_EXPECTED_ID=$(jq -er .apiId <<< "$TESTED_JSON")
+  WEB_EXPECTED_ID=$(jq -er .webId <<< "$TESTED_JSON")
+  for spec in "api|$API_EXPECTED_ID|$API_IMAGE" "web|$WEB_EXPECTED_ID|$WEB_IMAGE"; do
+    IFS='|' read -r service expected_id release_tag <<< "$spec"
     loaded=$(ssh_remote "docker image inspect 'epmo-$service:ci'")
-    identity=$(printf '%s' "$loaded" | node scripts/ci-image-bundle.mjs identity)
-    actual=$(jq -er .id <<< "$identity")
-    digest=$(jq -er .runtimeDigest <<< "$identity")
-    revision=$(jq -er .revision <<< "$identity")
-    [[ "$digest" == "$expected_digest" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
-      # Hashes and revisions are non-secret; log only the failed comparison,
-      # never the image config, environment, keys or workload payloads.
-      echo "BLOCKED: loaded $service image runtime content or revision differs from CI" >&2
-      [[ "$digest" == "$expected_digest" ]] || echo "runtime digest mismatch for $service: expected=$expected_digest actual=$digest" >&2
+    actual=$(jq -er '.[0].Id' <<< "$loaded")
+    revision=$(jq -er '.[0].Config.Labels["org.opencontainers.image.revision"]' <<< "$loaded")
+    [[ "$actual" =~ ^sha256:[a-f0-9]{64}$ && "$actual" == "$expected_id" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      # Never print the inspected config or environment; IDs and SHAs are safe.
+      echo "BLOCKED: loaded $service image content ID or revision differs from attested CI" >&2
+      [[ "$actual" == "$expected_id" ]] || echo "content ID mismatch for $service: expected=$expected_id actual=$actual" >&2
       [[ "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || echo "revision mismatch for $service: expected=$EPMO_CI_VERIFIED_SHA actual=$revision" >&2
       exit 1
     }
