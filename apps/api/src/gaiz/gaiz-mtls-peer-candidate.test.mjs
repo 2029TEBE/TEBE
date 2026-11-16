@@ -55,9 +55,8 @@ async function withLocalMtls(run){
   });
   const result=new Promise((resolve,reject)=>{
    server.once('secureConnection',socket=>{
-    try{resolve(run({socket,nowMs,registry,fingerprint,entry}));}
-    catch(error){reject(error);}
-    finally{socket.destroy();}
+    Promise.resolve().then(()=>run({socket,nowMs,registry,fingerprint,entry}))
+      .then(resolve,reject).finally(()=>socket.destroy());
    });
    server.once('tlsClientError',reject);
   });
@@ -182,7 +181,7 @@ test('verified TLS peer receives challenge only after issuer-role DB commit',asy
     issuerPool:{transaction:async operation=>{
      const tx={execute:async()=>{
       queries++;
-      return queries===1?[{dbRole:'gaiz_challenge_issuer'}]:{rowCount:1};
+      return queries===1?[{dbRole:'gaiz_challenge_issuer'}]:{count:1};
      }};
      const value=await operation(tx);commits++;return value;
     }},
@@ -207,9 +206,9 @@ test('challenge issuance refuses wrong DB role, missing policy and failed insert
     tenantId:'11111111-1111-4111-8111-111111111111',
     workItemId:'22222222-2222-4222-8222-222222222222',
     authorizeWorkerWorkItem:async()=>true};
-   const pool=(role,rowCount=1)=>({transaction:async f=>{
+   const pool=(role,count=1)=>({transaction:async f=>{
     let n=0;
-    return f({execute:async()=>++n===1?[{dbRole:role}]:{rowCount}});
+    return f({execute:async()=>++n===1?[{dbRole:role} ]:{count}});
    }});
    await assert.rejects(issueGaizMtlsChallengeCandidate(socket,{
     ...base,issuerPool:pool('pmo_app')}));
