@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { BillingService } from './billing.service';
 import { StripeBillingService } from './stripe.service';
+import { describeBillingCapabilities } from './payment-provider-policy';
 import { z } from 'zod';
 import { referenceSettlementSchema } from './billing.schemas';
 import { ZodPipe } from '../common/zod.pipe';
@@ -10,6 +11,7 @@ import { ZodPipe } from '../common/zod.pipe';
 @Controller('api/v1/subscription/billing')
 export class BillingController {
   constructor(private readonly billing: BillingService, private readonly stripe: StripeBillingService) {}
+  @Get('provider') provider() { return describeBillingCapabilities(); }
   @Get('invoices') invoices() { return this.billing.invoices(); }
   @Get('payments') payments() { return this.billing.payments(); }
   @Get('exceptions') exceptions() { return this.billing.exceptions(); }
