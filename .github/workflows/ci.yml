@@ -25,6 +25,12 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: GAIZ isolated report renderer source tests (synthetic; no payments)
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-commercial-policy.test.mjs \
+            apps/api/src/gaiz/gaiz-report-worker.test.mjs \
+            apps/api/src/gaiz/gaiz-executive-brief-pdf.test.mjs
       - name: GAIZ inactive PostgreSQL queue and encrypted storage tests
         run: |
           node --test \
