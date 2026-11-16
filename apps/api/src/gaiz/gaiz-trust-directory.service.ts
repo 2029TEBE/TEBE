@@ -63,7 +63,7 @@ export class GaizTrustDirectoryService {
       )).orderBy(desc(gaizRecoveryConsents.approvedAt)).limit(1));
       if(!approved||!approved.approvedBy||
           approved.approvedBy===approved.requestedBy||!approved.approvedAt)
-        throw new ConflictException('Independent customer recovery consent absent');
+        throw new ConflictException('Approved recovery consent record absent');
       consent={status:'approved',tenantId,keyId:row.keyId,
         consentId:approved.consentId,expiresAt:approved.expiresAt.toISOString()};
     } else if(row.ownerType!=='customer')throw new ConflictException('Unknown recipient owner');
