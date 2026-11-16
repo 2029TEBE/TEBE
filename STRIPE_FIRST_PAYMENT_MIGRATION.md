@@ -67,3 +67,13 @@ Added `scripts/stripe-approved-catalogue.mjs` and negative tests. The function d
 The connected Stripe account currently has **zero** products, prices, customers, subscriptions and webhook destinations and is **sandbox-only**. A final approved subscription pricing sheet, tax treatment and confirmed merchant jurisdiction have not been found in available Drive/Library/project sources. No catalogue entries were created, and no amount has been inferred from the demo seed.
 
 After the approved manifest is obtained, compare it against the server-owned subscription_plans table and create matching products/prices **in test mode only** with a separately validated, reviewable Stripe change plan. Do not enable first-purchase checkout or recurring live subscriptions until the complete billing lifecycle and webhook acceptance are implemented and tested.
+
+## First-purchase / recurring Billing contracts (additional no-write work)
+
+Added `apps/api/src/platform/stripe-subscription-contract.mjs` with pure `mode=subscription` Checkout request construction, approved server-owned Stripe Price and revision requirements, exact tenant/plan binding, strict HTTPS return origin, and a separate completed-session validator that **never treats checkout as payment success**.
+
+Added `apps/api/src/platform/stripe-recurring-settlement.mjs`, a conservative, pure recurring-invoice evidence gate. It requires independent verified webhook signature and Stripe API result, exact immutable tenant/customer/subscription/price/currency/amount references, paid invoice, active subscription and a single visible invoice line. Even a matching event only yields `eligible-for-atomic-review`, not an entitlement grant. This implementation targets a constrained legacy invoice shape and **must be adapted/verified against the actual selected Stripe API version**; do not wire it to live webhooks as-is.
+
+Synthetic positive and negative source tests were added in `stripe-subscription-contract.test.mjs`. **No production endpoint, network request, price/product write, database migration, customer payment or subscription has been created.** The existing renewal `mode=payment` flow remains unchanged.
+
+Before execution: approve a commercial catalogue/tax policy; obtain official Stripe Price IDs; provision webhook destination and account credentials; design unique tenant-bound customer/subscription linkage and idempotent invoice/event store; validate subscription lifecycle and current Stripe Invoice payload in isolated test mode; confirm cancellation and customer portal propagation; complete CI and external security acceptance.
