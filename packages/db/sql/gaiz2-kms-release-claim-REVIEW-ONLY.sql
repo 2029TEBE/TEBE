@@ -1,4 +1,7 @@
 -- GAIZ2 review-only, disposable-DB design. DO NOT RUN IN PRODUCTION.
+-- Requires gaiz2-custody-grant-review-proposal.sql and
+-- gaiz2-recipient-key-registry-REVIEW-ONLY.sql to be reviewed and applied
+-- in an isolated disposable schema first. No automated DDL execution.
 -- Only the independent authenticated custody gateway may consume a release.
 -- A grant claim is NOT permission to decrypt and there is no plaintext storage.
 BEGIN;
@@ -22,7 +25,16 @@ CREATE TABLE gaiz2_kms_release_claims (
  UNIQUE (tenant_id,kms_operation_id),
  CHECK (status <> 'consumed' OR consumed_at IS NOT NULL),
  CHECK (status = 'consumed' OR consumed_at IS NULL),
- CHECK (consumed_at IS NULL OR consumed_at >= claimed_at)
+ CHECK (consumed_at IS NULL OR consumed_at >= claimed_at),
+ -- Enforce exact assignment / tenant / artifact / recipient metadata in SQL.
+ CONSTRAINT gaiz2_release_exact_signed_grant FOREIGN KEY
+ (custody_token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id)
+ REFERENCES gaiz2_custody_grant_claims
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id),
+ CONSTRAINT gaiz2_release_registered_key FOREIGN KEY
+ (tenant_id,recipient_key_id,key_version)
+ REFERENCES gaiz2_recipient_key_registry
+ (tenant_id,recipient_key_id,key_version)
 );
 CREATE INDEX gaiz2_kms_release_expiry_idx
  ON gaiz2_kms_release_claims(tenant_id,expires_at);
