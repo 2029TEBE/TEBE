@@ -21,7 +21,7 @@ for n in 0020_gaiz_import_staging 0021_gaiz_custody_attempts 0022_gaiz_import_au
 done
 # Apply GAIZ restrictions from the actual production RLS policy source,
 # rather than a hand-copied replica. Other RLS rules require full product schema.
-"${psql_run[@]}" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON public.gaiz_import_requests,public.gaiz_custody_attempts,public.gaiz_import_authorizations TO pmo_app"
+"${psql_run[@]}" -c "GRANT SELECT, INSERT, UPDATE, DELETE ON public.gaiz_import_requests,public.gaiz_custody_attempts,public.gaiz_import_authorizations,public.gaiz_mapping_profiles TO pmo_app"
 awk '/^-- GAIZ staged requests/{show=1} /^-- The audit ledger/{show=0} show {print}' "$here/sql/rls.sql" | "${psql_run[@]}"
 "${psql_run[@]}" -f "$here/sql/tests/gaiz-isolated-assertions.sql"
 bash "$here/scripts/gaiz-isolated-concurrency.sh"
