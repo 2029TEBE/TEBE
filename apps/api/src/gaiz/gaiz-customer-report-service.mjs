@@ -52,7 +52,8 @@ export function createGaizCustomerReportService({
    // entitlement, quota, ACTIVE customer + product, dedup, and job creation.
    // No browser claim or previously cached entitlement can authorize it.
    if(!created||!uuid(created.jobId)||created.customerId!==p.customerId||
-      created.orderId!==orderId||\n      !['queued','processing','completed'].includes(created.state))fail();
+      created.orderId!==orderId||
+      !['queued','processing','completed'].includes(created.state))fail();
    await audit.record({event:'gaiz.report.submitted',customerId:p.customerId,
     jobId:created.jobId,orderId});
    return Object.freeze({jobId:created.jobId,status:created.state});
