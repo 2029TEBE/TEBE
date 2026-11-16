@@ -83,7 +83,7 @@ export function createGaizTransactionalReportJobs({
         existing.requestDigest!==a.requestDigest||
         !['queued','processing','completed'].includes(existing.state))deny();
      return Object.freeze({jobId:existing.id,orderId:a.orderId,
-       customerId:a.customerId,state:'queued',replayed:true});
+       customerId:a.customerId,state:existing.state,replayed:true});
     }
     // One report per purchased order, independently of idempotency key.
     if(order.state!=='paid')deny();
