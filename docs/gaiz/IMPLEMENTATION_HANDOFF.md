@@ -111,6 +111,26 @@ negative/positive disposable tenant acceptance.
 - `apps/api/src/gaiz/gaiz-draft-import.static.test.mjs` contains source-level
   guard tests; it does not replace integration or authorization tests.
 
+## Bulk schema and security corrections
+- Replaced the corrupted, duplicated SQL proposal with seven uniquely defined
+  tables. This is still **documentation only**, not an executable migration.
+- Pre-verification `rejected` and `failed` jobs may correctly exist without
+  an artifact reference; `verified`, `pending_approval`, `approved`, `importing`,
+  and `imported` require the artifact FK.
+- The RLS proposal now explicitly denies app-role INSERT/UPDATE/DELETE on
+  verified artifact and mapping evidence, and denies app-role INSERT on import
+  receipts. Existing draft executor cannot run through the normal app role
+  under those restrictions. A dedicated audited worker/SQL function, limited
+  grants and tests are required before any activation.
+- Added `gaiz-schema-review.test.mjs` to enforce table uniqueness, state
+  consistency and the privilege proposal; added it to CI for future execution.
+- The upstream TO synthetic payload `{report,value}` differs from the strict
+  local governance-report `{schemaVersion,title,summary}` mapper. No implicit
+  conversion or automatic import approval has been introduced. Agree a
+  signed/versioned payload contract and use genuine TO-produced fixtures.
+- Automated **development checks only**; no GitHub branch protection, checks,
+  human approval, security sign-off or release gate is automatically bypassed.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
