@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 const root = new URL('./', import.meta.url);
 const service = readFileSync(new URL('gaiz-staging.service.ts', root), 'utf8');
 const controller = readFileSync(new URL('gaiz.controller.ts', root), 'utf8');
-const migration = readFileSync(new URL('../../../../../packages/db/migrations/0020_gaiz_import_staging.sql', root), 'utf8');
+const migration = readFileSync(new URL('../../../../packages/db/migrations/0020_gaiz_import_staging.sql', root), 'utf8');
 
 test('GAIZ staging stores only signed metadata, without artifact bytes or keys', () => {
   for (const field of ['tenant_id','artifact_id','sha256','issuer_id','requested_by','reviewed_by','status']) {
