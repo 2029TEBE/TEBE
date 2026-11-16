@@ -134,7 +134,7 @@ COMMIT;
 
 -- Custody policy claim: real PostgreSQL FORCE RLS, exact-token replay,
 -- same-assignment reissue exclusion and rollback. Synthetic metadata only.
-DO $
+DO $$
 BEGIN
  IF has_table_privilege('pmo_app','gaiz2_custody_grant_claims','INSERT') OR
     has_table_privilege('pmo_app','gaiz2_custody_grant_claims','SELECT') THEN
@@ -144,12 +144,12 @@ BEGIN
          WHERE oid='gaiz2_custody_grant_claims'::regclass) THEN
    RAISE EXCEPTION 'Custody grant ledger is missing FORCE RLS';
  END IF;
-END $;
+END $$;
 
 BEGIN;
 SET LOCAL ROLE gaiz_verify_worker;
 SELECT set_config('app.tenant_id','22222222-2222-4222-8222-222222222222',true);
-DO $
+DO $$
 DECLARE denied boolean := false;
 BEGIN
  BEGIN
@@ -168,13 +168,13 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege OR check_violation THEN denied := true;
  END;
  IF NOT denied THEN RAISE EXCEPTION 'Wrong-tenant custody claim was not rejected'; END IF;
-END $;
+END $$;
 ROLLBACK;
 
 BEGIN;
 SET LOCAL ROLE gaiz_verify_worker;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
-DO $
+DO $$
 DECLARE first_count integer; replay_count integer; reissue_count integer;
 BEGIN
  INSERT INTO gaiz2_custody_grant_claims
@@ -216,14 +216,14 @@ BEGIN
  IF first_count<>1 OR replay_count<>0 OR reissue_count<>0 THEN
   RAISE EXCEPTION 'Custody grant single-use/reissue constraint failed: %,%,%',first_count,replay_count,reissue_count;
  END IF;
-END $;
+END $$;
 ROLLBACK;
 
 -- Rolling back a claim allows the very same one-time grant to be retried.
 BEGIN;
 SET LOCAL ROLE gaiz_verify_worker;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
-DO $
+DO $$
 DECLARE n integer;
 BEGIN
  INSERT INTO gaiz2_custody_grant_claims
@@ -239,7 +239,7 @@ BEGIN
  ON CONFLICT DO NOTHING;
  GET DIAGNOSTICS n=ROW_COUNT;
  IF n<>1 THEN RAISE EXCEPTION 'Custody replay marker persisted across rollback'; END IF;
-END $;
+END $$;
 COMMIT;
 
 DROP TABLE gaiz2_custody_grant_claims;
