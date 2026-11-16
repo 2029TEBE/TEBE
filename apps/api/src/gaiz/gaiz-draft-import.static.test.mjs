@@ -11,7 +11,7 @@ const rls=readFileSync(resolve(dir,'../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sq
 const app=readFileSync(resolve(dir,'../app.module.ts'),'utf8');
 
 test('draft executor remains disconnected from production app',()=>{
-  assert.doesNotMatch(app,/import\s*\{\s*GaizModule\s*\}/);
+  assert.doesNotMatch(app,/GaizEnterpriseCandidateModule|GaizDraftImportExecutor/);
   assert.match(src,/NODE_ENV === 'production'/);
   assert.match(src,/GAIZ_DEV_ONLY !== 'true'/);
   assert.match(src,/requireCapability\('pmoa_manage_projects'\)/);
