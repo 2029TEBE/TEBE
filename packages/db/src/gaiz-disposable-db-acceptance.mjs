@@ -1,9 +1,9 @@
 /**
- * Read-only enterprise GAIZ PostgreSQL RLS acceptance gate.
+ * Opt-in enterprise GAIZ PostgreSQL RLS acceptance gate.
  *
  * Intentionally SAFE and fail-closed: requires a dedicated disposable DB URL,
  * a clearly named isolated database, and two pre-existing synthetic tenants.
- * Never applies migrations, changes roles or stores sensitive data.
+ * Never applies migrations or changes roles. It performs only synthetic\n * rollback-only audit writes; all must disappear after rollback.
  *
  * Run explicitly after local disposable schema and RLS setup:
  *   GAIZ_DISPOSABLE_DATABASE_URL=postgres://.../gaiz_disposable_test \
@@ -31,6 +31,7 @@ const checkConfig=()=>{
   if(!['postgres:','postgresql:'].includes(parsed.protocol) ||
      !/^gaiz_(?:disposable|test)[a-z0-9_]*$/i.test(parsed.pathname.slice(1)) ||
      ['prod','production','staging','primary','main'].some(word=>parsed.hostname.toLowerCase().includes(word)) ||
+     !['localhost','127.0.0.1','::1','[::1]'].includes(parsed.hostname.toLowerCase()) ||
      parsed.username==='postgres' ||
      parsed.username==='root')
     throw new Error('Refusing non-disposable database or privileged connection');
@@ -62,6 +63,16 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
       assert.equal(row.relforcerowsecurity,true,row.relname+' lacks FORCE RLS');
     }
 
+    // Tenant-specific policies must actually exist, not merely RLS flags.
+    const policies=await db`SELECT tablename, policyname, qual, with_check
+      FROM pg_policies WHERE schemaname='public' AND tablename IN ${db(tableNames)}
+        AND policyname='tenant_isolation'`;
+    assert.equal(policies.length,tableNames.length,'missing tenant isolation policy');
+    for(const policy of policies){
+      assert.match(policy.qual??'',/app_current_tenant\(\)/);
+      assert.match(policy.with_check??'',/app_current_tenant\(\)/);
+    }
+
     // Current application role must NOT SELECT ciphertext or forge trusted
     // mapping rows. Statements below should work with restricted privileges.
     const [privs]=await db`SELECT
@@ -82,8 +93,8 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
       assert.equal(b.n,0);
     });
 
-    // A and B may only observe their own synthetic tenant rows. Counts may
-    // be zero; this checks non-leakage, not seeded fixture completeness.
+    // A and B may only observe their own synthetic tenant rows. The test
+    // requires seeded fixtures so empty databases cannot produce false passes.
     for(const tenant of [tenantA,tenantB]){
       await db.begin(async tx=>{
         await tx`SELECT set_config('app.tenant_id',${tenant},true)`;
@@ -93,6 +104,9 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
           WHERE tenant_id <> ${tenant}`;
         assert.equal(imports.n,0);
         assert.equal(quarantine.n,0);
+        const [visible]=await tx`SELECT count(*)::int AS n
+          FROM gaiz_import_jobs WHERE tenant_id=${tenant}`;
+        assert.ok(visible.n>=1,'missing seeded GAIZ job for '+tenant);
       });
     }
   }finally{
