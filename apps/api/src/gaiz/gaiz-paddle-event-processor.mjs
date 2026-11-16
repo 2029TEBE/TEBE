@@ -25,6 +25,7 @@ export function createGaizPaddleEventProcessor({
    return store.consumeSignedEventAtomically({
     eventId:e.eventId,eventSha256:e.eventSha256??null,
     eventType:e.eventType??null,providerTransactionId:e.providerTransactionId??null,
+    providerAdjustmentId:e.providerAdjustmentId??null,
     environment,
     perform:async({binding,order,recordAudit}={})=>{
      if(typeof recordAudit!=='function'||!order||!binding)fail();
