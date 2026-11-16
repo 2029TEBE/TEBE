@@ -17,10 +17,39 @@ CREATE TABLE IF NOT EXISTS gaiz_artifacts (
   UNIQUE (id, tenant_id)
 );
 
+-- The following is an isolated ciphertext quarantine table, NOT a metadata or key table.
+-- All bytes here are UNTRUSTED and must not be parsed without independent
+-- signature, tenant and AEAD validation. Access is server-only.
+-- Use a separately approved encrypted-at-rest PostgreSQL volume and retention
+-- policy; delete ciphertext by a reviewed privileged expiry job.
+CREATE TABLE IF NOT EXISTS gaiz_quarantine_blobs (
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  requested_by uuid NOT NULL REFERENCES users(id),
+  idempotency_key text NOT NULL CHECK (length(idempotency_key) BETWEEN 16 AND 128),
+  envelope_sha256 char(64) NOT NULL CHECK (envelope_sha256 ~ '^[0-9a-f]{64}$'),
+  envelope_bytes bytea NOT NULL CHECK (
+    octet_length(envelope_bytes) > 6 AND octet_length(envelope_bytes) <= 8388608
+  ),
+  content_length integer NOT NULL CHECK (content_length > 6 AND content_length <= 8388608),
+  state text NOT NULL DEFAULT 'quarantined' CHECK (
+    state IN ('quarantined', 'verified', 'rejected', 'expired')
+  ),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL DEFAULT (now() + interval '24 hours'),
+  UNIQUE (tenant_id, idempotency_key),
+  UNIQUE (id, tenant_id),
+  CHECK (content_length = octet_length(envelope_bytes))
+);
+CREATE INDEX IF NOT EXISTS gaiz_quarantine_expiry_idx
+  ON gaiz_quarantine_blobs (expires_at);
+
+
 CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
-  artifact_ref uuid NOT NULL,
+  quarantine_ref uuid NOT NULL,
+  artifact_ref uuid,
   state text NOT NULL CHECK
     (state IN ('quarantined','verified','pending_approval','approved','rejected','importing','imported','failed')),
   revision integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
@@ -35,8 +64,11 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, idempotency_key),
+  UNIQUE (tenant_id, quarantine_ref),
   UNIQUE (id, tenant_id),
-  FOREIGN KEY (artifact_ref, tenant_id) REFERENCES gaiz_artifacts(id, tenant_id)
+  FOREIGN KEY (quarantine_ref, tenant_id) REFERENCES gaiz_quarantine_blobs(id, tenant_id),
+  FOREIGN KEY (artifact_ref, tenant_id) REFERENCES gaiz_artifacts(id, tenant_id),
+  CHECK (state = 'quarantined' OR artifact_ref IS NOT NULL)
 );
 
 CREATE TABLE IF NOT EXISTS gaiz_export_jobs (
@@ -70,33 +102,6 @@ CREATE TABLE IF NOT EXISTS gaiz_decisions (
 -- An independent assertion must prove no cross-tenant joins, updates or
 -- idempotency/replay namespace collisions are possible.
 -- Artifact bytes/DEKs must NOT be written into these metadata tables.
-
--- The following is an isolated ciphertext quarantine table, NOT a metadata or key table.
--- All bytes here are UNTRUSTED and must not be parsed without independent
--- signature, tenant and AEAD validation. Access is server-only.
--- Use a separately approved encrypted-at-rest PostgreSQL volume and retention
--- policy; delete ciphertext by a reviewed privileged expiry job.
-CREATE TABLE IF NOT EXISTS gaiz_quarantine_blobs (
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL REFERENCES tenants(id),
-  requested_by uuid NOT NULL REFERENCES users(id),
-  idempotency_key text NOT NULL CHECK (length(idempotency_key) BETWEEN 16 AND 128),
-  envelope_sha256 char(64) NOT NULL CHECK (envelope_sha256 ~ '^[0-9a-f]{64}$'),
-  envelope_bytes bytea NOT NULL CHECK (
-    octet_length(envelope_bytes) > 6 AND octet_length(envelope_bytes) <= 8388608
-  ),
-  content_length integer NOT NULL CHECK (content_length > 6 AND content_length <= 8388608),
-  state text NOT NULL DEFAULT 'quarantined' CHECK (
-    state IN ('quarantined', 'verified', 'rejected', 'expired')
-  ),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  expires_at timestamptz NOT NULL DEFAULT (now() + interval '24 hours'),
-  UNIQUE (tenant_id, idempotency_key),
-  UNIQUE (id, tenant_id),
-  CHECK (content_length = octet_length(envelope_bytes))
-);
-CREATE INDEX IF NOT EXISTS gaiz_quarantine_expiry_idx
-  ON gaiz_quarantine_blobs (expires_at);
 
 -- Enforce RLS before app-role permissions are granted. In a disposable DB,
 -- apply the *existing approved* packages/db/sql/rls.sql after table creation.
