@@ -6,8 +6,8 @@ import { resolve, dirname } from 'node:path';
 
 const dir=dirname(fileURLToPath(import.meta.url));
 const src=readFileSync(resolve(dir,'gaiz-draft-import.executor.ts'),'utf8');
-const migration=readFileSync(resolve(dir,'../../../../../docs/gaiz/PROPOSED_ADDITIVE_SCHEMA.sql'),'utf8');
-const rls=readFileSync(resolve(dir,'../../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sql'),'utf8');
+const migration=readFileSync(resolve(dir,'../../../../docs/gaiz/PROPOSED_ADDITIVE_SCHEMA.sql'),'utf8');
+const rls=readFileSync(resolve(dir,'../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sql'),'utf8');
 const app=readFileSync(resolve(dir,'../app.module.ts'),'utf8');
 
 test('draft executor remains disconnected from production app',()=>{
