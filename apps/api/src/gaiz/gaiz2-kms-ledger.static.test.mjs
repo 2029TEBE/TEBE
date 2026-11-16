@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../../../packages/db/sql/gaiz2-kms-release-claim-REVIEW-ONLY.sql',import.meta.url),'utf8');
 const keyRegistry=readFileSync(new URL('../../../../packages/db/sql/gaiz2-recipient-key-registry-REVIEW-ONLY.sql',import.meta.url),'utf8');
 const grant=readFileSync(new URL('../../../../packages/db/sql/gaiz2-custody-grant-review-proposal.sql',import.meta.url),'utf8');
+const acceptance=readFileSync(new URL('../../../../packages/db/sql/gaiz2-kms-release-disposable-acceptance.sql',import.meta.url),'utf8');
 test('release claims are tenant and grant unique, with no KMS or key bytes',()=>{
  assert.match(source,/PRIMARY KEY\s*\(tenant_id,custody_token_sha256\)/i);
  assert.match(source,/UNIQUE\s*\(tenant_id,kms_operation_id\)/i);
@@ -32,4 +33,11 @@ test('review requires fresh revocation, independent custody and reconciliation',
  assert.match(source,/independent peer credential/i);
  assert.match(keyRegistry,/FORCE ROW LEVEL SECURITY/);
  assert.match(keyRegistry,/state IN \('pending','active','suspended','revoked','retired'\)/);
+});
+
+test('disposable acceptance verifies the intended key-version FK failure',()=>{
+ assert.match(acceptance,/Second authentic synthetic grant/);
+ assert.match(acceptance,/GET STACKED DIAGNOSTICS violated_constraint = CONSTRAINT_NAME/);
+ assert.match(acceptance,/violated_constraint <> 'gaiz2_release_registered_key'/);
+ assert.match(acceptance,/unknown key version was accepted/);
 });
