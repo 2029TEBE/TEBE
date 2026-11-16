@@ -68,3 +68,13 @@ test('superseded releases are filtered before creating a production deployment',
   assert.ok(production.includes("needs.preflight.outputs.current == 'true'"));
   assert.ok(production.includes('Refuse to deploy stale or superseded commits'));
 });
+
+test('tested production images require exact manifest IDs after Docker load',()=>{
+  assert.ok(deploy.includes('API_EXPECTED_ID=$(jq -er .apiId <<< "$TESTED_JSON")'));
+  assert.ok(deploy.includes('WEB_EXPECTED_ID=$(jq -er .webId <<< "$TESTED_JSON")'));
+  assert.ok(deploy.includes('docker image inspect'));
+  assert.ok(deploy.includes('"$actual" == "$expected_id"'));
+  assert.ok(deploy.includes('"$revision" == "$EPMO_CI_VERIFIED_SHA"'));
+  assert.ok(deploy.includes('node scripts/ci-image-bundle.mjs verify'));
+  assert.ok(deploy.includes('running image does not match tested content'));
+});
