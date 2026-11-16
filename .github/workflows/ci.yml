@@ -28,6 +28,7 @@ jobs:
       - name: GAIZ standalone report chain acceptance (offline, no payment keys)
         run: |
           node --test \
+            apps/api/src/gaiz/gaiz-commercial-policy.test.mjs \
             apps/api/src/gaiz/gaiz-report-worker.test.mjs \
             apps/api/src/gaiz/gaiz-queue-storage.test.mjs \
             apps/api/src/gaiz/gaiz-customer-report-api.test.mjs \
