@@ -92,6 +92,7 @@ export function validateRc1Configuration(env, mode) {
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
     ['Billing mode is recognized', env.BILLING_MODE === undefined || ['stripe','disabled'].includes(env.BILLING_MODE)],
+    ['Billing mode and provider agree', env.BILLING_MODE === 'disabled' ? (!env.BILLING_PROVIDER || env.BILLING_PROVIDER === 'disabled') : env.BILLING_MODE === 'stripe' ? env.BILLING_PROVIDER === 'stripe' : true],
     ['Active payments require Stripe-only provider selection', billingDisabled ? (!env.BILLING_PROVIDER || env.BILLING_PROVIDER === 'disabled') : env.BILLING_PROVIDER === 'stripe'],
     ['Incomplete Paddle adapter cannot be pre-enabled by retained secrets', paddleSecretsAbsent],
     ['Deployment mode matches this release target', env.DEPLOYMENT_ENV === mode],
