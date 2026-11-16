@@ -113,3 +113,23 @@ No TEBE API endpoint accepts this receipt yet. It cannot grant import, decrypt p
 The function is intentionally **not connected to HTTP or a database mutation**. No decrypted project fields are available to TEBE yet, so claiming a usable project-diff preview would be incorrect. Run `node --test apps/api/src/gaiz/gaiz-import-plan.test.mjs` locally with the other GAIZ unit tests.
 
 Remaining P0: isolated trusted content processing; reviewed project mapping and conflict policy; complete durable import-transaction idempotency; explicit second authorization; integration tests against a disposable RLS database. The existing `0020` staging migration remains **unapplied**.
+
+## Next workstream — internal custody bridge and durable single-use attempt (2026-11-16)
+
+Implemented **development-only, internal application contracts**, not a live custody provider:
+- `gaiz-custody-bridge.mjs` orchestrates tenant-scoped authoritative review lookup, cryptographic artifact evidence, approved recipient and custodian trust records, one-use attempt reservation, external attestation verification and durable completion/denial audit.
+- `gaiz-custody-handoff.service.ts` binds the contract to TEBE's authenticated tenant context and `pmoa_admin`. Its dependency callbacks must be configured from **trusted server-side** issuer, recipient, consent and custodian systems; there is NO permissive fallback or HTTP controller method.
+- `gaiz-custody-attempts.service.ts` implements tenant-RLS review lookup, atomic deduplicated reservation and transactional completion audit; it refuses any non-development deployment or missing `GAIZ_CUSTODY_BRIDGE_ENABLED=true`.
+- `0021_gaiz_custody_attempts.sql` is a **new, unapplied** migration. It binds `tenant_id,review_id` to the stage-review parent, enforces one attempt per tenant/review, and stores opaque IDs, hash, status and timestamps only. The app role may update only result-status metadata, never attempt identity or delete it.
+- `gaiz-custody-bridge.test.mjs` covers signed receipt success, cross-tenant denial, forged custodian, conflicting key IDs, expired review and replay/audit failure. `gaiz-custody-db.contract.test.mjs` checks SQL/route guardrails, but is NOT a replacement for a real PostgreSQL/RLS integration test.
+
+**Critically, the external provider and persistent trust registry are NOT implemented or connected.** The bridge is registered as a NestJS internal service, but no code calls its validation method through HTTP or on production data. The dependency callbacks cannot be accepted from request JSON. No key, artifact plaintext, file contents or import transaction is handled by this bridge.
+
+The user’s approval to proceed with development does not authorize any live artifact decryption or automatic approval of another user's enterprise import.
+
+Before activation:
+1. Run `node --test apps/api/src/gaiz/gaiz-custody-bridge.test.mjs apps/api/src/gaiz/gaiz-custody-db.contract.test.mjs` and the full TEBE build in a disposable checkout; runner remains unverified.
+2. Review/apply migrations 0020 then 0021 **only** in isolated test DB and test RLS, concurrent reservations, audit rollback and permission grants.
+3. Implement mutually authenticated independent custodian and provision externally verified issuer/recipient/consent registries with key rotation and revocation.
+4. Independently review replay domain and receipt time binding, key residency, encryption context and audit failure handling.
+5. Keep import apply, project diff and customer release disabled until additional authorization and security gates are satisfied.
