@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { GaizStagingPanel } from './GaizStagingPanel';
 
 type Receipt = {
   verified: boolean; format: string; artifactId: string; issuerId: string;
@@ -18,8 +19,9 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [error, setError] = useState('');
+  const [encodedArtifact, setEncodedArtifact] = useState<string | null>(null);
   async function verify() {
-    setReceipt(null); setError('');
+    setReceipt(null); setEncodedArtifact(null); setError('');
     if (!file) return;
     if (file.size > MAX_BYTES) { setError(ar ? 'الملف يتجاوز حد المعاينة.' : 'File exceeds the preview size limit.'); return; }
     setBusy(true);
@@ -39,6 +41,7 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
       const result = await response.json() as Receipt;
       if (result.verified !== true || result.importAllowed !== false) throw Error('Invalid verification receipt');
       setReceipt(result);
+      setEncodedArtifact(base64url(bytes));
     } catch (e) { setError(e instanceof Error ? e.message : 'Verification error'); }
     finally { setBusy(false); }
   }
@@ -48,7 +51,7 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
       : 'Read-only verification. Trusted issuer and tenant scope are enforced by the server; no decryption or imports.'}</p>
     <p><label htmlFor="gaiz-upload">{ar ? 'اختر ملف .gaiz (حتى 64 كيلوبايت)' : 'Choose .gaiz file (up to 64 KiB)'}</label></p>
     <input id="gaiz-upload" type="file" accept=".gaiz" disabled={busy} onChange={event => {
-      setReceipt(null);setError('');setFile(event.target.files?.[0] ?? null);
+      setReceipt(null);setEncodedArtifact(null);setError('');setFile(event.target.files?.[0] ?? null);
     }} />
     <p><button type="button" disabled={!file || busy} onClick={verify}>
       {busy ? (ar ? 'جارٍ التحقق…' : 'Verifying…') : (ar ? 'تحقق من التوقيع' : 'Verify signature')}</button></p>
@@ -61,5 +64,6 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
         <div><dt>SHA-256</dt><dd style={{overflowWrap:'anywhere'}}><code>{receipt.sha256}</code></dd></div>
       </dl>
     </div>}
+    <GaizStagingPanel ar={ar} artifactBase64url={receipt?.verified ? encodedArtifact : null} />
   </section>;
 }
