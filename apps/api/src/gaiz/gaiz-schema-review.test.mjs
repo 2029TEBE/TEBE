@@ -8,7 +8,8 @@ const dir=dirname(fileURLToPath(import.meta.url));
 const sql=readFileSync(resolve(dir,'../../../../docs/gaiz/PROPOSED_ADDITIVE_SCHEMA.sql'),'utf8');
 const policy=readFileSync(resolve(dir,'../../../../docs/gaiz/PROPOSED_RLS_REVIEW.sql'),'utf8');
 const tables=['gaiz_quarantine_blobs','gaiz_artifacts','gaiz_import_jobs',
-  'gaiz_import_proposals','gaiz_import_receipts','gaiz_export_jobs','gaiz_decisions'];
+  'gaiz_import_proposals','gaiz_import_receipts','gaiz_export_jobs','gaiz_decisions',
+  'gaiz_worker_assignment_claims'];
 
 test('candidate SQL proposal has exactly one complete CREATE for each GAIZ table',()=>{
   assert.match(sql,/REVIEW-ONLY PROPOSAL: DO NOT APPLY AS A MIGRATION/);
