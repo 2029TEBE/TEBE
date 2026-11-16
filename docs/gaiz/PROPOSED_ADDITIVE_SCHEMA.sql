@@ -71,6 +71,81 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   CHECK (state = 'quarantined' OR artifact_ref IS NOT NULL)
 );
 
+-- The verifier worker, not the browser, prepares this read-only mapping after
+-- successful independent signature, AEAD and schema validation. The mapping
+-- is private enterprise content and requires independent DB permission review.
+CREATE TABLE IF NOT EXISTS gaiz_import_proposals (
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  import_id uuid NOT NULL,
+  source_artifact_sha256 char(64) NOT NULL CHECK (source_artifact_sha256 ~ '^[0-9a-f]{64}
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  state text NOT NULL CHECK (state IN ('pending','packaging','ready','failed')),
+  format text NOT NULL CHECK (format IN ('pdf','html','gaiz')),
+  requested_by uuid NOT NULL REFERENCES users(id),
+  idempotency_key text NOT NULL,
+  correlation_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, idempotency_key),
+  UNIQUE (id, tenant_id)
+);
+
+CREATE TABLE IF NOT EXISTS gaiz_decisions (
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  import_id uuid NOT NULL,
+  actor_id uuid NOT NULL REFERENCES users(id),
+  outcome text NOT NULL CHECK (outcome IN ('approved','rejected')),
+  comment text,
+  correlation_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id)
+);
+
+-- Requires policy review BEFORE executing any CREATE TABLE above:
+-- tables must be FORCE ROW LEVEL SECURITY, non-owner app role only,
+-- with tenant-scoped USING and WITH CHECK matching the established RLS model.
+-- An independent assertion must prove no cross-tenant joins, updates or
+-- idempotency/replay namespace collisions are possible.
+-- Artifact bytes/DEKs must NOT be written into these metadata tables.
+
+-- Enforce RLS before app-role permissions are granted. In a disposable DB,
+-- apply the *existing approved* packages/db/sql/rls.sql after table creation.
+-- REVOKE SELECT(envelope_bytes) for any role that does not directly process
+-- quarantined ciphertext. Do not expose bytea in GET API responses.
+-- Only scoped worker identities with a documented retention and access policy
+-- may read ciphertext; tenant/application principals are not sufficient.
+),
+  schema_version integer NOT NULL CHECK (schema_version = 1),
+  document_title text NOT NULL CHECK (char_length(document_title) BETWEEN 1 AND 200),
+  document_summary text NOT NULL CHECK (char_length(document_summary) BETWEEN 1 AND 5000),
+  target_project_id uuid,
+  validated_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, import_id),
+  UNIQUE (id, tenant_id),
+  FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id),
+  FOREIGN KEY (target_project_id) REFERENCES projects(id)
+);
+
+-- Provenance/receipt uniqueness prevents two drafts for the same import,
+-- including retries and concurrent execution.
+CREATE TABLE IF NOT EXISTS gaiz_import_receipts (
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  import_id uuid NOT NULL,
+  document_id uuid NOT NULL,
+  envelope_sha256 char(64) NOT NULL,
+  correlation_id uuid NOT NULL,
+  executed_by uuid NOT NULL REFERENCES users(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, import_id),
+  UNIQUE (tenant_id, document_id),
+  FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id),
+  FOREIGN KEY (document_id) REFERENCES documents(id)
+);
+
 CREATE TABLE IF NOT EXISTS gaiz_export_jobs (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
