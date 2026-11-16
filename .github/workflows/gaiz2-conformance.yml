@@ -6,6 +6,7 @@ on:
       - 'apps/web/src/app/(app)/gaiz/**'
       - 'packages/db/migrations/0022_gaiz_import_authorizations.sql'
       - 'packages/db/sql/rls.sql'
+      - 'packages/db/sql/gaiz2-*'
       - '.github/workflows/gaiz2-conformance.yml'
   workflow_dispatch:
 permissions:
@@ -34,6 +35,8 @@ jobs:
           node --check apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.mjs
           node --check apps/api/src/gaiz/gaiz2-key-release-eligibility.mjs
           node --test apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.test.mjs apps/api/src/gaiz/gaiz2-key-release-eligibility.test.mjs
+      - name: Check review-only .GAZE custody-ledger SQL invariants
+        run: node --test apps/api/src/gaiz/gaiz2-kms-ledger.static.test.mjs
       - name: Run independently pinned TO fixture acceptance
         run: node --test apps/api/src/gaiz/to-gaiz2-fixed-interop.test.mjs
       - name: Test inactive GAIZ intake, draft mapping, and mTLS denial
