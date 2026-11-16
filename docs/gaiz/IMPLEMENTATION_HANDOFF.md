@@ -88,6 +88,29 @@ negative/positive disposable tenant acceptance.
   through HTTP. The entire plan remains contingent on TO format decisions,
   correct key custody, RLS, producer fixtures and security review.
 
+## Draft document import executor (unregistered; review candidate)
+- `apps/api/src/gaiz/gaiz-draft-import.executor.ts` prepares an **inactive**
+  approval-controlled transaction using the existing TEBE `documents` model:
+  it inserts only a `draft` governance report document, with no URL or
+  privileged gate/project mutation.
+- Under `withTenant`, it rechecks active membership and a manage-projects
+  capability, locks the approved import job, checks independent issuer and AEAD
+  evidence, source/quarantine/mapping hashes, expiry, a distinct approving
+  person, a persisted approval decision, and the exact validated mapping
+  timestamp before inserting document, receipt and audit atomically.
+- Approval is valid for at most 15 minutes at execution. Concurrent attempts
+  serialize on the same row; receipt uniqueness is proposed in the schema.
+  Idempotent retries return the existing receipt only if the job is `imported`.
+- `gaiz_import_proposals` and `gaiz_import_receipts` are **proposed schema
+  only**. The producer of trusted mapping rows is not implemented. The app
+  role must not be allowed to forge `validated_at`, source digest or signature
+  evidence; dedicated worker grants and immutable row controls require review.
+- This executor is intentionally **not injected or registered in AppModule**.
+  No production or test database migration was applied, and no PostgreSQL
+  concurrency/rollback or TO fixture acceptance was executed.
+- `apps/api/src/gaiz/gaiz-draft-import.static.test.mjs` contains source-level
+  guard tests; it does not replace integration or authorization tests.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
@@ -122,6 +145,7 @@ node --test apps/api/src/gaiz/gaiz-synthetic-preview.test.mjs
 node --test apps/api/src/gaiz/gaiz-trust.test.mjs
 node --test apps/api/src/gaiz/gaiz-intake.test.mjs
 node --test apps/api/src/gaiz/gaiz-draft-mapping.test.mjs
+node --test apps/api/src/gaiz/gaiz-draft-import.static.test.mjs
 pnpm build:packages
 pnpm typecheck
 pnpm test
