@@ -33,6 +33,7 @@ jobs:
         with:
           node-version: '22'
       - name: Merge only current commits with successful required checks
+        if: hashFiles('scripts/run-safe-auto-merge.mjs') != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
