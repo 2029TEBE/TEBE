@@ -16,27 +16,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import postgres from 'postgres';
 import { randomUUID } from 'node:crypto';
+import { validateGaizDisposableConfig } from './gaiz-disposable-config.mjs';
 
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const env=process.env;
 const url=env.GAIZ_DISPOSABLE_DATABASE_URL;
 const tenantA=env.GAIZ_TEST_TENANT_A;
 const tenantB=env.GAIZ_TEST_TENANT_B;
-
-const checkConfig=()=>{
-  if(!url || !UUID.test(tenantA??'') || !UUID.test(tenantB??'') || tenantA===tenantB)
-    throw new Error('Dedicated GAIZ disposable database URL and two distinct synthetic tenant UUIDs required');
-  let parsed;
-  try { parsed=new URL(url); }catch {throw new Error('Invalid disposable PostgreSQL URL');}
-  if(!['postgres:','postgresql:'].includes(parsed.protocol) ||
-     !/^gaiz_(?:disposable|test)[a-z0-9_]*$/i.test(parsed.pathname.slice(1)) ||
-     ['prod','production','staging','primary','main'].some(word=>parsed.hostname.toLowerCase().includes(word)) ||
-     !['localhost','127.0.0.1','::1','[::1]'].includes(parsed.hostname.toLowerCase()) ||
-     parsed.username==='postgres' ||
-     parsed.username==='root')
-    throw new Error('Refusing non-disposable database or privileged connection');
-  return parsed;
-};
+const checkConfig=()=>validateGaizDisposableConfig({url,tenantA,tenantB});
 
 test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url}, async()=>{
   checkConfig();
