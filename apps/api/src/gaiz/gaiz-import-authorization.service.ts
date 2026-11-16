@@ -79,6 +79,25 @@ export class GaizImportAuthorizationService {
     if (!['approved','rejected'].includes(decision))
       throw new ConflictException('Unsupported decision');
     return withTenant(tenantId,async tx=>{
+      const [record] = await tx.select({
+        stagingReviewId: gaizImportAuthorizations.stagingReviewId,
+      }).from(gaizImportAuthorizations).where(and(
+        eq(gaizImportAuthorizations.tenantId,tenantId),
+        eq(gaizImportAuthorizations.id,id),
+      )).limit(1);
+      if (!record) throw new ConflictException('Import review unavailable');
+      const [origin] = await tx.select({
+        requestedBy:gaizImportRequests.requestedBy,
+        status:gaizImportRequests.status,
+        expiresAt:gaizImportRequests.expiresAt,
+      }).from(gaizImportRequests).where(and(
+        eq(gaizImportRequests.id,record.stagingReviewId),
+        eq(gaizImportRequests.tenantId,tenantId),
+      )).limit(1);
+      if (!origin || origin.requestedBy===userId || origin.status!=='approved' ||
+          origin.expiresAt<=new Date()) {
+        throw new ConflictException('Original stage requester cannot authorize import');
+      }
       const [updated]=await tx.update(gaizImportAuthorizations).set({
         status:decision,approvedBy:userId,reviewedAt:new Date(),
       }).where(and(
