@@ -23,4 +23,4 @@ jobs:
           node --check apps/api/src/gaiz/gaiz-custody-policy.mjs
           node --check apps/api/src/gaiz/gaiz-custody-bridge.mjs
       - name: Run GAIZ2 synthetic wire compatibility and negative tests
-        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs apps/api/src/gaiz/gaiz-custody-policy.test.mjs apps/api/src/gaiz/gaiz-custody-attestation.test.mjs apps/api/src/gaiz/gaiz-import-plan.test.mjs apps/api/src/gaiz/gaiz-custody-bridge.test.mjs apps/api/src/gaiz/gaiz-staging.contract.test.mjs
+        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs apps/api/src/gaiz/gaiz-custody-policy.test.mjs apps/api/src/gaiz/gaiz-custody-attestation.test.mjs apps/api/src/gaiz/gaiz-import-plan.test.mjs apps/api/src/gaiz/gaiz-custody-bridge.test.mjs apps/api/src/gaiz/gaiz-custody-db.contract.test.mjs apps/api/src/gaiz/gaiz-staging.contract.test.mjs
