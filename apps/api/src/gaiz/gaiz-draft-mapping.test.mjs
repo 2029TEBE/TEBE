@@ -28,3 +28,14 @@ test('cross-tenant, unverified or malicious report mapping denied',()=>{
    {...content,schemaVersion:2},
  ]) assert.throws(()=>planSyntheticGaizGovernanceDraft(bad,evidence));
 });
+
+
+test('mapping output stays immutable, inert and strips all unapproved authority',()=>{
+ const proposal=planSyntheticGaizGovernanceDraft(content,evidence);
+ assert.equal(Object.isFrozen(proposal),true);
+ assert.equal(Object.isFrozen(proposal.fields),true);
+ assert.equal(Object.isFrozen(proposal.source),true);
+ for(const name of ['approved','role','actorId','rawCiphertext','sql','html','authorizationGranted','importAllowed'])
+   assert.equal(Object.hasOwn(proposal,name),false);
+ assert.throws(()=>planSyntheticGaizGovernanceDraft({...content,summary:'<svg/onload=alert(1)>'},evidence),/rejected/);
+});
