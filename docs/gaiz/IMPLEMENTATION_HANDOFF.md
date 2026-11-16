@@ -21,6 +21,11 @@ Status: **experimental foundation, not deployable**. All new code remains on
 - Strict Zod metadata contracts in `packages/contracts/src/gaiz.ts`.
 - Pure, deny-by-default workflow transitions and replay namespacing in
   `apps/api/src/gaiz/gaiz-workflow.mjs`; negative tests included.
+- An unregistered controller/module containing the proposed six versioned endpoints.
+- A metadata-only PostgreSQL adapter that reads jobs under `withTenant` and
+  records an authorized pre-validated human decision using `FOR UPDATE`,
+  revision checks and same-transaction audit. This adapter is **not injected**;
+  upload/import/export processing still deliberately refuses operation.
 - A NestJS orchestrator **not registered with AppModule**. Even explicit
   `GAIZ_DEV_ONLY=true` cannot activate production processing; it rejects
   unless injected with an independently reviewed enterprise adapter.
@@ -50,6 +55,8 @@ negative/positive disposable tenant acceptance.
   transaction as state transition, draft creation and audit receipt.
 - Caller must not be able to forge verification flags; derive evidence from
   independently validated, server-stored, immutable artifact state.
+- Import state now includes a separate `approved` state; approval does not
+  itself create records or trigger execution.
 - Human approval must be rechecked for actor, operation, membership, version
   and expiry immediately before importing. A mere boolean is insufficient.
 - Do not store uploaded plaintext, signing/private keys or DEKs in audit logs.
