@@ -13,7 +13,7 @@ test('tested-image deployment loads exact image IDs and never rebuilds or pulls'
  const dir=await mkdtemp(join(tmpdir(),'epmo-transport-'));try{
   const bin=join(dir,'bin'),bundle=join(dir,'bundle'),log=join(dir,'commands');await mkdir(bin);await mkdir(bundle);
   const data=Buffer.from('synthetic CI bundle bytes, not a real docker archive');
-  const api='sha256:'+'b'.repeat(64),web='sha256:'+'c'.repeat(64);
+  const api='sha256:'+'d'.repeat(64),web='sha256:'+'e'.repeat(64);
   const image=(id)=>({Id:id,Os:'linux',Architecture:'amd64',Config:{User:'pmo',Labels:{'org.opencontainers.image.revision':revision},Cmd:['node','server.js']},RootFS:{Type:'layers',Layers:['sha256:'+'f'.repeat(64)]}});
   const apiInspect=image('sha256:'+'d'.repeat(64)),webInspect=image('sha256:'+'e'.repeat(64));
   await writeFile(join(bundle,'images.tar.gz'),data);
@@ -37,9 +37,9 @@ esac
   const run=spawnSync('bash',['infra/deploy.sh','prod'],{env,encoding:'utf8',timeout:30000});assert.equal(run.status,0,run.stdout+'\n'+run.stderr);
   const commands=await readFile(log,'utf8');assert.match(commands,/docker image load/);assert.ok(commands.indexOf('docker builder prune --all --force')<commands.indexOf('docker image load'));assert.doesNotMatch(commands,/docker (?:image|container|volume|system) prune/);assert.doesNotMatch(commands,/compose[^\n]*(?: build | pull )/);assert.match(commands,/--no-build --pull never/);assert.ok(commands.indexOf('docker image load')<commands.indexOf('backup-db.sh'));assert.match(commands,/bootstrap-db.sh/);assert.match(commands,/\{\{.Image\}\}/);
   await rm(log);
-  const changed={...apiInspect,Config:{...apiInspect.Config,Cmd:['sh']}};
+  const changed={...apiInspect,Id:'sha256:'+'9'.repeat(64),Config:{...apiInspect.Config,Cmd:['sh']}};
   const wrong=spawnSync('bash',['infra/deploy.sh','prod'],{env:{...env,TEST_API_INSPECT:JSON.stringify([changed])},encoding:'utf8',timeout:30000});
-  assert.notEqual(wrong.status,0);assert.doesNotMatch(await readFile(log,'utf8'),/backup-db.sh|bootstrap-db.sh/);
+  assert.notEqual(wrong.status,0);assert.match(wrong.stderr,/image ID mismatch for api/);assert.doesNotMatch(await readFile(log,'utf8'),/backup-db.sh|bootstrap-db.sh/);
   await rm(log);await writeFile(join(bundle,'images.tar.gz'),Buffer.from('tampered'));
   const failed=spawnSync('bash',['infra/deploy.sh','prod'],{env,encoding:'utf8',timeout:30000});assert.notEqual(failed.status,0);await assert.rejects(readFile(log));
  }finally{await rm(dir,{recursive:true,force:true});}
