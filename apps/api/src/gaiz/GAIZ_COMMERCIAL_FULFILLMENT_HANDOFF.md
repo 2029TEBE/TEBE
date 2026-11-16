@@ -35,5 +35,5 @@ Do not register this service or route on production. No auto-approval of identit
 
 Manual test once an isolated checkout is available:
 ```sh
-node --test apps/api/src/gaiz/gaiz-commercial-policy.test.mjs
+node --test apps/api/src/gaiz/gaiz-commercial-policy.test.mjs apps/api/src/gaiz/gaiz-tool-catalogue.test.mjs
 ```
