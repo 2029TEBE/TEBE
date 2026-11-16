@@ -386,3 +386,39 @@ under a durable storage claim, workload-to-KMS principal binding, a
 zeroization/audit design and real custody integration tests. This
 candidate MUST NOT be connected to `unwrapSyntheticRecipientDek`
 or any production service. No real keys are provisioned or released.
+
+
+## Custody grant one-shot database claim (review-only)
+
+The inactive `gaiz2-custody-grant-claim.mjs` now **independently re-verifies**
+the Ed25519-signed custody policy from exact token bytes and trusted,
+backend-sourced issuer and recipient expectations; a supplied
+`signedCustodyPolicyVerified:true` flag can never substitute for that
+verification. Only after validation does it inspect actual PostgreSQL
+`current_user` and transaction-local tenant scope, and issue an atomic
+conditional `INSERT ... ON CONFLICT DO NOTHING ... RETURNING`.
+
+The draft `packages/db/sql/gaiz2-custody-grant-review-proposal.sql`
+proposes a SHA-256 one-shot token ledger, FORCE RLS, no interactive app
+access, insert-only `gaiz_verify_worker` permissions, expiry and a
+secondary UNIQUE constraint for the same (tenant, assignment, envelope
+digest, recipient). This rejects both replay of identical signatures and
+reissued grants for the same assignment/artifact/recipient combination.
+Markers must be retained through expiration and the reviewed abuse
+investigation window; never delete live markers to reset authorization.
+
+Four synthetic tests verify signature-first verification, wrong DB
+role/tenant, replay rejection and disabled production mode. The existing
+**disposable-only** PostgreSQL acceptance script now also applies the
+proposed custody ledger and checks FORCE RLS, wrong-tenant INSERT refusal,
+duplicate/reissued claim denial and rollback restoration; no migration
+is applied to the real THEEPMO database. Source files are wired into
+GitHub CI after `pnpm install`; new-commit CI results must be checked
+before claiming they have passed.
+
+This remains **neither key release nor approved import**. It lacks an
+actual independently authenticated KMS/HSM, hardware/non-exportable
+recipient key custody, trusted issuer provisioning, revocation and
+human-approved business transaction. Never connect this signed policy
+or ledger directly to decrypt/unwrap methods, a public route or
+production without separate security review.
