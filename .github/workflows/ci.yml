@@ -85,6 +85,14 @@ jobs:
       - name: Provision restricted CI application role
         run: |
           PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 -c "CREATE ROLE pmo_app LOGIN PASSWORD 'ci_test_only_secure_password_2026'"
+      - name: GAIZ disposable PostgreSQL challenge replay and tenant RLS acceptance
+        env:
+          PGHOST: localhost
+          PGPORT: '5433'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: postgres
+        run: bash scripts/gaiz-disposable-challenge-acceptance.sh
       - name: Apply production-equivalent SQL-ledger migrations
         run: bash scripts/apply-sql-migrations.sh
         env:
