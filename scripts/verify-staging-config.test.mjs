@@ -12,5 +12,10 @@ test('rejects production mode and public bind',()=>assert.equal(failed({...env,D
 test('rejects http origin and duplicate origins',()=>assert.ok(failed({...env,WEB_ORIGIN:'http://staging.example.com',PUBLIC_API_URL:'http://staging.example.com'}).length>=2));
 test('rejects database and redis placeholders',()=>assert.ok(failed({...env,DATABASE_URL:'postgres://app:REPLACE_PASSWORD@db/pmo',REDIS_URL:'redis://:changeme@redis:6379'}).length>=2));
 test('rejects live stripe keys',()=>assert.ok(failed({...env,STRIPE_SECRET_KEY:'sk_live_fake'}).some(x=>x.includes('live key'))));
+test('enabled Stripe requires a matching provider and forbids reference settlement',()=>{
+ assert.ok(failed({...env,STRIPE_ENABLED:'true',BILLING_PROVIDER:undefined}).some(x=>x.includes('Stripe-only provider')));
+ assert.deepEqual(failed({...env,STRIPE_ENABLED:'true',BILLING_PROVIDER:'stripe'}),[]);
+ assert.ok(failed({...env,STRIPE_ENABLED:'true',BILLING_PROVIDER:'stripe',BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}).length);
+});
 test('rejects reference billing webhook',()=>assert.ok(failed({...env,BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}).length>0));
 test('rejects credential-bearing URL and local origin',()=>assert.ok(failed({...env,WEB_ORIGIN:'https://user:pass@localhost'}).length>0));
