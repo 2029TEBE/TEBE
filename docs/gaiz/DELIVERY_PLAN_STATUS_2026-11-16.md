@@ -95,3 +95,28 @@ Support can confirm billing/policy/runner startup restrictions.
 - This reduces one accidental bypass path but **does not authenticate mTLS**
   on its own; the workload identity and issuer key MUST still originate from
   independent trusted runtime configuration.
+
+
+## Synthetic key-custody integration checkpoint (not production)
+
+- Added `gaiz-key-custody-candidate.mjs`, a deliberately inactive,
+  **development-only** async custody provider boundary for synthetic
+  GAIZ1 report previews. It checks authenticated preview capability,
+  backend issuer trust, signed artifact identity and tenant scope
+  **before** calling the custody provider. The provider receives only
+  frozen tenant/artifact/digest/key ID and the restrictive
+  `synthetic-preview-only` purpose.
+- The adapter never persists, logs or returns a DEK; it copies the
+  custodian-owned 32-byte key and clears its local copy in `finally`.
+  The public issuer key lookup remains subject to revocation and
+  validity-window checks. Preview returns only inert title/summary and
+  `authorizedToImport:false`.
+- A synthetic TO-produced fixture drives negative cases for wrong DEK,
+  mismatched tenant, untrusted/revoked issuer, insufficient entitlement,
+  ciphertext tampering and invalid custody output. Tests are wired into
+  deferred offline CI, not marked passed.
+- **No recipient-bound key wrapping yet exists in the current candidate
+  format**; this provider is not KMS integration and cannot be promoted to
+  production. TO must define recipient envelope/wrapping/AAD and rotations;
+  infrastructure must provide real HSM/KMS or equivalent custody,
+  authenticated work identities, key-use audit and revocation.
