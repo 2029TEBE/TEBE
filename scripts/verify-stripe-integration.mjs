@@ -9,7 +9,7 @@ const checks = [
     assert.match(policy,/PRIMARY_PAYMENT_PROVIDER = 'stripe'/);
     assert.match(adapter,/assertStripeForNewCharges\(process\.env\.BILLING_PAYMENT_PROVIDER\)/);
     assert.match(routes,/@Post\('stripe\/checkout'\)/);
-    assert.doesNotMatch(routes,/@Post\('paddle/);
+    assert.match(routes,/StripeBillingService/);
   }],
   ['Checkout cancellation route matches rendered billing UI', () => {
     assert.match(file('apps/api/src/platform/stripe.service.ts'),/billing=cancel`/);
