@@ -36,7 +36,7 @@ export function verifyGaiz2ForPreview(input,{trustedIssuerPublicKey,expectedIssu
  fields(doc.manifest,['artifactId','contentType','createdAt','issuerId','schemaVersion','tenantScope','version']);
  const m=doc.manifest;
  if(m.version!==2||m.schemaVersion!==1||m.contentType!=='application/vnd.orgaiz.report+json'||!ident(m.artifactId)||!ident(m.issuerId)||!ident(m.tenantScope))throw Error('Unsupported GAIZ2 manifest');
- if(typeof m.createdAt!=='string'||!/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$/.test(m.createdAt)||!Number.isFinite(Date.parse(m.createdAt))||new Date(m.createdAt).toISOString()!==m.createdAt)throw Error('Invalid timestamp');
+ if(typeof m.createdAt!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\\.\d{3}Z$/.test(m.createdAt)||!Number.isFinite(Date.parse(m.createdAt))||new Date(m.createdAt).toISOString()!==m.createdAt)throw Error('Invalid timestamp');
  if(binary(doc.nonce,12).length!==12||binary(doc.tag,16).length!==16||binary(doc.signature,64).length!==64)throw Error('Invalid GAIZ2 cryptographic field length');
  binary(doc.ciphertext,MAX);
  if(!Array.isArray(doc.recipients)||doc.recipients.length<1||doc.recipients.length>8)throw Error('Invalid GAIZ2 recipient count');
