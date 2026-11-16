@@ -111,6 +111,25 @@ establish the authenticity of its two input objects. Its trust boundary still
 requires a verified workload transport, private database credentials, immutable
 signed assignments and a reviewed worker runtime.
 
+## Signed assignment to workload identity binding (candidate only)
+
+`apps/api/src/gaiz/gaiz-workload-binding.mjs` now binds an independently
+authenticated workload identity to an Ed25519-verified short-lived assignment.
+It enforces exact worker UUID, purpose, tenant and work item, workload
+credential expiration, and assignment issuer verification. It returns an
+inert, frozen receipt with `importAllowed:false` and
+`databaseClaimRequired:true`. Offline negative tests cover identity,
+role, scope, issuer and expiry mismatch.
+
+**Integration limitation:** the code has no mTLS termination, workload
+certificate verification, credential revocation lookup, or deployed identity
+provider. Its `workload` argument MUST be created only by a trusted ingress
+after authenticating the service, never from HTTP headers, queue JSON or
+signed artifact metadata. An object field such as `credentialIssuer`
+does NOT independently authenticate a workload. The binding does not
+activate the GAIZ API, create database privileges or claim an assignment.
+The claim must still be made atomically with the actual worker effect.
+
 ## Minimum controls before introducing workers
 
 1. Every database transaction sets `app.tenant_id` from an **authenticated,
