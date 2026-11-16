@@ -1,0 +1,5 @@
+services:
+  api:
+    image: ${EPMO_RELEASE_API_IMAGE:?set EPMO_RELEASE_API_IMAGE to a digest}
+  web:
+    image: ${EPMO_RELEASE_WEB_IMAGE:?set EPMO_RELEASE_WEB_IMAGE to a digest}
