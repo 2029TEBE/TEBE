@@ -55,13 +55,15 @@ export class GaizCommitReadinessService {
       const [profile]=await tx.select().from(gaizMappingProfiles).where(and(
         eq(gaizMappingProfiles.tenantId,tenantId),
         eq(gaizMappingProfiles.targetKind,allowedKind),
+        eq(gaizMappingProfiles.profileId,a.mappingProfileId),
         eq(gaizMappingProfiles.status,'approved'),
       )).limit(1);
       const expectedField=allowedKind==='project'?'project.name':'portfolio.description';
       if(!profile||profile.fieldMappings.length!==1||
          profile.fieldMappings[0]!==expectedField)
         throw new ConflictException('Approved profile missing');
-      let snapshot;
+      let snapshot: {id:string;tenantId:string;kind:'project'|'portfolio';revision:number;
+        fields:Record<string,string|null>};
       if(allowedKind==='project'){
         const [target]=await tx.select({
           id:projects.id,tenantId:projects.tenantId,
