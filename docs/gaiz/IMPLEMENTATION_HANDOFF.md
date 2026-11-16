@@ -12,6 +12,12 @@ Status: **experimental foundation, not deployable**. All new code remains on
 - `apps/api/src/audit/audit.service.ts` writes audit in the same transaction.
 
 ## Included in this branch
+- Independent issuer trust-policy candidate and revocation tests in
+  `apps/api/src/gaiz/gaiz-trust.mjs`; issuer key ID is backend-selected,
+  not parsed from an untrusted artifact. This registry is not yet wired to key custody.
+- Synthetic, inert JSON-only AES-GCM preview adapter in
+  `apps/api/src/gaiz/gaiz-synthetic-preview.mjs`; not exposed by an API.
+- Localized, inactive entry page at `apps/web/src/app/(app)/gaiz/page.tsx`.
 - Strict Zod metadata contracts in `packages/contracts/src/gaiz.ts`.
 - Pure, deny-by-default workflow transitions and replay namespacing in
   `apps/api/src/gaiz/gaiz-workflow.mjs`; negative tests included.
@@ -65,6 +71,8 @@ negative/positive disposable tenant acceptance.
 ```sh
 node --test apps/api/src/gaiz/gaiz-verifier.test.mjs
 node --test apps/api/src/gaiz/gaiz-workflow.test.mjs
+node --test apps/api/src/gaiz/gaiz-synthetic-preview.test.mjs
+node --test apps/api/src/gaiz/gaiz-trust.test.mjs
 pnpm build:packages
 pnpm typecheck
 pnpm test
