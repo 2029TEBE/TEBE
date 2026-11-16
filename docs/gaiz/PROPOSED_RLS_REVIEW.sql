@@ -6,7 +6,7 @@
 --   3. pmo_app has neither SUPERUSER nor BYPASSRLS privilege.
 --   4. Changes reviewed with packages/db/sql/rls.sql and database owner.
 --
--- All four GAIZ tables contain tenant_id. App cannot use a global owner scope.
+-- All seven GAIZ tables contain tenant_id. App cannot use a global owner scope.
 
 ALTER TABLE gaiz_quarantine_blobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_quarantine_blobs FORCE ROW LEVEL SECURITY;
@@ -50,6 +50,14 @@ CREATE POLICY tenant_isolation ON gaiz_decisions
 REVOKE UPDATE, DELETE ON gaiz_decisions FROM pmo_app;
 REVOKE UPDATE, DELETE ON gaiz_import_proposals FROM pmo_app;
 REVOKE UPDATE, DELETE ON gaiz_import_receipts FROM pmo_app;
+-- Only a separately reviewed verifier service may write verified evidence.
+REVOKE INSERT, UPDATE, DELETE ON gaiz_import_proposals FROM pmo_app;
+REVOKE INSERT, UPDATE, DELETE ON gaiz_artifacts FROM pmo_app;
+-- Receipt creation is part of a privileged, audited import transaction;
+-- the active API role must not forge one independently before approval.
+-- Design a dedicated executor role/SECURITY DEFINER function with strict
+-- checks before lifting this restriction.
+REVOKE INSERT ON gaiz_import_receipts FROM pmo_app;
 REVOKE DELETE ON gaiz_quarantine_blobs FROM pmo_app;
 REVOKE DELETE ON gaiz_artifacts FROM pmo_app;
 REVOKE DELETE ON gaiz_import_jobs, gaiz_export_jobs FROM pmo_app;
@@ -82,6 +90,9 @@ GRANT SELECT (id, tenant_id, requested_by, idempotency_key,
 --  E. disabling app tenant context never causes a privileged fallback
 --  F. job revision and replay claims remain atomic under parallel requests
 --
+-- IMPORTANT: the unregistered draft executor currently uses the app DB role.
+-- These necessary restrictions intentionally make that draft non-operational
+-- until a dedicated, audited execution role is implemented and reviewed.
 -- WARNING: This is illustrative, NOT ready to execute. If the existing RLS
 -- installer has already created tenant_isolation policies, CREATE POLICY will
 -- fail on duplicate names. Migration author must use one approved policy
