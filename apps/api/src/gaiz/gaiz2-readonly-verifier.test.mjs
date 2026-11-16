@@ -1,0 +1,43 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {join,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {generateKeyPairSync} from 'node:crypto';
+import {verifyGaiz2ReadOnly} from './gaiz2-readonly-verifier.mjs';
+const path=join(dirname(fileURLToPath(import.meta.url)),'fixtures','v2-fixed-001');
+const original=Buffer.from(readFileSync(join(path,'valid.gaiz.b64'),'utf8').trim(),'base64');
+const key=readFileSync(join(path,'issuer-public.pem'),'utf8');
+const expected=JSON.parse(readFileSync(join(path,'expected.json'),'utf8'));
+const policy={trustedIssuerPublicKey:key,expectedIssuerId:'fixture-issuer',expectedTenantScope:'synthetic-tenant'};
+test('independent pinned TO fixture verifies without authorization or import',()=>{
+ const result=verifyGaiz2ReadOnly(original,policy);
+ assert.equal(result.sha256,expected.sha256);
+ assert.deepEqual(result.manifest,expected.manifest);
+ assert.equal(result.signatureVerified,true);
+ assert.equal(result.authorizationGranted,false);
+ assert.equal(result.importAllowed,false);
+});
+test('fail closed on absent/untrusted issuer, wrong scope, incompatible version and integrity changes',()=>{
+ assert.throws(()=>verifyGaiz2ReadOnly(original));
+ assert.throws(()=>verifyGaiz2ReadOnly(original,{...policy,expectedIssuerId:'not-trusted'}));
+ assert.throws(()=>verifyGaiz2ReadOnly(original,{...policy,expectedTenantScope:'another-tenant'}));
+ assert.throws(()=>verifyGaiz2ReadOnly(original,{...policy,trustedIssuerPublicKey:generateKeyPairSync('ed25519').publicKey}));
+ const doc=JSON.parse(original.subarray(6).toString('utf8'));
+ const changed={...doc,manifest:{...doc.manifest,artifactId:'forged'}};
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.from('GAIZ2\n'+JSON.stringify(changed)),policy));
+ const bad=Buffer.from(original);bad[4]=49;
+ assert.throws(()=>verifyGaiz2ReadOnly(bad,policy));
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.alloc(8*1024*1024+1),policy));
+});
+test('rejects duplicate keys, malformed UTF-8, noncanonical values and recipient edits',()=>{
+ const doc=JSON.parse(original.subarray(6).toString('utf8'));
+ const raw=original.subarray(6).toString('utf8');
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.from('GAIZ2\n'+raw.replace('"version":2','"version":2,"version":2')),policy));
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.concat([Buffer.from('GAIZ2\n'),Buffer.from([0xff])]),policy));
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.from('GAIZ2\n'+raw+' '),policy));
+ const amended={...doc,recipients:[{...doc.recipients[0],keyId:'forged'}]};
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.from('GAIZ2\n'+JSON.stringify(amended)),policy));
+ const changed={...doc,manifest:{...doc.manifest,createdAt:'2026-02-30T00:00:00.000Z'}};
+ assert.throws(()=>verifyGaiz2ReadOnly(Buffer.from('GAIZ2\n'+JSON.stringify(changed)),policy));
+});
