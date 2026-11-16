@@ -241,7 +241,7 @@ echo "PASS: $MODE API and web containers healthy on $HOST"
 if [[ -n "$TESTED_BUNDLE" ]]; then
   for spec in "api|$API_IMAGE_ID" "web|$WEB_IMAGE_ID"; do
     IFS='|' read -r service expected_id <<< "$spec"
-    actual=$(ssh_remote "container=\$($COMPOSE ps -q '$service'); test -n \"\$container\" && docker inspect --format '{{.Image}}' \"\$container\"")
+    actual=$(ssh_remote "cd '$DIR' && container=\$($COMPOSE ps -q '$service'); test -n \"\$container\" && docker inspect --format '{{.Image}}' \"\$container\"")
     [[ "$actual" == "$expected_id" ]] || { echo 'BLOCKED: running image does not match tested content' >&2; exit 1; }
   done
 fi
