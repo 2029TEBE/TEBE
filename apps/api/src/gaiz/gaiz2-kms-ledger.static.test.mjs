@@ -6,6 +6,9 @@ const keyRegistry=readFileSync(new URL('../../../../packages/db/sql/gaiz2-recipi
 test('release claims are tenant and grant unique, with no KMS or key bytes',()=>{
  assert.match(source,/PRIMARY KEY\s*\(tenant_id,custody_token_sha256\)/i);
  assert.match(source,/UNIQUE\s*\(tenant_id,kms_operation_id\)/i);
+ assert.match(source,/UNIQUE\s*\(custody_token_sha256\)/i);
+ assert.match(source,/CHECK\s*\(status = 'consumed' OR consumed_at IS NULL\)/i);
+ assert.match(source,/CHECK\s*\(consumed_at IS NULL OR consumed_at >= claimed_at\)/i);
  assert.match(source,/octet_length\(custody_token_sha256\)=32/);
  assert.match(source,/status IN \('reserved','consumed','denied'\)/);
  assert.doesNotMatch(source,/\b(?:private_key|plaintext_dek|unwrapped_dek|secret_material)\s+(?:bytea|text)/i);
