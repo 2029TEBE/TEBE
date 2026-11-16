@@ -85,3 +85,15 @@ Test with a disposable PostgreSQL tenant after explicitly reviewing and applying
 ### Explicit nonfeatures / blockers
 
 This workflow does **not** implement customer-authorized content decryption, external issuer trust registry, content quarantine, safe business mapping, replay-proof import transactions, long-term retention or artifact recovery. Persistently 'approved' here means a review decision on metadata only. No permission to apply the file follows automatically. Those features require separate changes and security assessment.
+
+## Customer-controlled key custody policy preflight (new)
+
+`gaiz-custody-policy.mjs` is a **pure eligibility checker**, not a key service or API endpoint. `evaluateTebeCustody` requires a consistent authenticated tenant context with `pmoa_admin`, an independently verified matching signature receipt, an approved unexpired staged request made and reviewed by different people, a tenant-scoped active recipient key, and customer consent for any platform-owned recovery recipient. It returns `decryptAllowed:false`, `importAllowed:false`, and `plaintextReleased:false` on success.
+
+The policy module is **not wired to an HTTP route**, does not load private keys, and does not look up authoritative key records. A future integration must query review state from the tenant-scoped database and key/consent records from authenticated registries **on the server**, rather than accepting them from browser JSON. It then needs an external KMS/HSM or customer-held decryption provider that performs independent authorization and emits audit records. Do not pass customer private keys to AI agents.
+
+```sh
+node --test apps/api/src/gaiz/gaiz-custody-policy.test.mjs
+```
+
+TEBE Actions still cannot be trusted as a passing validation signal until runner execution is restored. The new policy remains draft code, with no database migration applied and no live decryption ability.
