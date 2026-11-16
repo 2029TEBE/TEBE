@@ -4,6 +4,8 @@ import { withTenant, auditEvents, gaizImportRequests, gaizCustodyAttempts, gaizI
 import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
 import { GaizSnapshotService } from './gaiz-snapshot.service';
+import { GaizMappingRegistryService } from './gaiz-mapping-registry.service';
+import { verifyMappingPreviewReceipt } from './gaiz-mapping-attestation.mjs';
 
 /**
  * Draft second review ledger, NOT an import engine.
@@ -12,7 +14,8 @@ import { GaizSnapshotService } from './gaiz-snapshot.service';
  */
 @Injectable()
 export class GaizImportAuthorizationService {
-  constructor(private readonly snapshots: GaizSnapshotService) {}
+  constructor(private readonly snapshots: GaizSnapshotService,
+    private readonly mappingRegistry: GaizMappingRegistryService) {}
   private actor() {
     if (process.env.NODE_ENV !== 'development' ||
        (process.env.DEPLOYMENT_ENV && process.env.DEPLOYMENT_ENV !== 'development') ||
@@ -27,7 +30,8 @@ export class GaizImportAuthorizationService {
   async request(input: {
     stagingReviewId: string; custodyAttemptId: string; targetKind: 'project'|'portfolio';
     targetId: string; targetRevision: number; targetSnapshotSha256: string; previewSha256: string;
-  }) {
+    mappingProfileId:string; artifactSha256:string; reportSha256:string;
+  }, trusted?: { mappingAttestation:unknown; custodianPublicKey:unknown; custodianId:string; }) {
     const { tenantId, userId } = this.actor();
     const HASH = /^[a-f0-9]{64}$/;
     if (!HASH.test(input.targetSnapshotSha256) || !HASH.test(input.previewSha256) ||
@@ -40,6 +44,25 @@ export class GaizImportAuthorizationService {
     // trusted custody proof, and no import executor consumes this record.
     await this.snapshots.checkUnchanged(input.targetKind,input.targetId,
       input.targetRevision,input.targetSnapshotSha256);
+    // Caller-supplied preview hashes are insufficient. A server-owned
+    // trusted custodian signer and signed preview evidence are mandatory.
+    // This is never a browser-supplied public key or signer directory.
+    if(!trusted?.custodianPublicKey||!trusted.custodianId||!trusted.mappingAttestation)
+      throw new ConflictException('Trusted mapping attestation provider unavailable');
+    const profile=await this.mappingRegistry.getApprovedInternal(
+      input.mappingProfileId,input.targetKind);
+    if(profile.tenantId!==tenantId)throw new ConflictException('Untrusted profile');
+    const receipt=verifyMappingPreviewReceipt(trusted.mappingAttestation,{
+      trustedCustodianPublicKey:trusted.custodianPublicKey,
+      custodianId:trusted.custodianId,
+      tenantId,stagingReviewId:input.stagingReviewId,
+      artifactSha256:input.artifactSha256,reportSha256:input.reportSha256,
+      targetId:input.targetId,targetKind:input.targetKind,
+      targetSnapshotSha256:input.targetSnapshotSha256,
+      revision:input.targetRevision,mappingProfileId:input.mappingProfileId,
+      previewSha256:input.previewSha256,
+    });
+    if(receipt.importAllowed!==false)throw new ConflictException('Import grant denied');
     return withTenant(tenantId, async tx => {
       const [review] = await tx.select({
         id: gaizImportRequests.id, status: gaizImportRequests.status,
