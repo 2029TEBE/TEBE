@@ -28,6 +28,8 @@ function dbUrl(value) {
 export function checkStagingSecurity(env) {
   const checks = [
     ['Staging environment explicitly selected', env.DEPLOYMENT_ENV === 'staging'],
+    ['Enabled Stripe requires Stripe-only provider selection', env.STRIPE_ENABLED !== 'true' || env.BILLING_PROVIDER === 'stripe'],
+    ['Stripe provider cannot enable reference settlement', env.BILLING_PROVIDER !== 'stripe' || env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['Loopback-only web bind', (env.WEB_BIND || '') === '127.0.0.1'],
     ['Public HTTPS web origin', publicHttpsOrigin(env.WEB_ORIGIN)],
     ['Public HTTPS API origin', publicHttpsOrigin(env.PUBLIC_API_URL)],
