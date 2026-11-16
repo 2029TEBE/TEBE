@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   approved_by uuid REFERENCES users(id),
   approval_decided_at timestamptz,
   idempotency_key text NOT NULL,
+  idempotency_request_sha256 char(64) NOT NULL,
   mapped_schema_version integer,
   mapping_validated_at timestamptz,
   correlation_id uuid NOT NULL,
