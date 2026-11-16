@@ -61,6 +61,9 @@ END $$;
 DO $$ BEGIN
   IF to_regclass('public.gaiz_import_requests') IS NOT NULL THEN
     REVOKE DELETE ON public.gaiz_import_requests FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_import_requests FROM pmo_app;
+    GRANT INSERT (id,tenant_id,artifact_id,sha256,issuer_id,requested_by,expires_at)
+      ON public.gaiz_import_requests TO pmo_app;
     -- Only review-state columns may change after insertion. Request identity,
     -- issuer, artifact digest, tenant, requester and expiry remain immutable.
     REVOKE UPDATE ON public.gaiz_import_requests FROM pmo_app;
@@ -69,12 +72,19 @@ DO $$ BEGIN
   END IF;
   IF to_regclass('public.gaiz_custody_attempts') IS NOT NULL THEN
     REVOKE DELETE ON public.gaiz_custody_attempts FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_custody_attempts FROM pmo_app;
+    GRANT INSERT (id,tenant_id,review_id,artifact_sha256,recipient_key_id,requested_by)
+      ON public.gaiz_custody_attempts TO pmo_app;
     REVOKE UPDATE ON public.gaiz_custody_attempts FROM pmo_app;
     GRANT UPDATE (status, report_sha256, completed_at)
       ON public.gaiz_custody_attempts TO pmo_app;
   END IF;
   IF to_regclass('public.gaiz_import_authorizations') IS NOT NULL THEN
     REVOKE DELETE ON public.gaiz_import_authorizations FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_import_authorizations FROM pmo_app;
+    GRANT INSERT (id,tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,
+      target_snapshot_sha256,preview_sha256,requested_by,expires_at)
+      ON public.gaiz_import_authorizations TO pmo_app;
     REVOKE UPDATE ON public.gaiz_import_authorizations FROM pmo_app;
     GRANT UPDATE (status, approved_by, reviewed_at)
       ON public.gaiz_import_authorizations TO pmo_app;
