@@ -137,6 +137,25 @@ CREATE TABLE gaiz_decisions (
   FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id)
 );
 
+-- Server-issued, one-time assignment claims. Workers must insert this row in
+-- the *same database transaction* as the corresponding verification/import
+-- effect. Rolling back the effect rolls back the claim, allowing safe retry.
+-- Never allow any client-facing role to insert/inspect/delete these rows.
+CREATE TABLE gaiz_worker_assignment_claims (
+  assignment_id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  worker_id uuid NOT NULL,
+  work_item_id uuid NOT NULL,
+  purpose text NOT NULL CHECK
+    (purpose IN ('gaiz_verify_worker','gaiz_execute_worker')),
+  expires_at timestamptz NOT NULL,
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (expires_at > claimed_at),
+  UNIQUE (assignment_id, tenant_id)
+);
+CREATE INDEX gaiz_worker_assignment_claims_tenant_idx
+  ON gaiz_worker_assignment_claims (tenant_id, claimed_at);
+
 -- Before using any of this: review real DB privileges, FORCE RLS, tenant-scoped
 -- FKs, trusted verifier worker roles, unforgeable evidence, and retention.
 -- No secrets/DEKs/plaintext may be written to these metadata tables.
