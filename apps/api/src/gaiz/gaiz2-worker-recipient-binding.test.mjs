@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,randomBytes,createCipheriv,publicEncrypt,sign,constants} from 'node:crypto';
-import {bindGaiz2RecipientWorkerCandidate} from './gaiz2-worker-recipient-binding.mjs';
+import {bindGaiz2RecipientWorkerCandidate,bindGaiz2RecipientWithSignedCredentialCandidate} from './gaiz2-worker-recipient-binding.mjs';
 
 const tenantId='11111111-1111-4111-8111-111111111111';
 const workItemId='22222222-2222-4222-8222-222222222222';
@@ -52,3 +52,45 @@ test('production and opt-out reject binding regardless of valid signatures',asyn
   if(flag===undefined)delete process.env.GAIZ_DEV_ONLY;else process.env.GAIZ_DEV_ONLY=flag;
  }
 });
+
+const credentialIssuer=generateKeyPairSync('ed25519');
+const challenge=randomBytes(32).toString('base64url');
+const signedCredential=(mod={})=>{
+ const claims={version:1,issuerId:'synthetic-independent-issuer',workerId,
+   role:'gaiz_verify_worker',challenge,
+   issuedAtMs:1800000000000,expiresAtMs:1800000030000,...mod};
+ return b64(JSON.stringify({claims,signature:b64(sign(null,Buffer.from(
+   'GAIZ_WORKLOAD_CREDENTIAL_V1\n'+canon(claims)),credentialIssuer.privateKey))}));
+};
+const credentialOpts=()=>({
+ ...opts(),
+ signedWorkloadCredential:signedCredential(),
+ trustedCredentialIssuerPublicKey:credentialIssuer.publicKey,
+ expectedCredentialIssuerId:'synthetic-independent-issuer',
+ expectedWorkerId:workerId,
+ expectedChallenge:challenge,
+});
+
+test('triple-independent-signature candidate ignores forged workload description',()=>within(()=>{
+ const r=bindGaiz2RecipientWithSignedCredentialCandidate(file(),{
+   ...credentialOpts(),
+   workload:{...workload(),workerId:workItemId,role:'gaiz_execute_worker'},
+ });
+ assert.equal(r.workerId,workerId);
+ assert.equal(r.credentialIssuer,'synthetic-independent-issuer');
+ assert.equal(r.importAllowed,false);
+ assert.equal(r.custodyAuthorizationRequired,true);
+}));
+
+test('invalid workload credential prevents signed recipient binding',()=>within(()=>{
+ const bytes=file();
+ for(const change of [
+  {expectedChallenge:randomBytes(32).toString('base64url')},
+  {expectedWorkerId:workItemId},
+  {trustedCredentialIssuerPublicKey:generateKeyPairSync('ed25519').publicKey},
+  {signedWorkloadCredential:signedCredential({role:'gaiz_execute_worker'})},
+  {signedWorkloadCredential:signedCredential({expiresAtMs:1800000200000})},
+ ])assert.throws(()=>bindGaiz2RecipientWithSignedCredentialCandidate(bytes,{
+  ...credentialOpts(),...change,
+ }));
+}));
