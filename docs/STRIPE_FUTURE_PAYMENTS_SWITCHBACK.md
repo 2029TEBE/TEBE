@@ -117,3 +117,40 @@ actual Stripe test-mode Checkout-to-webhook-to-PostgreSQL sequence has
 products or prices; inline renewal `price_data` does not require them.
 Production remains disabled until all acceptance evidence and an authorized
 live Stripe merchant account are available.
+
+
+## Connected Stripe sandbox webhook inventory
+
+On **2026-11-16**, the connected `The Epmo sandbox` account
+(`livemode=false`) returned **zero** registered webhook endpoints from
+Stripe's `GET /v1/webhook_endpoints` API. The existing backend route
+`/api/v1/billing/stripe-webhook` is implemented, but **no Stripe destination
+has been verified to deliver to it**. Therefore live sandbox settlement
+verification is blocked independently of local code and CI status.
+
+This branch adds a read-only audit command:
+
+```sh
+pnpm verify:stripe:staging
+pnpm verify:stripe:webhooks
+```
+
+The webhook audit queries Stripe's **test** webhook endpoint listing using
+only `sk_test_...` credentials, requires a single enabled endpoint matching
+`STRIPE_WEBHOOK_PUBLIC_URL`, and checks for these event types:
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`charge.refunded`, `charge.dispute.created`, and
+`charge.dispute.closed`. It rejects the wrong mode, missing/mismatched
+destination, missing events, duplicate eligible destinations, or incomplete
+pagination. The audit never creates charges/endpoints or prints API keys.
+
+**Next operator step:** establish which public HTTPS staging domain and API
+deployment are genuinely reachable, register the Stripe **test-mode**
+webhook destination there through an approved Stripe configuration step,
+store the generated `whsec_...` in secret storage (never a repository),
+then run the read-only audit and complete test-mode Checkout, delivery and
+disposable Postgres tenant-isolation acceptance. Do not guess a URL or
+substitute `https://app.theepmo.com` for an unverified staging service.
+
+Passing endpoint inventory alone does not prove webhook deliveries,
+idempotence or subscription settlement. No activation or production release.
