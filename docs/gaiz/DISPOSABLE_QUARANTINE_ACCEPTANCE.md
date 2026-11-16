@@ -54,9 +54,19 @@ node --test apps/api/src/gaiz/gaiz-workflow.test.mjs
 pnpm build:packages
 pnpm --filter @pmo/api typecheck
 pnpm verify:rls
+
+# Only after an independently reviewed disposable PostgreSQL setup:
+GAIZ_DISPOSABLE_DATABASE_URL="postgres://gaiz_test_role:...@127.0.0.1:5432/gaiz_disposable_test" \\
+GAIZ_TEST_TENANT_A="00000000-0000-4000-8000-000000000001" \\
+GAIZ_TEST_TENANT_B="00000000-0000-4000-8000-000000000002" \\
+node --test packages/db/src/gaiz-disposable-db-acceptance.mjs
 ```
-No results are claimed for these commands. Database integration tests still
-must be implemented and run before approval. GitHub Actions is not a substitute
+No results are claimed for these commands. The read-only RLS/privilege and audited rollback
+tests are now implemented as a dedicated opt-in runner, but **not executed**.
+Quarantine concurrency, draft-import atomicity, seeded RLS fixtures and all
+TO-produced interop acceptance still require real disposable-database runs.
+The runner rejects privileged or non-disposable database names and requires two
+synthetic tenant IDs; it skips when no disposable URL is supplied. GitHub Actions is not a substitute
 for independent disposable RLS and concurrency evidence.
 
 ## Non-goals
