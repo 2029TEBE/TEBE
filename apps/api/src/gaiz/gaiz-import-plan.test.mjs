@@ -32,6 +32,7 @@ test('wrong tenant, review, forged report, wrong project fail closed',()=>{
   {context:{...args.context,tenantId:'99999999-9999-4999-8999-999999999999'}},
   {review:{...args.review,reviewedBy:request}},
   {review:{...args.review,status:'pending'}},
+  {review:{...args.review,expiresAt:'not-a-date'}},
   {verifiedArtifact:{...args.verifiedArtifact,sha256:'c'.repeat(64)}},
   {project:{...args.project,tenantId:'88888888-8888-4888-8888-888888888888'}},
   {trustedCustodianPublicKey:generateKeyPairSync('ed25519').publicKey},
