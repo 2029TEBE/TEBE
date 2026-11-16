@@ -17,6 +17,7 @@ function httpsEndpoint(raw, expectedPath = '') {
 export function checkStripeStagingConfig(env) {
   const checks = [
     ['Stripe-only billing provider selected', env.BILLING_PROVIDER === 'stripe'],
+    ['Stripe billing mode explicitly selected', env.BILLING_MODE === 'stripe'],
     ['Stripe adapter explicitly enabled', env.STRIPE_ENABLED === 'true'],
     ['Stripe test key configured (not live)', /^sk_test_[A-Za-z0-9]{12,}$/.test(env.STRIPE_SECRET_KEY || '')],
     ['Stripe webhook signing secret present', /^whsec_[A-Za-z0-9]{16,}$/.test(env.STRIPE_WEBHOOK_SECRET || '')],
