@@ -1,6 +1,8 @@
 // Source-only integration regression. No app route, DB, payments, credentials or keys.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as crypto from 'node:crypto';
+import {verifyGaiz2ForQuarantine} from './gaiz2-enterprise-verifier.mjs';
 import {planSyntheticGaizGovernanceDraft} from './gaiz-draft-mapping.mjs';
 import {requireGaizOperation,transitionGaizImport,gaizReplayIdentity} from './gaiz-workflow.mjs';
 
@@ -44,4 +46,57 @@ test('a draft proposal never bypasses distinct-person approval, revisions or ten
     gaizReplayIdentity({tenantId,issuerKeyId:'issuer-a',artifactId:'synthetic'}),
     gaizReplayIdentity({tenantId:otherTenant,issuerKeyId:'issuer-a',artifactId:'synthetic'})
   );
+});
+
+test('valid GAIZ2 signature remains metadata only and never supplies mapping authorization',()=>{
+  const {generateKeyPairSync,randomBytes,createCipheriv,publicEncrypt,sign,constants}=crypto;
+  const issuer=generateKeyPairSync('ed25519');
+  const recipient=generateKeyPairSync('rsa',{modulusLength:3072});
+  const manifest={
+    artifactId:'synthetic',contentType:'application/vnd.orgaiz.report+json',
+    createdAt:'2026-11-16T00:00:00.000Z',issuerId:'issuer-a',
+    schemaVersion:1,tenantScope:tenantId,version:2,
+  };
+  const canonical=x=>Array.isArray(x)?'['+x.map(canonical).join(',')+']':
+    x&&typeof x==='object'?
+      '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}':
+      JSON.stringify(x);
+  const base64=x=>Buffer.from(x).toString('base64url');
+  const dek=randomBytes(32), nonce=randomBytes(12);
+  const cipher=createCipheriv('aes-256-gcm',dek,nonce);
+  cipher.setAAD(Buffer.from(canonical(manifest)));
+  const ciphertext=Buffer.concat([cipher.update(Buffer.from(canonical(content))),cipher.final()]);
+  const unsigned={
+    manifest,nonce:base64(nonce),ciphertext:base64(ciphertext),
+    tag:base64(cipher.getAuthTag()),
+    recipients:[{keyId:'recipient-a',wrappedKey:base64(publicEncrypt({
+      key:recipient.publicKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256',
+    },dek))}],
+  };
+  dek.fill(0);
+  const signature=base64(sign(null,Buffer.from('GAIZ2\\n'+canonical(unsigned)),issuer.privateKey));
+  const envelope=Buffer.from('GAIZ2\\n'+canonical({...unsigned,signature}));
+  const receipt=verifyGaiz2ForQuarantine(envelope,{
+    trustedIssuerPublicKey:issuer.publicKey,expectedIssuerId:'issuer-a',
+    expectedTenantScope:tenantId,
+  });
+  assert.equal(receipt.signatureVerified,true);
+  assert.equal(receipt.authorizationGranted,false);
+  assert.equal(receipt.importAllowed,false);
+  assert.throws(()=>planSyntheticGaizGovernanceDraft(content,{
+    ...evidence,signatureValid:receipt.signatureVerified,
+    aeadValid:receipt.importAllowed,
+  }));
+  assert.throws(()=>transitionGaizImport({
+    tenantId,artifactId:'synthetic',id:'job',requestedBy:submittedBy,
+    state:'pending_approval',revision:0,
+  },{
+    nextState:'approved',expectedRevision:0,
+    signatureValid:receipt.signatureVerified,aeadValid:receipt.importAllowed,
+    mappingValidated:true,entitled:true,
+  },actor));
+  assert.throws(()=>verifyGaiz2ForQuarantine(envelope,{
+    trustedIssuerPublicKey:issuer.publicKey,expectedIssuerId:'issuer-a',
+    expectedTenantScope:otherTenant,
+  }));
 });
