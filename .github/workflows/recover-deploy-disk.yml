@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: epmo-production-deployment
   cancel-in-progress: false
@@ -16,7 +17,16 @@ jobs:
     timeout-minutes: 20
     environment: production
     steps:
-      - name: Reclaim only unused Docker build cache and report storage
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: epmo-tested-images-66345499235b623c7423aa5944abca3fbcc2dc75
+          path: ${{ runner.temp }}/identity-diagnostic
+          github-token: ${{ github.token }}
+          run-id: 43946933613
+      - name: Diagnose runtime identity without changing VPS state
         env:
           DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
@@ -31,5 +41,7 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > "$keydir/key"
           printf '%s\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
           unset DEPLOY_KEY KNOWN_HOSTS
-          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force; docker system df; df -h /var/lib/docker /var/lib/containerd'
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" "docker image inspect epmo-api:ci" | node scripts/diagnose-image-runtime.mjs "$RUNNER_TEMP/identity-diagnostic/images.tar.gz" api
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" "docker image inspect epmo-web:ci" | node scripts/diagnose-image-runtime.mjs "$RUNNER_TEMP/identity-diagnostic/images.tar.gz" web
+          node -e 'const m=require(process.argv[1]); console.log(JSON.stringify(m.images,null,2))' "$RUNNER_TEMP/identity-diagnostic/manifest.json"
 # No image/container/volume pruning, backup removal, migration or app restart.
