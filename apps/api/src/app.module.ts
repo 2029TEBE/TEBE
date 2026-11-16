@@ -17,6 +17,7 @@ import { AskXModule } from './askx/askx.module';
 import { MicrosoftModule } from './microsoft/microsoft.module';
 import { ModuleGuard } from './platform/module.guard';
 import { RequestLogMiddleware } from './common/request-log.middleware';
+import { GaizCustomerModule } from './gaiz/gaiz-customer.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { RequestLogMiddleware } from './common/request-log.middleware';
     // @Throttle overrides on the login route target.
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 300 }] }),
     AuthModule, PlatformModule, CreatesModule, OnboardingModule, PortfolioModule, GovernanceModule, InsightsModule,
-    ExcelModule, ExportsModule, NotifyModule, AskXModule, MicrosoftModule,
+    ExcelModule, ExportsModule, NotifyModule, AskXModule, MicrosoftModule, GaizCustomerModule,
   ],
   controllers: [HealthController],
   providers: [
