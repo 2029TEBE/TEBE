@@ -73,6 +73,12 @@ DO $$ BEGIN
     GRANT UPDATE (status, report_sha256, completed_at)
       ON public.gaiz_custody_attempts TO pmo_app;
   END IF;
+  IF to_regclass('public.gaiz_import_authorizations') IS NOT NULL THEN
+    REVOKE DELETE ON public.gaiz_import_authorizations FROM pmo_app;
+    REVOKE UPDATE ON public.gaiz_import_authorizations FROM pmo_app;
+    GRANT UPDATE (status, approved_by, reviewed_at)
+      ON public.gaiz_import_authorizations TO pmo_app;
+  END IF;
 END $$;
 
 -- The audit ledger is append-only, even for the app role.
