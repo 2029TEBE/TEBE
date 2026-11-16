@@ -47,6 +47,14 @@ export function createGaizTrustPolicy(entries) {
         importAllowed:false,
       });
     },
+    // Backend-only public verification key lookup for inert synthetic preview.
+    // This does not expose key custody or authorize recipient DEK release.
+    publicKeyForSyntheticPreview(keyId,{now=Date.now()}={}){
+      if(!identity(keyId)||!Number.isSafeInteger(now))deny();
+      const issuer=table.get(keyId);
+      if(!issuer||issuer.revoked||now<issuer.notBefore||now>=issuer.notAfter)deny();
+      return issuer.publicKey;
+    },
     keyIds(){ return Object.freeze([...table.keys()]); },
   });
 }
