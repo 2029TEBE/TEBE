@@ -72,3 +72,17 @@ into automatically recurring Stripe Billing subscriptions.
 - No provider history is erased, no historical payments are refunded,
   and no existing tenant subscription is re-created or canceled.
 - No email provider integration is required or authorized here.
+
+## Stripe catalog clarification — test account
+
+The connected **The Epmo sandbox** currently lists no Stripe Products or
+Prices. This does **not** prevent the existing renewal-invoice Checkout:
+`stripeCheckoutParams` supplies Stripe `line_items[0][price_data]`
+from the server-owned invoice amount and currency, in `mode=payment`.
+No catalog products/prices need to be invented for this one-off renewal flow.
+
+A future **automatic recurring subscription** or new-plan purchase would
+need a separate reviewed Stripe Billing design, plan/price mappings, tax
+policy, invoice and subscription webhooks, migration/cancellation behavior,
+and separately authorized sandbox setup. Do not create live catalog records
+or enable charges based on this draft.
