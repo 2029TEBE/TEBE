@@ -1,0 +1,24 @@
+name: GAIZ2 read-only verifier conformance
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/gaiz/**'
+      - '.github/workflows/gaiz2-conformance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gaiz2-verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify GAIZ2 module syntax
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-verifier.mjs
+          node --check apps/api/src/gaiz/gaiz2-verifier.test.mjs
+      - name: Run GAIZ2 synthetic wire compatibility and negative tests
+        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs
