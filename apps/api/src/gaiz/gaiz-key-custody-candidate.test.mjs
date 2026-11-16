@@ -6,6 +6,18 @@ import {resolve,dirname} from 'node:path';
 import {createGaizTrustPolicy} from './gaiz-trust.mjs';
 import {previewGaizWithCustodyCandidate} from './gaiz-key-custody-candidate.mjs';
 
+// This test exercises an explicitly development-only custody seam.
+// Restore environment after the suite; production remains fail-closed.
+const previousGaizDevOnly=process.env.GAIZ_DEV_ONLY;
+const previousNodeEnv=process.env.NODE_ENV;
+test.before(()=>{ process.env.GAIZ_DEV_ONLY='true'; process.env.NODE_ENV='test'; });
+test.after(()=>{
+ if(previousGaizDevOnly===undefined) delete process.env.GAIZ_DEV_ONLY;
+ else process.env.GAIZ_DEV_ONLY=previousGaizDevOnly;
+ if(previousNodeEnv===undefined) delete process.env.NODE_ENV;
+ else process.env.NODE_ENV=previousNodeEnv;
+});
+
 const dir=dirname(fileURLToPath(import.meta.url));
 const fixture=JSON.parse(readFileSync(resolve(dir,'fixtures/to-producer-synthetic-v1.json'),'utf8'));
 const bytes=Buffer.from(fixture.envelopeBase64,'base64');
