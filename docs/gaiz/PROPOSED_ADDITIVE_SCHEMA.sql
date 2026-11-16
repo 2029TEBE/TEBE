@@ -1,63 +1,58 @@
--- REVIEW PROPOSAL ONLY: NOT INCLUDED IN THE EXECUTABLE MIGRATION LEDGER.
--- Requires DBA/security review, disposable-tenant testing, and RLS policy
--- comparison against packages/db/sql/rls.sql before integration.
--- Do not run against production.
-CREATE TABLE IF NOT EXISTS gaiz_artifacts (
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL REFERENCES tenants(id),
-  artifact_id text NOT NULL,
-  issuer_key_id text NOT NULL,
-  envelope_sha256 char(64) NOT NULL,
-  content_integrity_verified_at timestamptz,
-  verification_status text NOT NULL CHECK
-    (verification_status IN ('pending','verified','invalid','unsupported','untrusted','tenant_mismatch')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, issuer_key_id, artifact_id),
-  UNIQUE (tenant_id, envelope_sha256),
-  UNIQUE (id, tenant_id)
-);
+-- REVIEW-ONLY PROPOSAL: DO NOT APPLY AS A MIGRATION.
+-- Reconcile with real TEBE DB, RLS and worker grants before disposable testing.
+-- No deployment or database modifications are authorized by this file.
 
--- The following is an isolated ciphertext quarantine table, NOT a metadata or key table.
--- All bytes here are UNTRUSTED and must not be parsed without independent
--- signature, tenant and AEAD validation. Access is server-only.
--- Use a separately approved encrypted-at-rest PostgreSQL volume and retention
--- policy; delete ciphertext by a reviewed privileged expiry job.
-CREATE TABLE IF NOT EXISTS gaiz_quarantine_blobs (
+-- Untrusted ciphertext is quarantined before issuer and payload verification.
+CREATE TABLE gaiz_quarantine_blobs (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   requested_by uuid NOT NULL REFERENCES users(id),
-  idempotency_key text NOT NULL CHECK (length(idempotency_key) BETWEEN 16 AND 128),
+  idempotency_key text NOT NULL CHECK (idempotency_key ~ '^[A-Za-z0-9_-]{16,128}$'),
   envelope_sha256 char(64) NOT NULL CHECK (envelope_sha256 ~ '^[0-9a-f]{64}$'),
-  envelope_bytes bytea NOT NULL CHECK (
-    octet_length(envelope_bytes) > 6 AND octet_length(envelope_bytes) <= 8388608
-  ),
-  content_length integer NOT NULL CHECK (content_length > 6 AND content_length <= 8388608),
-  state text NOT NULL DEFAULT 'quarantined' CHECK (
-    state IN ('quarantined', 'verified', 'rejected', 'expired')
-  ),
+  envelope_bytes bytea NOT NULL,
+  content_length integer NOT NULL CHECK (content_length BETWEEN 7 AND 8388608),
+  state text NOT NULL DEFAULT 'quarantined'
+    CHECK (state IN ('quarantined','verified','rejected','expired')),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '24 hours'),
   UNIQUE (tenant_id, idempotency_key),
   UNIQUE (id, tenant_id),
   CHECK (content_length = octet_length(envelope_bytes))
 );
-CREATE INDEX IF NOT EXISTS gaiz_quarantine_expiry_idx
-  ON gaiz_quarantine_blobs (expires_at);
+CREATE INDEX gaiz_quarantine_expiry_idx ON gaiz_quarantine_blobs (expires_at);
 
+-- Artifact identities can only be established by a trusted verifier worker.
+CREATE TABLE gaiz_artifacts (
+  id uuid PRIMARY KEY,
+  tenant_id uuid NOT NULL REFERENCES tenants(id),
+  artifact_id text NOT NULL CHECK (char_length(artifact_id) BETWEEN 1 AND 256),
+  issuer_key_id text NOT NULL,
+  envelope_sha256 char(64) NOT NULL CHECK (envelope_sha256 ~ '^[0-9a-f]{64}$'),
+  content_integrity_verified_at timestamptz,
+  verification_status text NOT NULL
+    CHECK (verification_status IN ('pending','verified','invalid',
+      'unsupported','untrusted','tenant_mismatch')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, issuer_key_id, artifact_id),
+  UNIQUE (tenant_id, envelope_sha256),
+  UNIQUE (id, tenant_id)
+);
 
-CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
+CREATE TABLE gaiz_import_jobs (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   quarantine_ref uuid NOT NULL,
   artifact_ref uuid,
   state text NOT NULL CHECK
-    (state IN ('quarantined','verified','pending_approval','approved','rejected','importing','imported','failed')),
+    (state IN ('quarantined','verified','pending_approval','approved',
+      'rejected','importing','imported','failed')),
   revision integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
   requested_by uuid NOT NULL REFERENCES users(id),
   approved_by uuid REFERENCES users(id),
   approval_decided_at timestamptz,
   idempotency_key text NOT NULL,
-  idempotency_request_sha256 char(64) NOT NULL,
+  idempotency_request_sha256 char(64) NOT NULL
+    CHECK (idempotency_request_sha256 ~ '^[0-9a-f]{64}$'),
   mapped_schema_version integer,
   mapping_validated_at timestamptz,
   correlation_id uuid NOT NULL,
@@ -66,57 +61,21 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   UNIQUE (tenant_id, idempotency_key),
   UNIQUE (tenant_id, quarantine_ref),
   UNIQUE (id, tenant_id),
-  FOREIGN KEY (quarantine_ref, tenant_id) REFERENCES gaiz_quarantine_blobs(id, tenant_id),
+  FOREIGN KEY (quarantine_ref, tenant_id)
+    REFERENCES gaiz_quarantine_blobs(id, tenant_id),
   FOREIGN KEY (artifact_ref, tenant_id) REFERENCES gaiz_artifacts(id, tenant_id),
-  CHECK (state = 'quarantined' OR artifact_ref IS NOT NULL)
+  -- Early rejection and verification failure may occur before artifact_ref exists.
+  CHECK (state IN ('quarantined','rejected','failed') OR artifact_ref IS NOT NULL),
+  CHECK (state NOT IN ('approved','importing','imported') OR approved_by IS NOT NULL)
 );
 
--- The verifier worker, not the browser, prepares this read-only mapping after
--- successful independent signature, AEAD and schema validation. The mapping
--- is private enterprise content and requires independent DB permission review.
-CREATE TABLE IF NOT EXISTS gaiz_import_proposals (
+-- Privileged verifier output, not directly writable by the customer API role.
+CREATE TABLE gaiz_import_proposals (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   import_id uuid NOT NULL,
-  source_artifact_sha256 char(64) NOT NULL CHECK (source_artifact_sha256 ~ '^[0-9a-f]{64}
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL REFERENCES tenants(id),
-  state text NOT NULL CHECK (state IN ('pending','packaging','ready','failed')),
-  format text NOT NULL CHECK (format IN ('pdf','html','gaiz')),
-  requested_by uuid NOT NULL REFERENCES users(id),
-  idempotency_key text NOT NULL,
-  correlation_id uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, idempotency_key),
-  UNIQUE (id, tenant_id)
-);
-
-CREATE TABLE IF NOT EXISTS gaiz_decisions (
-  id uuid PRIMARY KEY,
-  tenant_id uuid NOT NULL REFERENCES tenants(id),
-  import_id uuid NOT NULL,
-  actor_id uuid NOT NULL REFERENCES users(id),
-  outcome text NOT NULL CHECK (outcome IN ('approved','rejected')),
-  comment text,
-  correlation_id uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id)
-);
-
--- Requires policy review BEFORE executing any CREATE TABLE above:
--- tables must be FORCE ROW LEVEL SECURITY, non-owner app role only,
--- with tenant-scoped USING and WITH CHECK matching the established RLS model.
--- An independent assertion must prove no cross-tenant joins, updates or
--- idempotency/replay namespace collisions are possible.
--- Artifact bytes/DEKs must NOT be written into these metadata tables.
-
--- Enforce RLS before app-role permissions are granted. In a disposable DB,
--- apply the *existing approved* packages/db/sql/rls.sql after table creation.
--- REVOKE SELECT(envelope_bytes) for any role that does not directly process
--- quarantined ciphertext. Do not expose bytea in GET API responses.
--- Only scoped worker identities with a documented retention and access policy
--- may read ciphertext; tenant/application principals are not sufficient.
-),
+  source_artifact_sha256 char(64) NOT NULL
+    CHECK (source_artifact_sha256 ~ '^[0-9a-f]{64}$'),
   schema_version integer NOT NULL CHECK (schema_version = 1),
   document_title text NOT NULL CHECK (char_length(document_title) BETWEEN 1 AND 200),
   document_summary text NOT NULL CHECK (char_length(document_summary) BETWEEN 1 AND 5000),
@@ -128,15 +87,14 @@ CREATE TABLE IF NOT EXISTS gaiz_decisions (
   FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id),
   FOREIGN KEY (target_project_id) REFERENCES projects(id)
 );
+-- The executor must separately confirm the project is in the same tenant.
 
--- Provenance/receipt uniqueness prevents two drafts for the same import,
--- including retries and concurrent execution.
-CREATE TABLE IF NOT EXISTS gaiz_import_receipts (
+CREATE TABLE gaiz_import_receipts (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   import_id uuid NOT NULL,
   document_id uuid NOT NULL,
-  envelope_sha256 char(64) NOT NULL,
+  envelope_sha256 char(64) NOT NULL CHECK (envelope_sha256 ~ '^[0-9a-f]{64}$'),
   correlation_id uuid NOT NULL,
   executed_by uuid NOT NULL REFERENCES users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -146,7 +104,7 @@ CREATE TABLE IF NOT EXISTS gaiz_import_receipts (
   FOREIGN KEY (document_id) REFERENCES documents(id)
 );
 
-CREATE TABLE IF NOT EXISTS gaiz_export_jobs (
+CREATE TABLE gaiz_export_jobs (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   state text NOT NULL CHECK (state IN ('pending','packaging','ready','failed')),
@@ -159,7 +117,7 @@ CREATE TABLE IF NOT EXISTS gaiz_export_jobs (
   UNIQUE (id, tenant_id)
 );
 
-CREATE TABLE IF NOT EXISTS gaiz_decisions (
+CREATE TABLE gaiz_decisions (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   import_id uuid NOT NULL,
@@ -171,16 +129,6 @@ CREATE TABLE IF NOT EXISTS gaiz_decisions (
   FOREIGN KEY (import_id, tenant_id) REFERENCES gaiz_import_jobs(id, tenant_id)
 );
 
--- Requires policy review BEFORE executing any CREATE TABLE above:
--- tables must be FORCE ROW LEVEL SECURITY, non-owner app role only,
--- with tenant-scoped USING and WITH CHECK matching the established RLS model.
--- An independent assertion must prove no cross-tenant joins, updates or
--- idempotency/replay namespace collisions are possible.
--- Artifact bytes/DEKs must NOT be written into these metadata tables.
-
--- Enforce RLS before app-role permissions are granted. In a disposable DB,
--- apply the *existing approved* packages/db/sql/rls.sql after table creation.
--- REVOKE SELECT(envelope_bytes) for any role that does not directly process
--- quarantined ciphertext. Do not expose bytea in GET API responses.
--- Only scoped worker identities with a documented retention and access policy
--- may read ciphertext; tenant/application principals are not sufficient.
+-- Before using any of this: review real DB privileges, FORCE RLS, tenant-scoped
+-- FKs, trusted verifier worker roles, unforgeable evidence, and retention.
+-- No secrets/DEKs/plaintext may be written to these metadata tables.
