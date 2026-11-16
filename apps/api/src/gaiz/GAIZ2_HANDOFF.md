@@ -48,3 +48,40 @@ Expected result: a signature-verified receipt, SHA-256 hash, `authorizationGrant
 4. Confirm anonymous, unlicensed and capability-denied requests are rejected.
 5. Confirm the endpoint responds unavailable with production or missing feature configuration.
 6. Confirm no secrets, raw decrypted content or artifacts enter logs.
+
+## GAIZ metadata staging and reviewer workflow (development only)
+
+New draft migration `packages/db/migrations/0020_gaiz_import_staging.sql` adds `gaiz_import_requests`:
+- Tenant-scoped RLS and a matching Drizzle schema table.
+- Unique `(tenant_id,sha256)` and `(tenant_id,artifact_id)` constraints for replay/deduplication.
+- Requester/reviewer IDs, explicit status and expiry; database CHECK rejects approval by the requester.
+- No ciphertext, plaintext, key envelopes or credentials in the table.
+- `packages/db/sql/rls.sql` now contains a conditional app-role DELETE revoke for staged requests.
+
+The migration was **committed but not applied**. Do not enable staging until schema migration, RLS and database-role grants are independently validated on an isolated tenant.
+
+Routes behind development-only flags and the existing authenticated tenant middleware:
+- `POST /api/v1/gaiz/verify`: verified signature receipt, no storage.
+- `POST /api/v1/gaiz/stage`: re-verifies the artifact then creates an idempotent metadata request; requires `pmoa_manage_projects`.
+- `GET /api/v1/gaiz/requests`: tenant-only list capped at 50.
+- `POST /api/v1/gaiz/requests/:id/review`: distinct signed-in user with `pmoa_admin`, pending and unexpired request only. Approve or reject metadata review, never import data.
+
+Both `GAIZ_PREVIEW_ENABLED=true` and `GAIZ_STAGING_ENABLED=true` are intended **only for disposable local development**, and the code refuses non-development environments. The Next.js `/gaiz` UI is also review-only. A valid staged or approved request always returns `importAllowed:false`.
+
+### Runner-independent checks
+
+```sh
+node --test apps/api/src/gaiz/gaiz-verifier.test.mjs \
+  apps/api/src/gaiz/gaiz2-verifier.test.mjs \
+  apps/api/src/gaiz/gaiz-staging.contract.test.mjs
+pnpm --filter @pmo/db typecheck
+pnpm --filter @pmo/api typecheck
+pnpm --filter @pmo/api build
+pnpm --filter @pmo/web build
+```
+
+Test with a disposable PostgreSQL tenant after explicitly reviewing and applying the draft migration. The pinned public TO fixture has a synthetic non-UUID tenant ID and **cannot** be used to bypass authenticated UUID tenant isolation. Generate a separate signed fixture for the disposable tenant and provision a disposable Ed25519 public issuer key *out of band*. Verify wrong tenant, duplicate hash, same artifact ID/different hash, self-approval, expired review, simultaneous reviewers, RLS isolation and audit rollback.
+
+### Explicit nonfeatures / blockers
+
+This workflow does **not** implement customer-authorized content decryption, external issuer trust registry, content quarantine, safe business mapping, replay-proof import transactions, long-term retention or artifact recovery. Persistently 'approved' here means a review decision on metadata only. No permission to apply the file follows automatically. Those features require separate changes and security assessment.
