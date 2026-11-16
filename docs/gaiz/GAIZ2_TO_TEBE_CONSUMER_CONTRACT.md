@@ -101,3 +101,36 @@ cross-runtime fixture, independently administered issuer trust policy,
 trusted recipient credential/key broker, tenant RLS migration, verified
 structured mapping, distinct human approval, transactionally claimed worker
 assignment, durable receipt and executable PostgreSQL acceptance.
+
+
+## Pinned TO-to-TEBE GAIZ2 interoperability fixture
+
+The TEBE draft branch now vendors the *synthetic* reference fixture from
+[TO PR #33](https://github.com/faisalwrokksa-hub/TO/pull/33), specifically
+`gaiz/fixtures/v2-fixed-001/` at the reviewed producer fixture branch.
+The exact producer-supplied `valid.gaiz.b64`, `issuer-public.pem`, and
+`expected.json` live under
+`apps/api/src/gaiz/fixtures/to-gaiz2-fixed-001/`.
+
+`gaiz2-cross-repo-fixture.test.mjs` requires **byte-identical** GAIZ2
+encoding (1,123 bytes, SHA-256
+`14e8a1f6ccc4dd0cf021dfd78a6d03f43f4124ea7854767b1052bcc6c01b5aef`),
+an Ed25519 signature verified with the *pinned public key*, the producer's
+issuer/tenant/artifact IDs, and an import-denying metadata receipt. It also
+checks that a selected recipient descriptor contains *wrapped ciphertext*
+rather than a DEK or plaintext and rejects tampered bytes, changed trust
+anchors, wrong tenant or issuer, and unknown recipient.
+
+The fixture contains **no recipient private key, live credentials, customer
+data, or decryption authority**. It is a consumer **signature-and-wire**
+conformance test, *not* a key-custody or authenticated-import end-to-end
+test. The four tests are registered in deferred GitHub CI but have **not
+been executed in a Node environment here**. TO PR #33 is still a review
+branch and its fixture should not be called a ratified final GAIZ2 standard
+until protocol owner sign-off and independent review occur.
+
+Further gates: obtain protocol owner freeze (including ordering policy),
+KMS-backed recipient authorization, independent issuer rotation and
+revocation, externally attested workload identity, approved DB/RLS
+migrations, atomic assignment/approval/import and real CI/Postgres
+conformance under the reviewed commits. No route or production release.
