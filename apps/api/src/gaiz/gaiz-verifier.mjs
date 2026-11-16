@@ -1,7 +1,8 @@
 // Read-only GAIZ v1 verification adapter. No database writes or decryption-key custody.
-import {verify as verifySignature} from 'node:crypto';
+import {verify as verifySignature, createPublicKey} from 'node:crypto';
 const MAGIC='GAIZ1\n', LIMIT=8*1024*1024;
 const fail=()=>{throw Error('Invalid or untrusted GAIZ artifact')};
+const isPlainObject=x=>x!==null && typeof x==='object' && !Array.isArray(x);
 function canonical(value) {
   if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';
   if(value && typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+canonical(value[k])).join(',')+'}';
@@ -79,21 +80,28 @@ function binary(s) {
 }
 /** Trust publicKey via backend policy, NOT from the file or HTTP caller.
  * Tenant access and authorization remain additional requirements. */
-export function verifyGaizForPreview(bytes, {trustedIssuerPublicKey, expectedTenantScope}) {
+export function verifyGaizForPreview(bytes, {trustedIssuerPublicKey, expectedTenantScope}={}) {
   if(!(Buffer.isBuffer(bytes)||bytes instanceof Uint8Array))fail();
   const input=Buffer.from(bytes);
-  if(!trustedIssuerPublicKey || !expectedTenantScope)throw Error('Missing trusted verification policy');
+  if(!trustedIssuerPublicKey || typeof expectedTenantScope!=='string' || !expectedTenantScope)fail();
   if(input.length>LIMIT || !input.subarray(0,MAGIC.length).equals(Buffer.from(MAGIC)))throw Error('Invalid GAIZ header or bounds');
   let raw;
   try{raw=new TextDecoder('utf-8',{fatal:true}).decode(input.subarray(MAGIC.length))}catch{fail()}
   const doc=parseBounded(raw);
   if(!doc || Array.isArray(doc) || typeof doc!=='object' || Object.keys(doc).sort().join(',')!=='ciphertext,manifest,nonce,signature,tag' ||
-     Array.isArray(doc.manifest) || Object.keys(doc.manifest).sort().join(',')!=='artifactId,tenantScope,version' ||
+     !isPlainObject(doc.manifest) || Object.keys(doc.manifest).sort().join(',')!=='artifactId,tenantScope,version' ||
      !doc.manifest || doc.manifest.version!==1 || typeof doc.manifest.artifactId!=='string' || !doc.manifest.artifactId || doc.manifest.artifactId.length>256 ||
      typeof doc.manifest.tenantScope!=='string' || !doc.manifest.tenantScope || doc.manifest.tenantScope.length>256 ||
      binary(doc.nonce).length!==12 || binary(doc.tag).length!==16 || binary(doc.signature).length!==64 || binary(doc.ciphertext).length>LIMIT)throw Error('Invalid GAIZ structure');
+  let publicKey;
+  try {
+    publicKey=trustedIssuerPublicKey?.type==='public'?trustedIssuerPublicKey:createPublicKey(trustedIssuerPublicKey);
+    if(publicKey.asymmetricKeyType!=='ed25519')fail();
+  } catch {fail()}
   const data=Buffer.from(MAGIC+canonical({manifest:doc.manifest,nonce:doc.nonce,tag:doc.tag,ciphertext:doc.ciphertext}));
-  if(!verifySignature(null,data,trustedIssuerPublicKey,binary(doc.signature)))throw Error('Untrusted GAIZ signature');
+  let accepted=false;
+  try {accepted=verifySignature(null,data,publicKey,binary(doc.signature))}catch{fail()}
+  if(!accepted)fail();
   if(doc.manifest.tenantScope!==expectedTenantScope)throw Error('Tenant mismatch');
   return Object.freeze({verified:true,manifest:Object.freeze({...doc.manifest}),importAllowed:false});
 }
