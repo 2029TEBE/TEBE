@@ -2,6 +2,24 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const file = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const checks = [
+  ['Stripe selected for future charges and existing invoice checkout', () => {
+    const policy = file('apps/api/src/platform/payment-provider-policy.ts');
+    const adapter = file('apps/api/src/platform/stripe.service.ts');
+    const routes = file('apps/api/src/platform/billing.controller.ts');
+    assert.match(policy,/PRIMARY_PAYMENT_PROVIDER = 'stripe'/);
+    assert.match(adapter,/assertStripeForNewCharges\(process\.env\.BILLING_PAYMENT_PROVIDER\)/);
+    assert.match(routes,/@Post\('stripe\/checkout'\)/);
+    assert.doesNotMatch(routes,/@Post\('paddle/);
+  }],
+  ['Checkout cancellation route matches rendered billing UI', () => {
+    assert.match(file('apps/api/src/platform/stripe.service.ts'),/billing=cancel`/);
+    assert.match(file('apps/web/src/app/(app)/billing/page.tsx'),/billing === 'cancel'/);
+  }],
+  ['Stripe-first provider contract exists', () => {
+    assert.match(file('apps/api/src/platform/payment-provider-policy.ts'),/automatic-stripe-billing-subscriptions/);
+    assert.match(file('apps/api/src/platform/billing.controller.ts'),/@Get\('provider'\)/);
+  }],
+
   ['raw webhook enabled at boot', () => assert.match(file('apps/api/src/main.ts'), /rawBody:\s*true/)],
   ['session middleware bypass only signed webhook', () => assert.match(file('apps/api/src/app.module.ts'), /api\/v1\/billing\/stripe-webhook/)],
   ['Stripe endpoint receives raw bytes', () => assert.match(file('apps/api/src/platform/billing.controller.ts'), /stripeWebhook\(@Req\(\).*req\.rawBody/s)],
