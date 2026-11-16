@@ -20,5 +20,6 @@ jobs:
         run: |
           node --check apps/api/src/gaiz/gaiz2-verifier.mjs
           node --check apps/api/src/gaiz/gaiz2-verifier.test.mjs
+          node --check apps/api/src/gaiz/gaiz-custody-policy.mjs
       - name: Run GAIZ2 synthetic wire compatibility and negative tests
-        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs
+        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs apps/api/src/gaiz/gaiz-custody-policy.test.mjs apps/api/src/gaiz/gaiz-staging.contract.test.mjs
