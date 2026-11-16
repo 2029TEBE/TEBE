@@ -153,6 +153,9 @@ fi
 if [[ -n "$TESTED_BUNDLE" ]]; then
   # Docker load accepts the authenticated gzip archive over SSH stdin. No
   # registry credentials, remote archive extraction or VPS rebuild is needed.
+  # Reclaim unused build cache before expanding the archive. Keep all images,
+  # containers, volumes and database backups for service continuity and rollback.
+  ssh_remote "docker builder prune --all --force && docker system df"
   ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
   for spec in "api|$API_RUNTIME_DIGEST|$API_IMAGE" "web|$WEB_RUNTIME_DIGEST|$WEB_IMAGE"; do
     IFS='|' read -r service expected_digest release_tag <<< "$spec"
