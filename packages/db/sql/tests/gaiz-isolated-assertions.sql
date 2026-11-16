@@ -28,7 +28,7 @@ DO $$ BEGIN
  THEN RAISE EXCEPTION 'tenant-2 authorized read failed'; END IF;
 END $$;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
-DO $ DECLARE blocked boolean:=false; BEGIN
+DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_import_requests
    (tenant_id,artifact_id,sha256,issuer_id,requested_by,status,reviewed_by,reviewed_at)
