@@ -13,7 +13,7 @@ const args={customerId,orderId,idempotencyKey:'request-key-12345678',
 const row=x=>({rows:x?[x]:[]});
 function db({
  account='active',state='paid',grant='verified_payment',
- entitlement=true,policy=true,insert=true,update=true
+ entitlement=true,policy=true,settled=true,insert=true,update=true
 }={}){
  const queries=[],jobs=new Map();let orderState=state,revision=3,released=0;
  const query=async(sql,params=[])=>{
@@ -48,8 +48,13 @@ function db({
   assert.equal(request.orderId,orderId);
   return {allowed:policy,active:true,quotaAvailable:true};
  }};
+ const settlementVerifier={async requireSettledOrderInTransaction(client,request){
+  assert.ok(client);
+  return {verifiedByServer:true,settled,revoked:false,
+   orderId,customerId,entitlementId:request.entitlementId};
+ }};
  const service=createGaizTransactionalReportJobs({
-  enabled:true,pool:store,toolPolicy,clock:()=>NOW
+  enabled:true,pool:store,toolPolicy,settlementVerifier,clock:()=>NOW
  });
  return {service,queries,jobs,released:()=>released};
 }
@@ -90,7 +95,7 @@ test('same idempotency key with changed request rejects under lock',async()=>{
 });
 test('unpaid and suspended accounts never obtain jobs',async()=>{
  for(const opts of [{state:'created'},{account:'suspended'},{entitlement:false},
-  {grant:'manual_override'},{policy:false}]){
+  {grant:'manual_override'},{policy:false},{settled:false}]){
   const d=db(opts);
   await assert.rejects(d.service.submitFromEntitlement(args));
   assert.equal(d.queries.some(q=>q.sql.includes('INSERT INTO orgaiz_jobs')),false);
