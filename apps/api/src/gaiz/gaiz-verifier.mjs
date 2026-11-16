@@ -11,7 +11,7 @@ function canonical(value) {
 }
 
 /** Strict, bounded JSON scanner: JSON.parse alone accepts duplicate keys. */
-function parseBounded(raw) {
+export function parseBoundedGaizJson(raw) {
   let i=0, count=0;
   const space=()=>{while(i<raw.length && /[\x20\t\r\n]/.test(raw[i]))i++};
   function str() {
@@ -87,7 +87,7 @@ export function verifyGaizForPreview(bytes, {trustedIssuerPublicKey, expectedTen
   if(input.length>LIMIT || !input.subarray(0,MAGIC.length).equals(Buffer.from(MAGIC)))throw Error('Invalid GAIZ header or bounds');
   let raw;
   try{raw=new TextDecoder('utf-8',{fatal:true}).decode(input.subarray(MAGIC.length))}catch{fail()}
-  const doc=parseBounded(raw);
+  const doc=parseBoundedGaizJson(raw);
   if(!doc || Array.isArray(doc) || typeof doc!=='object' || Object.keys(doc).sort().join(',')!=='ciphertext,manifest,nonce,signature,tag' ||
      !isPlainObject(doc.manifest) || Object.keys(doc.manifest).sort().join(',')!=='artifactId,tenantScope,version' ||
      !doc.manifest || doc.manifest.version!==1 || typeof doc.manifest.artifactId!=='string' || !doc.manifest.artifactId || doc.manifest.artifactId.length>256 ||
