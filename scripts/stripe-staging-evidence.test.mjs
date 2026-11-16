@@ -155,3 +155,10 @@ test('fails Stripe session bound to different tenant metadata',async()=>{
  };
  await assert.rejects(()=>collectStripeEvidence(env,bad),/tenant metadata/);
 });
+
+test('refuses evidence when Stripe-only staging provider is not active',()=>{
+ assert.throws(()=>validateEvidenceConfig({...env,BILLING_PROVIDER:'reference'}),/Stripe-only/);
+ assert.throws(()=>validateEvidenceConfig({...env,BILLING_PROVIDER:undefined}),/Stripe-only/);
+ assert.throws(()=>validateEvidenceConfig({...env,STRIPE_ENABLED:'false'}),/Checkout must be enabled/);
+ assert.throws(()=>validateEvidenceConfig({...env,BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}),/Reference settlement/);
+});
