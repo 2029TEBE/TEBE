@@ -180,3 +180,15 @@ node --test apps/api/src/gaiz/gaiz-import-authorization.test.mjs \
 ```
 
 Production release gates remain: isolated test DB migrations 0020–0022, tenant RLS and race testing, authoritative target snapshot/revision checks, KMS/HSM and recipient custody, second-person security review, rollback and audit consistency, and full application build. A successful test of no-write functions does **not** constitute safe permission to merge or import enterprise data.
+
+## Step 5 — project/portfolio revisions and authoritative snapshot reader
+
+Added draft migration `packages/db/migrations/0023_gaiz_entity_revisions.sql`. It introduces an integer `revision` on `projects` and `portfolios`, initialized to zero for existing rows, plus a PostgreSQL `BEFORE UPDATE` trigger that increments every time either table is updated. Its guard prevents signed-integer overflow and transaction rollback restores both values. **This trigger also affects all ordinary non-GAIZ application updates**, so independently regression-test every affected route, bulk update and migration before considering it for production.
+
+Drizzle definitions now include `revision`. `GaizSnapshotService` is an **internal-only** service, disabled unless `NODE_ENV=development`, `GAIZ_SNAPSHOT_PREVIEW_ENABLED=true` and optional deployment environment is development. It derives tenant context from authentication, checks the existing `pmoa_manage_projects` capability, uses `withTenant` for RLS, selects only the allowed project name or portfolio description plus row ID/tenant/revision, and computes the exact `fingerprintGaizTarget` used by the existing import-authorization preflight.
+
+`GaizImportAuthorizationService.request` now independently calls `snapshots.checkUnchanged` to ensure that the target revision and hash supplied for a proposed review match a fresh tenant-scoped database read. It still stores only a review decision and cannot modify projects or portfolios. A **new read-only query before reserving review does not make a future write race-free**; a real importer must perform a single transaction with a compare-and-swap revision predicate and verified approval/consent, and must record audit or roll back together.
+
+`gaiz-snapshot.contract.test.mjs` covers trigger invariants, schema, tenant-scoped queries and snapshot digest changes. These source-level tests are not proof that migration 0023 or the application currently works against PostgreSQL. No migration was applied. There is no new public GAIZ snapshot endpoint.
+
+**Required tests before release:** run migrations 0020, 0021, 0022 and 0023 in sequence on an isolated PostgreSQL test database; validate RLS, GRANT restrictions, project and portfolio writes from existing APIs, trigger increments exactly once per update, rollback behavior, lock/concurrency cases, tenant-crossing attempts, and the API/web TypeScript build. Keep all draft PRs unmerged until checks pass.
