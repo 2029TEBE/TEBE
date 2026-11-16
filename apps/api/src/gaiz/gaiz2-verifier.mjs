@@ -103,3 +103,36 @@ export function verifyGaiz2ForQuarantine(bytes,{
     recipientCount:doc.recipients.length,
   });
 }
+
+
+/**
+ * Only expose signed ciphertext metadata for ONE backend-selected recipient.
+ * The descriptor is NOT authorization. The key custodian must independently
+ * enforce entitlement, workload identity, tenant and key scope.
+ */
+export function verifyGaiz2RecipientForCustody(bytes,{
+  trustedIssuerPublicKey,expectedIssuerId,expectedTenantScope,recipientKeyId,
+}={}){
+  if(!id(recipientKeyId))deny();
+  const input=Buffer.from(bytes??[]);
+  const receipt=verifyGaiz2ForQuarantine(input,{
+    trustedIssuerPublicKey,expectedIssuerId,expectedTenantScope,
+  });
+  // Re-parse only AFTER the exact raw bytes passed canonical/signature checks.
+  const doc=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(
+    input.subarray(MAGIC.length)));
+  const found=doc.recipients.find(r=>r.keyId===recipientKeyId);
+  if(!found)deny();
+  return Object.freeze({
+    ...receipt,
+    recipientKeyId,
+    // Opaque RSA-OAEP ciphertext, not a DEK and not sufficient to unwrap.
+    wrappedKey:found.wrappedKey,
+    // Ciphertext and manifest stay in the verifier process for AEAD preview.
+    manifest:Object.freeze({...doc.manifest}),
+    nonce:doc.nonce,
+    tag:doc.tag,
+    ciphertext:doc.ciphertext,
+    authorizationGranted:false,importAllowed:false,
+  });
+}
