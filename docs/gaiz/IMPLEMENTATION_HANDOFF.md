@@ -53,6 +53,17 @@ approved mapping to DRAFT records; durable CAS + replay uniqueness; approved
 tenant RLS migration; transactional audit; object-level authorization and
 negative/positive disposable tenant acceptance.
 
+## Latest safe implementation checkpoint
+- Bounded quarantine preparation via `gaiz-intake.mjs` records only a SHA-256
+  and non-sensitive metadata; no object storage, upload route, preview rights
+  or database write is activated.
+- Idempotency collisions with a reused key but different artifact digest are
+  rejected; the database adapter must atomically enforce this during intake.
+- Draft tenant RLS policy review is in `docs/gaiz/PROPOSED_RLS_REVIEW.sql`;
+  **not applied**, and requires comparison to the auto-generated RLS script.
+- Draft approval adapter now revalidates the actual signed-in tenant, actor
+  and `pmoa_approve` capability even if called outside the orchestrator.
+
 ## Security-critical persistence requirements
 - Atomically claim unique tenant+issuer+artifact and idempotency key.
 - Never use in-memory mutexes as concurrency or replay defense.
