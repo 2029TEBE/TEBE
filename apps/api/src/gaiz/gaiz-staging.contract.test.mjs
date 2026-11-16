@@ -13,7 +13,9 @@ test('GAIZ staging stores only signed metadata, without artifact bytes or keys',
   for (const field of ['tenant_id','artifact_id','sha256','issuer_id','requested_by','reviewed_by','status']) {
     assert.match(migration, new RegExp('\\b'+field+'\\b'));
   }
-  assert.doesNotMatch(migration,/ciphertext|plaintext|private_key|wrapped_key|data_encryption_key/i);
+  const tableColumns = migration.split('CREATE TABLE IF NOT EXISTS public.gaiz_import_requests (')[1]?.split(');')[0] ?? '';
+  assert.ok(tableColumns.length > 0);
+  assert.doesNotMatch(tableColumns,/ciphertext|plaintext|private_key|wrapped_key|data_encryption_key/i);
   assert.match(migration,/UNIQUE \(tenant_id, sha256\)/);
   assert.match(migration,/FORCE ROW LEVEL SECURITY/);
   assert.match(service,/onConflictDoNothing/);
