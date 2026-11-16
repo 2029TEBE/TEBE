@@ -2,7 +2,7 @@ name: GAIZ isolated PostgreSQL migration, RLS and concurrency
 on:
   pull_request:
     paths:
-      - 'packages/db/migrations/002[0-3]_gaiz_*.sql'
+      - 'packages/db/migrations/002*_gaiz_*.sql'
       - 'packages/db/sql/tests/gaiz-*'
       - 'packages/db/scripts/gaiz-isolated-*.sh'
       - 'packages/db/sql/rls.sql'
