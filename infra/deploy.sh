@@ -35,8 +35,8 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
   command -v jq >/dev/null
   API_IMAGE=$(jq -er .apiTag <<< "$TESTED_JSON")
   WEB_IMAGE=$(jq -er .webTag <<< "$TESTED_JSON")
-  API_IMAGE_ID=$(jq -er .apiId <<< "$TESTED_JSON")
-  WEB_IMAGE_ID=$(jq -er .webId <<< "$TESTED_JSON")
+  API_RUNTIME_DIGEST=$(jq -er .apiRuntimeDigest <<< "$TESTED_JSON")
+  WEB_RUNTIME_DIGEST=$(jq -er .webRuntimeDigest <<< "$TESTED_JSON")
 fi
 if [[ -z "$TESTED_BUNDLE" && ( -n "$API_IMAGE" || -n "$WEB_IMAGE" ) ]]; then
   IMAGE_REF='^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$'
@@ -154,14 +154,18 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
   # Docker load accepts the authenticated gzip archive over SSH stdin. No
   # registry credentials, remote archive extraction or VPS rebuild is needed.
   ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
-  for spec in "$API_IMAGE_ID|$API_IMAGE" "$WEB_IMAGE_ID|$WEB_IMAGE"; do
-    IFS='|' read -r expected_id release_tag <<< "$spec"
-    actual=$(ssh_remote "docker image inspect --format '{{.Id}}' '$expected_id'")
-    revision=$(ssh_remote "docker image inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}' '$expected_id'")
-    [[ "$actual" == "$expected_id" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
-      echo 'BLOCKED: loaded image identity or revision differs from CI' >&2; exit 1;
+  for spec in "api|$API_RUNTIME_DIGEST|$API_IMAGE" "web|$WEB_RUNTIME_DIGEST|$WEB_IMAGE"; do
+    IFS='|' read -r service expected_digest release_tag <<< "$spec"
+    loaded=$(ssh_remote "docker image inspect 'epmo-$service:ci'")
+    identity=$(printf '%s' "$loaded" | node scripts/ci-image-bundle.mjs identity)
+    actual=$(jq -er .id <<< "$identity")
+    digest=$(jq -er .runtimeDigest <<< "$identity")
+    revision=$(jq -er .revision <<< "$identity")
+    [[ "$digest" == "$expected_digest" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      echo 'BLOCKED: loaded image runtime content or revision differs from CI' >&2; exit 1;
     }
-    ssh_remote "docker image tag '$expected_id' '$release_tag'"
+    ssh_remote "docker image tag '$actual' '$release_tag'"
+    if [[ "$service" == api ]]; then API_IMAGE_ID=$actual; else WEB_IMAGE_ID=$actual; fi
   done
   APP_COMPOSE="EPMO_RELEASE_API_IMAGE='$API_IMAGE' EPMO_RELEASE_WEB_IMAGE='$WEB_IMAGE' $COMPOSE -f docker-compose.tested-images.yml"
 elif [[ -n "$API_IMAGE" ]]; then
