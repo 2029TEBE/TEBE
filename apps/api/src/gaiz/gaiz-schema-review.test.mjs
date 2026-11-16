@@ -40,5 +40,7 @@ test('untrusted application role is denied evidence forgery',()=>{
   assert.match(policy,/REVOKE INSERT, UPDATE, DELETE ON gaiz_artifacts FROM pmo_app/);
   assert.match(policy,/REVOKE INSERT ON gaiz_import_receipts FROM pmo_app/);
   assert.match(policy,/REVOKE SELECT ON gaiz_quarantine_blobs FROM pmo_app/);
+  assert.match(policy,/REVOKE INSERT, UPDATE, DELETE ON gaiz_import_jobs FROM pmo_app/);
+  assert.match(policy,/REVOKE INSERT, UPDATE, DELETE ON gaiz_decisions FROM pmo_app/);
   assert.match(policy,/dedicated executor role/i);
 });
