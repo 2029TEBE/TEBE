@@ -1,7 +1,8 @@
 /**
  * Inactive GAIZ2 custody grant replay claim.
- * Requires a separately verified signed custody-policy receipt, an exact
- * SHA256 digest of the signed grant token, and an independently authenticated
+ * Independently verifies a signed custody policy using backend-owned trust,
+ * then claims the exact
+ * SHA256 digest of the signed grant token under an independently authenticated
  * worker DB role. No unwrap, KMS call, import authorization, or public route.
  *
  * Execute in the same transaction as the already verified assignment claim
@@ -9,6 +10,7 @@
  */
 import {createHash} from 'node:crypto';
 import {sql} from 'drizzle-orm';
+import {verifyGaiz2CustodyGrantCandidate} from './gaiz2-custody-grant-candidate.mjs';
 const deny=()=>{throw Error('GAIZ2 custody grant replay claim denied')};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
@@ -21,34 +23,25 @@ const bytesOf=x=>{
 };
 const getRows=x=>Array.isArray(x)?x:[];
 
-/** `verifiedGrant` MUST be returned by verifyGaiz2CustodyGrantCandidate
- * using a backend-pinned issuer and backend-derived expected metadata.
- * The caller must not supply a JSON object masquerading as a receipt.
- * A dedicated worker composition boundary enforces that provenance.
+/** Trust anchors and expected identity MUST come from backend-owned immutable
+ * policy and verified GAIZ2/worker evidence, not an HTTP payload.
+ * Never accept caller-supplied verification flags.
  */
 export async function claimGaiz2CustodyGrantInTransaction(tx,{
- signedGrantToken,verifiedGrant,nowMs,
+ signedGrantToken,trustedCustodyIssuerPublicKey,expectedCustodyIssuerId,
+ expected,nowMs,
 }={}){
  if(process.env.NODE_ENV==='production'||process.env.GAIZ_DEV_ONLY!=='true')deny();
- if(!tx||typeof tx.execute!=='function'||!verifiedGrant||
-    verifiedGrant.signedCustodyPolicyVerified!==true||
-    verifiedGrant.independentKmsAuthorizationRequired!==true||
-    verifiedGrant.durableAssignmentClaimRequired!==true||
-    verifiedGrant.replayControlledGrantRequired!==true||
-    verifiedGrant.authorizationGranted!==false||
+ if(!tx||typeof tx.execute!=='function'||
+    !trustedCustodyIssuerPublicKey||!expectedCustodyIssuerId||!expected||
+    !Number.isSafeInteger(nowMs)||nowMs<=0)deny();
+ const verifiedGrant=verifyGaiz2CustodyGrantCandidate(signedGrantToken,{
+  trustedCustodyIssuerPublicKey,expectedCustodyIssuerId,expected,nowMs,
+ });
+ if(verifiedGrant.signedCustodyPolicyVerified!==true||
     verifiedGrant.kmsReleaseAllowed!==false||
-    verifiedGrant.importAllowed!==false||
-    !UUID.test(verifiedGrant.tenantId??'')||
-    !UUID.test(verifiedGrant.workerId??'')||
-    !UUID.test(verifiedGrant.workItemId??'')||
-    !UUID.test(verifiedGrant.assignmentId??'')||
-    !ID.test(verifiedGrant.custodyGrantIssuerId??'')||
-    !ID.test(verifiedGrant.artifactId??'')||
-    !ID.test(verifiedGrant.recipientKeyId??'')||
-    !SHA.test(verifiedGrant.envelopeSha256??'')||
-    !Number.isSafeInteger(nowMs)||nowMs<=0||
-    !Number.isSafeInteger(verifiedGrant.custodyGrantExpiresAtMs)||
-    nowMs>=verifiedGrant.custodyGrantExpiresAtMs)deny();
+    verifiedGrant.authorizationGranted!==false||
+    verifiedGrant.importAllowed!==false)deny();
  const bytes=bytesOf(signedGrantToken);
  let tokenSha256;
  try{tokenSha256=createHash('sha256').update(bytes).digest('hex')}
