@@ -162,3 +162,21 @@ node --test apps/api/src/gaiz/gaiz-mapping-preview.test.mjs
 4. This is **not** a complete business-data import preview. It intentionally does not map program/portfolio relationships, statuses, budgets, risks, stage gates or audit events, and does not apply updates.
 5. On commit, a future separate transaction must re-read the exact tenant/snapshot revision, require independent review, maintain idempotency and append an audit event or roll back. No such commit path exists.
 6. TEBE's hosted CI is currently unavailable; unit tests are committed but their successful execution is not established.
+
+## Step 4 — second-person import authorization and conflict safety (draft)
+
+`gaiz-import-authorization.mjs` defines a pure, **no-write** preflight for the exact tenant, previously approved staging review, completed custody validation, hash-only field preview, second-person import decision and **fresh target snapshot fingerprint**. It refuses stale revisions or changed target fields, expired approvals, cross-tenant objects and approval by the original stage requester or import-review requester. A successful result still has `appliesData:false`, `importAllowed:false` and no operations.
+
+`gaiz-import-authorization.service.ts` is a **development-only metadata decision ledger** using tenant-scoped transactions, an atomic pending-to-reviewed transition and same-transaction audit records. It refuses import-review self-approval and approval by the original staging requester. It creates neither project nor portfolio changes. **Important:** the service currently accepts hashes as caller-provided metadata; these are *not authoritative proof* that a protected custodian or database snapshot was verified. The pure preflight and durable review ledger are not yet connected into a write-capable authorization process.
+
+Draft **unapplied** `0022_gaiz_import_authorizations.sql` binds a second review to the same tenant’s staged request and custodian attempt, stores immutable target identifier and hashes, permits one approval request per staging review, and enforces tenant RLS plus dual-person state checks. The app DB role can update only decision state and reviewer metadata, not hashes/target/requester. A separate PostgreSQL integration review must verify all grants, composite foreign keys and lock/concurrency semantics.
+
+The existing project and portfolio tables do **not** yet expose the monotonically incremented revision used by the preview. Nor is there a production protected content handoff, approved mapping profile registry, authorized human-readable diff or transactional record apply pathway. Never invoke these draft checks using plain browser-provided snapshots or trusted-status flags. No import API route is exposed.
+
+Local test commands (full execution not yet independently verified):
+```sh
+node --test apps/api/src/gaiz/gaiz-import-authorization.test.mjs \
+  apps/api/src/gaiz/gaiz-import-authorization.contract.test.mjs
+```
+
+Production release gates remain: isolated test DB migrations 0020–0022, tenant RLS and race testing, authoritative target snapshot/revision checks, KMS/HSM and recipient custody, second-person security review, rollback and audit consistency, and full application build. A successful test of no-write functions does **not** constitute safe permission to merge or import enterprise data.
