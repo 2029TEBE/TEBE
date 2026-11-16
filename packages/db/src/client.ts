@@ -31,3 +31,15 @@ export async function withTenant<T>(
 }
 
 export async function closeDb() { await queryClient.end({ timeout: 5 }); }
+
+/** Internal GAIZ executor transaction; parameters remain bound by postgres.js.
+ * The authenticated service supplies tenantId, never an inbound JSON principal. */
+export async function withGaizExecutionTransaction<T>(tenantId:string,fn:(tx:{
+  query:(text:string,args?:unknown[])=>Promise<{rows:Record<string,unknown>[]}>;
+})=>Promise<T>):Promise<T> {
+  if(!/^[0-9a-f-]{36}$/i.test(tenantId))throw new Error('Invalid tenant');
+  return queryClient.begin(async client=>{
+    await client`select set_config('app.tenant_id',${tenantId},true)`;
+    return fn({query:async(text,args=[])=>({rows:Array.from(await client.unsafe(text,args as never[]))})});
+  }) as Promise<T>;
+}

@@ -118,6 +118,7 @@ export const authPasswordResets = pgTable('auth_password_resets', {
 /* ── delivery spine: portfolio → program → project ───────────────────── */
 
 export const portfolios = pgTable('portfolios', {
+  revision: integer('revision').notNull().default(0),
   id: id(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
@@ -140,6 +141,7 @@ export const programs = pgTable('programs', {
 }));
 
 export const projects = pgTable('projects', {
+  revision: integer('revision').notNull().default(0),
   id: id(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   programId: uuid('program_id').references(() => programs.id, { onDelete: 'set null' }),
@@ -857,4 +859,131 @@ export const billingPaymentExceptions = pgTable('billing_payment_exceptions', {
 }, t => ({
   tenantIdx: index('billing_payment_exceptions_tenant_created_idx').on(t.tenantId, t.createdAt),
   eventUnique: uniqueIndex('billing_exception_event_unique').on(t.provider, t.providerEventId),
+}));
+
+/** GAIZ2 import-request metadata only. No encrypted files, plaintext or key material. */
+export const gaizImportRequests = pgTable('gaiz_import_requests', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  artifactId: text('artifact_id').notNull(),
+  sha256: text('sha256').notNull(),
+  issuerId: text('issuer_id').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+  reviewNote: text('review_note'),
+}, t => ({
+  tenantHashUnique: uniqueIndex('gaiz_import_requests_tenant_hash_unique').on(t.tenantId, t.sha256),
+  tenantArtifactUnique: uniqueIndex('gaiz_import_requests_tenant_artifact_unique').on(t.tenantId, t.artifactId),
+  tenantStatus: index('gaiz_import_requests_tenant_status_idx').on(t.tenantId, t.status, t.requestedAt),
+}));
+
+/** Metadata-only single-use GAIZ custodian requests. No key or plaintext storage. */
+export const gaizCustodyAttempts = pgTable('gaiz_custody_attempts', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  reviewId: uuid('review_id').notNull().references(() => gaizImportRequests.id, { onDelete: 'cascade' }),
+  artifactSha256: text('artifact_sha256').notNull(),
+  recipientKeyId: text('recipient_key_id').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  status: text('status').notNull().default('reserved'),
+  reportSha256: text('report_sha256'),
+  reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+}, t => ({
+  reviewOnce: uniqueIndex('gaiz_custody_attempt_review_unique').on(t.tenantId, t.reviewId),
+  tenantCreated: index('gaiz_custody_attempts_tenant_created_idx').on(t.tenantId,t.reservedAt),
+}));
+
+/** Second-person GAIZ import decision metadata; never a business data import. */
+export const gaizImportAuthorizations = pgTable('gaiz_import_authorizations', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  stagingReviewId: uuid('staging_review_id').notNull().references(() => gaizImportRequests.id,{onDelete:'cascade'}),
+  custodyAttemptId: uuid('custody_attempt_id').notNull().references(() => gaizCustodyAttempts.id,{onDelete:'cascade'}),
+  targetKind: text('target_kind').notNull(),
+  targetId: uuid('target_id').notNull(),
+  targetSnapshotSha256: text('target_snapshot_sha256').notNull(),
+  previewSha256: text('preview_sha256').notNull(),
+  mappingProfileId: text('mapping_profile_id').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at',{withTimezone:true}).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at',{withTimezone:true}).notNull(),
+  reviewedAt: timestamp('reviewed_at',{withTimezone:true}),
+}, t => ({
+  reviewOnce: uniqueIndex('gaiz_import_authorization_review_once').on(t.tenantId,t.stagingReviewId),
+  tenantPending: index('gaiz_import_authorizations_tenant_pending_idx').on(t.tenantId,t.status,t.requestedAt),
+}));
+
+/** GAIZ profile metadata: approved exact field paths, no report content. */
+export const gaizMappingProfiles = pgTable('gaiz_mapping_profiles', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  profileId: text('profile_id').notNull(),
+  targetKind: text('target_kind').notNull(),
+  fieldMappings: jsonb('field_mappings').$type<string[]>().notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  reviewedBy: uuid('reviewed_by').references(() => users.id),
+  status: text('status').notNull().default('pending'),
+  requestedAt: timestamp('requested_at', { withTimezone:true }).notNull().defaultNow(),
+  reviewedAt: timestamp('reviewed_at', { withTimezone:true }),
+}, t => ({
+  tenantProfileUnique: uniqueIndex('gaiz_mapping_profiles_tenant_profile_unique').on(t.tenantId,t.profileId),
+  tenantStatus: index('gaiz_mapping_profiles_tenant_status_idx').on(t.tenantId,t.status,t.targetKind),
+}));
+
+/** Single-use signed runtime grants; metadata only, never decrypted patches. */
+export const gaizExecutionGrants = pgTable('gaiz_execution_grants', {
+  id: uuid('id').primaryKey(),
+  tenantId: uuid('tenant_id').notNull().references(()=>tenants.id),
+  authorizationId: uuid('authorization_id').notNull().references(()=>gaizImportAuthorizations.id),
+  grantSha256: text('grant_sha256').notNull(),
+  envelope: jsonb('envelope').$type<Record<string,unknown>>().notNull(),
+  expiresAt: timestamp('expires_at',{withTimezone:true}).notNull(),
+  state: text('state').notNull().default('issued'),
+  consumedAt: timestamp('consumed_at',{withTimezone:true}),
+  resultSha256: text('result_sha256'),
+},t=>({authorizationOnce:uniqueIndex('gaiz_execution_grants_tenant_authorization_unique').on(t.tenantId,t.authorizationId)}));
+/** Public trust references only. No private keys or customer plaintext. */
+export const gaizTrustKeys = pgTable('gaiz_trust_keys', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id,{onDelete:'cascade'}),
+  keyId: text('key_id').notNull(),
+  keyKind: text('key_kind').notNull(),
+  algorithm: text('algorithm').notNull(),
+  ownerType: text('owner_type').notNull(),
+  publicKeyPem: text('public_key_pem').notNull(),
+  publicKeySha256: text('public_key_sha256').notNull(),
+  status: text('status').notNull().default('pending'),
+  validFrom: timestamp('valid_from',{withTimezone:true}).notNull(),
+  validUntil: timestamp('valid_until',{withTimezone:true}).notNull(),
+  registeredBy: uuid('registered_by').notNull().references(() => users.id),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  approvedAt: timestamp('approved_at',{withTimezone:true}),
+  revokedAt: timestamp('revoked_at',{withTimezone:true}),
+}, t => ({
+  tenantKey:uniqueIndex('gaiz_trust_key_scope').on(t.tenantId,t.keyKind,t.keyId),
+  tenantKindStatus:index('gaiz_trust_keys_tenant_kind_status_idx').on(t.tenantId,t.keyKind,t.status),
+}));
+export const gaizRecoveryConsents = pgTable('gaiz_recovery_consents',{
+  id:id(),
+  tenantId:uuid('tenant_id').notNull().references(() => tenants.id,{onDelete:'cascade'}),
+  consentId:text('consent_id').notNull(),
+  recipientKeyId:text('recipient_key_id').notNull(),
+  keyKind:text('key_kind').notNull().default('recipient'),
+  purpose:text('purpose').notNull(),
+  status:text('status').notNull().default('pending'),
+  requestedBy:uuid('requested_by').notNull().references(() => users.id),
+  approvedBy:uuid('approved_by').references(() => users.id),
+  approvedAt:timestamp('approved_at',{withTimezone:true}),
+  expiresAt:timestamp('expires_at',{withTimezone:true}).notNull(),
+  revokedAt:timestamp('revoked_at',{withTimezone:true}),
+}, t=>({
+  tenantConsent:uniqueIndex('gaiz_recovery_consent_scope').on(t.tenantId,t.consentId),
+  tenantStatus:index('gaiz_recovery_consents_tenant_status_idx').on(t.tenantId,t.status,t.recipientKeyId),
 }));

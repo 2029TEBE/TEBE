@@ -56,6 +56,58 @@ BEGIN
   END LOOP;
 END $$;
 
+-- GAIZ staged requests may transition pending → reviewed but must never be deleted
+-- through the generic app role. Guard for environments that have not migrated.
+DO $$ BEGIN
+  IF to_regclass('public.gaiz_import_requests') IS NOT NULL THEN
+    REVOKE DELETE ON public.gaiz_import_requests FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_import_requests FROM pmo_app;
+    GRANT INSERT (id,tenant_id,artifact_id,sha256,issuer_id,requested_by,expires_at)
+      ON public.gaiz_import_requests TO pmo_app;
+    -- Only review-state columns may change after insertion. Request identity,
+    -- issuer, artifact digest, tenant, requester and expiry remain immutable.
+    REVOKE UPDATE ON public.gaiz_import_requests FROM pmo_app;
+    GRANT UPDATE (status, reviewed_by, reviewed_at, review_note)
+      ON public.gaiz_import_requests TO pmo_app;
+  END IF;
+  IF to_regclass('public.gaiz_custody_attempts') IS NOT NULL THEN
+    REVOKE DELETE ON public.gaiz_custody_attempts FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_custody_attempts FROM pmo_app;
+    GRANT INSERT (id,tenant_id,review_id,artifact_sha256,recipient_key_id,requested_by)
+      ON public.gaiz_custody_attempts TO pmo_app;
+    REVOKE UPDATE ON public.gaiz_custody_attempts FROM pmo_app;
+    GRANT UPDATE (status, report_sha256, completed_at)
+      ON public.gaiz_custody_attempts TO pmo_app;
+  END IF;
+  IF to_regclass('public.gaiz_import_authorizations') IS NOT NULL THEN
+    REVOKE DELETE ON public.gaiz_import_authorizations FROM pmo_app;
+    REVOKE INSERT ON public.gaiz_import_authorizations FROM pmo_app;
+    GRANT INSERT (id,tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,
+      target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by,expires_at)
+      ON public.gaiz_import_authorizations TO pmo_app;
+    REVOKE UPDATE ON public.gaiz_import_authorizations FROM pmo_app;
+    GRANT UPDATE (status, approved_by, reviewed_at)
+      ON public.gaiz_import_authorizations TO pmo_app;
+  END IF;
+  -- Public keys are provisioned only by an independently controlled
+  -- administrative path, NEVER by the generic authenticated app role.
+  IF to_regclass('public.gaiz_trust_keys') IS NOT NULL THEN
+    REVOKE INSERT, UPDATE, DELETE ON public.gaiz_trust_keys FROM pmo_app;
+    GRANT SELECT ON public.gaiz_trust_keys TO pmo_app;
+  END IF;
+  IF to_regclass('public.gaiz_recovery_consents') IS NOT NULL THEN
+    REVOKE INSERT, UPDATE, DELETE ON public.gaiz_recovery_consents FROM pmo_app;
+    GRANT SELECT ON public.gaiz_recovery_consents TO pmo_app;
+  END IF;
+  IF to_regclass('public.gaiz_mapping_profiles') IS NOT NULL THEN
+    REVOKE DELETE, UPDATE, INSERT ON public.gaiz_mapping_profiles FROM pmo_app;
+    GRANT INSERT (id, tenant_id, profile_id, target_kind, field_mappings, requested_by)
+      ON public.gaiz_mapping_profiles TO pmo_app;
+    GRANT UPDATE (status, reviewed_by, reviewed_at)
+      ON public.gaiz_mapping_profiles TO pmo_app;
+  END IF;
+END $$;
+
 -- The audit ledger is append-only, even for the app role.
 REVOKE UPDATE, DELETE ON audit_events FROM pmo_app;
 -- Platform plan changes are recorded in this vendor-wide, append-only ledger.
@@ -110,3 +162,14 @@ GRANT INSERT (user_id, token_hash, expires_at) ON public.auth_password_resets TO
 GRANT UPDATE (revoked_at) ON public.auth_password_resets TO pmo_app;
 REVOKE ALL ON FUNCTION public.pmo_redeem_password_reset(text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.pmo_redeem_password_reset(text, text) TO pmo_app;
+
+-- Optional GAIZ runtime: no registry writes are granted to pmo_app.
+DO $$ BEGIN
+ IF to_regclass('public.gaiz_execution_grants') IS NOT NULL THEN
+  REVOKE ALL ON public.gaiz_execution_grants FROM pmo_app;
+  GRANT SELECT,INSERT ON public.gaiz_execution_grants TO pmo_app;
+  GRANT UPDATE(state,consumed_at,result_sha256) ON public.gaiz_execution_grants TO pmo_app;
+  GRANT EXECUTE ON FUNCTION public.gaiz_lock_trust_key(uuid,text,text),
+    public.gaiz_lock_recovery_consent(uuid,text,timestamptz) TO pmo_app;
+ END IF;
+END $$;
