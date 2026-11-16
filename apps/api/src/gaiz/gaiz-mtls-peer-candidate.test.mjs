@@ -8,6 +8,7 @@ import {createHash,generateKeyPairSync,randomBytes,sign,X509Certificate} from 'n
 import {createServer,connect,TLSSocket} from 'node:tls';
 import {verifyGaizMtlsPeerCandidate} from './gaiz-mtls-peer-candidate.mjs';
 import {bindGaizMtlsSignedCredentialCandidate} from './gaiz-mtls-signed-credential-candidate.mjs';
+import {issueGaizMtlsChallengeCandidate} from './gaiz-mtls-challenge-issuer-candidate.mjs';
 
 const workerId='33333333-3333-4333-8333-333333333333';
 const expectedRole='gaiz_verify_worker';
@@ -160,4 +161,66 @@ test('production cannot authorize TLS peer even when registry and handshake are 
  try{await withLocalMtls(({socket,nowMs,registry})=>{
   assert.throws(()=>verifyGaizMtlsPeerCandidate(socket,{trustedPeers:registry,nowMs}));
  });}finally{restore(prior)}
+});
+
+test('verified TLS peer receives challenge only after issuer-role DB commit',async()=>{
+ const prior=priorDev();
+ process.env.NODE_ENV='test';process.env.GAIZ_DEV_ONLY='true';
+ try{
+  await withLocalMtls(async({socket,nowMs,registry})=>{
+   let commits=0,lookups=0,queries=0;
+   const receipt=await issueGaizMtlsChallengeCandidate(socket,{
+    trustedPeers:registry,nowMs,
+    tenantId:'11111111-1111-4111-8111-111111111111',
+    workItemId:'22222222-2222-4222-8222-222222222222',
+    authorizeWorkerWorkItem:async request=>{
+     lookups++;
+     assert.equal(request.workerId,workerId);
+     assert.equal(request.role,expectedRole);
+     return true;
+    },
+    issuerPool:{transaction:async operation=>{
+     const tx={execute:async()=>{
+      queries++;
+      return queries===1?[{dbRole:'gaiz_challenge_issuer'}]:{rowCount:1};
+     }};
+     const value=await operation(tx);commits++;return value;
+    }},
+   });
+   assert.equal(Buffer.from(receipt.challenge,'base64url').length,32);
+   assert.equal(receipt.importAllowed,false);
+   assert.equal(receipt.authorizationGranted,false);
+   assert.equal(receipt.challengeClaimRequired,true);
+   assert.equal(commits,1);
+   assert.equal(queries,2);
+   assert.equal(lookups,1);
+  });
+ }finally{restore(prior)}
+});
+
+test('challenge issuance refuses wrong DB role, missing policy and failed insertion',async()=>{
+ const prior=priorDev();
+ process.env.NODE_ENV='test';process.env.GAIZ_DEV_ONLY='true';
+ try{
+  await withLocalMtls(async({socket,nowMs,registry})=>{
+   const base={trustedPeers:registry,nowMs,
+    tenantId:'11111111-1111-4111-8111-111111111111',
+    workItemId:'22222222-2222-4222-8222-222222222222',
+    authorizeWorkerWorkItem:async()=>true};
+   const pool=(role,rowCount=1)=>({transaction:async f=>{
+    let n=0;
+    return f({execute:async()=>++n===1?[{dbRole:role}]:{rowCount}});
+   }});
+   await assert.rejects(issueGaizMtlsChallengeCandidate(socket,{
+    ...base,issuerPool:pool('pmo_app')}));
+   await assert.rejects(issueGaizMtlsChallengeCandidate(socket,{
+    ...base,issuerPool:pool('gaiz_challenge_issuer',0)}));
+   await assert.rejects(issueGaizMtlsChallengeCandidate(socket,{
+    ...base,issuerPool:pool('gaiz_challenge_issuer'),
+    authorizeWorkerWorkItem:async()=>false}));
+   await assert.rejects(issueGaizMtlsChallengeCandidate(socket,{
+    ...base,issuerPool:pool('gaiz_challenge_issuer'),
+    tenantId:'not-a-uuid'}));
+  });
+ }finally{restore(prior)}
 });
