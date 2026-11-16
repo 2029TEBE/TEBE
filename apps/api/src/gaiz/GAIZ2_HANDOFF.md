@@ -192,3 +192,32 @@ Drizzle definitions now include `revision`. `GaizSnapshotService` is an **intern
 `gaiz-snapshot.contract.test.mjs` covers trigger invariants, schema, tenant-scoped queries and snapshot digest changes. These source-level tests are not proof that migration 0023 or the application currently works against PostgreSQL. No migration was applied. There is no new public GAIZ snapshot endpoint.
 
 **Required tests before release:** run migrations 0020, 0021, 0022 and 0023 in sequence on an isolated PostgreSQL test database; validate RLS, GRANT restrictions, project and portfolio writes from existing APIs, trigger increments exactly once per update, rollback behavior, lock/concurrency cases, tenant-crossing attempts, and the API/web TypeScript build. Keep all draft PRs unmerged until checks pass.
+
+## Step 6 — Disposable PostgreSQL migration / RLS / concurrency harness
+
+After reviewing the draft 0020–0023 migration chain, a concrete integrity gap was corrected: `0022_gaiz_import_authorizations.sql` now has a **composite (tenant_id, staging_review_id, custody_attempt_id)** foreign key referencing the custody attempt's (tenant_id, review_id, id). This prevents combining one approved review with a different same-tenant custody attempt.
+
+The GAIZ role section in `packages/db/sql/rls.sql` now REVOKEs table-level INSERT and grants only the identifier/data columns used to create pending requests, reserved custody attempts, and pending import authorizations. The app role cannot insert forged `status='approved'`, `status='validated'`, or review completion metadata. Existing explicit restricted UPDATE and DELETE revocations remain. **This is privilege hardening, not a substitute for authenticated application reviewers**, and deployment's default privileges must be reviewed again after future migrations.
+
+New disposable test harness:
+- `packages/db/scripts/gaiz-isolated-smoke.sh`: explicit ack, localhost and exact database name checks; creates a fresh tiny synthetic schema and applies migrations 0020, 0021, 0022, 0023 **inside a dedicated test database only**. It extracts the actual GAIZ grant block from `sql/rls.sql`, then executes the assertion suite.
+- `packages/db/sql/tests/gaiz-isolated-bootstrap.sql`: only synthetic tenant, user, project and portfolio IDs. Refuses any preexisting project or GAIZ staging tables.
+- `packages/db/sql/tests/gaiz-isolated-assertions.sql`: verifies actual PostgreSQL effective grants, self-review rejection, cross-tenant RLS visibility/write isolation, same-review custody FK, replay uniqueness and transaction/revision rollback.
+- `packages/db/scripts/gaiz-isolated-concurrency.sh`: two independent PostgreSQL sessions; one holds an updated project row, the second fails on lock timeout, then a stale expected-revision UPDATE must affect zero rows.
+- `apps/api/src/gaiz/gaiz-isolated-db.contract.test.mjs`: no-database static tests for the migration links and safety gates.
+- Dedicated `.github/workflows/gaiz-db-isolated.yml`: creates a disposable PostgreSQL 16 service, uses synthetic database credentials and runs the harness.
+
+To run on a **fresh disposable local PostgreSQL 16 instance only**, with `psql` installed:
+
+```sh
+export GAIZ_TEST_DB_ACK=DISPOSABLE_DB_ONLY
+export PGHOST=127.0.0.1 PGDATABASE=gaiz_ci_isolated PGUSER=gaizci
+# Set PGPASSWORD to the password of the disposable local Postgres role.
+bash packages/db/scripts/gaiz-isolated-smoke.sh
+```
+
+**Actual execution status:** The current ChatGPT execution environment has no installed PostgreSQL server, `psql`, or Docker/podman. Therefore this migration suite has been **committed but NOT executed** here; TEBE hosted GitHub workflows continue failing before their logs become available. The JavaScript source/static code inspections do not constitute a passing PostgreSQL integration test.
+
+This miniature schema checks GAIZ-specific constraints and roles but does **not** exercise the full TEBE initial schema or all non-GAIZ migrations. Before merging, additionally run full application migrations and existing API/project/portfolio regression tests on a disposable real copy, verify privileges under the true pmo_app role, audit/transaction rollback and concurrent review approvals, and obtain a security review.
+
+The scripts must never be pointed at production or customer data. No actual database was modified in this implementation turn.
