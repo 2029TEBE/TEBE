@@ -57,8 +57,11 @@ jobs:
           docker image load --input "$RUNNER_TEMP/tested-images/images.tar.gz"
           registry="ghcr.io/${GITHUB_REPOSITORY,,}"
           for service in api web; do
-            id=$(jq -er --arg key "${service}Id" '.[$key]' <<< "$metadata")
-            [[ "$(docker image inspect --format '{{.Id}}' "$id")" == "$id" ]]
+            identity=$(docker image inspect "epmo-$service:ci" | node scripts/ci-image-bundle.mjs identity)
+            expected=$(jq -er --arg key "${service}RuntimeDigest" '.[$key]' <<< "$metadata")
+            [[ "$(jq -er .runtimeDigest <<< "$identity")" == "$expected" ]]
+            [[ "$(jq -er .revision <<< "$identity")" == "$VERIFIED_SHA" ]]
+            id=$(jq -er .id <<< "$identity")
             image="$registry-$service"
             docker image tag "$id" "$image:$VERIFIED_SHA"
             docker push "$image:$VERIFIED_SHA"
