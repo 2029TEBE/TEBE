@@ -20,13 +20,12 @@ db=gaiz_challenge_acceptance
 cleanup() {
   psql -v ON_ERROR_STOP=1 -d postgres -c "DROP DATABASE IF EXISTS ${db} WITH (FORCE)" >/dev/null
 }
-trap cleanup EXIT
-
 # Hard fail when another parallel test has left the named DB present.
 if [[ "$(psql -v ON_ERROR_STOP=1 -d postgres -Atc "SELECT COUNT(*) FROM pg_database WHERE datname='${db}'")" != "0" ]]; then
   echo "BLOCKED: acceptance database already exists; refusing to reuse" >&2
   exit 1
 fi
 psql -v ON_ERROR_STOP=1 -d postgres -c "CREATE DATABASE ${db}" >/dev/null
+trap cleanup EXIT
 psql -v ON_ERROR_STOP=1 -d "${db}" \
   -f packages/db/sql/gaiz-workload-challenge-disposable-acceptance.sql
