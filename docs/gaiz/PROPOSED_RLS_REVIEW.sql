@@ -8,6 +8,8 @@
 --
 -- All four GAIZ tables contain tenant_id. App cannot use a global owner scope.
 
+ALTER TABLE gaiz_quarantine_blobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gaiz_quarantine_blobs FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_artifacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_artifacts FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_import_jobs ENABLE ROW LEVEL SECURITY;
@@ -17,6 +19,9 @@ ALTER TABLE gaiz_export_jobs FORCE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gaiz_decisions FORCE ROW LEVEL SECURITY;
 
+CREATE POLICY tenant_isolation ON gaiz_quarantine_blobs
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
 CREATE POLICY tenant_isolation ON gaiz_artifacts
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
@@ -33,8 +38,22 @@ CREATE POLICY tenant_isolation ON gaiz_decisions
 -- Immutable decisions and immutable artifact identity (enforce more narrowly
 -- with column grants and DB triggers as part of a reviewed migration).
 REVOKE UPDATE, DELETE ON gaiz_decisions FROM pmo_app;
+REVOKE DELETE ON gaiz_quarantine_blobs FROM pmo_app;
 REVOKE DELETE ON gaiz_artifacts FROM pmo_app;
 REVOKE DELETE ON gaiz_import_jobs, gaiz_export_jobs FROM pmo_app;
+
+-- IMPORTANT: The baseline RLS installer currently GRANTs SELECT on all tables.
+-- Remove that broad table SELECT for quarantine before exposing its bytes:
+REVOKE SELECT ON gaiz_quarantine_blobs FROM pmo_app;
+GRANT SELECT (id, tenant_id, requested_by, idempotency_key,
+              envelope_sha256, content_length, state, created_at, expires_at)
+  ON gaiz_quarantine_blobs TO pmo_app;
+-- The unregistered prototype adapter currently SELECTs metadata only and
+-- INSERTs ciphertext. A future verifier worker must receive a separate
+-- narrowly scoped identity and explicit audited byte access; do not grant
+-- SELECT(envelope_bytes) to the customer-facing application role.
+-- A blanket GRANT SELECT ON ALL TABLES after these statements would undo
+-- the restriction; review and test grant ordering in actual migration tooling.
 
 -- Reviewer must add disposable DB assertions that prove:
 --  A. tenant A cannot SELECT, INSERT, UPDATE, DELETE tenant B GAIZ rows
