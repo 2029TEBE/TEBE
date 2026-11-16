@@ -83,7 +83,7 @@ DO $$ BEGIN
     REVOKE DELETE ON public.gaiz_import_authorizations FROM pmo_app;
     REVOKE INSERT ON public.gaiz_import_authorizations FROM pmo_app;
     GRANT INSERT (id,tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,
-      target_snapshot_sha256,preview_sha256,requested_by,expires_at)
+      target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by,expires_at)
       ON public.gaiz_import_authorizations TO pmo_app;
     REVOKE UPDATE ON public.gaiz_import_authorizations FROM pmo_app;
     GRANT UPDATE (status, approved_by, reviewed_at)
