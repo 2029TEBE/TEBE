@@ -6,8 +6,8 @@ const source=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const policy=source('./payment-provider-policy.ts');
 const stripe=source('./stripe.service.ts');
 const controller=source('./billing.controller.ts');
-const web=source('../../../../web/src/app/api/billing/checkout/route.ts');
-const pricing=source('../../../../web/src/app/(app)/billing/page.tsx');
+const web=source('../../../web/src/app/api/billing/checkout/route.ts');
+const pricing=source('../../../web/src/app/(app)/billing/page.tsx');
 const other=source('./paddle-checkout-policy.ts');
 
 test('new charge routing names only Stripe, not another payment provider',()=>{
