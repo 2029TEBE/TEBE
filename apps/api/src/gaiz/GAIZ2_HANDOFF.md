@@ -105,3 +105,11 @@ TO PR #30 now contains `gaiz/local-custodian.mjs`: a **development-only in-proce
 TO also defines a domain-separated Ed25519-signed **metadata-only** custody validation receipt in `gaiz/custody-attestation.mjs`. TEBE independently verifies its exact wire contract in `apps/api/src/gaiz/gaiz-custody-attestation.mjs` and denial tests. The receipt ties a particular GAIZ artifact SHA-256, report digest, tenant scope, recipient key and approved review to a five-minute timestamp, using an out-of-band trusted custodian public key.
 
 No TEBE API endpoint accepts this receipt yet. It cannot grant import, decrypt permission or record mutation. Before integrating, independently review key custody, receipt replay protections, signed key identity/rotation and approval authority, then create a durable append-only receipt store and explicit limited-purpose import transaction only after structured data validation.
+
+## Bulk import-readiness hardening
+
+`apps/api/src/gaiz/gaiz-import-plan.mjs` defines a **pure, no-write readiness function**, not a real field-level import preview. It checks an authenticated capability-bearing tenant, an RLS-fetched and separately approved review, the same verified artifact hash/issuer, an authorized tenant-scoped target project and an independently trusted custodian attestation. On success it returns an *empty* `proposedOperations` list with `appliesData:false`, `importAllowed:false` and a mandatory separate mapping/approval requirement.
+
+The function is intentionally **not connected to HTTP or a database mutation**. No decrypted project fields are available to TEBE yet, so claiming a usable project-diff preview would be incorrect. Run `node --test apps/api/src/gaiz/gaiz-import-plan.test.mjs` locally with the other GAIZ unit tests.
+
+Remaining P0: isolated trusted content processing; reviewed project mapping and conflict policy; complete durable import-transaction idempotency; explicit second authorization; integration tests against a disposable RLS database. The existing `0020` staging migration remains **unapplied**.
