@@ -57,7 +57,7 @@ export function createStandaloneLoginBroker({
    // JWKS is server-managed; no artifact/browser token can define its own trust anchor.
    const trustedJwks=await issuerKeyProvider();
    const identity=verifyStandaloneOidcIdentity(tokens.idToken,{
-    issuer:issuerUrl,audience:clientId,expectedNonce:tx.nonce,
+    issuer:issuer,audience:clientId,expectedNonce:tx.nonce,
     trustedJwks,nowSeconds:clock(),maxAgeSeconds:600
    });
    // A separate server-side session and customer record MUST be created only
