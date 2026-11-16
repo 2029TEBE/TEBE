@@ -175,3 +175,41 @@ Positive and negative synthetic tests cover paired signatures, tenant,
 role, work item, key, expiry, tampering, production disable and lack of
 import authorization. They are committed to **deferred**, not executed,
 Node CI; there is no claim of operational authentication.
+
+
+## Independent signed workload credential candidate
+
+The inactive development branch now contains
+`gaiz-signed-workload-credential.mjs`, which checks an Ed25519
+credential-issuer signature in domain `GAIZ_WORKLOAD_CREDENTIAL_V1`
+over canonical worker identity, role, issuer, issuance/expiry and a
+**server-generated 32-byte random challenge**. It rejects mismatched
+challenge/worker/role/issuer, invalid or excessive time windows, malformed
+or duplicate/noncanonical fields and untrusted signing keys. It returns
+frozen identity metadata with `independentTransportAuthenticationRequired`
+and `atomicChallengeClaimRequired`, and `importAllowed:false`.
+This issuer key must come from an independently administered backend
+trust directory, **not** GAIZ bytes or user headers.
+
+`bindGaiz2RecipientWithSignedCredentialCandidate` (inside the
+development-only `gaiz2-worker-recipient-binding.mjs`) derives its
+workload descriptor from that **verified credential**, disregarding a
+caller-provided `workload` field. It then checks the independent signed
+assignment and signed GAIZ2 recipient artifact, returning only encrypted
+recipient metadata with `custodyAuthorizationRequired:true`,
+`databaseClaimRequired:true` and `importAllowed:false`.
+
+**This is NOT operational mTLS, proof-of-possession or replay control.**
+A copied issuer-signed credential can still be presented by another
+party unless the trusted ingress independently authenticates the
+presenter/transport and atomically consumes the backend-issued challenge
+in a short-lived replay ledger. Those pieces, issuer revocation, a
+dedicated worker DB identity, real KMS custody policy and assignment
+claim remain separate required engineering work. The helper must never
+be wired directly to a public route or an authorized key-unwrapping
+operation. No KMS integration or production service has been created.
+
+Four new credential-verifier test cases and two additional combined
+binding test cases are committed and registered in deferred CI. They
+have not been executed by Node, the official TypeScript build, a real
+identity ingress or PostgreSQL.
