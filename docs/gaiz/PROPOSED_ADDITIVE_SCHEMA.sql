@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   tenant_id uuid NOT NULL REFERENCES tenants(id),
   artifact_ref uuid NOT NULL,
   state text NOT NULL CHECK
-    (state IN ('quarantined','verified','pending_approval','rejected','importing','imported','failed')),
+    (state IN ('quarantined','verified','pending_approval','approved','rejected','importing','imported','failed')),
   revision integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
   requested_by uuid NOT NULL REFERENCES users(id),
   approved_by uuid REFERENCES users(id),
