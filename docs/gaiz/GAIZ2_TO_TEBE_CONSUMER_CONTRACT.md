@@ -213,3 +213,45 @@ Four new credential-verifier test cases and two additional combined
 binding test cases are committed and registered in deferred CI. They
 have not been executed by Node, the official TypeScript build, a real
 identity ingress or PostgreSQL.
+
+
+## One-time workload challenge replay ledger (draft only)
+
+The TEBE draft now contains two disconnected replay-control candidates and
+a **review-only** PostgreSQL proposal:
+
+- `packages/db/sql/gaiz-workload-challenge-review-proposal.sql` defines a
+  SHA-256 challenge digest table (no raw challenge), issuer, tenant, worker,
+  work item, role, expiry, and single `consumed_at` marker. It proposes
+  `FORCE ROW LEVEL SECURITY`, no `pmo_app` access, an isolated
+  `gaiz_challenge_issuer` INSERT role, and scoped SELECT /
+  `UPDATE(consumed_at)` for non-owner verifier/executor DB roles.
+- `gaiz-workload-challenge-claim.mjs` checks the actual PostgreSQL
+  `current_user` and transaction-local `app.tenant_id`, then uses one
+  conditional `UPDATE ... WHERE consumed_at IS NULL ... RETURNING` with
+  the database clock, independently binding the pre-issued challenge digest
+  to tenant, work item, worker, purpose and credential issuer. A second
+  use or wrong role/tenant returns no accepted claim.
+- `gaiz-workload-transaction-candidate.mjs` is a separate DEV-only
+  composition candidate: independently verifies signed workload credential
+  and signed worker assignment, enters **one caller-owned transaction**,
+  consumes the challenge, then consumes the assignment claim and invokes
+  the review callback. A thrown callback must cause the database's
+  transaction wrapper to roll back both claims and the operation.
+
+**Not implemented or approved:** Issuing a backend-generated challenge
+into a real database, trusted mTLS/PoP validation, key pinning and revocation
+policy, role provisioning, database migrations, PostgreSQL RLS and concurrent
+rollback tests, KMS unwrap, human approval or business import. There is
+no live ingress, public route, Nest registration or production use. This is
+*not* a fully authenticated worker runtime. The caller's DB `transaction`
+and injected assignment claim must be assembled only by separately trusted
+worker code; the draft explicitly refuses to accept caller-provided
+`transportAuthenticated:true` flags as evidence.
+
+These files are included in deferred offline CI with synthetic/mock tests
+and source-order assertions. No real PostgreSQL RLS claim or concurrent
+worker operation has been executed. The SQL is deliberately **not** wired
+into automatic migrations: security review must independently verify DB
+role inheritance, FORCE RLS, grant semantics, issuer enrollment,
+tenant-scoped cleanup and lease/replay retention before promotion.
