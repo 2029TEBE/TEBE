@@ -350,3 +350,39 @@ actual worker identity directory, issuer trust/revocation,
 dedicated non-owner worker roles, TLS-to-challenge session binding,
 secure audit logging, DB migrations, concurrent single-use tests, and
 key-custody authorization. **No production use or migration.**
+
+
+## Independent custody policy grant verification (review-only)
+
+`apps/api/src/gaiz/gaiz2-custody-grant-candidate.mjs` is an inactive
+metadata-only policy verifier, not a key custodian. It validates a
+separately signed Ed25519 `GAIZ2_CUSTODY_GRANT_V1` envelope under a
+**server-pinned, independently administered custodian-policy issuer**.
+The policy describes only one backend-derived tenant UUID, worker UUID,
+work item UUID, assignment UUID, artifact and issuer IDs, envelope
+SHA-256, recipient key ID and a fixed `gaiz2_metadata_preview` purpose.
+Its maximum signed lifetime is 30 seconds; all fields must match the
+server's independently authenticated evidence **exactly**.
+
+The verifier deliberately **does not accept** `gaiz2_import` as an
+allowed purpose, wrap/decrypt the selected DEK or return any encrypted
+recipient key bytes. Its immutable receipt reports
+`signedCustodyPolicyVerified:true` while continuing to require a real
+transport authentication, durable one-time assignment claim, grant
+replay control and independent KMS authorization:
+`authorizationGranted:false`, `kmsReleaseAllowed:false`,
+`importAllowed:false`. A valid policy signature is not a key-release
+credential, substitute for human approval, or proof of tenant access.
+
+Five new negative/positive cases check trust anchors, wrong work item,
+recipient/worker/tenant/assignment, forged or expired grants, malformed
+JSON and disabled production mode. The suite is included in GitHub CI;
+the tests do not require access to real KMS credentials.
+
+**Still required:** a genuine external KMS/HSM with authenticated
+non-exportable recipient private keys, independently enforced key
+policies, issuer rotation/revocation, approval ledger, grant single-use
+under a durable storage claim, workload-to-KMS principal binding, a
+zeroization/audit design and real custody integration tests. This
+candidate MUST NOT be connected to `unwrapSyntheticRecipientDek`
+or any production service. No real keys are provisioned or released.
