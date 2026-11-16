@@ -20,7 +20,7 @@ export function createGaizCustomerReportService({
     !required(sessions,['requireCustomer'])||
     !required(catalogue,['publicList','requireRequest'])||
     !required(orders,['getOrder'])||
-    !required(jobs,['submitFromEntitlement','getOwnedJob','getOwnedJobArtifact'])||
+    !required(jobs,['submitFromEntitlement','getOwnedJob'])||
     !required(artifacts,['getMetadata','readAuthorized'])||
     !required(audit,['record'])||typeof clock!=='function')fail();
  async function authenticated(sessionToken){
@@ -78,9 +78,7 @@ export function createGaizCustomerReportService({
    // owned job, active non-revoked verified artifact and unexpired metadata.
    const metadata={id:a.id,jobId:a.jobId,customerId:a.customerId,
     format:a.format,expiresAt:Math.floor(new Date(a.expiresAt).getTime()/1000),
-    revoked:a.revokedAt===null,verifiedByServer:true};
-   // revoked means "true if revoked"; map raw DB state accurately.
-   metadata.revoked=a.revokedAt!==null;
+    revoked:a.revokedAt!==null,verifiedByServer:true};
    const grant=authorizeGaizArtifact({
     principal:p,order:record,job,artifact:metadata,nowSeconds:now()
    });
