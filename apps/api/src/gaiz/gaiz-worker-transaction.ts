@@ -12,6 +12,8 @@
  */
 import { ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
 import { sql, type SQL } from 'drizzle-orm';
+import { bindGaizWorkerIdentity } from './gaiz-workload-binding.mjs';
+import type { KeyObject } from 'node:crypto';
 import { claimGaizWorkerAssignmentInTransaction } from './gaiz-assignment-claim';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -25,6 +27,8 @@ export type GaizVerifiedAssignment = Readonly<{
 export type GaizAuthenticatedWorkload = Readonly<{
   workerId:string;purpose:GaizTrustedWorkerPurpose;
   identitySource:'verified-mtls-peer'|'verified-workload-identity';
+  credentialIssuer:string;
+  credentialExpiresAtMs:number;
 }>;
 export type GaizWorkerTx = { execute:(statement:SQL)=>Promise<unknown> };
 export type GaizWorkerPool = {
@@ -37,26 +41,40 @@ export type GaizWorkerPool = {
  * never a request or artifact. This is a DEV-ONLY wiring candidate.
  */
 export async function withGaizTrustedWorkerTransaction<T>({
-  pool,workload,assignment,operation,
+  pool,workload,signedAssignment,trustedIssuerPublicKey,tenantId,workItemId,nowMs,operation,
 }: {
   pool:GaizWorkerPool;
   workload:GaizAuthenticatedWorkload;
-  assignment:GaizVerifiedAssignment;
+  signedAssignment:string;
+  trustedIssuerPublicKey:KeyObject;
+  tenantId:string;
+  workItemId:string;
+  nowMs:number;
   operation:(tx:GaizWorkerTx,assignment:GaizVerifiedAssignment)=>Promise<T>;
 }):Promise<T>{
   if(process.env.NODE_ENV==='production'||process.env.GAIZ_DEV_ONLY!=='true')
     throw new ServiceUnavailableException('GAIZ worker runtime not enabled');
-  if(!pool||typeof pool.transaction!=='function'||!workload||!assignment||
+  if(!pool||typeof pool.transaction!=='function'||!workload||
+     typeof signedAssignment!=='string'||!trustedIssuerPublicKey||
      typeof operation!=='function'||
      workload.identitySource!=='verified-mtls-peer'&&
      workload.identitySource!=='verified-workload-identity')deny();
-  if(!UUID.test(workload.workerId)||workload.workerId!==assignment.workerId||
-     workload.purpose!==assignment.purpose||
-     !UUID.test(assignment.tenantId)||!UUID.test(assignment.workItemId)||
-     !UUID.test(assignment.assignmentId)||
-     assignment.authenticatedAssignment!==true||
-     assignment.databaseClaimRequired!==true||
-     assignment.importAllowed!==false)deny();
+  if(!UUID.test(workload.workerId)||!UUID.test(tenantId)||
+     !UUID.test(workItemId)||!Number.isSafeInteger(nowMs)||nowMs<=0||
+     typeof workload.credentialIssuer!=='string'||
+     !Number.isSafeInteger(workload.credentialExpiresAtMs)||
+     nowMs>=workload.credentialExpiresAtMs)deny();
+  // Never treat a caller-supplied authenticatedAssignment boolean as proof.
+  // Revalidate signed bytes against the trusted issuer key and workload here.
+  const assignment=bindGaizWorkerIdentity(signedAssignment,{
+    workload:{
+      workerId:workload.workerId,role:workload.purpose,
+      credentialIssuer:workload.credentialIssuer,
+      credentialExpiresAtMs:workload.credentialExpiresAtMs,
+    },
+    tenantId,workItemId,purpose:workload.purpose,
+    trustedIssuerPublicKey,nowMs,
+  }) as GaizVerifiedAssignment;
   // pool MUST belong to the dedicated worker DB role, NEVER pmo_app.
   // The claim helper checks current_user and refuses role mismatch.
   return pool.transaction(async tx=>{
