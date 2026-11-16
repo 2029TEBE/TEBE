@@ -49,7 +49,7 @@ test('rejects publicly bound web container port in staging or production', () =>
   assert.deepEqual(failed({...good, WEB_BIND:'127.0.0.1'}),[]);
 });
 
-const disabled = {...good, BILLING_MODE:'disabled', DEPLOYMENT_ENV:'production',
+const disabled = {...good, BILLING_MODE:'disabled', BILLING_PROVIDER:'disabled', DEPLOYMENT_ENV:'production',
   STRIPE_ENABLED:'false', STRIPE_SECRET_KEY:'', STRIPE_WEBHOOK_SECRET:'',
   STRIPE_WEBHOOK_PUBLIC_URL:'', STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
 test('explicit billing-disabled production release needs no payment credentials',()=>{
