@@ -14,7 +14,8 @@ export function buildReadOnlyGaizImportPlan({
  if(!review||review.tenantId!==context.tenantId||review.status!=='approved'||
     !UUID.test(review.id)||!UUID.test(review.requestedBy)||!UUID.test(review.reviewedBy)||
     review.requestedBy===review.reviewedBy||
-    !HASH.test(review.sha256)||!review.expiresAt||Date.parse(review.expiresAt)<=now)
+    !HASH.test(review.sha256)||typeof review.expiresAt!=='string'||
+    !Number.isFinite(Date.parse(review.expiresAt))||Date.parse(review.expiresAt)<=now)
    throw Error('Approved, current, distinct-person review required');
  if(!verifiedArtifact||verifiedArtifact.verified!==true||
     verifiedArtifact.tenantScope!==context.tenantId||verifiedArtifact.sha256!==review.sha256||
