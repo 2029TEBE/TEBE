@@ -17,8 +17,12 @@ CREATE TABLE gaiz2_kms_release_claims (
  status text NOT NULL DEFAULT 'reserved' CHECK (status IN ('reserved','consumed','denied')),
  consumed_at timestamptz,
  PRIMARY KEY (tenant_id,custody_token_sha256),
+ -- The identical signed custody grant must never be used under another tenant.
+ UNIQUE (custody_token_sha256),
  UNIQUE (tenant_id,kms_operation_id),
- CHECK (status <> 'consumed' OR consumed_at IS NOT NULL)
+ CHECK (status <> 'consumed' OR consumed_at IS NOT NULL),
+ CHECK (status = 'consumed' OR consumed_at IS NULL),
+ CHECK (consumed_at IS NULL OR consumed_at >= claimed_at)
 );
 CREATE INDEX gaiz2_kms_release_expiry_idx
  ON gaiz2_kms_release_claims(tenant_id,expires_at);
@@ -38,7 +42,7 @@ COMMIT;
 --    valid at DB clock and not revoked, with an independent registrar trust.
 -- D. Verify one-time grant was claimed by gaiz_verify_worker and corresponds
 --    to the same assignment / recipient / signed envelope. Lock both claims.
--- E. INSERT a unique release claim reserved for one operation; duplicate or
+-- E. INSERT a globally unique custody-token release claim reserved for one operation; duplicate or
 --    revoked/expired/conflicting rows MUST fail closed. Do not COMMIT a release
 --    authorization before independent KMS policy evaluation is complete.
 -- F. Recheck authoritative key revocation at KMS key use; never rely on a
