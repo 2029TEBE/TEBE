@@ -39,3 +39,21 @@ Set prices, currency and tax policy from an approved **server-owned** plan catal
 ## Verification status
 
 No Stripe account connection, secret provisioning, provider API request, real charge, database mutation, PR merge, or production deployment occurred when preparing this branch. CI has not been treated as a passed release gate. Provider selection is committed as a **reviewable development change**, not as a claim that payments are live.
+
+## Stripe connected sandbox inventory — verified 2026-11-16
+
+The user successfully connected the Stripe plugin. The available account is **The Epmo sandbox (test mode only)**. Read-only Stripe API queries established:
+
+| Stripe resource | Count in accessible sandbox |
+| --- | ---: |
+| Products | 0 |
+| Prices | 0 |
+| Customers | 0 |
+| Subscriptions | 0 |
+| Webhook endpoints | 0 |
+
+Therefore the sandbox is **not yet provisioned for initial purchases or automatic recurring subscriptions**. These checks say nothing about any unconnected live account.
+
+Next tasks, without guessing commercial terms: confirm approved plan names, server-owned prices, intervals, currencies, and the tax treatment (inclusive/exclusive and whether Stripe Tax applies). Then create the sandbox Product/Price catalogue and webhook endpoint, implement subscription-mode Checkout, customer/subscription-to-tenant bindings, Customer Portal and the complete verified recurring lifecycle (including invoice paid/failed, subscription updated/deleted, disputes and replay). Keep test-mode separate from live keys and webhooks. Never grant access on a Checkout redirect.
+
+No products, prices, customers, webhook endpoints or subscriptions were created in this inventory step. No charges, refunds, or production account changes occurred.
