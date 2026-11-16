@@ -154,3 +154,39 @@ substitute `https://app.theepmo.com` for an unverified staging service.
 
 Passing endpoint inventory alone does not prove webhook deliveries,
 idempotence or subscription settlement. No activation or production release.
+
+
+## Cloudflare staging destination verification
+
+On 2026-11-16, the connected Cloudflare `theepmo.com` zone was read
+directly: the zone is active, `app.theepmo.com` has a proxied A record,
+but **no** DNS records were found for `staging.theepmo.com` or
+`api-staging.theepmo.com`. The existing production A record does not
+prove API health, staging isolation or permission to use production for
+sandbox payments.
+
+A new read-only command checks that `STRIPE_WEBHOOK_PUBLIC_URL` has
+the required `https://.../api/v1/billing/stripe-webhook` form on a
+separately named staging hostname, resolves to public addresses, and
+that `https://<same-host>/health` returns JSON with
+`ok:true,service:"pmo-api"` and HTTP 200:
+
+```sh
+pnpm verify:stripe:reachability
+pnpm verify:stripe:staging
+pnpm verify:stripe:webhooks
+```
+
+The health endpoint deliberately checks a **GET** rather than POSTing
+a synthetic payment webhook. A successful health check alone cannot
+prove that the route receives the Stripe event, verifies the signing
+secret, has a working Postgres tenant transaction, or is safely
+isolated from production. The read-only DNS/health probe also does not
+establish that the host is controlled by the expected deployment
+identity; operator verification of deployment and TLS configuration
+is mandatory before entering a Stripe signing secret.
+
+The account currently has no registered test-mode Stripe webhook
+endpoints. Do not invent or create DNS records or register an endpoint
+until the staging service is actually deployed and independently
+verified. Production payment processing remains disabled.
