@@ -86,3 +86,34 @@ need a separate reviewed Stripe Billing design, plan/price mappings, tax
 policy, invoice and subscription webhooks, migration/cancellation behavior,
 and separately authorized sandbox setup. Do not create live catalog records
 or enable charges based on this draft.
+
+
+## Read-only staging settlement evidence
+
+TEBE already includes a read-only end-to-end evidence collector,
+`scripts/stripe-staging-evidence.mjs`, that inspects a single Stripe
+**test-mode** Checkout session plus two isolated tenant views. It does not
+create a session, initiate charges, forge webhooks, or modify the database.
+
+The collector now refuses to run unless `DEPLOYMENT_ENV=staging`,
+`BILLING_PROVIDER=stripe`, `STRIPE_ENABLED=true` and
+`BILLING_REFERENCE_WEBHOOK_ENABLED=false`. It also requires test-mode
+Stripe credentials, an existing `cs_test_...` session and invoice, a
+public HTTPS staging API URL, and distinct authenticated staging tenant
+sessions. Keep all credentials in the execution environment, never in
+commit history or evidence output.
+
+To accept the deployment, an operator must first validate the exact
+test-mode webhook endpoint, capture the unpaid invoice/session baseline,
+complete a Stripe test-card Checkout, verify the signed payment callback
+resulted in precisely one settled invoice/payment and the correct tenant
+period, confirm a second tenant cannot access that data, and then verify
+replay/repeated-read stability. The independent PostgreSQL RLS audit,
+full TypeScript/Node checks, and sandbox webhook delivery remain required.
+
+**Current results:** The source and negative tests were committed; the
+actual Stripe test-mode Checkout-to-webhook-to-PostgreSQL sequence has
+**not** been executed here. The connected sandbox has no recorded catalog
+products or prices; inline renewal `price_data` does not require them.
+Production remains disabled until all acceptance evidence and an authorized
+live Stripe merchant account are available.
