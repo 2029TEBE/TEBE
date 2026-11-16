@@ -61,7 +61,7 @@ export async function previewGaizWithCustodyCandidate(bytes,{
     if(!validBuffer(secret))reject();
     keyCopy=Buffer.from(secret);
     const preview=previewGaizCandidateSynthetic(input,{
-      trustedIssuerPublicKey:trustPolicy.publicKeyForSyntheticPreview?.(issuerKeyId),
+      trustedIssuerPublicKey:trustPolicy.publicKeyForSyntheticPreview?.(issuerKeyId,{now}),
       expectedTenantScope,dataEncryptionKey:keyCopy,context,
     });
     if(preview.authorizedToImport!==false||
