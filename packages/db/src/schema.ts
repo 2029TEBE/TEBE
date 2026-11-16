@@ -118,6 +118,7 @@ export const authPasswordResets = pgTable('auth_password_resets', {
 /* ── delivery spine: portfolio → program → project ───────────────────── */
 
 export const portfolios = pgTable('portfolios', {
+  revision: integer('revision').notNull().default(0),
   id: id(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
@@ -140,6 +141,7 @@ export const programs = pgTable('programs', {
 }));
 
 export const projects = pgTable('projects', {
+  revision: integer('revision').notNull().default(0),
   id: id(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   programId: uuid('program_id').references(() => programs.id, { onDelete: 'set null' }),
