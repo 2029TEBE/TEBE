@@ -133,3 +133,32 @@ Before activation:
 3. Implement mutually authenticated independent custodian and provision externally verified issuer/recipient/consent registries with key rotation and revocation.
 4. Independently review replay domain and receipt time binding, key residency, encryption context and audit failure handling.
 5. Keep import apply, project diff and customer release disabled until additional authorization and security gates are satisfied.
+
+## Step 3 — allowlisted project/portfolio field mapping preview (development only)
+
+`gaiz-mapping-preview.mjs` is a **pure no-write component**. It is intentionally NOT connected to an HTTP endpoint, production database query, external custodian, or enterprise import transaction.
+
+It accepts only:
+- A validated GAIZ governance report from the **trusted protected content boundary**.
+- A separately validated full-report SHA-256 matching the canonical sorted-key report byte format and authenticated tenant scope.
+- A tenant-RLS-fetched project or portfolio snapshot, including an expected monotonic revision and exact target identity.
+- A separately approved server-side mapping profile specifying one or more explicitly allowed fields.
+
+Current allowlist is deliberately small: `report.title → projects.name` and `report.summary → portfolios.description`. An approved profile must name the exact desired mapping. GAIZ report metrics are **not** interpreted as TEBE project progress, health, budget, approval status, delivery stage, or other business semantics.
+
+The result is a **hash-only preview**: target field, source field, old/proposed SHA-256 hashes, lengths, expected revision, no-op/manual-review flag and a revision-bound preview digest. No report text or old target values are returned; no write operation is created. All changes require a second explicit import approval. To show human-readable text differences, a future protected authorized viewer must be designed and reviewed separately.
+
+Sample local check:
+
+```sh
+node --test apps/api/src/gaiz/gaiz-mapping-preview.test.mjs
+```
+
+### Critical incomplete dependencies
+
+1. The existing TEBE project and portfolio schema **does not contain a monotonic revision column** for this purpose. The snapshot revision is a required interface contract, not a working live DB integration. Design the revision strategy and concurrency controls before enabling.
+2. The current TO local custodian returns only hashes/counts, never plaintext. The mapping module therefore has **no real decrypted report input**; do not bypass the boundary by accepting decrypted content from browser JSON. Use only trusted in-boundary content in a future isolated workflow.
+3. Mapping profile approval records and their tenant-scoped durable storage **do not exist**. The `approved:true` field is a contract assertion and must come from an authoritative registry, not user input.
+4. This is **not** a complete business-data import preview. It intentionally does not map program/portfolio relationships, statuses, budgets, risks, stage gates or audit events, and does not apply updates.
+5. On commit, a future separate transaction must re-read the exact tenant/snapshot revision, require independent review, maintain idempotency and append an audit event or roll back. No such commit path exists.
+6. TEBE's hosted CI is currently unavailable; unit tests are committed but their successful execution is not established.
