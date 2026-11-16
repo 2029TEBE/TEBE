@@ -60,22 +60,30 @@ INSERT INTO public.gaiz_custody_attempts
 VALUES
  ('77777777-7777-4777-8777-777777777777','11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555',repeat('a',64),'synthetic-recipient','cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
  ('88888888-8888-4888-8888-888888888888','11111111-1111-4111-8111-111111111111','66666666-6666-4666-8666-666666666666',repeat('b',64),'synthetic-recipient','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
-DO $$ DECLARE blocked boolean:=false; BEGIN
+-- The authorization must reference the exact tenant/kind profile.
+INSERT INTO public.gaiz_mapping_profiles
+ (tenant_id,profile_id,target_kind,field_mappings,requested_by)
+ VALUES('11111111-1111-4111-8111-111111111111','binding-profile',
+ 'project','["project.name"]'::jsonb,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+UPDATE public.gaiz_mapping_profiles SET status='approved',
+ reviewed_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',reviewed_at=now()
+ WHERE profile_id='binding-profile';
+DO $ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_import_authorizations
-   (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,requested_by)
-  VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','88888888-8888-4888-8888-888888888888','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+   (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by)
+  VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','88888888-8888-4888-8888-888888888888','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'binding-profile','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
  EXCEPTION WHEN foreign_key_violation THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'wrong custody/stage pairing accepted'; END IF;
 END $$;
 INSERT INTO public.gaiz_import_authorizations
- (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,requested_by)
-VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+ (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by)
+VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'binding-profile','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
 DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   INSERT INTO public.gaiz_import_authorizations
-   (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,requested_by)
-  VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+   (tenant_id,staging_review_id,custody_attempt_id,target_kind,target_id,target_snapshot_sha256,preview_sha256,mapping_profile_id,requested_by)
+  VALUES ('11111111-1111-4111-8111-111111111111','55555555-5555-4555-8555-555555555555','77777777-7777-4777-8777-777777777777','project','33333333-3333-4333-8333-333333333333',repeat('c',64),repeat('d',64),'binding-profile','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
  EXCEPTION WHEN unique_violation THEN blocked:=true; END;
  IF NOT blocked THEN RAISE EXCEPTION 'duplicate authorization accepted'; END IF;
 END $$;
