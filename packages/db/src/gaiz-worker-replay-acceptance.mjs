@@ -40,7 +40,7 @@ const claim=async(tx,tenant,id,worker,workItem)=>{
   await tx`SELECT set_config('app.tenant_id',${tenant},true)`;
   const result=await tx`INSERT INTO gaiz_worker_assignment_claims
     (assignment_id,tenant_id,worker_id,work_item_id,purpose,expires_at)
-    SELECT ${id},${tenant},${worker},${workItem},'gaiz_verify_worker',
+    SELECT ${id}::uuid,${tenant}::uuid,${worker}::uuid,${workItem}::uuid,'gaiz_verify_worker',
       clock_timestamp()+interval '1 minute'
     ON CONFLICT (assignment_id) DO NOTHING RETURNING assignment_id`;
   return result;
