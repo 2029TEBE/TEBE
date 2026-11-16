@@ -43,3 +43,16 @@ test('GAIZ1 downgrade, tampered data, malformed UTF-8 and parser ambiguity denie
  assert.throws(()=>verifyGaiz2ForPreview(Buffer.from(text.replace('"version":2','"version":2.0')),opts));
  assert.throws(()=>verifyGaiz2ForPreview(Buffer.alloc(8*1024*1024+1),opts));
 });
+
+test('pinned independent TO GAIZ2 fixture verifies byte-for-byte',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const {createHash}=await import('node:crypto');
+ const fixture=JSON.parse(readFileSync(new URL('./fixtures/gaiz2-synthetic-v1.json',import.meta.url),'utf8'));
+ const bytes=Buffer.from(fixture.artifactBase64,'base64url');
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),fixture.sha256);
+ const out=verifyGaiz2ForPreview(bytes,{trustedIssuerPublicKey:fixture.issuerPublicKeyPem,expectedIssuerId:fixture.expectedManifest.issuerId,expectedTenantScope:fixture.expectedManifest.tenantScope});
+ assert.equal(out.verified,true);
+ assert.equal(out.sha256,fixture.sha256);
+ assert.equal(out.importAllowed,false);
+ assert.throws(()=>verifyGaiz2ForPreview(bytes,{trustedIssuerPublicKey:fixture.issuerPublicKeyPem,expectedIssuerId:fixture.expectedManifest.issuerId,expectedTenantScope:'cross-tenant'}),/Tenant denied/);
+});
