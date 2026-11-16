@@ -11,13 +11,14 @@ const MAGIC=Buffer.from('GAIZ1\n','ascii');
 const MAX=8*1024*1024;
 const HASH=/^[a-f0-9]{64}$/;
 const ID=/^[a-zA-Z0-9_-]{16,128}$/;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fail=()=>{throw new Error('GAIZ quarantine request rejected')};
 
 export function prepareGaizQuarantine(bytes, {tenantId, actorId, idempotencyKey}={}) {
   if (!(bytes instanceof Uint8Array) || bytes.byteLength<=MAGIC.length || bytes.byteLength>MAX ||
       !Buffer.from(bytes.subarray(0,MAGIC.length)).equals(MAGIC) ||
-      typeof tenantId!=='string' || !/^[0-9a-f-]{36}$/i.test(tenantId) ||
-      typeof actorId!=='string' || !/^[0-9a-f-]{36}$/i.test(actorId) ||
+      typeof tenantId!=='string' || !UUID.test(tenantId) ||
+      typeof actorId!=='string' || !UUID.test(actorId) ||
       typeof idempotencyKey!=='string' || !ID.test(idempotencyKey)) fail();
 
   // Check exact byte hash; preserve bytes as ciphertext, never parse until
@@ -43,6 +44,6 @@ export function checkGaizIntakeCollision(existing, proposal) {
      existing.idempotencyKey!==proposal.idempotencyKey ||
      typeof existing.envelopeSha256!=='string' || !HASH.test(existing.envelopeSha256) ||
      typeof proposal.envelopeSha256!=='string' || !HASH.test(proposal.envelopeSha256)) fail();
-  if(existing.envelopeSha256!==proposal.envelopeSha256) fail();
+  if(existing.envelopeSha256!==proposal.envelopeSha256 || !UUID.test(existing.jobId)) fail();
   return Object.freeze({replayed:true, jobId:existing.jobId, importAllowed:false});
 }
