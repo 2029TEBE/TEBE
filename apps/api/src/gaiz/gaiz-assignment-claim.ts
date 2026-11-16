@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type WorkerPurpose = 'gaiz_verify_worker' | 'gaiz_execute_worker';
@@ -9,7 +9,7 @@ type VerifiedAssignment = Readonly<{
   databaseClaimRequired: true; importAllowed: false;
 }>;
 type TransportIdentity = Readonly<{ workerId: string; purpose: WorkerPurpose }>;
-type ScopedTransaction = { execute: (statement: unknown) => Promise<unknown> };
+type ScopedTransaction = { execute: (statement: SQL) => Promise<unknown> };
 const getRows = (result: unknown): Record<string, unknown>[] =>
   Array.isArray(result) ? result as Record<string, unknown>[] : [];
 const purposes = new Set<WorkerPurpose>(['gaiz_verify_worker', 'gaiz_execute_worker']);
