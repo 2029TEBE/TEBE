@@ -134,3 +134,44 @@ KMS-backed recipient authorization, independent issuer rotation and
 revocation, externally attested workload identity, approved DB/RLS
 migrations, atomic assignment/approval/import and real CI/Postgres
 conformance under the reviewed commits. No route or production release.
+
+
+## Dual-signed verifier workload / GAIZ2 recipient binding
+
+TEBE now includes an **unregistered development-only** policy seam,
+`apps/api/src/gaiz/gaiz2-worker-recipient-binding.mjs`, and three synthetic
+tests in deferred CI. It requires two independent trust anchors: the
+Ed25519 issuer of short-lived GAIZ verifier worker assignments and the
+Ed25519 issuer of the GAIZ2 envelope.
+
+The function independently verifies the signed assignment against a
+backend-supplied verifier worker ID, role, tenant UUID, work-item UUID and
+time/expiry; then verifies the **complete signed GAIZ2 envelope** and
+selected recipient ciphertext, binding the envelope tenant scope to the
+assignment's tenant UUID. It returns an immutable metadata request with
+assignment ID, work item, artifact digest, recipient key ID and opaque
+wrapped key. It explicitly declares:
+`databaseClaimRequired:true`,
+`custodyAuthorizationRequired:true`,
+`authorizationGranted:false`, and `importAllowed:false`.
+
+The candidate deliberately **refuses non-UUID tenant scopes** rather
+than guessing an application tenant mapping. This means the separately
+pinned `synthetic-tenant` TO vector is only a *signature conformance*
+fixture, not a worker-custody integration fixture. A future reviewed,
+trusted tenant-scope directory is required to support non-UUID scopes
+safely.
+
+The supplied `workload` descriptor is **not actual mTLS/workload identity
+proof**: its values must come from a security-reviewed ingress, not
+HTTP headers or file bytes. The signed assignment may still be replayed
+until a dedicated database worker role performs a transactionally unique
+claim. A custodian must separately authenticate the caller and enforce
+authorization/revocation **before key use**. This module contains no
+credential broker, KMS implementation, DEK release, actual mTLS
+validation, database claim, import, Nest registration, or public API.
+
+Positive and negative synthetic tests cover paired signatures, tenant,
+role, work item, key, expiry, tampering, production disable and lack of
+import authorization. They are committed to **deferred**, not executed,
+Node CI; there is no claim of operational authentication.
