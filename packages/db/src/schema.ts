@@ -878,3 +878,20 @@ export const gaizImportRequests = pgTable('gaiz_import_requests', {
   tenantArtifactUnique: uniqueIndex('gaiz_import_requests_tenant_artifact_unique').on(t.tenantId, t.artifactId),
   tenantStatus: index('gaiz_import_requests_tenant_status_idx').on(t.tenantId, t.status, t.requestedAt),
 }));
+
+/** Metadata-only single-use GAIZ custodian requests. No key or plaintext storage. */
+export const gaizCustodyAttempts = pgTable('gaiz_custody_attempts', {
+  id: id(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  reviewId: uuid('review_id').notNull().references(() => gaizImportRequests.id, { onDelete: 'cascade' }),
+  artifactSha256: text('artifact_sha256').notNull(),
+  recipientKeyId: text('recipient_key_id').notNull(),
+  requestedBy: uuid('requested_by').notNull().references(() => users.id),
+  status: text('status').notNull().default('reserved'),
+  reportSha256: text('report_sha256'),
+  reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+}, t => ({
+  reviewOnce: uniqueIndex('gaiz_custody_attempt_review_unique').on(t.tenantId, t.reviewId),
+  tenantCreated: index('gaiz_custody_attempts_tenant_created_idx').on(t.tenantId,t.reservedAt),
+}));
