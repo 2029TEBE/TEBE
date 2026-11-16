@@ -7,10 +7,10 @@ const required=(obj,names)=>obj&&names.every(name=>typeof obj[name]==='function'
 export function createGaizFulfillmentService({
  enabled=false,sessionStore,orders,paymentVerifier,jobVerifier,artifactStore,audit
 }={}){
- if(enabled!==true||!required(sessionStore,['requireCustomer'])||
+ if(enabled!==true||!required(sessionStore,['requireCustomer','requireSystemOrderOwner'])||
  !required(orders,['getOrderForUpdate','commitTransition','getOrder'])||
  !required(paymentVerifier,['verifyProviderEvent'])||
- !required(jobVerifier,['verifyExecution'])||
+ !required(jobVerifier,['verifyExecution','getJobForOrder'])||
  !required(artifactStore,['getMetadata','readAuthorized'])||
  !required(audit,['record']))deny();
  // Implementations MUST enforce transactions, actor binding, immutable payment
@@ -49,9 +49,11 @@ export function createGaizFulfillmentService({
     return next;
    });
   },
-  async download({sessionToken,orderId,job,artifactId,nowSeconds}={}){
+  async download({sessionToken,orderId,jobId,artifactId,nowSeconds}={}){
    const principal=await sessionStore.requireCustomer(sessionToken);
    const record=await orders.getOrder(orderId,principal.customerId);
+   // Never accept a client-supplied job status or ownership record.
+   const job=await jobVerifier.getJobForOrder(jobId,record.id,principal.customerId);
    const artifact=await artifactStore.getMetadata(artifactId,principal.customerId);
    const grant=authorizeGaizArtifact({principal,order:record,job,artifact,nowSeconds});
    await audit.record({event:'orgaiz.artifact.download',orderId:grant.orderId,
