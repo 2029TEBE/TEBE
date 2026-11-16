@@ -10,7 +10,7 @@ function httpsUrl(value, {allowPath=true}={}) {
   if(url.protocol!=='https:'||url.username||url.password||url.hash||url.search||
      !url.hostname||url.hostname==='localhost'||url.hostname.endsWith('.localhost')||
      url.hostname.endsWith('.local')||/^\d{1,3}(?:\.\d{1,3}){3}$/.test(url.hostname)||
-     url.hostname.includes(':')||url.port||url.toString()!==value||
+     url.hostname.includes(':')||url.port||(url.toString()!==value && !(url.pathname==='/'&&url.toString()===value+'/'))||
      (!allowPath&&url.pathname!=='/'))reject('HTTPS endpoint');
   return url;
 }
