@@ -165,7 +165,12 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
     digest=$(jq -er .runtimeDigest <<< "$identity")
     revision=$(jq -er .revision <<< "$identity")
     [[ "$digest" == "$expected_digest" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
-      echo 'BLOCKED: loaded image runtime content or revision differs from CI' >&2; exit 1;
+      # Hashes and revisions are non-secret; log only the failed comparison,
+      # never the image config, environment, keys or workload payloads.
+      echo "BLOCKED: loaded $service image runtime content or revision differs from CI" >&2
+      [[ "$digest" == "$expected_digest" ]] || echo "runtime digest mismatch for $service: expected=$expected_digest actual=$digest" >&2
+      [[ "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || echo "revision mismatch for $service: expected=$EPMO_CI_VERIFIED_SHA actual=$revision" >&2
+      exit 1
     }
     ssh_remote "docker image tag '$actual' '$release_tag'"
     if [[ "$service" == api ]]; then API_IMAGE_ID=$actual; else WEB_IMAGE_ID=$actual; fi
