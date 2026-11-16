@@ -58,6 +58,15 @@ REVOKE INSERT, UPDATE, DELETE ON gaiz_artifacts FROM pmo_app;
 -- Design a dedicated executor role/SECURITY DEFINER function with strict
 -- checks before lifting this restriction.
 REVOKE INSERT ON gaiz_import_receipts FROM pmo_app;
+-- The existing pmo_app role must not directly elevate job states, set
+-- mapping_validated_at, approved_by or other trusted state columns. Human
+-- decision writes must use a dedicated checked transaction with immutable
+-- evidence; the current prototype adapter is deliberately disabled.
+REVOKE INSERT, UPDATE, DELETE ON gaiz_import_jobs FROM pmo_app;
+REVOKE INSERT, UPDATE, DELETE ON gaiz_decisions FROM pmo_app;
+REVOKE INSERT, UPDATE, DELETE ON gaiz_export_jobs FROM pmo_app;
+-- No GAIZ customer-facing write workflow is activated by these proposals.
+
 REVOKE DELETE ON gaiz_quarantine_blobs FROM pmo_app;
 REVOKE DELETE ON gaiz_artifacts FROM pmo_app;
 REVOKE DELETE ON gaiz_import_jobs, gaiz_export_jobs FROM pmo_app;
