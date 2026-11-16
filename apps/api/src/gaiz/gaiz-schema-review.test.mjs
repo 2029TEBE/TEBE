@@ -28,6 +28,13 @@ test('quarantine failures can be recorded without asserting successful verificat
   assert.match(sql,/UNIQUE \(tenant_id, import_id\)/);
 });
 
+test('business references bind to the same tenant by composite foreign keys',()=>{
+  assert.match(sql,/CREATE UNIQUE INDEX projects_id_tenant_gaiz_fk ON projects \(id, tenant_id\)/);
+  assert.match(sql,/CREATE UNIQUE INDEX documents_id_tenant_gaiz_fk ON documents \(id, tenant_id\)/);
+  assert.match(sql,/FOREIGN KEY \(target_project_id, tenant_id\)\s+REFERENCES projects\(id, tenant_id\)/);
+  assert.match(sql,/FOREIGN KEY \(document_id, tenant_id\)\s+REFERENCES documents\(id, tenant_id\)/);
+});
+
 test('untrusted application role is denied evidence forgery',()=>{
   assert.match(policy,/REVOKE INSERT, UPDATE, DELETE ON gaiz_import_proposals FROM pmo_app/);
   assert.match(policy,/REVOKE INSERT, UPDATE, DELETE ON gaiz_artifacts FROM pmo_app/);
