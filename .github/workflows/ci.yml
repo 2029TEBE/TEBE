@@ -26,6 +26,8 @@ jobs:
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: Ensure main CI cannot be cancelled by repeated triggers
+        run: node --test tests/ci-main-concurrency.test.mjs
       - name: GAIZ customer activation boundary source gate
         run: node --test tests/gaiz-customer-activation-boundary.test.mjs
       - name: GAIZ unmounted OIDC and atomic session source policy checks
