@@ -39,6 +39,9 @@ export function verifyGaizWorkerAssignment(encoded, {
   try {
     const raw=new TextDecoder('utf-8',{fatal:true}).decode(token);
     envelope=JSON.parse(raw);
+    // Reject duplicate JSON keys and all noncanonical serialization before
+    // signature verification, preventing parser disagreement at the boundary.
+    if(raw!==JSON.stringify(envelope))fail();
   }catch{fail()}
   if(!own(envelope,['claims','signature'])||
     !own(envelope.claims,['version','workerId','tenantId','workItemId',
