@@ -64,3 +64,12 @@ No runtime is configured or enabled and no existing database migration is applie
 Live workload identities, audited customer authority, hardened isolation, full app
 build, real multi-connection PostgreSQL acceptance, external security review and
 release approval remain operational gates; GitHub CI remains postponed.
+## GAIZ remote custodian mTLS transport — development adapter
+
+`apps/api/src/gaiz/gaiz-custodian-mtls.mjs` now exposes `makeCustodianMtlsTransport`, which requires an **explicit server-owned** HTTPS endpoint, pinned remote server SPKI SHA-256, trusted CA, and a distinct client TLS certificate/private key. This TLS client identity key is **not** a customer's GAIZ2 artifact-decryption key. It enforces TLS 1.3 minimum, rejects URLs with embedded credentials, arbitrary paths, URLs with query/fragment, non-443 ports, localhost and literal IP addresses; refuses redirects; imposes a five-second deadline and an 8 KiB JSON response limit. Outbound body contains the approved custody request metadata only. It never sends a GAIZ artifact, private key, wrapped DEK, or decrypted report.
+
+`GaizCustodyHandoffService` now creates this mTLS transport rather than accepting an arbitrary `requestAttestation` callback. The independently trusted Ed25519 public custodian key is **still loaded from the tenant trust directory**. The existing custody bridge cryptographically verifies the returned signed validation receipt and performs its single-use attempt reservation and transactional audit.
+
+This adapter is gated to `NODE_ENV=development` and `GAIZ_REMOTE_CUSTODY_TEST=true`. No endpoint, PKI trust chain, client certificate, server certificate pin or external provider has been provisioned or tested live. It is **not production ready**. The TLS client key must live in a separately managed service identity store, not in source code, repo secrets, HTTP bodies, browser state or prompts. Trust-root rotation, endpoint DNS ownership, real client-cert authorization, external request authentication, customer-key custody, key revocation and remote provider incident handling all remain necessary.
+
+Do not weaken TLS or remove the pinned server public-key check to obtain a passing demo. The development-only mTLS test suite checks rejection of invalid endpoints/credentials and default-off behavior but does not constitute successful remote provider interoperability. No import permissions or customer decrypt endpoints were enabled.
