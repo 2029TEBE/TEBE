@@ -37,3 +37,15 @@ Never treat a read-only readiness receipt as permission to update records in a l
 ## Status
 
 Development interfaces and no-write integration are committed. Neither cryptographic custody production integration nor approved enterprise writes are live. GitHub test tasks were not awaited or used as approval. No customer data, keys, production migrations, merges or deployment performed.
+
+## Trusted public-key directory foundation (additional development increment)
+
+New draft migration `0026_gaiz_trust_directory.sql` introduces tenant-RLS issuer/custodian/recipient public key records with algorithms, fingerprints, validity windows, independent reviewer and irrevocable revoked status metadata. A separate tenant-RLS recovery consent record binds a specific platform recipient, purpose, expiry, separate approval and revocation. Neither table contains a private key, customer report content, ciphertext or a data-encryption key.
+
+The app database role has **SELECT only** on both tables. Key enrollment, revocation, signer proof-of-possession and consent provisioning must occur through a separately authorized administrative path; no such mutation endpoint has been implemented. This prevents a compromised normal application API from enrolling its own trust root using ordinary role privileges, but does not defend against a compromised database owner or privileged migration path.
+
+`GaizTrustDirectoryService` is internal, read-only, development-flagged, authenticated and tenant-scoped. It fails closed for pending/revoked/expired keys, invalid or mismatched public key fingerprints, unsupported RSA key sizes, missing independent approval and absent/expired/revoked platform recovery consent records. Custodian and issuer signers must use Ed25519, recipients RSA-3072+ OAEP-SHA256. `GaizCustodyHandoffService` now obtains recipient and custodian trust from this server-owned registry rather than accepting public trust roots from externally injected callbacks. The existing artifact verifier and remote custodian response callbacks still require a trusted implementation.
+
+**Limits that cannot be waived:** A row marked approved in the consent ledger does not itself cryptographically prove the approving user is an authorized customer representative. Membership, customer authority, consent signatures, trust-key enrollment, proof-of-possession, mutual TLS/service identity, customer-managed key custody, remote attestation, KMS/HSM provisioning and production audit must be independently designed and verified. Do not set the new registry or bridge feature flags in production. Neither public-key metadata nor a signed validation receipt gives permission to decrypt or import enterprise records.
+
+New source-level negative/security contract `gaiz-trust-directory.contract.test.mjs` is included for later automated execution. PostgreSQL harness now includes migration 0026; user has requested not to wait for pending GitHub test jobs. **No current CI pass is claimed**, and all 0020–0026 migrations remain unapplied.
