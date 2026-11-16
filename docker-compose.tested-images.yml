@@ -1,0 +1,7 @@
+services:
+  api:
+    image: ${EPMO_RELEASE_API_IMAGE:?verified API image required}
+    pull_policy: never
+  web:
+    image: ${EPMO_RELEASE_WEB_IMAGE:?verified web image required}
+    pull_policy: never
