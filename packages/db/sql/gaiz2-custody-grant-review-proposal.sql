@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS gaiz2_custody_grant_claims(
  claimed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  expires_at timestamptz NOT NULL,
  CONSTRAINT gaiz2_custody_claim_unique_assignment UNIQUE(tenant_id,assignment_id,envelope_sha256,recipient_key_id),
+ -- Bind any future release to the exact authenticated grant, not a token digest alone.
+ CONSTRAINT gaiz2_custody_claim_release_reference UNIQUE
+ (token_sha256,tenant_id,worker_id,work_item_id,assignment_id,envelope_sha256,recipient_key_id),
  CONSTRAINT gaiz2_custody_claim_valid_expiry CHECK(expires_at>claimed_at AND expires_at<=claimed_at+interval '30 seconds')
 );
 ALTER TABLE gaiz2_custody_grant_claims ENABLE ROW LEVEL SECURITY;
