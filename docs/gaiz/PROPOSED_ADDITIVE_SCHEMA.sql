@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS gaiz_artifacts (
   artifact_id text NOT NULL,
   issuer_key_id text NOT NULL,
   envelope_sha256 char(64) NOT NULL,
+  content_integrity_verified_at timestamptz,
   verification_status text NOT NULL CHECK
     (verification_status IN ('pending','verified','invalid','unsupported','untrusted','tenant_mismatch')),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -25,8 +26,10 @@ CREATE TABLE IF NOT EXISTS gaiz_import_jobs (
   revision integer NOT NULL DEFAULT 0 CHECK (revision >= 0),
   requested_by uuid NOT NULL REFERENCES users(id),
   approved_by uuid REFERENCES users(id),
+  approval_decided_at timestamptz,
   idempotency_key text NOT NULL,
   mapped_schema_version integer,
+  mapping_validated_at timestamptz,
   correlation_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
