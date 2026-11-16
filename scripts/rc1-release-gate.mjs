@@ -82,19 +82,12 @@ export function validateRc1Configuration(env, mode) {
   // A deliberate no-payments release must not require a live payment adapter.
   // Omission keeps the existing strict Stripe release policy; no silent opt-out.
   const billingDisabled = env.BILLING_MODE === 'disabled';
-  // A staged Paddle integration is not a production payment adapter. Do not
-  // silently accept its credentials while the only supported release modes
-  // are explicit Stripe or completely disabled billing.
-  const paddleSecretsAbsent = ['PADDLE_API_KEY', 'PADDLE_WEBHOOK_SECRET',
-    'PADDLE_NOTIFICATION_SECRET', 'PADDLE_CLIENT_TOKEN']
-    .every(key => !env[key]);
   const stripeMode = mode === 'staging' ? 'test' : 'live';
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
     ['Billing mode is recognized', env.BILLING_MODE === undefined || ['stripe','disabled'].includes(env.BILLING_MODE)],
     ['Billing mode and provider agree', env.BILLING_MODE === 'disabled' ? (!env.BILLING_PROVIDER || env.BILLING_PROVIDER === 'disabled') : env.BILLING_MODE === 'stripe' ? env.BILLING_PROVIDER === 'stripe' : true],
     ['Active payments require Stripe-only provider selection', billingDisabled ? (!env.BILLING_PROVIDER || env.BILLING_PROVIDER === 'disabled') : env.BILLING_PROVIDER === 'stripe'],
-    ['Incomplete Paddle adapter cannot be pre-enabled by retained secrets', paddleSecretsAbsent],
     ['Deployment mode matches this release target', env.DEPLOYMENT_ENV === mode],
     ['HTTPS web origin', httpsOrigin(env.WEB_ORIGIN)],
     ['HTTPS public API origin', httpsOrigin(env.PUBLIC_API_URL)],

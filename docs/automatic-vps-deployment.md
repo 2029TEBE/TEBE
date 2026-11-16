@@ -18,11 +18,12 @@ Never deploy a pull-request revision directly to production.
   42826989554 passed.
 - Candidate production preflight passed 21/25 checks. It rejected four Stripe
   requirements: adapter enabled, live key, signing secret and webhook URL.
-  Current production deliberately has STRIPE_ENABLED=false; Paddle is intended.
+  At that checkpoint production deliberately had STRIPE_ENABLED=false.
   The updated preflight supports explicit BILLING_MODE=disabled, with Stripe
   and reference payments explicitly false, no payment credentials, and no
   test-mode exception. This is an application release, not live billing
-  activation. Paddle remains a separate implementation/activation requirement.
+  activation. Stripe is the supported payment provider; activation requires
+  verified credentials, signed webhooks and staging payment acceptance.
 - The production checkout has a one-line bootstrap SQL correction and untracked
   configuration backups. Preserve these before any rsync --delete deployment.
 - Existing backups were visible, but a current isolated restore rehearsal has
