@@ -81,7 +81,7 @@ export function verifyGaiz2ForQuarantine(bytes,{
   for(const r of doc.recipients){
     if(!exact(r,['keyId','wrappedKey'])||!id(r.keyId)||
        (previous!==''&&r.keyId<=previous)||
-       decode(r.wrappedKey,1024).length<256)deny();
+       decode(r.wrappedKey,1024).length<384)deny();
     previous=r.keyId;
   }
   let key;
