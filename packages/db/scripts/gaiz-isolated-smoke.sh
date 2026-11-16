@@ -16,7 +16,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 psql_run=(psql -X -w -v ON_ERROR_STOP=1 -h 127.0.0.1 -d gaiz_ci_isolated -U "$PGUSER")
 "${psql_run[@]}" -Atqc "SELECT CASE WHEN current_database()='gaiz_ci_isolated' AND NOT pg_is_in_recovery() THEN 'SAFE' ELSE 'DENY' END" | grep -qx SAFE
 "${psql_run[@]}" -f "$here/sql/tests/gaiz-isolated-bootstrap.sql"
-for n in 0020_gaiz_import_staging 0021_gaiz_custody_attempts 0022_gaiz_import_authorizations 0023_gaiz_entity_revisions 0024_gaiz_mapping_profiles 0025_gaiz_mapping_profile_binding; do
+for n in 0020_gaiz_import_staging 0021_gaiz_custody_attempts 0022_gaiz_import_authorizations 0023_gaiz_entity_revisions 0024_gaiz_mapping_profiles 0025_gaiz_mapping_profile_binding 0026_gaiz_trust_directory; do
   "${psql_run[@]}" -f "$here/migrations/$n.sql"
 done
 # Apply GAIZ restrictions from the actual production RLS policy source,
