@@ -40,7 +40,7 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
     // Verify *all* GAIZ tables are protected and owner bypass is disabled.
     const tableNames=['gaiz_artifacts','gaiz_quarantine_blobs',
       'gaiz_import_jobs','gaiz_export_jobs','gaiz_decisions',
-      'gaiz_import_proposals','gaiz_import_receipts'];
+      'gaiz_import_proposals','gaiz_import_receipts','gaiz_worker_assignment_claims'];
     const tables=await db`SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
       FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname='public' AND c.relname IN ${db(tableNames)}`;
@@ -71,7 +71,9 @@ test('GAIZ disposable DB: RLS and ciphertext privilege acceptance', {skip:!url},
       has_table_privilege(current_user,'public.gaiz_import_proposals','INSERT') AS can_forge_proposal,
       has_table_privilege(current_user,'public.gaiz_import_proposals','UPDATE') AS can_rewrite_proposal,
       has_table_privilege(current_user,'public.gaiz_import_receipts','UPDATE') AS can_rewrite_receipt,
-      has_table_privilege(current_user,'public.gaiz_decisions','DELETE') AS can_delete_decision`;
+      has_table_privilege(current_user,'public.gaiz_decisions','DELETE') AS can_delete_decision,
+      has_table_privilege(current_user,'public.gaiz_worker_assignment_claims','INSERT') AS can_forge_worker_claim,
+      has_table_privilege(current_user,'public.gaiz_worker_assignment_claims','SELECT') AS can_read_worker_claim`;
     for(const [name,value] of Object.entries(privs))
       assert.equal(value,false,'unsafe privilege '+name+' must be denied');
 
