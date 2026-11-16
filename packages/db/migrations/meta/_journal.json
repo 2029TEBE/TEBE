@@ -176,6 +176,13 @@
       "when": 1789238221559,
       "tag": "0024_gaiz_mapping_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789238222559,
+      "tag": "0025_gaiz_mapping_profile_binding",
+      "breakpoints": true
     }
   ]
 }
