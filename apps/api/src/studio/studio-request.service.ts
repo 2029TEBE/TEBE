@@ -241,10 +241,10 @@ export class StudioRequestService {
         AND r.phase IN ('manager','finance')
         AND step->>'id'=r.phase AND step->>'kind'='approval'
         AND jsonb_typeof(step->'timeoutHours') = 'number'
-        AND CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}' || chr(36)
+        AND CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
              THEN (step->>'timeoutHours')::int BETWEEN 1 AND 720 ELSE false END
         AND r.updated_at +
-          CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}' || chr(36)
+          CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
                THEN (step->>'timeoutHours')::int ELSE 720 END * INTERVAL '1 hour' <= now()
         AND NOT EXISTS (
           SELECT 1 FROM studio_service_decisions d
