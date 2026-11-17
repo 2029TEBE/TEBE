@@ -33,6 +33,6 @@
     "0028_studio_tenant_records.sql": "5dd1051553c1dbf71cb231311eca3592cbf3b5c84adde6a0976abef0ba9aeea6",
     "0029_studio_escalation_reviews.sql": "504d3287e70ac23095a274ab7e6ee47ce10648e13163523cf5755f4ff4afed1c",
     "0030_studio_approval_delegations.sql": "b7a4a6f875ae37537bdaada295a2a373dec80189a7c13896a900788ee46c0dbd",
-    "0031_studio_delegation_revocations.sql": "ed4c02ffce685a0fe3ba6b984f04ac9c808e39b988d16a3b8dbbe1f751ca6981"
+    "0031_studio_delegation_revocations.sql": "6dc1c6af82e3ab3370dceaff1c8e27c8177387fb56b54bd80a0f86373934c8cb"
   }
 }
