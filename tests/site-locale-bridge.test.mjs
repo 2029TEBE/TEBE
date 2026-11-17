@@ -34,3 +34,10 @@ test('the first dashboard visit respects a locale selected on the public site', 
   assert.match(app, /if \(hasPreference\) return;/);
   assert.ok(app.indexOf('if (hasPreference) return;') < app.indexOf('chooseFrontendLocale({ browserLanguages: languages })'));
 });
+
+test('all locale option names have screen-reader language and fallback English is tagged', () => {
+  assert.match(app, /<option key=\{item.code\} value=\{item.code\} lang=\{item.code\}>/);
+  assert.match(app, /<select id="epmo-header-locale" aria-label=\{label\} lang=\{locale === 'ar' \? 'ar' : 'en'\}/);
+  assert.match(app, /className="dim" lang="en" aria-live="polite"/);
+  assert.match(app, /className="sr-only" lang=\{locale === 'ar' \? 'ar' : 'en'\}/);
+});

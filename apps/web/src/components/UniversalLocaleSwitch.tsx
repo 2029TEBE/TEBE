@@ -43,14 +43,14 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   }
 
   return <div className="locale-picker">
-    <label htmlFor="epmo-header-locale" className="sr-only">{label}</label>
+    <label htmlFor="epmo-header-locale" className="sr-only" lang={locale === 'ar' ? 'ar' : 'en'}>{label}</label>
     <span aria-hidden="true">🌐</span>
-    <select id="epmo-header-locale" aria-label={label} value={locale}
+    <select id="epmo-header-locale" aria-label={label} lang={locale === 'ar' ? 'ar' : 'en'} value={locale}
       disabled={pending} onChange={event => setLocale(event.target.value)}>
       {LOCALE_REGISTRY.map(item =>
-        <option key={item.code} value={item.code}>{item.name}</option>)}
+        <option key={item.code} value={item.code} lang={item.code}>{item.name}</option>)}
     </select>
-    {fallback && <span className="dim" aria-live="polite"
+    {fallback && <span className="dim" lang="en" aria-live="polite"
       title="Translations are being reviewed; missing strings appear in English.">
       English fallback
     </span>}
