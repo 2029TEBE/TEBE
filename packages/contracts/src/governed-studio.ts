@@ -106,7 +106,14 @@ export function validateStudioDefinition(definition: StudioDefinition, enabledLo
     checkText(field.label, enabledLocales, 'field:' + field.id + ':label', failures);
     if (field.help) checkText(field.help, enabledLocales, 'field:' + field.id + ':help', failures);
     if (field.type === 'select' && !field.options?.length) failures.push('MISSING_OPTIONS:' + field.id);
-    for (const option of field.options ?? []) checkText(option.label, enabledLocales, 'option:' + option.id, failures);
+    if (field.type !== 'select' && field.options?.length) failures.push('OPTIONS_ON_NON_SELECT:' + field.id);
+    const optionIds = new Set<string>();
+    for (const option of field.options ?? []) {
+      if (!/^[a-zA-Z][a-zA-Z0-9._-]{0,99}$/.test(option.id) || optionIds.has(option.id))
+        failures.push('INVALID_OR_DUPLICATE_OPTION:' + field.id + ':' + option.id);
+      optionIds.add(option.id);
+      checkText(option.label, enabledLocales, 'option:' + field.id + ':' + option.id, failures);
+    }
   }
   const stepIds = new Set<string>();
   for (const step of definition.steps) {
