@@ -14,7 +14,8 @@ export type NotificationKind =
   | 'approval.pending'
   | 'task.overdue'
   | 'gate.passed'
-  | 'report.board_pack';
+  | 'report.board_pack'
+  | 'studio.approval.overdue';
 
 export type Built = { subject: string; body: string };
 
@@ -37,6 +38,19 @@ export function build(kind: NotificationKind, c: Ctx): Built {
   const hi = `${t('Hello')} ${c.recipientName},\n\n`;
 
   switch (kind) {
+    case 'studio.approval.overdue': {
+      // Deliberately minimal metadata: never include requester values or attachments.
+      const ar = c.lang === 'ar';
+      const link = `${c.webOrigin}/studio/services/escalations`;
+      return {
+        subject: ar ? 'مراجعة اعتماد متأخر في الاستوديو' : 'Studio approval overdue: human review required',
+        body: hi + (ar
+          ? `تأخر اعتماد في مساحة العمل ${c.tenantName}. المرحلة: ${d.step}. يلزم اتخاذ إجراء بشري مخول. لا يتم تنفيذ أي موافقة أو رفض تلقائي.\n\n${link}`
+          : `A Studio approval is overdue in ${c.tenantName}. Stage: ${d.step}. Authorized human review is required. No automatic approval or rejection is performed.\n\n${link}`)
+          + sign(t, c),
+      };
+    }
+
     case 'gate.blocked': {
       const reasons = (d.blockers as string[]).map((b) => `  · ${b}`).join('\n');
       return {
