@@ -55,7 +55,7 @@ export class StudioRequestService {
       const valid = field.type==='text' ? typeof v==='string'&&v.length<=5000
         : field.type==='number' ? typeof v==='number'&&Number.isFinite(v)
         : field.type==='boolean' ? typeof v==='boolean'
-        : field.type==='date' ? typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)
+        : field.type==='date' ? typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)
         : field.type==='select' ? typeof v==='string'&&(field.options??[]).some(o=>o.id===v)
         : false; // file uploads require a separate verified attachment workflow
       if(!valid) throw new ConflictException('Unsupported or invalid intake value for '+field.id);
