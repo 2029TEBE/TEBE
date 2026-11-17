@@ -1,17 +1,21 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { submitStudioService, type StudioSubmitState } from './actions';
 
 type Field={
   id:string;type:string;label:Record<string,string>;help?:Record<string,string>;
   required?:boolean;readOnly?:boolean;options?:{id:string;label:Record<string,string>}[];
+  visibleWhen?:{fieldId:string;equals:string|number|boolean};
 };
 const initial:StudioSubmitState={status:'idle',message:''};
 export function PublishedStudioForm({
   id, fields,locale,
 }: {id:string;fields:Field[];locale:string}) {
   const [result,submit,pending]=useActionState(submitStudioService,initial);
+  const [entered,setEntered]=useState<Record<string,string|number|boolean>>(()=>Object.fromEntries(
+    fields.filter(f=>f.type==='boolean').map(f=>[f.id,false])));
+  const setField=(id:string,value:string|number|boolean)=>setEntered(previous=>({...previous,[id]:value}));
   const rtl=locale==='ar'||locale==='ur';
   const message=(english:string,arabic:string)=>locale==='ar'?arabic:english;
   const copy=(dict:Record<string,string>|undefined)=>{
@@ -21,6 +25,7 @@ export function PublishedStudioForm({
   return <form action={submit} dir={rtl?'rtl':'ltr'} aria-label={message('Service request form','نموذج طلب الخدمة')}>
     <input type="hidden" name="serviceVersionId" value={id}/>
     {fields.map(field=>{
+      if(field.visibleWhen && entered[field.visibleWhen.fieldId]!==field.visibleWhen.equals)return null;
       const f=copy(field.label),help=copy(field.help),name='field:'+field.id;
       const label=<label htmlFor={'studio-'+field.id}>
         {f.value}{field.required?' *':''}
@@ -32,11 +37,11 @@ export function PublishedStudioForm({
         'aria-describedby':detail?'help-'+field.id:undefined};
       return <div className="form-field" key={field.id} style={{marginBlock:'1rem'}}>
         {label}
-        {field.type==='text' && <textarea {...attrs} maxLength={5000} rows={3}/>}
-        {field.type==='number' && <input {...attrs} type="number" step="any" min={field.id==='budgetImpact'?'0':undefined}/>}
-        {field.type==='date' && <input {...attrs} type="date"/>}
-        {field.type==='boolean' && <input {...attrs} type="checkbox" value="on"/>}
-        {field.type==='select' && <select {...attrs} defaultValue="">
+        {field.type==='text' && <textarea {...attrs} maxLength={5000} rows={3} onChange={e=>setField(field.id,e.target.value)}/>}
+        {field.type==='number' && <input {...attrs} type="number" step="any" min={field.id==='budgetImpact'?'0':undefined} onChange={e=>setField(field.id,e.target.value===""?"":Number(e.target.value))}/>}
+        {field.type==='date' && <input {...attrs} type="date" onChange={e=>setField(field.id,e.target.value)}/>}
+        {field.type==='boolean' && <input {...attrs} type="checkbox" value="on" onChange={e=>setField(field.id,e.target.checked)}/>}
+        {field.type==='select' && <select {...attrs} defaultValue="" onChange={e=>setField(field.id,e.target.value)}>
           <option value="" disabled>{message('Select an option','اختر خيارا')}</option>
           {(field.options??[]).map(option=>{
             const v=copy(option.label);

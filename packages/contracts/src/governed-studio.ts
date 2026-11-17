@@ -15,6 +15,8 @@ export type FormField = {
   required?: boolean;
   readOnly?: boolean;
   options?: Array<{ id: string; label: LocalizedText }>;
+  /** One-level deterministic condition; source must be a preceding field. */
+  visibleWhen?: { fieldId: string; equals: string | number | boolean };
 };
 export type WorkflowStep = {
   id: string;
@@ -91,6 +93,16 @@ export function validateStudioDefinition(definition: StudioDefinition, enabledLo
   for (const field of definition.fields) {
     if (!field.id || fieldIds.has(field.id)) failures.push('DUPLICATE_FIELD_ID');
     fieldIds.add(field.id);
+    if (field.visibleWhen) {
+      const source = definition.fields.find(f => f.id === field.visibleWhen!.fieldId);
+      if (!source || !fieldIds.has(source.id) || source.id === field.id ||
+          !!source.visibleWhen || source.type === 'file')
+        failures.push('INVALID_VISIBILITY_SOURCE:' + field.id);
+      else if (source.type === 'number' && typeof field.visibleWhen.equals !== 'number'
+        || source.type === 'boolean' && typeof field.visibleWhen.equals !== 'boolean'
+        || ['text','date','select'].includes(source.type) && typeof field.visibleWhen.equals !== 'string')
+        failures.push('INVALID_VISIBILITY_VALUE:' + field.id);
+    }
     checkText(field.label, enabledLocales, 'field:' + field.id + ':label', failures);
     if (field.help) checkText(field.help, enabledLocales, 'field:' + field.id + ':help', failures);
     if (field.type === 'select' && !field.options?.length) failures.push('MISSING_OPTIONS:' + field.id);

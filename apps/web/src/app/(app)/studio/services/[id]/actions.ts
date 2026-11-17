@@ -27,7 +27,7 @@ export async function submitStudioService(
     });
     if(!schema.ok) return {status:'error',message:'This service is unavailable or your permissions have changed.'};
     const def=await schema.json() as {
-      fields:{id:string;type:string;required?:boolean;readOnly?:boolean}[]
+      fields:{id:string;type:string;required?:boolean;readOnly?:boolean;visibleWhen?:{fieldId:string;equals:string|number|boolean}}[]
     };
     if(!Array.isArray(def.fields)||def.fields.length>100)
       return {status:'error',message:'Service configuration unavailable'};
@@ -35,6 +35,12 @@ export async function submitStudioService(
     for(const field of def.fields){
       if(!/^[a-zA-Z][a-zA-Z0-9._-]{0,99}$/.test(field.id))
         return {status:'error',message:'Invalid form field'};
+      if(field.visibleWhen){
+        const source=def.fields.find(item=>item.id===field.visibleWhen!.fieldId);
+        if(!source || source.visibleWhen || def.fields.indexOf(source)>=def.fields.indexOf(field))
+          return {status:'error',message:'Invalid conditional field configuration'};
+        if(values[source.id]!==field.visibleWhen.equals)continue;
+      }
       if(field.readOnly)continue;
       const raw=formData.get('field:'+field.id);
       if(field.type==='file')
