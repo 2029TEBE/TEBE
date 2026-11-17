@@ -105,6 +105,7 @@ export class StudioCatalogService {
       SELECT id,service_key AS "serviceKey",version,definition->'name' AS name
       FROM studio_service_versions
       WHERE tenant_id=${caller.tenantId} AND state='published'
+        AND definition->'accessUserIds' @> ${JSON.stringify([caller.id])}::jsonb
       ORDER BY service_key LIMIT 100
     `));
     return this.rows(rows);
@@ -117,6 +118,7 @@ export class StudioCatalogService {
       SELECT id,service_key AS "serviceKey",version,state,created_by AS "creatorId"
       FROM studio_service_versions
       WHERE tenant_id=${caller.tenantId}
+        AND (created_by=${caller.id} OR ${caller.roles.includes('reviewer') || caller.roles.includes('publisher')})
       ORDER BY created_at DESC LIMIT 100
     `));
     return this.rows(rows);
