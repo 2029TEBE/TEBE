@@ -168,3 +168,22 @@ test('Italian, Turkish and Russian navigation entries are present and guarded', 
   assert.equal(uiLabel('Projects', 'tr'), 'Projeler');
   assert.equal(uiLabel('Projects', 'ru'), 'Проекты');
 });
+
+
+test('all remaining eight frontend locales have real shared navigation translations', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(match => match[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['bn', 'fil', 'hi', 'id', 'ko', 'sw', 'vi', 'zh-TW']) {
+    for (const label of labels) {
+      const value = UI_LABELS[label]?.[locale];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+      assert.ok(translationHasMatchingPlaceholders(label, value), locale + ': ' + label);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI'],
+      'unchanged product trademarks must not count as translated');
+  }
+  assert.equal(uiLabel('Projects', 'bn'), 'প্রকল্পসমূহ');
+  assert.equal(uiLabel('Projects', 'zh-TW'), '專案');
+});
