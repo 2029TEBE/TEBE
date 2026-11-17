@@ -82,6 +82,7 @@ export class StudioCatalogService {
           const original=def.steps[index];
           return !original || step.id!==original.id || step.kind!==original.kind ||
             step.mode!==original.mode || step.timeoutAction!==original.timeoutAction ||
+            step.timeoutHours!==original.timeoutHours ||
             JSON.stringify(step.assignees)!==JSON.stringify(original.assignees);
         }))
         throw new ForbiddenException('Approval routing cannot be changed through a draft translation or form edit');
