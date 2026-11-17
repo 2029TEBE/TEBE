@@ -107,3 +107,14 @@ test('full UI label catalog preserves interpolation tokens across every translat
     }
   }
 });
+
+test('Urdu has localized navigation with preserved source labels', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const label of labels) {
+    assert.ok(typeof UI_LABELS[label]?.ur === 'string' && UI_LABELS[label].ur.trim(), label);
+    assert.equal(uiLabel(label, 'ur'), UI_LABELS[label].ur);
+  }
+  assert.deepEqual(uiLabelCoverage(labels, 'ur').missing, ['Power BI']);
+});
