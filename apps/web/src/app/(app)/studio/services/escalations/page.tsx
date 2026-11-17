@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {EscalationReviewForm} from './EscalationReviewForm';
+import {DelegationForm} from './DelegationForm';
 import {Page,Loaded} from '@/components/Page';
 import {api,getSession} from '@/lib/api';
 import {getFrontendLocale} from '@/lib/i18n';
@@ -27,6 +28,7 @@ export default async function StudioEscalationTriage(){
           <th scope="col">{t('Due date','تاريخ الاستحقاق')}</th>
           <th scope="col">{t('Required human action','الإجراء البشري المطلوب')}</th>
           <th scope="col">{t('Audit acknowledgment','توثيق المراجعة')}</th>
+          <th scope="col">{t('Controlled delegation','التفويض المحكوم')}</th>
         </tr></thead><tbody>{items.map(item=><tr key={item.id}>
           <td><code>{item.serviceKey}</code></td>
           <td><code>{item.id}</code></td>
@@ -37,6 +39,7 @@ export default async function StudioEscalationTriage(){
           <td><strong>{item.sla.actionRequired??'manual_review'}</strong>
             <span className="dim"> · {t('Not executed','لم ينفذ')}</span></td>
           <td><EscalationReviewForm id={item.id} step={item.phase} locale={locale}/></td>
+          <td><DelegationForm id={item.id} step={item.phase} approverIds={item.approverIds} locale={locale}/></td>
         </tr>)}</tbody></table>
       </div>:<p className="dim">{t('No overdue approvals found in this workspace.','لا توجد موافقات متأخرة في مساحة العمل.')}</p>}
     </Loaded>}
