@@ -31,6 +31,7 @@ export class StudioCatalogController {
  @Get('catalog') catalog(){return this.svc.catalog();}
  @Get('catalog/:id') catalogItem(@Param('id',ParseUUIDPipe) id:string){return this.svc.catalogItem(id);}
  @Get('definitions') definitions(){return this.svc.myDefinitions();}
+ @Get('definitions/:id/readiness') readiness(@Param('id',ParseUUIDPipe) id:string){return this.svc.readiness(id);}
  @Post('definitions') create(@Body(new ZodPipe(createBody)) body:z.infer<typeof createBody>){
    return this.svc.create(body);
  }
