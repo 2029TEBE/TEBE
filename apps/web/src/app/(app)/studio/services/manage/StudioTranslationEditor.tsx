@@ -1,6 +1,6 @@
 'use client';
 import {useActionState,useState} from 'react';
-import {saveStudioTranslations,type StudioManagementState} from '../actions';
+import {saveStudioTranslations,type StudioManagementState} from './actions';
 
 type TranslationDefinition={
  id:string;state:string;contentHash:string;definition:{
