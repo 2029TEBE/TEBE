@@ -165,6 +165,38 @@ export class StudioRequestService {
       return {id:row.id,requestId:id,artifactReference,verified:false,workflowCompleted:false};
     });
   }
+  /** Inbox is scoped to the actual authenticated principal and assigned step.
+   * Definition metadata never becomes a cross-tenant or unassigned request feed.
+   */
+  async assignedApprovals(){
+    const actor=this.principal();
+    if(!actor.roles.includes('reviewer')) throw new ForbiddenException('Reviewer capability required');
+    const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
+      SELECT r.id, r.phase,r.submitted_at AS "submittedAt",
+             r.form_version AS "formVersion",v.service_key AS "serviceKey"
+      FROM studio_service_requests r
+      JOIN studio_service_versions v
+        ON v.id=r.service_version_id AND v.tenant_id=r.tenant_id
+      WHERE r.tenant_id=${actor.tenantId}
+        AND r.phase IN ('manager','finance')
+        AND r.requester_id <> ${actor.id}
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(v.definition->'steps') step
+          WHERE step->>'id'=r.phase
+            AND step->>'kind'='approval'
+            AND step->'assignees' @> to_jsonb(${actor.id}::text)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM studio_service_decisions d
+          WHERE d.tenant_id=r.tenant_id AND d.request_id=r.id
+            AND d.step_key=r.phase AND d.principal_id=${actor.id}
+        )
+      ORDER BY r.submitted_at ASC LIMIT 100
+    `));
+    return this.rows(result);
+  }
+
   async myRequests(){
     const actor=this.principal();
     const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
