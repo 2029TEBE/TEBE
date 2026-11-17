@@ -54,6 +54,99 @@ export class StudioCatalogService {
       return this.rows(r)[0];
     });
   }
+  /** Edit an unpublished draft only; verified state is read under a row lock.
+   * A CAS digest prevents a stale editor from overwriting another person's work.
+   * Creator, tenant and immutable record id are never taken from submitted JSON.
+   */
+  async updateDraft(id:string,patch:{
+    expectedHash:string; name:Record<string,string>;
+    accessUserIds:string[]; fields:StudioDefinition['fields']; steps:StudioDefinition['steps'];
+  }) {
+    const actor=this.caller();
+    if(!actor.roles.includes('creator')) throw new ForbiddenException('Creator permission required');
+    return withTenant(actor.tenantId,async tx=>{
+      const {row,def}=await this.loadLocked(tx,actor.tenantId,id);
+      if(row.state!=='draft' || row.creatorId!==actor.id)
+        throw new ForbiddenException('Only the owning creator may edit an unpublished draft');
+      if(patch.expectedHash!==row.contentHash)
+        throw new ConflictException('Draft changed since the last load; reload before editing');
+      if(!patch.accessUserIds.length || new Set(patch.accessUserIds).size!==patch.accessUserIds.length)
+        throw new ConflictException('Explicit unique catalog audience required');
+      // Do not mutate approvals, service identity, revision number or role bindings.
+      const next={...def,name:patch.name,fields:patch.fields,steps:patch.steps,
+        accessUserIds:patch.accessUserIds};
+      const {contentHash:_hash,reviewedHash:_review,reviewerId:_reviewer,...canonical}=next;
+      const hash=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+      const result=await tx.execute(sql`
+        UPDATE studio_service_versions
+        SET definition=${JSON.stringify({...canonical,contentHash:hash})}::jsonb,
+            content_sha256=${hash}
+        WHERE tenant_id=${actor.tenantId} AND id=${id} AND state='draft'
+          AND created_by=${actor.id} AND content_sha256=${patch.expectedHash}
+        RETURNING id,version,state,content_sha256 AS "contentHash"
+      `);
+      const updated=this.rows(result)[0];
+      if(!updated)throw new ConflictException('Concurrent draft update');
+      return updated;
+    });
+  }
+
+  /** Clone a published or retired definition into a NEW draft version.
+   * Published content and in-flight pinned requests are never rewritten.
+   */
+  async revise(id:string) {
+    const actor=this.caller();
+    if(!actor.roles.includes('creator')) throw new ForbiddenException('Creator permission required');
+    return withTenant(actor.tenantId,async tx=>{
+      const {row,def}=await this.loadLocked(tx,actor.tenantId,id);
+      if(!['published','retired'].includes(row.state))
+        throw new ConflictException('Only published or retired definitions can be revised');
+      // Serialize concurrent revisions for this service key across all versions.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${actor.tenantId}),hashtext(${row.serviceKey}))`);
+      const [existing]=this.rows<any>(await tx.execute(sql`
+        SELECT version,state FROM studio_service_versions
+        WHERE tenant_id=${actor.tenantId} AND service_key=${row.serviceKey}
+        ORDER BY version DESC LIMIT 1
+      `));
+      if(existing?.state==='draft'||existing?.state==='in_review'||existing?.state==='approved')
+        throw new ConflictException('Complete or retire the current draft before starting another revision');
+      const nextVersion=Number(existing?.version??0)+1;
+      if(!Number.isSafeInteger(nextVersion)||nextVersion>2147483647)
+        throw new ConflictException('Version limit reached');
+      const {contentHash:_hash,reviewedHash:_review,reviewerId:_reviewer,...original}=def;
+      const canonical={...original,version:nextVersion,state:'draft' as const,creatorId:actor.id};
+      const contentHash=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+      const rows=await tx.execute(sql`
+        INSERT INTO studio_service_versions
+          (tenant_id,service_key,version,state,definition,content_sha256,created_by)
+        VALUES (${actor.tenantId},${row.serviceKey},${nextVersion},'draft',
+          ${JSON.stringify({...canonical,contentHash})}::jsonb,${contentHash},${actor.id})
+        RETURNING id,service_key AS "serviceKey",version,state
+      `);
+      return this.rows(rows)[0];
+    });
+  }
+
+  /** The draft schema is private to its owning creator and authorized reviewers.
+   * Never expose it via the public service catalog.
+   */
+  async definitionDetail(id:string) {
+    const actor=this.caller();
+    if(!actor.roles.some(role=>['creator','reviewer','publisher'].includes(role)))
+      throw new ForbiddenException('Studio governance permission required');
+    const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
+      SELECT id,service_key AS "serviceKey",version,state,definition,
+             content_sha256 AS "contentHash",created_by AS "creatorId"
+      FROM studio_service_versions
+      WHERE tenant_id=${actor.tenantId} AND id=${id}
+        AND (created_by=${actor.id} OR ${actor.roles.includes('reviewer')||actor.roles.includes('publisher')})
+      LIMIT 1
+    `));
+    const item=this.rows(result)[0];
+    if(!item)throw new ForbiddenException('Definition unavailable');
+    return item;
+  }
+
   private async loadLocked(tx:any,tenantId:string,id:string) {
     const r=await tx.execute(sql`
       SELECT id,service_key AS "serviceKey", version,state,definition,content_sha256 AS "contentHash",
