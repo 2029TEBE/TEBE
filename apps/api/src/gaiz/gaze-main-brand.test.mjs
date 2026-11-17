@@ -10,7 +10,7 @@ test('GIZE AI is the user-visible English and Arabic intelligence brand',()=>{
 test('legacy GAIZ wire names remain identified without claiming new GIZE format support',()=>{
  assert.match(page,/Experimental GAIZ1\/GAIZ2 wire identifiers remain for legacy compatibility/);
  assert.match(page,/final GIZE AI protected-file format is not yet ratified/);
- assert.match(page,/final GIZE AI protected-file format is not yet ratified/);
+ assert.match(page,/صيغة ملفات GIZE AI الجديدة/);
 });
 test('verification preview retains authenticated read-only boundary',()=>{
  assert.match(page,/!session\.authenticated/);
