@@ -48,3 +48,17 @@ test('digest-only evidence never claims verified GAIZ or executed fulfillment',(
  assert.match(section,/steps\.fulfillment\.assignees\.includes\(actor\.id\)/);
  assert.match(section,/verified:false,workflowCompleted:false/);
 });
+
+test('request audit is administrator-only, tenant-scoped, bounded, and read-only',()=>{
+ assert.match(controller,/@Get\(':id\/audit'\)/);
+ const section=service.slice(service.indexOf('async requestAudit('),service.indexOf('async assignedApprovals('));
+ assert.ok(section.length>0,'request audit endpoint missing');
+ assert.match(section,/actor\.roles\.includes\('publisher'\)/);
+ assert.match(section,/withTenant\(actor\.tenantId/);
+ assert.match(section,/tenant_id=\$\{actor\.tenantId\} AND request_id=\$\{id\}/);
+ assert.match(section,/studio_approval_delegations/);
+ assert.match(section,/studio_escalation_reviews/);
+ assert.match(section,/LIMIT 100/g);
+ assert.doesNotMatch(section,/\bINSERT\b|\bUPDATE\b|\bDELETE\b/);
+ assert.match(section,/readOnly:true,autoDecision:false,autoDelegation:false/);
+});
