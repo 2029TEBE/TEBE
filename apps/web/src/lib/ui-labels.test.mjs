@@ -118,3 +118,20 @@ test('Urdu has localized navigation with preserved source labels', () => {
   }
   assert.deepEqual(uiLabelCoverage(labels, 'ur').missing, ['Power BI']);
 });
+
+
+test('Spanish and Latin American Spanish have all shared navigation entries', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['es', 'es-419']) {
+    for (const label of labels) {
+      assert.ok(typeof UI_LABELS[label]?.[locale] === 'string', locale + ': ' + label);
+      assert.ok(UI_LABELS[label][locale].trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), UI_LABELS[label][locale]);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI']);
+  }
+  assert.equal(uiLabel('Portfolios', 'es'), 'Carteras');
+  assert.equal(uiLabel('Portfolios', 'es-419'), 'Portafolios');
+});
