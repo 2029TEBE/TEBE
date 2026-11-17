@@ -268,6 +268,52 @@ export class StudioRequestService {
     });
   }
 
+  /** Administrator acknowledgment is an append-only audit receipt.
+   * It never changes request phase, approval votes or reviewer assignment.
+   */
+  async recordEscalationReview(id:string,body:{
+    step:'manager'|'finance';
+    action:'acknowledged'|'contacted_owner'|'referred_to_governance';
+    note:string;
+  }){
+    const actor=this.principal();
+    if(!actor.roles.includes('publisher'))throw new ForbiddenException('Studio admin capability required');
+    const note=body.note.trim();
+    if(note.length<10||note.length>1000)throw new ConflictException('A review note of 10–1000 characters is required');
+    return withTenant(actor.tenantId,async tx=>{
+      const [row]=this.rows<any>(await tx.execute(sql`
+        SELECT r.id,r.phase,r.updated_at AS "phaseStartedAt",
+               step->>'timeoutHours' AS "timeoutHours",
+               step->>'timeoutAction' AS "timeoutAction"
+        FROM studio_service_requests r
+        JOIN studio_service_versions v
+          ON v.id=r.service_version_id AND v.tenant_id=r.tenant_id
+        CROSS JOIN LATERAL jsonb_array_elements(v.definition->'steps') step
+        WHERE r.tenant_id=${actor.tenantId} AND r.id=${id}
+          AND r.phase=${body.step} AND r.phase IN ('manager','finance')
+          AND step->>'id'=r.phase AND step->>'kind'='approval'
+        FOR UPDATE OF r
+      `));
+      if(!row)throw new ConflictException('Current approval step not found');
+      const hours=typeof row.timeoutHours==='string'?Number(row.timeoutHours):null;
+      const sla=assessStudioApprovalSla({
+        phaseStartedAt:row.phaseStartedAt,now:new Date(),
+        timeoutHours:hours,timeoutAction:row.timeoutAction,
+      });
+      if(sla.status!=='overdue')throw new ConflictException('Escalation review is permitted only for an overdue approval');
+      const [receipt]=this.rows<any>(await tx.execute(sql`
+        INSERT INTO studio_escalation_reviews
+          (tenant_id,request_id,step_key,reviewed_by,action,note,phase_started_at)
+        VALUES (${actor.tenantId},${id},${body.step},${actor.id},
+                ${body.action},${note},${row.phaseStartedAt})
+        RETURNING id,request_id AS "requestId",step_key AS "step",
+                  action,created_at AS "createdAt"
+      `));
+      return {...receipt,recorded:true,requestChanged:false,
+        autoDecision:false,autoDelegation:false};
+    });
+  }
+
   async myRequests(){
     const actor=this.principal();
     const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
