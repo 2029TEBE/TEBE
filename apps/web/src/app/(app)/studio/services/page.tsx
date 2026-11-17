@@ -49,10 +49,18 @@ export default async function GovernedServices() {
       <Loaded load={api.studioAssignedApprovals}>
         {items => items.length ? <div role="region" tabIndex={0} className="design-table-scroll" aria-label={copy('Assigned approval requests','طلبات الموافقة المسندة')}>
           <table><thead><tr><th scope="col">{copy('Service','الخدمة')}</th>
-            <th scope="col">{copy('Step','المرحلة')}</th><th scope="col">{copy('Request','الطلب')}</th>
+            <th scope="col">{copy('Step','المرحلة')}</th><th scope="col">{copy('SLA status','حالة المهلة')}</th><th scope="col">{copy('Request','الطلب')}</th>
             <th scope="col">{copy('Decision','القرار')}</th></tr></thead><tbody>
           {items.map(item=><tr key={item.id}><td><code>{item.serviceKey}</code></td>
-            <td>{item.phase}</td><td><code>{item.id}</code></td>
+            <td>{item.phase}</td><td>
+              <strong>{item.sla.status==='overdue'?copy('Overdue — human review required','متأخر — يتطلب مراجعة بشرية'):
+                item.sla.status==='pending'?copy('Within SLA','ضمن المهلة'):
+                copy('No SLA configured','لا توجد مهلة محددة')}</strong>
+              {item.sla.deadlineAt&&<div className="dim">
+                <time dateTime={item.sla.deadlineAt}>{new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(item.sla.deadlineAt))}</time>
+              </div>}
+              {item.sla.status==='overdue'&&<div className="dim">{copy('Policy:', 'السياسة:')} {item.sla.actionRequired} · {copy('Not executed automatically','لم تنفذ تلقائيا')}</div>}
+            </td><td><code>{item.id}</code></td>
             <td><ApprovalDecision id={item.id} locale={locale}/></td></tr>)}
           </tbody></table></div>
           : <p className="dim">{copy('No decisions currently assigned to you.','لا توجد موافقات مسندة إليك حاليا.')}</p>}

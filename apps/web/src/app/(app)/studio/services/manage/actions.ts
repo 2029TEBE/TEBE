@@ -35,9 +35,9 @@ export async function createStudioDraft(_prev:StudioManagementState,data:FormDat
   // translated and reviewed before the backend allows publication.
   const steps=[
     {id:'manager',kind:'approval',label:{'en-US':'Manager approval'},
-     assignees:manager,mode:'any',timeoutAction:'escalate'},
+     assignees:manager,mode:'any',timeoutAction:'escalate',timeoutHours:48},
     ...(finance.length?[{id:'finance',kind:'approval',label:{'en-US':'Finance approval'},
-      assignees:finance,mode:'all',timeoutAction:'escalate'}]:[]),
+      assignees:finance,mode:'all',timeoutAction:'escalate',timeoutHours:72}]:[]),
     {id:'fulfillment',kind:'fulfillment',label:{'en-US':'Fulfillment'},
      assignees:operator},
   ];

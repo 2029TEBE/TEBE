@@ -25,6 +25,8 @@ export type WorkflowStep = {
   assignees: string[];
   mode?: 'any' | 'all';
   timeoutAction?: 'escalate' | 'reject' | 'return_for_revision';
+  /** Explicit SLA in hours; merely reporting overdue does NOT execute timeoutAction. */
+  timeoutHours?: number;
 };
 export type StudioDefinition = {
   id: string;
@@ -123,6 +125,9 @@ export function validateStudioDefinition(definition: StudioDefinition, enabledLo
     if (!step.assignees.length) failures.push('MISSING_ASSIGNEE:' + step.id);
     if (step.kind === 'approval' && !step.mode) failures.push('MISSING_APPROVAL_MODE:' + step.id);
     if (step.kind === 'approval' && !step.timeoutAction) failures.push('MISSING_TIMEOUT_POLICY:' + step.id);
+    if (step.timeoutHours !== undefined && (!Number.isSafeInteger(step.timeoutHours) || step.timeoutHours < 1 || step.timeoutHours > 720))
+      failures.push('INVALID_TIMEOUT_HOURS:' + step.id);
+    if (step.kind !== 'approval' && step.timeoutHours !== undefined) failures.push('TIMEOUT_ON_NON_APPROVAL:' + step.id);
   }
   return failures;
 }
