@@ -114,6 +114,25 @@ if ! ssh_remote "test -d '$DIR' && test \"\$(realpath -e '$DIR')\" = '$DIR' && t
   exit 1
 fi
 
+# Production CI image promotion can exhaust the shared self-hosted runner/VPS disk.
+# Reclaim only old *dangling* Docker images (never tagged releases, running
+# images, volumes or database backups), then fail closed before rsync/migration.
+if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
+  echo 'Inspecting storage before tested-image promotion (no app restart).'
+  ssh_remote 'docker builder prune --all --force >/dev/null && docker image prune --force --filter until=168h >/dev/null'
+  # The CI runner and the Docker daemon may use different filesystems.
+  # Both require headroom; never attempt a large load with near-zero disk.
+  local_free_kb=$(df -Pk "$TESTED_BUNDLE" | awk 'END {print $4}')
+  remote_free_kb=$(ssh_remote "df -Pk /var/lib/docker | awk 'END {print \\$4}'")
+  if [[ ! "$local_free_kb" =~ ^[0-9]+$ || ! "$remote_free_kb" =~ ^[0-9]+$ ||
+        "$local_free_kb" -lt 2097152 || "$remote_free_kb" -lt 2097152 ]]; then
+    echo "BLOCKED: at least 2 GiB free is required on both runner artifact storage and Docker storage before verified image promotion." >&2
+    echo 'Keep current containers, release rollback images, volumes, snapshots and database backups; provision space or clear only verified unused artifacts.' >&2
+    exit 1
+  fi
+  echo 'PASS: runner artifact storage and Docker storage both have at least 2 GiB available.'
+fi
+
 echo "Deploying $MODE to $HOST:$DIR"
 # rsync --delete can remove old, untracked configuration backups and artifacts.
 # Protect *replaced or deleted* files in a root outside the deployment tree.
