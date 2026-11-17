@@ -152,3 +152,19 @@ test('Brazilian and European Portuguese navigation has regional terms', () => {
   assert.equal(uiLabel('Portfolios', 'pt-BR'), 'Portfólios');
   assert.equal(uiLabel('Portfolios', 'pt-PT'), 'Portefólios');
 });
+
+test('Italian, Turkish and Russian navigation entries are present and guarded', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['it', 'tr', 'ru']) {
+    for (const label of labels) {
+      assert.ok(typeof UI_LABELS[label]?.[locale] === 'string' && UI_LABELS[label][locale].trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), UI_LABELS[label][locale]);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI']);
+  }
+  assert.equal(uiLabel('Projects', 'it'), 'Progetti');
+  assert.equal(uiLabel('Projects', 'tr'), 'Projeler');
+  assert.equal(uiLabel('Projects', 'ru'), 'Проекты');
+});
