@@ -4,7 +4,7 @@ import { ZodPipe } from '../common/zod.pipe';
 import { RequiresModule } from '../platform/module.guard';
 import { StudioCatalogService } from './studio-catalog.service';
 
-const localized=z.record(z.string().min(1).max(1000));
+const localized=z.record(z.string().min(1).max(35), z.string().min(1).max(1000));
 const field=z.object({
  id:z.string().min(1).max(100),type:z.enum(['text','number','date','boolean','select','file']),
  label:localized,help:localized.optional(),required:z.boolean().optional(),readOnly:z.boolean().optional(),
