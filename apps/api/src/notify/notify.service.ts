@@ -129,7 +129,7 @@ export class NotifyService implements OnModuleInit {
           tenantId:t.id,userId:who.id,toEmail:who.email,
           kind:'studio.approval.overdue',subject:built.subject,body:built.body,lang,
           entity:'studio_request',entityId:request.id,
-          dedupeKey:`studio.approval.overdue:${request.id}:${request.phase}:${started}:${who.id} `,
+          dedupeKey:`studio.approval.overdue:${request.id}:${request.phase}:${started}:${who.id}`,
         })) queued++;
       }
     }
