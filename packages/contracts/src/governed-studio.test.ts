@@ -48,3 +48,32 @@ describe('Studio all-locale readiness', () => {
     expect(missing).not.toContain('name:ar');
   });
 });
+
+
+describe('conditional field publication validation',()=>{
+  const conditional:StudioDefinition={
+    ...draft,
+    fields:[
+      {id:'budgetImpact',type:'number',label:{'en-US':'Budget impact',ar:'الأثر المالي'},required:true},
+      {id:'justification',type:'text',label:{'en-US':'Justification',ar:'المبرر'},
+        required:true,visibleWhen:{fieldId:'budgetImpact',equals:1}},
+    ],
+  };
+  it('allows a preceding direct condition of the right primitive type',()=>{
+    expect(validateStudioDefinition(conditional,['en-US','ar'])).toEqual([]);
+  });
+  it('rejects forward and self-reference conditions',()=>{
+    const fields=[...conditional.fields];
+    fields[0]={...fields[0],visibleWhen:{fieldId:'justification',equals:'yes'}};
+    expect(validateStudioDefinition({...conditional,fields},['en-US','ar']))
+      .toContain('INVALID_VISIBILITY_SOURCE:budgetImpact');
+  });
+  it('rejects a mismatched condition type and chained dependencies',()=>{
+    const invalid={...conditional,fields:[
+      conditional.fields[0],
+      {...conditional.fields[1],visibleWhen:{fieldId:'budgetImpact',equals:'1'}},
+    ]} as StudioDefinition;
+    expect(validateStudioDefinition(invalid,['en-US','ar']))
+      .toContain('INVALID_VISIBILITY_VALUE:justification');
+  });
+});
