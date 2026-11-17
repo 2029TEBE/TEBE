@@ -33,5 +33,8 @@ jobs:
           unset DEPLOY_KEY KNOWN_HOSTS
           echo 'Runner available space before recovery:'
           df -h "$RUNNER_TEMP" || true
-          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force; docker image prune --force --filter until=168h; docker system df; df -h /var/lib/docker /var/lib/containerd'\n          echo 'Runner available space after recovery:'\n          df -h "$RUNNER_TEMP" || true
-# Only dangling images older than 7 days and unused build cache are removed.\n# No tagged image, running container, volume, backup, migration or app restart.
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force; docker image prune --force --filter until=168h; docker system df; df -h /var/lib/docker /var/lib/containerd'
+          echo 'Runner available space after recovery:'
+          df -h "$RUNNER_TEMP" || true
+# Only dangling images older than 7 days and unused build cache are removed.
+# No tagged image, running container, volume, backup, migration or app restart.
