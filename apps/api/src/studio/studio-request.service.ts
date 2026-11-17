@@ -259,6 +259,13 @@ export class StudioRequestService {
         WHERE tenant_id=${actor.tenantId} AND request_id=${id} AND id=${delegationId}
       `));
       if(!d||request.phase!==d.step)throw new ConflictException('Active delegation not found');
+      if(d.expiresAt && new Date(d.expiresAt).getTime()<=Date.now())
+        throw new ConflictException('Delegation has already expired');
+      const [prior]=this.rows<any>(await tx.execute(sql`
+        SELECT id FROM studio_approval_delegation_revocations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id} AND delegation_id=${delegationId}
+      `));
+      if(prior)throw new ConflictException('Delegation already revoked');
       const votes=d.step==='manager'?request.managerVotes:request.financeVotes;
       if(votes[d.delegateId]||votes[d.originalApproverId])
         throw new ConflictException('Cannot revoke a delegation after either approver votes');
