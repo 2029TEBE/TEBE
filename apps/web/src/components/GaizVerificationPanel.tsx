@@ -46,7 +46,7 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
     finally { setBusy(false); }
   }
   return <section className="panel" aria-label={ar ? 'التحقق من ملف GIZE AI' : 'GIZE AI verification'}>
-    <h2>{ar ? 'معاينة التوقيع المشفر' : 'Verify a legacy GAIZ2 artifact'}</h2>
+    <h2>{ar ? 'معاينة التوقيع المشفر' : 'Verify a GIZE AI legacy artifact'}</h2>
     <p>{ar ? 'التحقق فقط، دون فك التشفير أو الاستيراد. يتم تحديد الجهة والعميل من الخادم الموثوق.'
       : 'Read-only verification. Trusted issuer and tenant scope are enforced by the server; no decryption or imports.'}</p>
     <p><label htmlFor="gaiz-upload">{ar ? 'اختر ملف .gaiz (حتى 64 كيلوبايت)' : 'Choose .gaiz file (up to 64 KiB)'}</label></p>
