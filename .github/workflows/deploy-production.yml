@@ -76,25 +76,64 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
+      - name: Reclaim abandoned release scratch and check download capacity
+        id: scratch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SCRATCH_ROOT: ${{ vars.EPMO_DEPLOY_SCRATCH_ROOT }}
+        run: |
+          set -euo pipefail
+          root=$(realpath -e -- "${SCRATCH_ROOT:-$RUNNER_TEMP}")
+          [[ -d "$root" && -w "$root" ]]
+          # This workflow serializes production deployments. Reap only its own
+          # private directories left behind by interrupted jobs.
+          find "$root" -mindepth 1 -maxdepth 1 -type d -user "$(id -u)" \
+            -name 'epmo-verified-release.????????' -mmin +180 \
+            -exec rm -rf -- {} +
+          artifact_bytes=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --get --data-urlencode "name=epmo-tested-images-$SOURCE_SHA" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/artifacts" |
+            jq -er '[.artifacts[] | select(.expired == false) | .size_in_bytes]
+              | select(length == 1) | .[0] | select(type == "number" and . > 0 and . <= 9663676416)')
+          free_kib=$(df -Pk "$root" | awk 'END { print $4 }')
+          free_inodes=$(df -Pi "$root" | awk 'END { print $4 }')
+          [[ "$free_kib" =~ ^[0-9]+$ && "$free_inodes" =~ ^[0-9]+$ ]]
+          # Allow space for both the compressed download and extracted bundle,
+          # plus the 2 GiB reserve checked again after extraction.
+          required_kib=$((2 * 1024 * 1024 + 2 * ((artifact_bytes + 1023) / 1024)))
+          printf 'Runner scratch: %s KiB free, %s KiB required, %s inodes free.\n' \
+            "$free_kib" "$required_kib" "$free_inodes" | tee -a "$GITHUB_STEP_SUMMARY"
+          if (( free_kib < required_kib || free_inodes < 1024 )); then
+            echo "::error title=Runner storage exhausted::Insufficient bytes or inodes before downloading the release artifact."
+            exit 1
+          fi
+          artifact_dir=$(mktemp -d "$root/epmo-verified-release.XXXXXXXX")
+          printf 'path=%s\n' "$artifact_dir" >> "$GITHUB_OUTPUT"
       - name: Download images from the exact successful CI run
         uses: actions/download-artifact@v4
         with:
           name: epmo-tested-images-${{ github.event.workflow_run.head_sha }}
-          path: ${{ runner.temp }}/tested-images
+          path: ${{ steps.scratch.outputs.path }}
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Validate source, run, image identities and archive bytes
         env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
           VERIFIED_RUN: ${{ github.event.workflow_run.id }}
-        run: node scripts/ci-image-bundle.mjs verify "$RUNNER_TEMP/tested-images" "$VERIFIED_SHA" "$VERIFIED_RUN" "$GITHUB_REPOSITORY"
+        run: node scripts/ci-image-bundle.mjs verify "$ARTIFACT_DIR" "$VERIFIED_SHA" "$VERIFIED_RUN" "$GITHUB_REPOSITORY"
       - name: Require headroom for verified image deployment on self-hosted runner
+        env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
         run: |
           set -euo pipefail
-          archive="$RUNNER_TEMP/tested-images/images.tar.gz"
+          archive="$ARTIFACT_DIR/images.tar.gz"
           test -f "$archive"
           archive_bytes=$(stat -c '%s' "$archive")
-          free_kib=$(df -Pk "$RUNNER_TEMP" | awk 'END { print $4 }')
+          free_kib=$(df -Pk "$ARTIFACT_DIR" | awk 'END { print $4 }')
           [[ "$free_kib" =~ ^[0-9]+$ ]]
           # Keep at least 2 GiB for runner logs, SSH streaming and job cleanup,
           # independent of the size of the verified artifact already on disk.
@@ -110,7 +149,7 @@ jobs:
           DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
           EPMO_CI_VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
-          EPMO_TESTED_IMAGE_DIR: ${{ runner.temp }}/tested-images
+          EPMO_TESTED_IMAGE_DIR: ${{ steps.scratch.outputs.path }}
           EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
@@ -156,14 +195,13 @@ jobs:
             -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
             "test -d /opt/the-epmo && printf '%s\\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
           echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
-      - name: Remove this run's verified image archive from runner scratch
-        if: ${{ always() }}
+      - name: Remove this run's private release scratch
+        if: ${{ always() && steps.scratch.outputs.path != '' }}
+        env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
         run: |
           set -euo pipefail
-          # Restrict cleanup to this workflow's private artifact directory only;
-          # never prune shared Docker images, deployments, or other runs.
-          artifact_dir="$RUNNER_TEMP/tested-images"
-          if [[ -d "$artifact_dir" && ! -L "$artifact_dir" ]]; then
-            rm -f -- "$artifact_dir/images.tar.gz" "$artifact_dir/manifest.json"
-            rmdir -- "$artifact_dir" 2>/dev/null || true
+          if [[ "${ARTIFACT_DIR##*/}" == epmo-verified-release.???????? &&
+                -d "$ARTIFACT_DIR" && ! -L "$ARTIFACT_DIR" && -O "$ARTIFACT_DIR" ]]; then
+            rm -rf -- "$ARTIFACT_DIR"
           fi
