@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {ApprovalDecision} from './review/ApprovalDecision';
 import {DraftCreator,DefinitionActions,RevisionAction} from './manage/StudioGovernanceForms';
 import { Page, Loaded } from '@/components/Page';
 import { api } from '@/lib/api';
@@ -41,6 +42,20 @@ export default async function GovernedServices() {
             </li>;
           })}
         </ul> : <p className="dim">{copy('No services are authorized for this account.','لا توجد خدمات مصرح بها لهذا الحساب.')}</p>}
+      </Loaded>
+    </section>
+    <section aria-labelledby="studio-approval-heading" className="panel">
+      <h2 id="studio-approval-heading">{copy('My assigned approvals','الموافقات المسندة إلي')}</h2>
+      <Loaded load={api.studioAssignedApprovals}>
+        {items => items.length ? <div role="region" tabIndex={0} className="design-table-scroll" aria-label={copy('Assigned approval requests','طلبات الموافقة المسندة')}>
+          <table><thead><tr><th scope="col">{copy('Service','الخدمة')}</th>
+            <th scope="col">{copy('Step','المرحلة')}</th><th scope="col">{copy('Request','الطلب')}</th>
+            <th scope="col">{copy('Decision','القرار')}</th></tr></thead><tbody>
+          {items.map(item=><tr key={item.id}><td><code>{item.serviceKey}</code></td>
+            <td>{item.phase}</td><td><code>{item.id}</code></td>
+            <td><ApprovalDecision id={item.id} locale={locale}/></td></tr>)}
+          </tbody></table></div>
+          : <p className="dim">{copy('No decisions currently assigned to you.','لا توجد موافقات مسندة إليك حاليا.')}</p>}
       </Loaded>
     </section>
     <section aria-labelledby="studio-request-heading" className="panel">

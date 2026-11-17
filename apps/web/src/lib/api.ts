@@ -80,6 +80,7 @@ export const api = {
   studioReadiness: (id:string) => get<{state:string;publishable:boolean;requiredLocales:string[];missing:string[]}>(`/api/v1/studio/definitions/${encodeURIComponent(id)}/readiness`),
   studioDefinitionDetail: (id:string) => get<{id:string;serviceKey:string;version:number;state:string;contentHash:string;creatorId:string;definition:{name:Record<string,string>;fields:{id:string;type:string;label:Record<string,string>;help?:Record<string,string>}[];steps:{id:string;label:Record<string,string>}[]}}>(`/api/v1/studio/definitions/${encodeURIComponent(id)}`),
   studioRequests: () => get<{id:string;serviceVersionId:string;formVersion:number;workflowVersion:number;phase:string;submittedAt:string}[]>('/api/v1/studio/requests'),
+  studioAssignedApprovals: () => get<{id:string;phase:'manager'|'finance';submittedAt:string;formVersion:number;serviceKey:string}[]>('/api/v1/studio/requests/assigned'),
   reports: () => get<any[]>('/api/v1/reports'),
   notifications: () => get<any>('/api/v1/notifications'),
   trends: () => get<any>('/api/v1/trends'),
