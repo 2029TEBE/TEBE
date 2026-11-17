@@ -17,3 +17,14 @@ test('verification preview retains authenticated read-only boundary',()=>{
  assert.match(page,/GaizVerificationPanel ar=\{ar\}/);
  assert.match(page,/No data is imported/);
 });
+
+test('GIZE AI labels the verification and staging interfaces while legacy routes remain unchanged',()=>{
+ const verify=readFileSync(new URL('../../../web/src/components/GaizVerificationPanel.tsx',import.meta.url),'utf8');
+ const stage=readFileSync(new URL('../../../web/src/components/GaizStagingPanel.tsx',import.meta.url),'utf8');
+ assert.match(verify,/GIZE AI verification/);
+ assert.match(stage,/GIZE AI staging/);
+ assert.match(verify,/\/api\/gaiz\/verify/);
+ assert.match(stage,/\/api\/gaiz\//);
+ assert.doesNotMatch(verify,/['"]GAIZ verification/);
+ assert.doesNotMatch(stage,/['"]GAIZ staging/);
+});
