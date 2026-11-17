@@ -27,16 +27,16 @@ export class GaizController {
     if (process.env.NODE_ENV !== 'development' ||
         (process.env.DEPLOYMENT_ENV && process.env.DEPLOYMENT_ENV !== 'development') ||
         process.env.GAIZ_PREVIEW_ENABLED !== 'true') {
-      throw new ServiceUnavailableException('GAIZ preview is not enabled');
+      throw new ServiceUnavailableException('GIZE AI verification preview is not enabled');
     }
     const ctx = currentContext();
     if (!ctx.userId) throw new ForbiddenException('Signed-in user is required');
     const publicKey = process.env.GAIZ_PREVIEW_ISSUER_PUBLIC_KEY_PEM?.replace(/\\n/g, '\n');
     const issuerId = process.env.GAIZ_PREVIEW_ISSUER_ID;
-    if (!publicKey || !issuerId) throw new ServiceUnavailableException('GAIZ issuer trust not configured');
+    if (!publicKey || !issuerId) throw new ServiceUnavailableException('GIZE AI issuer trust is not configured');
     const bytes = Buffer.from(body.artifactBase64url, 'base64url');
     if (bytes.length > 64*1024 || bytes.toString('base64url') !== body.artifactBase64url) {
-      throw new BadRequestException('GAIZ artifact exceeds preview limits');
+      throw new BadRequestException('Legacy .gaiz artifact exceeds preview limits');
     }
     try {
       return verifyGaiz2ForPreview(bytes, {
@@ -45,7 +45,7 @@ export class GaizController {
         expectedTenantScope: ctx.tenantId,
       });
     } catch {
-      throw new BadRequestException('GAIZ artifact could not be verified');
+      throw new BadRequestException('Legacy .gaiz artifact could not be verified');
     }
   }
 
