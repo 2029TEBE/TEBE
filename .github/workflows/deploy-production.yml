@@ -113,8 +113,35 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > "$EPMO_DEPLOY_SSH_KEY"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$EPMO_DEPLOY_SSH_KNOWN_HOSTS"
           unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
-          SHA_PATTERN='^[a-f0-9]{40}$'
+          SHA_PATTERN='^[a-f0-9]{40}
+          ssh -i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
+            -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
+            "test -d /opt/the-epmo && printf '%s\\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
+          echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
+
           [[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]
+          [[ "$EPMO_DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]] || {
+            echo "::error title=Deploy preflight::Missing or invalid production SSH destination."
+            exit 1
+          }
+          # Non-mutating diagnostics: distinguish trust, connectivity and
+          # prepared-server failures before rsync, migrations or image promotion.
+          ssh_opts=(-i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes
+            -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes
+            -o GlobalKnownHostsFile=/dev/null
+            -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS")
+          if ! ssh "${ssh_opts[@]}" -- "$EPMO_DEPLOY_HOST" 'true'; then
+            echo "::error title=Deploy preflight::Pinned SSH authentication or connectivity failed. Check host, key, firewall and host-key rotation."
+            exit 1
+          fi
+          if ! ssh "${ssh_opts[@]}" -- "$EPMO_DEPLOY_HOST" \
+            'test -d /opt/the-epmo && test "$(realpath -e /opt/the-epmo)" = /opt/the-epmo && test -r /opt/the-epmo/.env.prod && command -v docker >/dev/null && command -v node >/dev/null'; then
+            echo "::error title=Deploy preflight::Production directory, environment file, Docker or Node is not prepared. No deployment files copied."
+            exit 1
+          fi
+          echo "PASS: pinned SSH transport and read-only production prerequisites."
+          # Keep every existing attestation, backup, security and health gate.
           bash infra/deploy.sh prod
           ssh -i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
             -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
