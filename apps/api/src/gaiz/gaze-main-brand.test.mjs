@@ -1,26 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import { readFileSync } from 'node:fs';
 const page=readFileSync(new URL('../../../web/src/app/(app)/gaiz/page.tsx',import.meta.url),'utf8');
-test('GIZE AI is the user-visible English and Arabic enterprise name',()=>{
- assert.match(page,/\.GAZE — Verification preview/);
- assert.match(page,/التحقق من ‎\.GAZE/);
- assert.doesNotMatch(page,/GAIZ Shield — Verification preview/);
-});
-test('legacy GAIZ wire names remain without claiming a new file format',()=>{
- assert.match(page,/Experimental GAIZ1\/GAIZ2 wire identifiers remain for legacy compatibility/);
- assert.match(page,/final \.GAZE file format is not yet ratified/);
- assert.match(page,/final \.GAZE file format is not yet ratified/);
-});
-test('verification preview retains authenticated read-only boundary',()=>{
- assert.match(page,/!session\.authenticated/);
- assert.match(page,/GaizVerificationPanel ar=\{ar\}/);
- assert.match(page,/No data is imported/);
+
+test('GIZE AI is the official visible enterprise product name in English and Arabic',()=>{
+ assert.ok(page.includes('GIZE AI — Verification preview'));
+ assert.ok(page.includes('التحقق من GIZE AI'));
+ assert.ok(!page.includes('.GAZE'));
 });
 
-test('GIZE AI is branded without changing GAIZ protocol paths or stored format labels',()=>{
- assert.match(page,/GIZE AI — Verification preview/);
- assert.match(page,/التحقق من GIZE AI/);
- assert.doesNotMatch(page,/\\.GAZE/);
- assert.match(page,/GAIZ1\\/GAIZ2/);
+test('legacy GAIZ wire formats remain explicitly compatible without an invented new format',()=>{
+ assert.ok(page.includes('Experimental GAIZ1/GAIZ2 wire identifiers remain for legacy compatibility'));
+ assert.ok(page.includes('A new file format has not been ratified'));
+ assert.ok(!page.includes('final .GAZE file format'));
+});
+
+test('verification preview retains authenticated read-only boundary',()=>{
+ assert.match(page,/!session\.authenticated/);
+ assert.ok(page.includes('GaizVerificationPanel ar={ar}'));
+ assert.ok(page.includes('No data is imported'));
 });
