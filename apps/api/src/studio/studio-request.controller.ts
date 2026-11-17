@@ -29,6 +29,8 @@ export class StudioRequestController {
  delegate(@Param('id',ParseUUIDPipe) id:string,@Body(new ZodPipe(delegationBody)) body:z.infer<typeof delegationBody>){
    return this.svc.delegateApproval(id,body);
  }
+ @Get(':id/audit')
+ audit(@Param('id',ParseUUIDPipe) id:string){return this.svc.requestAudit(id);}
  @Post(':id/escalation-review')
  recordEscalationReview(@Param('id',ParseUUIDPipe) id:string,@Body(new ZodPipe(escalationBody)) body:z.infer<typeof escalationBody>){
    return this.svc.recordEscalationReview(id,body);
