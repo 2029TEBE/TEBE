@@ -24,7 +24,7 @@ cmd="\${!#}"
 printf '%s\\n' "$cmd" >> "$TEST_LOG"
 case "$cmd" in
   'printf "%s" "$HOME"') echo /home/fixture ;;
-  *'df -Pk /var/lib/docker'*) echo "${TEST_REMOTE_FREE_KB:-6291456}" ;;
+  *'df -Pk /var/lib/docker'*) echo "\${TEST_REMOTE_FREE_KB:-6291456}" ;;
   'docker image load') cat >/dev/null ;;
   *"docker image inspect 'epmo-api:ci'"*) echo "$TEST_API_INSPECT" ;;
   *"docker image inspect 'epmo-web:ci'"*) echo "$TEST_WEB_INSPECT" ;;
