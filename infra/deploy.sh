@@ -123,7 +123,7 @@ if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
   # The CI runner and the Docker daemon may use different filesystems.
   # Both require headroom; never attempt a large load with near-zero disk.
   local_free_kb=$(df -Pk "$TESTED_BUNDLE" | awk 'END {print $4}')
-  remote_free_kb=$(ssh_remote "df -Pk /var/lib/docker | awk 'END {print \\$4}'")
+  remote_free_kb=$(ssh_remote "df -Pk /var/lib/docker | awk 'END {print \$4}'")
   if [[ ! "$local_free_kb" =~ ^[0-9]+$ || ! "$remote_free_kb" =~ ^[0-9]+$ ||
         "$local_free_kb" -lt 2097152 || "$remote_free_kb" -lt 2097152 ]]; then
     echo "BLOCKED: at least 2 GiB free is required on both runner artifact storage and Docker storage before verified image promotion." >&2
