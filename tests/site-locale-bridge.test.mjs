@@ -27,3 +27,10 @@ test('production cross-subdomain preference is secure and restricted', () => {
   assert.ok(app.includes('samesite=lax'));
   assert.doesNotMatch(app,/document\.cookie\s*=\s*[`'"]pmo_session/);
 });
+
+test('the first dashboard visit respects a locale selected on the public site', () => {
+  assert.match(app, /const hasPreference = document\.cookie\.split\(';\'\)\.some/);
+  assert.match(app, /epmo_site_locale\|pmo_locale\|pmo_lang/);
+  assert.match(app, /if \(hasPreference\) return;/);
+  assert.ok(app.indexOf('if (hasPreference) return;') < app.indexOf('chooseFrontendLocale({ browserLanguages: languages })'));
+});
