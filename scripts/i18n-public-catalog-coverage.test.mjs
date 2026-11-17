@@ -24,5 +24,7 @@ test('catalog coverage reports every locale and excludes fallback from translate
       assert.equal(row.englishFallbackKeys + actual, row.totalKeys);
     }
   }
-  assert.equal(report.records.find(row => row.locale === 'sw').reviewedTranslatedKeys, 0);
+  assert.ok(report.records.find(row => row.locale === 'sw').reviewedTranslatedKeys > 0);
+  assert.equal(report.productTranslationCertified, false);
+  assert.equal(report.reviewedLocales, 0);
 });
