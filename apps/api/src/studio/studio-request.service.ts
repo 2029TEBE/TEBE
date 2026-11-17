@@ -77,8 +77,9 @@ export class StudioRequestService {
       this.validateValues(definition,values);
       const {manager,finance}=this.workflow(definition);
       const impact=values.budgetImpact;
-      if (finance && !definition.fields.some(f=>f.id==='budgetImpact' && f.type==='number'))
-        throw new ConflictException('Finance condition requires canonical numeric budgetImpact field');
+      if (finance && (!definition.fields.some(f=>f.id==='budgetImpact' && f.type==='number' && f.required)
+        || typeof impact !== 'number'))
+        throw new ConflictException('Finance condition requires a mandatory numeric budgetImpact value');
       if (impact!==undefined && (typeof impact!=='number'||impact<0)) throw new ConflictException('Invalid budget impact');
       const financeRequired=typeof impact==='number' && impact>0;
       if(financeRequired&&!finance) throw new ConflictException('Finance approval step required');
