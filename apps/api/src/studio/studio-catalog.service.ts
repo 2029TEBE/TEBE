@@ -72,6 +72,19 @@ export class StudioCatalogService {
         throw new ConflictException('Draft changed since the last load; reload before editing');
       if(!patch.accessUserIds.length || new Set(patch.accessUserIds).size!==patch.accessUserIds.length)
         throw new ConflictException('Explicit unique catalog audience required');
+      // Translations and field-layout edits must not silently reassign approvers
+      // or change the authorized audience. Routing changes require a distinct,
+      // separately audited governance operation.
+      if(JSON.stringify(patch.accessUserIds)!==JSON.stringify((def as StudioDefinition & {accessUserIds:string[]}).accessUserIds))
+        throw new ForbiddenException('Audience change requires a separate access-review workflow');
+      if(patch.steps.length!==def.steps.length ||
+        patch.steps.some((step,index)=>{
+          const original=def.steps[index];
+          return !original || step.id!==original.id || step.kind!==original.kind ||
+            step.mode!==original.mode || step.timeoutAction!==original.timeoutAction ||
+            JSON.stringify(step.assignees)!==JSON.stringify(original.assignees);
+        }))
+        throw new ForbiddenException('Approval routing cannot be changed through a draft translation or form edit');
       // Fail closed on schema/conditional validation before writing a draft.
       // Other locales may remain incomplete in a draft, but English is canonical.
       // Publication still enforces the full 23-locale review gate.

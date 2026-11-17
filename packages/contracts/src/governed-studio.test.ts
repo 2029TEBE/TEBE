@@ -77,3 +77,25 @@ describe('conditional field publication validation',()=>{
       .toContain('INVALID_VISIBILITY_VALUE:justification');
   });
 });
+
+describe('studio reusable field templates',()=>{
+ const select={id:'decision',type:'select' as const,required:true,
+   label:{'en-US':'Decision',ar:'القرار'},
+   options:[{id:'yes',label:{'en-US':'Yes',ar:'نعم'}},
+     {id:'no',label:{'en-US':'No',ar:'لا'}}]};
+ it('accepts a valid localized select field',()=>{
+   expect(validateStudioDefinition({...draft,fields:[...draft.fields,select]},['en-US','ar'])).toEqual([]);
+ });
+ it('rejects duplicate option identifiers and missing choices',()=>{
+   const duplicated={...select,options:[select.options[0],select.options[0]]};
+   expect(validateStudioDefinition({...draft,fields:[...draft.fields,duplicated]},['en-US','ar']))
+     .toContain('INVALID_OR_DUPLICATE_OPTION:decision:yes');
+   expect(validateStudioDefinition({...draft,fields:[...draft.fields,{...select,options:[]}]},['en-US','ar']))
+     .toContain('MISSING_OPTIONS:decision');
+ });
+ it('rejects choices on fields that cannot render them',()=>{
+   const invalid={...select,type:'text' as const};
+   expect(validateStudioDefinition({...draft,fields:[...draft.fields,invalid]},['en-US','ar']))
+     .toContain('OPTIONS_ON_NON_SELECT:decision');
+ });
+});
