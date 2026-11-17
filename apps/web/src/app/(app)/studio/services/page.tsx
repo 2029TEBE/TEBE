@@ -33,10 +33,10 @@ export default async function GovernedServices() {
           {items.map(item => {
             const name = label(item.name);
             return <li key={item.id}>
-              <strong lang={name.reviewed ? locale : 'en'}>{name.text}</strong>
+              <Link href={`/studio/services/${encodeURIComponent(item.id)}`} lang={name.reviewed ? locale : 'en'}>{name.text}</Link>
               {' · '}{copy('Version','الإصدار')} {item.version}
               {!name.reviewed && <span className="dim" lang="en">{' · '}English translation fallback</span>}
-              <span className="dim">{' — '}{copy('Published for your account. Submission UI pending.','منشورة لحسابك. واجهة إرسال الطلبات قيد التطوير.')}</span>
+              <span className="dim">{' — '}{copy('Published for your account. Open to submit a governed request.','منشورة لحسابك. افتح الخدمة لتقديم طلب محكوم.')}</span>
             </li>;
           })}
         </ul> : <p className="dim">{copy('No services are authorized for this account.','لا توجد خدمات مصرح بها لهذا الحساب.')}</p>}
