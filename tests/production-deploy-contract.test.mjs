@@ -73,8 +73,9 @@ test('self-hosted production deployment safely reclaims only regenerable runner 
   const cache = workflow.indexOf('name: Reclaim regenerable runner package caches before artifact download');
   const download = workflow.indexOf('name: Download images from the exact successful CI run');
   const headroom = workflow.indexOf('name: Require headroom for verified image deployment on self-hosted runner');
-  assert.ok(cache >= 0 && cache < download && download < headroom);
-  const section = workflow.slice(cache,download);
+  const capacity = workflow.indexOf('name: Reclaim abandoned release scratch and check download capacity');
+  assert.ok(cache >= 0 && cache < capacity && capacity < download && download < headroom);
+  const section = workflow.slice(cache,capacity);
   assert.match(section,/npm cache clean --force/);
   assert.match(section,/pnpm store prune/);
   assert.doesNotMatch(section,/docker (?:system|image|volume|container) prune|rm -rf|journalctl|find .* -delete/);
