@@ -20,8 +20,10 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   const label = locale === 'ar' ? navigationArabic('Interface language') : 'Interface language';
 
   useEffect(() => {
+    // A marketing-site choice is authoritative; never overwrite it with
+    // browser negotiation on the first app visit.
     const hasPreference = document.cookie.split(';').some(part =>
-      /^\s*(pmo_locale|pmo_lang)=/.test(part));
+      /^\s*(epmo_site_locale|pmo_locale|pmo_lang)=/.test(part));
     if (hasPreference) return;
     const languages = navigator.languages?.length ? Array.from(navigator.languages) : [navigator.language];
     const detected = chooseFrontendLocale({ browserLanguages: languages });
