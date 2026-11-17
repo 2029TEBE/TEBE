@@ -19,6 +19,7 @@ export class StudioRequestService {
     const roles:StudioRole[]=['requester'];
     if (can(c.capabilities,'pmoa_approve')) roles.push('reviewer');
     if (can(c.capabilities,'pmoa_manage_work')) roles.push('operator');
+    if (can(c.capabilities,'pmoa_admin')) roles.push('publisher');
     return {id:c.userId,tenantId:c.tenantId,roles};
   }
   private rows<T=any>(value:unknown):T[]{return value as T[];}
@@ -220,6 +221,50 @@ export class StudioRequestService {
       return {id:row.id,phase:row.phase,submittedAt:row.submittedAt,
         phaseStartedAt:row.phaseStartedAt,formVersion:row.formVersion,
         serviceKey:row.serviceKey,sla:status};
+    });
+  }
+
+  /** Tenant-admin escalation review only; never acts on an approval. */
+  async overdueApprovals(){
+    const actor=this.principal();
+    if(!actor.roles.includes('publisher')) throw new ForbiddenException('Studio admin capability required');
+    const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
+      SELECT r.id,r.phase,r.updated_at AS "phaseStartedAt",
+        r.submitted_at AS "submittedAt",v.service_key AS "serviceKey",
+        step->>'timeoutHours' AS "timeoutHours",
+        step->>'timeoutAction' AS "timeoutAction",
+        r.form_version AS "formVersion"
+      FROM studio_service_requests r
+      JOIN studio_service_versions v ON v.id=r.service_version_id AND v.tenant_id=r.tenant_id
+      CROSS JOIN LATERAL jsonb_array_elements(v.definition->'steps') step
+      WHERE r.tenant_id=${actor.tenantId}
+        AND r.phase IN ('manager','finance')
+        AND step->>'id'=r.phase AND step->>'kind'='approval'
+        AND jsonb_typeof(step->'timeoutHours') = 'number'
+        AND CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
+             THEN (step->>'timeoutHours')::int BETWEEN 1 AND 720 ELSE false END
+        AND r.updated_at +
+          CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
+               THEN (step->>'timeoutHours')::int ELSE 720 END * INTERVAL '1 hour' <= now()
+        AND NOT EXISTS (
+          SELECT 1 FROM studio_service_decisions d
+          WHERE d.tenant_id=r.tenant_id AND d.request_id=r.id AND d.step_key=r.phase
+            AND d.decision='rejected'
+        )
+      ORDER BY r.updated_at ASC,r.id ASC LIMIT 100
+    `));
+    const now=new Date();
+    return this.rows<any>(result).flatMap(row=>{
+      const sla=assessStudioApprovalSla({
+        phaseStartedAt:row.phaseStartedAt,now,
+        timeoutHours:Number(row.timeoutHours),timeoutAction:row.timeoutAction,
+      });
+      if(sla.status!=='overdue')return [];
+      return [{id:row.id,phase:row.phase,serviceKey:row.serviceKey,
+        formVersion:row.formVersion,submittedAt:row.submittedAt,
+        phaseStartedAt:row.phaseStartedAt,sla,
+        actionStatus:'awaiting_authorized_human_review',
+        autoDecision:false,autoDelegation:false}];
     });
   }
 

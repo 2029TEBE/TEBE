@@ -15,6 +15,7 @@ export class StudioRequestController {
  constructor(private readonly svc:StudioRequestService){}
  @Get() mine(){return this.svc.myRequests();}
  @Get('assigned') assigned(){return this.svc.assignedApprovals();}
+ @Get('overdue') overdue(){return this.svc.overdueApprovals();}
  @Post() submit(@Body(new ZodPipe(submitBody)) body:z.infer<typeof submitBody>){
    return this.svc.submit(body.serviceVersionId,body.values);
  }

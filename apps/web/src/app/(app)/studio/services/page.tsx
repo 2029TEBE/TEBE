@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {ApprovalDecision} from './review/ApprovalDecision';
 import {DraftCreator,DefinitionActions,RevisionAction} from './manage/StudioGovernanceForms';
 import { Page, Loaded } from '@/components/Page';
-import { api } from '@/lib/api';
+import { api,getSession } from '@/lib/api';
 import { getFrontendLocale, tr } from '@/lib/i18n';
 
 /**
@@ -13,6 +13,7 @@ import { getFrontendLocale, tr } from '@/lib/i18n';
 export default async function GovernedServices() {
   const locale = await getFrontendLocale();
   const t = await tr();
+  const session=await getSession();
   const copy = (english: string, arabic: string) => locale === 'ar' ? arabic : t(english);
   const label = (name: Record<string,string> | null | undefined) => {
     const chosen = name?.[locale];
@@ -28,6 +29,7 @@ export default async function GovernedServices() {
       )}
     </p>
     <p><Link href="/studio">{copy('Return to platform configuration','العودة إلى إعدادات المنصة')}</Link></p>
+    {session.authenticated&&session.capabilities.includes('pmoa_admin')&&<p><Link href="/studio/services/escalations">{copy('Overdue approval triage','متابعة الموافقات المتأخرة')}</Link></p>}
     <section aria-labelledby="studio-catalog-heading" className="panel">
       <h2 id="studio-catalog-heading">{copy('My service catalog','دليل الخدمات المتاحة لي')}</h2>
       <Loaded load={api.studioCatalog}>
