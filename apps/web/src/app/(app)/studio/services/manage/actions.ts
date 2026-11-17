@@ -146,3 +146,85 @@ export async function saveStudioTranslations(_prev:StudioManagementState,data:Fo
     return {status:'success',message:'Translations saved to the draft only. Publication still requires all locales and independent approval.'};
   }catch{return invalid('Translation update was not confirmed. Check that every field has a label.');}
 }
+
+/** Visual editor writes only a reviewed draft's field layout. The existing
+ * service identity, approval assignments, audience and other translations
+ * always come from the authenticated API rather than client form payloads.
+ */
+export async function saveStudioFieldLayout(
+  _prev:StudioManagementState,data:FormData,
+):Promise<StudioManagementState>{
+  const me=await auth();
+  if(!me)return invalid('An authenticated workspace session is required.');
+  const id=read(data,'definitionId'),expectedHash=read(data,'expectedHash');
+  const raw=data.get('fieldLayout');
+  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(expectedHash)||
+    typeof raw!=='string'||raw.length>48000)return invalid('Invalid draft layout payload.');
+  type Field={
+    id:string;type:'text'|'number'|'date'|'boolean'|'select';
+    label:Record<string,string>;required?:boolean;readOnly?:boolean;
+    help?:Record<string,string>;visibleWhen?:{fieldId:string;equals:string|number|boolean};
+    options?:{id:string;label:Record<string,string>}[];
+  };
+  let changes:Field[];
+  try{changes=JSON.parse(raw) as Field[];}catch{return invalid('Malformed form layout.');}
+  if(!Array.isArray(changes)||changes.length<1||changes.length>100)
+    return invalid('A form must have 1 to 100 fields.');
+  if(changes.some(field=>!field||typeof field.id!=='string'||
+    !/^[a-zA-Z][a-zA-Z0-9._-]{0,99}$/.test(field.id)||
+    !['text','number','date','boolean','select'].includes(field.type)||
+    !field.label||typeof field.label['en-US']!=='string'||
+    !field.label['en-US'].trim()||field.label['en-US'].length>1000))
+    return invalid('One or more fields are invalid.');
+  if(new Set(changes.map(field=>field.id)).size!==changes.length)
+    return invalid('Each field must have a distinct identifier.');
+  try{
+    const response=await fetch(`${ROOT}/api/v1/studio/definitions/${id}`,{
+      headers:{cookie:me.cookie},cache:'no-store',
+    });
+    if(!response.ok)return invalid('Draft unavailable or no longer authorized.');
+    const record=await response.json() as {
+      state:string;creatorId:string;contentHash:string;
+      definition:{
+        name:Record<string,string>;accessUserIds:string[];
+        fields:Field[];steps:unknown[];
+      };
+    };
+    if(record.state!=='draft'||record.creatorId!==me.userId)
+      return invalid('Only the owning creator may edit an unpublished draft.');
+    if(record.contentHash!==expectedHash)
+      return invalid('Draft changed. Reload before saving the field layout.');
+    const current=new Map(record.definition.fields.map(field=>[field.id,field]));
+    if(!changes.some(field=>field.id==='reason'&&field.type==='text'&&field.required))
+      return invalid('The mandatory reason field cannot be removed.');
+    if(record.definition.steps.some(step=>
+       typeof step==='object' && step!==null && 'id' in step && step.id==='finance') &&
+       !changes.some(field=>field.id==='budgetImpact'&&field.type==='number'&&
+         field.required&&!field.visibleWhen&&!field.readOnly))
+      return invalid('Finance workflow requires a mandatory unconditional budget impact.');
+    const fields=changes.map(field=>{
+      const old=current.get(field.id);
+      if(old&&old.type!==field.type)throw Error('Changing the type of an existing field requires a new identifier.');
+      if(field.id==='reason' && (field.type!=='text'||!field.required))throw Error('Invalid mandatory reason field.');
+      if(field.id==='budgetImpact'&&(field.type!=='number'||!!field.visibleWhen))throw Error('Invalid budgetImpact field.');
+      // Preserve reviewed copy for other languages unless a separate translation
+      // editor explicitly changes it. Do not claim an English edit updates them.
+      return {...(old??{}),...field,
+        label:{...(old?.label??{}),'en-US':field.label['en-US']},
+        ...(old?.help?{help:old.help}:{}),
+      };
+    });
+    const update=await fetch(`${ROOT}/api/v1/studio/definitions/${id}/draft`,{
+      method:'PATCH',cache:'no-store',
+      headers:{cookie:me.cookie,'content-type':'application/json'},
+      body:JSON.stringify({expectedHash,
+        name:record.definition.name,
+        accessUserIds:record.definition.accessUserIds,
+        fields,steps:record.definition.steps}),
+    });
+    if(!update.ok)return invalid('Server rejected the layout or its concurrency/version checks. Reload before retrying.');
+    revalidatePath('/studio/services');
+    revalidatePath('/studio/services/manage/'+id);
+    return {status:'success',message:'Draft layout saved. All required translations and independent approvals are still required.'};
+  }catch{return invalid('Layout not saved. Check field types, visibility dependencies and revision state.');}
+}
