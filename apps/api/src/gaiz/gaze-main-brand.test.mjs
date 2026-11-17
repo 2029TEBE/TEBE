@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const page=readFileSync(new URL('../../../web/src/app/(app)/gaiz/page.tsx',import.meta.url),'utf8');
-test('.GAZE is the user-visible English and Arabic enterprise name',()=>{
- assert.match(page,/\.GAZE — Verification preview/);
- assert.match(page,/التحقق من ‎\.GAZE/);
+test('GIZE AI is the user-visible English and Arabic intelligence brand',()=>{
+ assert.match(page,/GIZE AI — Verification preview/);
+ assert.match(page,/GIZE AI — معاينة التحقق/);
  assert.doesNotMatch(page,/GAIZ Shield — Verification preview/);
 });
 test('legacy GAIZ wire names are identified without silently claiming .GAZE support',()=>{
