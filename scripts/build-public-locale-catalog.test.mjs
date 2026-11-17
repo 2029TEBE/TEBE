@@ -22,7 +22,8 @@ test('public catalog contains no backend sources and does not invent absent tran
   assert.ok(!JSON.stringify(catalog).includes('DATABASE_URL'));
   assert.ok(!JSON.stringify(catalog).includes('MS_CLIENT_SECRET'));
   assert.deepEqual(catalog.translations.Projects.de, 'Projekte');
-  assert.equal(Object.hasOwn(catalog.translations.Projects, 'sw'), false);
+  assert.equal(catalog.translations.Projects.sw, 'Miradi');
+  assert.equal(Object.hasOwn(catalog.translations.Projects, 'xx'), false);
   for (const [key, translations] of Object.entries(catalog.translations)) {
     assert.ok(key.trim());
     for (const locale of Object.keys(translations)) assert.ok(catalog.locales.includes(locale), locale);
