@@ -14,7 +14,7 @@ const field=z.object({
 const step=z.object({
  id:z.string().min(1).max(100),kind:z.enum(['approval','fulfillment']),
  label:localized, assignees:z.array(z.string().uuid()).min(1).max(50),
- mode:z.enum(['any','all']).optional(),timeoutAction:z.enum(['escalate','reject','return_for_revision']).optional()
+ mode:z.enum(['any','all']).optional(),timeoutAction:z.enum(['escalate','reject','return_for_revision']).optional(),timeoutHours:z.number().int().min(1).max(720).optional()
 }).strict();
 const definition=z.object({
  id:z.string().min(1).max(100),tenantId:z.string().uuid(),version:z.literal(1),
