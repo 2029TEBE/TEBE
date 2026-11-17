@@ -235,6 +235,40 @@ export class StudioRequestService {
     });
   }
 
+  /** Administrator-only, tenant-scoped, bounded review history.
+   * Read-only: does not notify, approve, reject, delegate or execute.
+   * The requester-submitted form and artifact contents are deliberately excluded.
+   */
+  async requestAudit(id:string){
+    const actor=this.principal();
+    if(!actor.roles.includes('publisher'))throw new ForbiddenException('Studio administrator capability required');
+    return withTenant(actor.tenantId,async tx=>{
+      const [request]=this.rows<any>(await tx.execute(sql`
+        SELECT id,phase FROM studio_service_requests
+        WHERE tenant_id=${actor.tenantId} AND id=${id}
+      `));
+      if(!request)throw new ConflictException('Request not found');
+      const delegations=this.rows<any>(await tx.execute(sql`
+        SELECT id,step_key AS "step",original_approver_id AS "originalApproverId",
+               delegate_id AS "delegateId",delegated_by AS "delegatedBy",
+               reason,created_at AS "createdAt"
+        FROM studio_approval_delegations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id}
+        ORDER BY created_at DESC,id DESC LIMIT 100
+      `));
+      const reviews=this.rows<any>(await tx.execute(sql`
+        SELECT id,step_key AS "step",reviewed_by AS "reviewedBy",action,note,
+               phase_started_at AS "phaseStartedAt",created_at AS "createdAt"
+        FROM studio_escalation_reviews
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id}
+        ORDER BY created_at DESC,id DESC LIMIT 100
+      `));
+      return {requestId:id,phase:request.phase,delegations,reviews,
+        readOnly:true,autoDecision:false,autoDelegation:false,
+        fulfillmentVerified:false};
+    });
+  }
+
   /** Inbox is scoped to the actual authenticated principal and assigned step.
    * Definition metadata never becomes a cross-tenant or unassigned request feed.
    */
