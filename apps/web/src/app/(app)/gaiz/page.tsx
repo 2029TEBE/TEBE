@@ -12,7 +12,7 @@ export default async function GaizPage() {
     {!session.authenticated ? <p>{ar ? 'يرجى تسجيل الدخول.' : 'Sign in required.'}</p>
       : <GaizVerificationPanel ar={ar} />}
     <p className="dim">{ar
-      ? 'تُقرأ الملفات التجريبية القديمة GAIZ1 وGAIZ2 لأغراض التوافق فقط؛ صيغة ‎.GAZE الجديدة لم تُعتمد بعد.'
-      : 'Experimental GAIZ1/GAIZ2 wire identifiers remain for legacy compatibility. The final .GAZE file format is not yet ratified.'}</p>
+      ? 'تُقرأ الملفات التجريبية القديمة GAIZ1 وGAIZ2 لأغراض التوافق فقط؛ لم تُعتمد بعد صيغة ملفات GIZE AI الجديدة.'
+      : 'Experimental GAIZ1/GAIZ2 wire identifiers remain for legacy compatibility. The final GIZE AI protected-file format is not yet ratified.'}</p>
   </Page>;
 }
