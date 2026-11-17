@@ -9,7 +9,7 @@
  * The catalog is not evidence of full DE/ZH/FR/JA language coverage.
  */
 export const UI_LABELS = Object.freeze({
-  'Home': { 'de-DE': 'Startseite', 'zh-CN': '首页', 'fr-FR': 'Accueil', 'ja-JP': 'ホーム'  , 'ur': "ہوم" , 'es': "Inicio", 'es-419': "Inicio" , 'it': "Home", 'tr': "Ana Sayfa", 'ru': "Главная" },
+  'Home': { 'de-DE': 'Startseite', 'zh-CN': '首页', 'fr-FR': 'Accueil', 'ja-JP': 'ホーム'  , 'ur': "ہوم" , 'es': "Inicio", 'es-419': "Inicio" , 'it': "Pagina iniziale", 'tr': "Ana Sayfa", 'ru': "Главная" },
   'Plan & Deliver': { 'de-DE': 'Planung und Umsetzung', 'zh-CN': '规划与交付', 'fr-FR': 'Planifier et réaliser', 'ja-JP': '計画と実行'  , 'ur': "منصوبہ بندی اور تکمیل" , 'es': "Planificar y ejecutar", 'es-419': "Planificación y ejecución" , 'it': "Pianificazione e attuazione", 'tr': "Planlama ve Teslim", 'ru': "Планирование и реализация" },
   'Govern': { 'de-DE': 'Governance', 'zh-CN': '治理', 'fr-FR': 'Gouvernance', 'ja-JP': 'ガバナンス'  , 'ur': "گورننس" , 'es': "Gobernanza", 'es-419': "Gobernanza" , 'it': "Governance", 'tr': "Yönetişim", 'ru': "Управление" },
   'Analyse': { 'de-DE': 'Analyse', 'zh-CN': '分析', 'fr-FR': 'Analyse', 'ja-JP': '分析'  , 'ur': "تجزیہ" , 'es': "Analizar", 'es-419': "Analizar" , 'it': "Analisi", 'tr': "Analiz", 'ru': "Анализ" },
