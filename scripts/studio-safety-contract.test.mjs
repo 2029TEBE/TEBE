@@ -62,3 +62,16 @@ test('request audit is administrator-only, tenant-scoped, bounded, and read-only
  assert.doesNotMatch(section,/\bINSERT\b|\bUPDATE\b|\bDELETE\b/);
  assert.match(section,/readOnly:true,autoDecision:false,autoDelegation:false/);
 });
+
+test('admin audit screen is read-only and scoped to authorized tenant admins',()=>{
+ const page=source('apps/web/src/app/(app)/studio/services/escalations/[id]/audit/page.tsx');
+ const queue=source('apps/web/src/app/(app)/studio/services/escalations/page.tsx');
+ const api=source('apps/web/src/lib/api.ts');
+ assert.match(page,/session\.capabilities\.includes\('pmoa_admin'\)/);
+ assert.match(page,/uuid\.test\(id\)/);
+ assert.match(page,/api\.studioRequestAudit\(id\)/);
+ assert.match(page,/read-only records/);
+ assert.doesNotMatch(page,/action=\{|method="POST"|fetch\(/);
+ assert.match(queue,/View history/);
+ assert.match(api,/studioRequestAudit:/);
+});
