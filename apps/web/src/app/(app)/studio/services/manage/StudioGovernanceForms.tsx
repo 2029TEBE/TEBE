@@ -2,7 +2,7 @@
 
 import {useActionState} from 'react';
 import {
-  createStudioDraft,transitionStudioDefinition,type StudioManagementState,
+  createStudioDraft,transitionStudioDefinition,reviseStudioDefinition,type StudioManagementState,
 } from './actions';
 
 const initial:StudioManagementState={status:'idle',message:''};
@@ -48,6 +48,15 @@ export function DefinitionActions({id,state,locale}:{id:string;state:string;loca
       {options.map(([value,text])=><option key={value} value={value}>{text}</option>)}
     </select>
     <button type="submit" disabled={pending}>{ar?'إرسال للبت وفق الصلاحية':'Request authorized transition'}</button>
+    {result.status!=='idle'&&<p role={result.status==='error'?'alert':'status'} aria-live="polite">{result.message}</p>}
+  </form>;
+}
+
+export function RevisionAction({id,locale}:{id:string;locale:string}){
+  const [result,action,pending]=useActionState(reviseStudioDefinition,initial);
+  return <form action={action} aria-label={locale==='ar'?'إنشاء إصدار مسودة جديد':'Create a new service draft revision'}>
+    <input type="hidden" name="definitionId" value={id}/>
+    <button type="submit" disabled={pending}>{locale==='ar'?'إنشاء إصدار جديد':'Create next draft version'}</button>
     {result.status!=='idle'&&<p role={result.status==='error'?'alert':'status'} aria-live="polite">{result.message}</p>}
   </form>;
 }

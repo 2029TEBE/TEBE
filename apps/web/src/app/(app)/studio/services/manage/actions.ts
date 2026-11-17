@@ -76,3 +76,73 @@ export async function transitionStudioDefinition(_prev:StudioManagementState,dat
     return {status:'success',message:'Governance transition accepted by the server.'};
   }catch{return invalid('Could not reach Studio. No transition was confirmed.');}
 }
+
+/** Create a new unpublished version; server checks creator capability and serializes revisions. */
+export async function reviseStudioDefinition(_prev:StudioManagementState,data:FormData):Promise<StudioManagementState>{
+  const me=await auth();
+  if(!me)return invalid('Sign in to an authorized workspace first.');
+  const id=read(data,'definitionId');
+  if(!uuid.test(id))return invalid('Invalid definition identifier');
+  try{
+    const r=await fetch(`${ROOT}/api/v1/studio/definitions/${id}/revise`,{
+      method:'POST',headers:{cookie:me.cookie},cache:'no-store',
+    });
+    if(!r.ok)return invalid('Only published or retired definitions may be revised. A draft may already exist.');
+    revalidatePath('/studio/services');
+    return {status:'success',message:'New draft version created. Previously published requests remain pinned to their original version.'};
+  }catch{return invalid('Revision could not be confirmed.');}
+}
+/** Server determines all editable field/step identities from the stored draft,
+ * accepting only localized values for those IDs. Approvals and audience
+ * are never editable from this translation-only action.
+ */
+export async function saveStudioTranslations(_prev:StudioManagementState,data:FormData):Promise<StudioManagementState>{
+  const me=await auth();
+  if(!me)return invalid('Sign in to an authorized workspace first.');
+  const id=read(data,'definitionId'),expectedHash=read(data,'expectedHash'),locale=read(data,'locale');
+  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(expectedHash))return invalid('Invalid revision or content checksum');
+  const supported=['ar','en-US','en-GB','bn','de','es','es-419','fil','fr','hi','id','it','ja','ko','pt-BR','pt-PT','ru','sw','tr','ur','vi','zh-CN','zh-TW'];
+  if(!supported.includes(locale))return invalid('Unsupported translation locale');
+  try{
+    const result=await fetch(`${ROOT}/api/v1/studio/definitions/${id}`,{
+      headers:{cookie:me.cookie},cache:'no-store',
+    });
+    if(!result.ok)return invalid('Definition unavailable or access denied');
+    const row=await result.json() as {
+      state:string;contentHash:string;creatorId:string;
+      definition:{
+        name:Record<string,string>;accessUserIds:string[];
+        fields:{id:string;label:Record<string,string>;help?:Record<string,string>}[];
+        steps:{id:string;label:Record<string,string>}[];
+      };
+    };
+    if(row.state!=='draft'||row.creatorId!==me.userId)return invalid('Only the owning creator can edit a draft');
+    if(row.contentHash!==expectedHash)return invalid('This draft changed. Reload to avoid overwriting newer translations');
+    const clean=(value:string)=>value.trim().slice(0,1000);
+    const name=clean(read(data,'translation:name'));
+    if(!name)return invalid('Service name translation cannot be empty');
+    const nextName={...row.definition.name,[locale]:name};
+    const fields=row.definition.fields.map(field=>{
+      const raw=data.get('translation:field:'+field.id);
+      if(typeof raw!=='string')throw Error('Missing field translation');
+      const label=clean(raw);
+      if(!label)throw Error('Field translation required');
+      return {...field,label:{...field.label,[locale]:label}};
+    });
+    const steps=row.definition.steps.map(step=>{
+      const raw=data.get('translation:step:'+step.id);
+      if(typeof raw!=='string')throw Error('Missing workflow translation');
+      const label=clean(raw);
+      if(!label)throw Error('Workflow translation required');
+      return {...step,label:{...step.label,[locale]:label}};
+    });
+    const updated=await fetch(`${ROOT}/api/v1/studio/definitions/${id}/draft`,{
+      method:'PATCH',cache:'no-store',headers:{cookie:me.cookie,'content-type':'application/json'},
+      body:JSON.stringify({expectedHash,name:nextName,accessUserIds:row.definition.accessUserIds,fields,steps}),
+    });
+    if(!updated.ok)return invalid('Draft update rejected by authorization or concurrency checks. Reload before retrying.');
+    revalidatePath('/studio/services');
+    revalidatePath('/studio/services/manage/'+id);
+    return {status:'success',message:'Translations saved to the draft only. Publication still requires all locales and independent approval.'};
+  }catch{return invalid('Translation update was not confirmed. Check that every field has a label.');}
+}

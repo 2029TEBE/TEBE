@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import {DraftCreator,DefinitionActions} from './manage/StudioGovernanceForms';
+import {DraftCreator,DefinitionActions,RevisionAction} from './manage/StudioGovernanceForms';
 import { Page, Loaded } from '@/components/Page';
 import { api } from '@/lib/api';
 import { getFrontendLocale, tr } from '@/lib/i18n';
@@ -76,7 +76,7 @@ export default async function GovernedServices() {
             <th scope="col">{copy('State','الحالة')}</th><th scope="col">{copy('Review actions','إجراءات المراجعة')}</th>
           </tr></thead><tbody>
             {items.map(item => <tr key={item.id}><td><code>{item.serviceKey}</code></td>
-              <td className="num">{item.version}</td><td>{item.state}</td><td><DefinitionActions id={item.id} state={item.state} locale={locale}/><Link href={`/studio/services/manage/${encodeURIComponent(item.id)}`}>{copy('Check translations','فحص الترجمات')}</Link></td></tr>)}
+              <td className="num">{item.version}</td><td>{item.state}</td><td><DefinitionActions id={item.id} state={item.state} locale={locale}/>{(item.state==='published'||item.state==='retired')&&<RevisionAction id={item.id} locale={locale}/>}<Link href={`/studio/services/manage/${encodeURIComponent(item.id)}`}>{copy('Check translations','فحص الترجمات')}</Link></td></tr>)}
           </tbody></table>
         </div> : <p className="dim">{copy('No definitions visible with your current permissions.','لا توجد تعريفات ظاهرة وفق صلاحياتك الحالية.')}</p>}
       </Loaded>
