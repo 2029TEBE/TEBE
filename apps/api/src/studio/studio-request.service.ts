@@ -255,7 +255,20 @@ export class StudioRequestService {
         AND r.phase IN ('manager','finance')
         AND r.requester_id <> ${actor.id}
         AND step->>'id'=r.phase AND step->>'kind'='approval'
-        AND step->'assignees' @> to_jsonb(${actor.id}::text)
+        AND (
+          (step->'assignees' @> to_jsonb(${actor.id}::text)
+            AND NOT EXISTS (
+              SELECT 1 FROM studio_approval_delegations dd
+              WHERE dd.tenant_id=r.tenant_id AND dd.request_id=r.id
+                AND dd.step_key=r.phase AND dd.original_approver_id=${actor.id}
+            ))
+          OR EXISTS (
+            SELECT 1 FROM studio_approval_delegations dd
+            WHERE dd.tenant_id=r.tenant_id AND dd.request_id=r.id
+              AND dd.step_key=r.phase AND dd.delegate_id=${actor.id}
+              AND step->'assignees' @> to_jsonb(dd.original_approver_id::text)
+          )
+        )
         AND NOT EXISTS (
           SELECT 1 FROM studio_service_decisions d
           WHERE d.tenant_id=r.tenant_id AND d.request_id=r.id
