@@ -29,6 +29,7 @@
     "0024_gaiz_mapping_profiles.sql": "6e0c9f876c855e856c204d9aaf554d0702b04675dda1316a00f58152b4efa89a",
     "0025_gaiz_mapping_profile_binding.sql": "0fd5ebb6cd6ceaf5fdd9bdd2a9ac51f14afed8158cef7a1aa11be24d34f1a42a",
     "0026_gaiz_trust_directory.sql": "fd19f19760932e97a2c51d8e1cf1666a3d6183962f880444b8a93d8e1fb81af3",
-    "0027_gaiz_execution_ledger.sql": "68bcb603ff3a5677b4355d46ec5156cca6ff9e68d397df707ace4938f23dc06d"
+    "0027_gaiz_execution_ledger.sql": "68bcb603ff3a5677b4355d46ec5156cca6ff9e68d397df707ace4938f23dc06d",
+    "0028_studio_tenant_records.sql": "5dd1051553c1dbf71cb231311eca3592cbf3b5c84adde6a0976abef0ba9aeea6"
   }
 }
