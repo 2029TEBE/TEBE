@@ -45,3 +45,25 @@ export async function recordStudioEscalationReview(_old:StudioDecisionState,data
     return {state:'success',message:'Escalation review recorded for audit. No approval or assignment changed.'};
   }catch{return {state:'error',message:'Unable to confirm the review receipt.'};}
 }
+
+export async function delegateStudioApproval(_old:StudioDecisionState,data:FormData):Promise<StudioDecisionState>{
+  const id=data.get('requestId'),step=data.get('step'),original=data.get('originalApproverId'),
+    delegate=data.get('delegateId'),reason=data.get('reason');
+  if(typeof id!=='string'||!uuid.test(id)||!['manager','finance'].includes(String(step))||
+    typeof original!=='string'||!uuid.test(original)||typeof delegate!=='string'||!uuid.test(delegate)||
+    original===delegate||typeof reason!=='string'||reason.trim().length<10||reason.trim().length>1000)
+    return {state:'error',message:'Provide a valid original approver, distinct delegate, and explanation (10–1000 characters).'};
+  const token=(await cookies()).get(SESSION_COOKIE)?.value;
+  if(!token)return {state:'error',message:'Session expired. Sign in again.'};
+  try{
+    const response=await fetch(`${root}/api/v1/studio/requests/${id}/delegate`,{
+      method:'POST',cache:'no-store',
+      headers:{cookie:`${SESSION_COOKIE}=${token}`,'content-type':'application/json'},
+      body:JSON.stringify({step,originalApproverId:original,delegateId:delegate,reason:reason.trim()}),
+    });
+    if(!response.ok)return {state:'error',message:'Delegation rejected. Check tenant membership, voting, phase, and delegation history before retrying.'};
+    revalidatePath('/studio/services/escalations');
+    revalidatePath('/studio/services');
+    return {state:'success',message:'One approval seat delegated. No decision was cast and no notification was sent.'};
+  }catch{return {state:'error',message:'Delegation could not be confirmed. Check the request status.'};}
+}
