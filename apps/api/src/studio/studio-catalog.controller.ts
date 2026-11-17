@@ -8,7 +8,8 @@ const localized=z.record(z.string().min(1).max(35), z.string().min(1).max(1000))
 const field=z.object({
  id:z.string().min(1).max(100),type:z.enum(['text','number','date','boolean','select','file']),
  label:localized,help:localized.optional(),required:z.boolean().optional(),readOnly:z.boolean().optional(),
- options:z.array(z.object({id:z.string().min(1).max(100),label:localized}).strict()).max(100).optional()
+ options:z.array(z.object({id:z.string().min(1).max(100),label:localized}).strict()).max(100).optional(),
+ visibleWhen:z.object({fieldId:z.string().min(1).max(100),equals:z.union([z.string().max(1000),z.number().finite(),z.boolean()])}).strict().optional()
 }).strict();
 const step=z.object({
  id:z.string().min(1).max(100),kind:z.enum(['approval','fulfillment']),
