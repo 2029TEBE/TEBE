@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { ago } from '@/lib/fmt';
@@ -9,6 +10,12 @@ export default async function Studio() {
   return (
     <Page title="Platform Studio"
           sub="Configure the platform without code — custom fields, gate templates and automations.">
+      <p className="panel" role="note">
+        <Link href="/studio/services">{lang === 'ar' ? 'عرض دليل الخدمات المحكوم وطلباتي' : t('View governed services and my requests')}</Link>
+        {' — '}{lang === 'ar'
+          ? 'تظهر فقط سجلات مساحة العمل المصرح بها. لا يتم نشر خدمات أو تشغيل إجراء من هذا الرابط.'
+          : 'Shows authorized workspace records only. No services are published or workflows executed from this link.'}
+      </p>
       <Loaded load={api.studio}>
         {(d) => (
           <>
