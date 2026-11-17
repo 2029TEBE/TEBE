@@ -35,7 +35,7 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
         body: JSON.stringify({ artifactBase64url: base64url(bytes) }),
       });
       if (!response.ok) throw Error(response.status === 503
-        ? 'GAIZ preview is disabled or not configured.'
+        ? 'GIZE AI preview is disabled or not configured.'
         : response.status === 401 ? 'Sign in again.'
         : 'File could not be verified for this workspace.');
       const result = await response.json() as Receipt;
@@ -45,7 +45,7 @@ export function GaizVerificationPanel({ ar }: { ar: boolean }) {
     } catch (e) { setError(e instanceof Error ? e.message : 'Verification error'); }
     finally { setBusy(false); }
   }
-  return <section className="panel" aria-label={ar ? 'التحقق من ملف GAIZ' : 'GAIZ verification'}>
+  return <section className="panel" aria-label={ar ? 'التحقق من ملف GIZE AI' : 'GIZE AI verification'}>
     <h2>{ar ? 'معاينة التوقيع المشفر' : 'Verify a GAIZ2 artifact'}</h2>
     <p>{ar ? 'التحقق فقط، دون فك التشفير أو الاستيراد. يتم تحديد الجهة والعميل من الخادم الموثوق.'
       : 'Read-only verification. Trusted issuer and tenant scope are enforced by the server; no decryption or imports.'}</p>
