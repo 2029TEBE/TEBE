@@ -6,7 +6,7 @@ import {
   createStudioRequest, voteStudioRequest, assessStudioApprovalSla, StudioPolicyError,
   type StudioDefinition, type StudioPrincipal, type StudioRequest, type StudioRole,
 } from '@pmo/contracts';
-import { can } from '@pmo/contracts';
+import { can, capabilitiesFor } from '@pmo/contracts';
 import { currentContext } from '../tenancy/tenant-context';
 
 /** Metadata-only request handling. No fulfillment execution or artifact trust is implied. */
@@ -122,24 +122,30 @@ export class StudioRequestService {
       WHERE r.tenant_id=${actor.tenantId} AND r.id=${id} FOR UPDATE OF r
     `));
     if(!row) throw new ConflictException('Request not found');
-    const [votes,evidence]=await Promise.all([
+    const [votes,evidence,delegations]=await Promise.all([
       tx.execute(sql`SELECT step_key AS "stepKey",principal_id AS "principalId",decision
         FROM studio_service_decisions WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
       tx.execute(sql`SELECT id,operator_id AS "operatorId",artifact_reference AS "artifactReference"
         FROM studio_service_evidence WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
+      tx.execute(sql`SELECT step_key AS "stepKey",original_approver_id AS "originalApproverId",
+          delegate_id AS "delegateId" FROM studio_approval_delegations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
     ]);
     const definition={...row.definition,tenantId:actor.tenantId,state:'published',
       version:row.form_version,contentHash:row.definition_sha256} as StudioDefinition;
     const steps=this.workflow(definition);
     const v=this.rows<any>(votes);
+    const delegationsByStep=this.rows<any>(delegations);
+    const effective=(step:'manager'|'finance',ids:string[])=>ids.map(original=>
+      delegationsByStep.find(row=>row.stepKey===step && row.originalApproverId===original)?.delegateId??original);
     const map=(stepKey:string)=>Object.fromEntries(v.filter(x=>x.stepKey===stepKey)
       .map(x=>[x.principalId,x.decision])) as Record<string,'approved'|'rejected'>;
     const request:StudioRequest={
       id:row.id,tenantId:actor.tenantId,requesterId:row.requester_id,
       pinned:{tenantId:actor.tenantId,definitionId:definition.id,formVersion:row.form_version,
         workflowVersion:row.workflow_version,definitionHash:row.definition_sha256},
-      phase:row.phase,managerApprovers:steps.manager.assignees,
-      financeApprovers:steps.finance?.assignees??[],managerVotes:map('manager'),
+      phase:row.phase,managerApprovers:effective('manager',steps.manager.assignees),
+      financeApprovers:effective('finance',steps.finance?.assignees??[]),managerVotes:map('manager'),
       financeVotes:map('finance'),
       financeRequired:typeof row.submitted_values?.budgetImpact==='number'&&row.submitted_values.budgetImpact>0,
       evidence:this.rows<any>(evidence).map(x=>({id:x.id,operatorId:x.operatorId,artifactId:x.artifactReference})),
@@ -181,6 +187,54 @@ export class StudioRequestService {
       return {id:row.id,requestId:id,artifactReference,verified:false,workflowCompleted:false};
     });
   }
+  /** One-way, one-seat human delegation. Approval votes are never fabricated.
+   * Request row lock serializes delegation against concurrent decisions.
+   */
+  async delegateApproval(id:string,body:{
+    step:'manager'|'finance';originalApproverId:string;delegateId:string;reason:string;
+  }){
+    const actor=this.principal();
+    if(!actor.roles.includes('publisher'))throw new ForbiddenException('Studio administrator capability required');
+    const reason=body.reason.trim();
+    if(reason.length<10||reason.length>1000)throw new ConflictException('Delegation justification must be 10-1000 characters');
+    if(body.originalApproverId===body.delegateId||actor.id===body.delegateId)
+      throw new ForbiddenException('Delegation must target a distinct reviewer');
+    return withTenant(actor.tenantId,async tx=>{
+      const {request,steps}=await this.loadForUpdate(tx,actor,id);
+      if(request.phase!==body.step)throw new ConflictException('Only the active approval step can be delegated');
+      if(request.requesterId===body.delegateId)throw new ForbiddenException('Requester may never approve own request');
+      const stage=body.step==='manager'?steps.manager:steps.finance;
+      if(!stage||!stage.assignees.includes(body.originalApproverId))
+        throw new ConflictException('Original approver is not assigned to this step');
+      const voters=body.step==='manager'?request.managerVotes:request.financeVotes;
+      if(voters[body.originalApproverId]||voters[body.delegateId])
+        throw new ConflictException('Already voted approval seats cannot be reassigned');
+      if(request.managerApprovers.includes(body.delegateId)||
+         request.financeApprovers.includes(body.delegateId))
+        throw new ConflictException('Delegate already holds a request approval seat');
+      if(!request[body.step==='manager'?'managerApprovers':'financeApprovers'].includes(body.originalApproverId))
+        throw new ConflictException('Approval seat has already been delegated');
+      const [candidate]=this.rows<any>(await tx.execute(sql`
+        SELECT m.role,u.is_active AS "userActive"
+        FROM memberships m JOIN users u ON u.id=m.user_id
+        WHERE m.tenant_id=${actor.tenantId} AND m.user_id=${body.delegateId}
+          AND m.is_active=true
+      `));
+      if(!candidate||!candidate.userActive||!can(capabilitiesFor(candidate.role),'pmoa_approve'))
+        throw new ForbiddenException('Delegate must be an active, approval-capable member of this tenant');
+      const [receipt]=this.rows<any>(await tx.execute(sql`
+        INSERT INTO studio_approval_delegations
+          (tenant_id,request_id,step_key,original_approver_id,delegate_id,delegated_by,reason)
+        VALUES (${actor.tenantId},${id},${body.step},${body.originalApproverId},
+          ${body.delegateId},${actor.id},${reason})
+        RETURNING id,request_id AS "requestId",step_key AS "step",
+          original_approver_id AS "originalApproverId",delegate_id AS "delegateId",
+          created_at AS "createdAt"
+      `));
+      return {...receipt,delegated:true,approved:false,phaseChanged:false,notified:false};
+    });
+  }
+
   /** Inbox is scoped to the actual authenticated principal and assigned step.
    * Definition metadata never becomes a cross-tenant or unassigned request feed.
    */
