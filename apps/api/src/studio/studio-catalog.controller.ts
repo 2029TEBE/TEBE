@@ -19,6 +19,7 @@ const definition=z.object({
  id:z.string().min(1).max(100),tenantId:z.string().uuid(),version:z.literal(1),
  state:z.literal('draft'),contentHash:z.string().regex(/^[a-f0-9]{64}$/),
  creatorId:z.string().uuid(),name:localized,
+ accessUserIds:z.array(z.string().uuid()).min(1).max(500),
  fields:z.array(field).min(1).max(100),steps:z.array(step).min(1).max(50)
 }).strict();
 const createBody=z.object({serviceKey:z.string().regex(/^[a-z][a-z0-9_-]{2,79}$/),definition}).strict();
