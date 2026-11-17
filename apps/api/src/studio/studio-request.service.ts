@@ -300,6 +300,7 @@ export class StudioRequestService {
         r.submitted_at AS "submittedAt",v.service_key AS "serviceKey",
         step->>'timeoutHours' AS "timeoutHours",
         step->>'timeoutAction' AS "timeoutAction",
+        step->'assignees' AS "approverIds",
         r.form_version AS "formVersion"
       FROM studio_service_requests r
       JOIN studio_service_versions v ON v.id=r.service_version_id AND v.tenant_id=r.tenant_id
@@ -330,6 +331,7 @@ export class StudioRequestService {
       return [{id:row.id,phase:row.phase,serviceKey:row.serviceKey,
         formVersion:row.formVersion,submittedAt:row.submittedAt,
         phaseStartedAt:row.phaseStartedAt,sla,
+        approverIds:Array.isArray(row.approverIds)?row.approverIds:[],
         actionStatus:'awaiting_authorized_human_review',
         autoDecision:false,autoDelegation:false}];
     });
