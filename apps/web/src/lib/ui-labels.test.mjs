@@ -29,8 +29,10 @@ test('coverage enumerates untranslated strings without duplication', () => {
 test('all shared nav group headings have four catalogue translations', () => {
   for (const title of ['Home','Plan & Deliver','Govern','Analyse','Collaborate','Configure']) {
     for (const locale of ['de-DE','zh-CN','fr-FR','ja-JP']) {
+      const identical = UI_LABELS[title]?.[locale] === title;
       assert.deepEqual(uiLabelCoverage([title], locale), {
-        total: 1, translated: 1, missing: [], invalidPlaceholders: [],
+        total: 1, translated: identical ? 0 : 1,
+        missing: identical ? [title] : [], invalidPlaceholders: [],
       });
       assert.ok(uiLabel(title, locale).length > 0);
     }
@@ -42,7 +44,11 @@ test('every shared dashboard navigation label has a catalog entry in four new lo
   const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map((m) => m[1]))];
   assert.ok(labels.length >= 30, 'expected full navigation inventory');
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
-    assert.deepEqual(uiLabelCoverage(labels, locale).missing, [], `missing ${locale} nav labels`);
+    const entriesMissing = labels.filter(key => !Object.hasOwn(UI_LABELS[key] ?? {}, locale));
+    assert.deepEqual(entriesMissing, [], `missing ${locale} nav catalog entries`);
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing,
+      labels.filter(key => UI_LABELS[key]?.[locale] === key),
+      `unchanged English must be reported honestly for ${locale}`);
   }
 });
 
@@ -58,7 +64,9 @@ test('shared executive journey has all six translations without separate dashboa
     'Delivery trend', 'Portfolio performance', 'Portfolio mix', 'Project health',
   ];
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
-    assert.deepEqual(uiLabelCoverage(keys, locale).missing, [], locale);
+    assert.deepEqual(keys.filter(key => !Object.hasOwn(UI_LABELS[key] ?? {}, locale)), [], locale);
+    assert.deepEqual(uiLabelCoverage(keys, locale).missing,
+      keys.filter(key => UI_LABELS[key]?.[locale] === key), locale);
   }
   const page = readFileSync(new URL('../app/(app)/page.tsx', import.meta.url), 'utf8');
   assert.ok(page.includes("t('Executive decision journey')"));

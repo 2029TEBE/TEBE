@@ -116,7 +116,8 @@ export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
       ? legacyArabic[english] : null;
     const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
       ? legacy : row?.[locale];
-    if (typeof translated !== 'string' || !translated.trim()) {
+    if (typeof translated !== 'string' || !translated.trim() || translated === english) {
+      // An English fallback is not proof of a completed translation.
       missing.push(english);
     } else if (!translationHasMatchingPlaceholders(english, translated)) {
       invalidPlaceholders.push(english);
