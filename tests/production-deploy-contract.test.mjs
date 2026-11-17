@@ -68,3 +68,15 @@ test('superseded releases are filtered before creating a production deployment',
   assert.ok(production.includes("needs.preflight.outputs.current == 'true'"));
   assert.ok(production.includes('Refuse to deploy stale or superseded commits'));
 });
+
+test('self-hosted production deployment safely reclaims only regenerable runner caches before artifact download',()=>{
+  const cache = workflow.indexOf('name: Reclaim regenerable runner package caches before artifact download');
+  const download = workflow.indexOf('name: Download images from the exact successful CI run');
+  const headroom = workflow.indexOf('name: Require headroom for verified image deployment on self-hosted runner');
+  assert.ok(cache >= 0 && cache < download && download < headroom);
+  const section = workflow.slice(cache,download);
+  assert.match(section,/npm cache clean --force/);
+  assert.match(section,/pnpm store prune/);
+  assert.doesNotMatch(section,/docker (?:system|image|volume|container) prune|rm -rf|journalctl|find .* -delete/);
+  assert.match(workflow.slice(headroom),/minimum_kib=\$\(\(2 \* 1024 \* 1024\)\)/);
+});
