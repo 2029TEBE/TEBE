@@ -27,10 +27,13 @@ export function StudioVisualFormBuilder({row,locale}:{row:Draft;locale:string}){
   if(from<0||to<0||from>=fields.length||to>=fields.length||from===to)return;
   setFields(prev=>{const next=[...prev];const [item]=next.splice(from,1);next.splice(to,0,item);return next;});
  };
+ const [template,setTemplate]=useState<'text'|'number'|'date'|'boolean'|'select'>('text');
  const add=()=>{
   const ids=new Set(fields.map(f=>f.id));
   let n=1;while(ids.has('custom_'+n))n++;
-  setFields(prev=>[...prev,{id:'custom_'+n,type:'text',label:{'en-US':'Custom field '+n},required:false}]);
+  const field:Field={id:'custom_'+n,type:template,label:{'en-US':'Custom '+template+' field '+n},required:false,
+    ...(template==='select'?{options:[{id:'option_1',label:{'en-US':'Option 1'}}]}:{})};
+  setFields(prev=>[...prev,field]);
  };
  const remove=(id:string)=>setFields(prev=>prev.filter(f=>f.id!==id&&f.visibleWhen?.fieldId!==id));
  const editable=fields.every(field=>field.type!=='file');
@@ -113,11 +116,38 @@ export function StudioVisualFormBuilder({row,locale}:{row:Draft;locale:string}){
             }}))}/>}
         </div>}
        </div>}
-       {field.type==='select'&&<p className="dim">{t('Select choices remain maintained in the service definition.','تبقى خيارات القائمة محفوظة في تعريف الخدمة.')}</p>}
+       {field.type==='select'&&<fieldset>
+        <legend>{t('Select choices','خيارات القائمة')}</legend>
+        {(field.options??[]).map((option,n)=><div key={option.id}>
+         <label htmlFor={'option-label-'+field.id+'-'+option.id}>{option.id}</label>
+         <input id={'option-label-'+field.id+'-'+option.id} required maxLength={1000} disabled={pending}
+          value={option.label['en-US']??''}
+          onChange={event=>change(field.id,f=>({...f,options:(f.options??[]).map(o=>o.id===option.id?{...o,label:{...o.label,'en-US':event.target.value}}:o)}))}/>
+         <button type="button" disabled={pending||(field.options??[]).length<=1}
+           onClick={()=>change(field.id,f=>({...f,options:(f.options??[]).filter(o=>o.id!==option.id)}))}>
+           {t('Remove choice','حذف الخيار')}
+         </button>
+        </div>)}
+        <button type="button" disabled={pending||(field.options??[]).length>=100}
+         onClick={()=>change(field.id,f=>{
+           const ids=new Set((f.options??[]).map(o=>o.id));let n=1;
+           while(ids.has('option_'+n))n++;
+           return {...f,options:[...(f.options??[]),{id:'option_'+n,label:{'en-US':'Option '+n}}]};
+         })}>{t('Add choice','إضافة خيار')}</button>
+       </fieldset>}
       </li>;
     })}
    </ol>
-   <button type="button" onClick={add} disabled={pending||fields.length>=100}>{t('Add text field','إضافة حقل نصي')}</button>
+   <label htmlFor="builder-template">{t('New field type','نوع الحقل الجديد')}</label>
+   <select id="builder-template" value={template} disabled={pending}
+    onChange={event=>setTemplate(event.target.value as typeof template)}>
+    <option value="text">{t('Text','نص')}</option>
+    <option value="number">{t('Number','رقم')}</option>
+    <option value="date">{t('Date','تاريخ')}</option>
+    <option value="boolean">{t('Yes / No','نعم / لا')}</option>
+    <option value="select">{t('Choice list','قائمة اختيار')}</option>
+   </select>
+   <button type="button" onClick={add} disabled={pending||fields.length>=100}>{t('Add field','إضافة حقل')}</button>
    <button type="submit" disabled={pending||!editable}>{t('Save unpublished layout','حفظ ترتيب المسودة')}</button>
    {!editable&&<p role="alert">{t('File fields require verified attachments; saving this layout is disabled.','تتطلب حقول الملفات مرفقات موثقة؛ حفظ هذا الترتيب معطل.')}</p>}
    {state.status!=='idle'&&<p role={state.status==='error'?'alert':'status'} aria-live="polite">{state.message}</p>}
