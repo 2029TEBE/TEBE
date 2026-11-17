@@ -14,6 +14,7 @@ const evidenceBody=z.object({artifactReference:z.string().regex(/^sha256:[a-f0-9
 export class StudioRequestController {
  constructor(private readonly svc:StudioRequestService){}
  @Get() mine(){return this.svc.myRequests();}
+ @Get('assigned') assigned(){return this.svc.assignedApprovals();}
  @Post() submit(@Body(new ZodPipe(submitBody)) body:z.infer<typeof submitBody>){
    return this.svc.submit(body.serviceVersionId,body.values);
  }
