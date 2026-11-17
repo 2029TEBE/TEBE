@@ -224,10 +224,7 @@ export class StudioRequestService {
     });
   }
 
-  /** Read-only escalation triage for a tenant publisher. No reassignment,
-   * vote, mutation, or notification is performed by this endpoint.
-   * Return the minimum metadata needed for a human to escalate the case.
-   */
+  /** Tenant-admin escalation review only; never acts on an approval. */
   async overdueApprovals(){
     const actor=this.principal();
     if(!actor.roles.includes('publisher')) throw new ForbiddenException('Studio admin capability required');
@@ -243,22 +240,12 @@ export class StudioRequestService {
       WHERE r.tenant_id=${actor.tenantId}
         AND r.phase IN ('manager','finance')
         AND step->>'id'=r.phase AND step->>'kind'='approval'
-        AND step ? 'timeoutHours'
-        AND (step->>'timeoutHours') ~ '^[0-9]{1,3}
-    const actor=this.principal();
-    const result=await withTenant(actor.tenantId,tx=>tx.execute(sql`
-      SELECT id,service_version_id AS "serviceVersionId",form_version AS "formVersion",
-        workflow_version AS "workflowVersion",phase,submitted_at AS "submittedAt"
-      FROM studio_service_requests
-      WHERE tenant_id=${actor.tenantId} AND requester_id=${actor.id}
-      ORDER BY submitted_at DESC LIMIT 100
-    `));
-    return this.rows(result);
-  }
-}
-
-        AND (step->>'timeoutHours')::int BETWEEN 1 AND 720
-        AND r.updated_at + (step->>'timeoutHours')::int * INTERVAL '1 hour' <= now()
+        AND jsonb_typeof(step->'timeoutHours') = 'number'
+        AND CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}' || chr(36)
+             THEN (step->>'timeoutHours')::int BETWEEN 1 AND 720 ELSE false END
+        AND r.updated_at +
+          CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}' || chr(36)
+               THEN (step->>'timeoutHours')::int ELSE 720 END * INTERVAL '1 hour' <= now()
         AND NOT EXISTS (
           SELECT 1 FROM studio_service_decisions d
           WHERE d.tenant_id=r.tenant_id AND d.request_id=r.id AND d.step_key=r.phase
@@ -270,17 +257,14 @@ export class StudioRequestService {
     return this.rows<any>(result).flatMap(row=>{
       const sla=assessStudioApprovalSla({
         phaseStartedAt:row.phaseStartedAt,now,
-        timeoutHours:Number(row.timeoutHours),
-        timeoutAction:row.timeoutAction,
+        timeoutHours:Number(row.timeoutHours),timeoutAction:row.timeoutAction,
       });
       if(sla.status!=='overdue')return [];
-      return [{
-        id:row.id,phase:row.phase,serviceKey:row.serviceKey,
+      return [{id:row.id,phase:row.phase,serviceKey:row.serviceKey,
         formVersion:row.formVersion,submittedAt:row.submittedAt,
         phaseStartedAt:row.phaseStartedAt,sla,
         actionStatus:'awaiting_authorized_human_review',
-        autoDecision:false,autoDelegation:false,
-      }];
+        autoDecision:false,autoDelegation:false}];
     });
   }
 
