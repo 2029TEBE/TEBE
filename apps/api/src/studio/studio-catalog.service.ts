@@ -1,8 +1,9 @@
 import { ConflictException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { withTenant } from '@pmo/db';
 import {
-  advanceDefinition, assertStudioAction, assertStudioPublish,
+  advanceDefinition, StudioPolicyError,
   LOCALE_CODES, type StudioDefinition, type StudioPrincipal, type StudioRole,
 } from '@pmo/contracts';
 import { can } from '@pmo/contracts';
@@ -35,6 +36,9 @@ export class StudioCatalogService {
     if(!d || d.tenantId!==caller.tenantId || d.creatorId!==caller.id || d.state!=='draft' || d.version!==1
       || !d.id || !d.contentHash || d.reviewedHash || d.reviewerId) throw new ForbiddenException('Invalid draft owner/version');
     if (!/^[a-z][a-z0-9_-]{2,79}$/.test(body.serviceKey)) throw new ConflictException('Invalid service key');
+    const { contentHash: suppliedHash, ...canonical } = d;
+    const calculatedHash = createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+    if (calculatedHash !== suppliedHash) throw new ConflictException('Definition content checksum mismatch');
     return withTenant(caller.tenantId,async tx=>{
       const r=await tx.execute(sql`
         INSERT INTO studio_service_versions
@@ -66,12 +70,21 @@ export class StudioCatalogService {
       const {row,def}=await this.loadLocked(tx,caller.tenantId,id);
       // All 23 currently registered application variants are required unless
       // a reviewed tenant-enabled locale registry is wired up separately.
-      const next=advanceDefinition(caller,def,action,LOCALE_CODES);
+      let next: StudioDefinition;
+      try { next=advanceDefinition(caller,def,action,LOCALE_CODES); }
+      catch (error) {
+        if (error instanceof StudioPolicyError) {
+          if (error.code.endsWith('FORBIDDEN') || error.code === 'ROLE_FORBIDDEN' || error.code === 'SEPARATION_OF_DUTIES')
+            throw new ForbiddenException(error.code);
+          throw new ConflictException(error.code);
+        }
+        throw error;
+      }
       const data = await tx.execute(sql`
         UPDATE studio_service_versions
         SET state=${next.state},
-            reviewed_by=${action==='approve'?caller.id:row.reviewerId},
-            reviewed_sha256=${action==='approve'?next.contentHash:row.reviewedHash},
+            reviewed_by=${action==='approve'?caller.id:(row.reviewerId??null)},
+            reviewed_sha256=${action==='approve'?next.contentHash:(row.reviewedHash??null)},
             reviewed_at=CASE WHEN ${action}='approve' THEN now() ELSE reviewed_at END,
             published_by=CASE WHEN ${action}='publish' THEN ${caller.id} ELSE published_by END,
             published_at=CASE WHEN ${action}='publish' THEN now() ELSE published_at END
