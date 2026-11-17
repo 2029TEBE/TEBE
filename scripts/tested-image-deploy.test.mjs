@@ -24,6 +24,7 @@ cmd="\${!#}"
 printf '%s\\n' "$cmd" >> "$TEST_LOG"
 case "$cmd" in
   'printf "%s" "$HOME"') echo /home/fixture ;;
+  *'df -Pk /var/lib/docker'*) echo 6291456 ;;
   'docker image load') cat >/dev/null ;;
   *"docker image inspect 'epmo-api:ci'"*) echo "$TEST_API_INSPECT" ;;
   *"docker image inspect 'epmo-web:ci'"*) echo "$TEST_WEB_INSPECT" ;;
@@ -35,7 +36,7 @@ esac
   await writeFile(join(bin,'rsync'),'#!/bin/sh\nexit 0\n',{mode:0o700});
   const env={...process.env,PATH:bin+':'+process.env.PATH,EPMO_DEPLOY_HOST:'fixture@invalid.example',EPMO_TESTED_IMAGE_DIR:bundle,EPMO_CI_VERIFIED_SHA:revision,EPMO_CI_WORKFLOW_RUN_ID:'123',GITHUB_REPOSITORY:'2029TEBE/TEBE',GITHUB_ACTIONS:'true',GITHUB_EVENT_NAME:'workflow_run',EPMO_RELEASE_API_IMAGE:'',EPMO_RELEASE_WEB_IMAGE:'',TEST_LOG:log,TEST_REVISION:revision,TEST_API_ID:apiInspect.Id,TEST_WEB_ID:webInspect.Id,TEST_API_INSPECT:JSON.stringify([apiInspect]),TEST_WEB_INSPECT:JSON.stringify([webInspect])};
   const run=spawnSync('bash',['infra/deploy.sh','prod'],{env,encoding:'utf8',timeout:30000});assert.equal(run.status,0,run.stdout+'\n'+run.stderr);
-  const commands=await readFile(log,'utf8');assert.match(commands,/docker image load/);assert.ok(commands.indexOf('docker builder prune --all --force')<commands.indexOf('docker image load'));assert.doesNotMatch(commands,/docker (?:image|container|volume|system) prune/);assert.doesNotMatch(commands,/compose[^\n]*(?: build | pull )/);assert.match(commands,/--no-build --pull never/);assert.ok(commands.indexOf('docker image load')<commands.indexOf('backup-db.sh'));assert.match(commands,/bootstrap-db.sh/);assert.match(commands,/\{\{.Image\}\}/);
+  const commands=await readFile(log,'utf8');assert.match(commands,/docker image load/);assert.ok(commands.indexOf('docker builder prune --all --force')<commands.indexOf('docker image load'));assert.match(commands,/docker image prune --force --filter until=168h/);assert.doesNotMatch(commands,/docker (?:container|volume|system) prune|docker image prune\s+-a/);assert.doesNotMatch(commands,/compose[^\n]*(?: build | pull )/);assert.match(commands,/--no-build --pull never/);assert.ok(commands.indexOf('docker image load')<commands.indexOf('backup-db.sh'));assert.match(commands,/bootstrap-db.sh/);assert.match(commands,/\{\{.Image\}\}/);
   await rm(log);
   const changed={...apiInspect,Id:'sha256:'+'9'.repeat(64),Config:{...apiInspect.Config,Cmd:['sh']}};
   const wrong=spawnSync('bash',['infra/deploy.sh','prod'],{env:{...env,TEST_API_INSPECT:JSON.stringify([changed])},encoding:'utf8',timeout:30000});
