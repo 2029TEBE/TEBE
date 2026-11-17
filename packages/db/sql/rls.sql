@@ -173,3 +173,11 @@ DO $$ BEGIN
     public.gaiz_lock_recovery_consent(uuid,text,timestamptz) TO pmo_app;
  END IF;
 END $$;
+
+-- Studio escalation review receipts are append-only and tenant protected.
+DO $$ BEGIN
+ IF to_regclass('public.studio_escalation_reviews') IS NOT NULL THEN
+  REVOKE UPDATE,DELETE ON public.studio_escalation_reviews FROM pmo_app;
+  GRANT SELECT,INSERT ON public.studio_escalation_reviews TO pmo_app;
+ END IF;
+END $$;
