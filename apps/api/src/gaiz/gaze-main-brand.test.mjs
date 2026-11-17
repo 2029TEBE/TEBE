@@ -17,3 +17,10 @@ test('verification preview retains authenticated read-only boundary',()=>{
  assert.match(page,/GaizVerificationPanel ar=\{ar\}/);
  assert.match(page,/No data is imported/);
 });
+
+test('GIZE AI is branded without changing GAIZ protocol paths or stored format labels',()=>{
+ assert.match(page,/GIZE AI — Verification preview/);
+ assert.match(page,/التحقق من GIZE AI/);
+ assert.doesNotMatch(page,/\\.GAZE/);
+ assert.match(page,/GAIZ1\\/GAIZ2/);
+});
