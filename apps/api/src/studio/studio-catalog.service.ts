@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { withTenant } from '@pmo/db';
 import {
   advanceDefinition, StudioPolicyError,
-  LOCALE_CODES, type StudioDefinition, type StudioPrincipal, type StudioRole,
+  LOCALE_CODES, validateStudioDefinition, type StudioDefinition, type StudioPrincipal, type StudioRole,
 } from '@pmo/contracts';
 import { can } from '@pmo/contracts';
 import { studioPublicationReadiness } from './studio-readiness';
@@ -72,9 +72,27 @@ export class StudioCatalogService {
         throw new ConflictException('Draft changed since the last load; reload before editing');
       if(!patch.accessUserIds.length || new Set(patch.accessUserIds).size!==patch.accessUserIds.length)
         throw new ConflictException('Explicit unique catalog audience required');
-      // Do not mutate approvals, service identity, revision number or role bindings.
+      // Fail closed on schema/conditional validation before writing a draft.
+      // Other locales may remain incomplete in a draft, but English is canonical.
+      // Publication still enforces the full 23-locale review gate.
       const next={...def,name:patch.name,fields:patch.fields,steps:patch.steps,
         accessUserIds:patch.accessUserIds};
+      const issues=validateStudioDefinition(next,['en-US']);
+      if(issues.length)throw new ConflictException('Invalid draft configuration: '+issues.slice(0,6).join(','));
+      const manager=next.steps.filter(step=>step.id==='manager');
+      const finance=next.steps.filter(step=>step.id==='finance');
+      const fulfill=next.steps.filter(step=>step.id==='fulfillment');
+      if(manager.length!==1||manager[0].kind!=='approval'||manager[0].mode!=='any'||
+        finance.length>1||finance.some(step=>step.kind!=='approval'||step.mode!=='all')||
+        fulfill.length!==1||fulfill[0].kind!=='fulfillment'||next.steps.length!==2+finance.length)
+        throw new ConflictException('Unsupported approval routing configuration');
+      if(finance.length && !next.fields.some(field=>field.id==='budgetImpact' &&
+         field.type==='number' && field.required && !field.visibleWhen && !field.readOnly))
+        throw new ConflictException('Finance approval requires mandatory visible numeric budgetImpact');
+      if(next.fields.some(field=>field.id==='budgetImpact' && (field.type!=='number'||!!field.visibleWhen)))
+        throw new ConflictException('budgetImpact must be unconditional numeric');
+      if(!next.fields.some(field=>field.id==='reason' && field.type==='text' && field.required))
+        throw new ConflictException('Reason must remain required');
       const {contentHash:_hash,reviewedHash:_review,reviewerId:_reviewer,...canonical}=next;
       const hash=createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
       const result=await tx.execute(sql`
