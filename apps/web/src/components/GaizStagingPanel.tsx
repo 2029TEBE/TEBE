@@ -52,7 +52,7 @@ export function GaizStagingPanel({ ar, artifactBase64url }: {ar:boolean;artifact
    }catch(e){setError(e instanceof Error?e.message:'Request failed');}
    finally{setBusy(false);}
  }
- return <section className="panel" aria-label={ar?'طلب مراجعة GAIZ':'GAIZ staging'}>
+ return <section className="panel" aria-label={ar?'طلب مراجعة GIZE AI':'GIZE AI staging'}>
   <h2>{ar?'طلب استيراد للمراجعة فقط':'Stage for independent review'}</h2>
   <p>{ar?'سجلات الطلب فقط. يجب أن يعتمد الطلب شخص آخر مخول. لا يتم تطبيق البيانات.'
     :'Metadata-only staging. A separate authorized reviewer must decide. Even approval does not import or decrypt any data.'}</p>
@@ -62,7 +62,7 @@ export function GaizStagingPanel({ ar, artifactBase64url }: {ar:boolean;artifact
   </p>
   {error&&<p className="err" role="alert">{error}</p>}
   {message&&<p role="status">{message}</p>}
-  {requests.length>0&&<div role="region" aria-label="GAIZ review requests">
+  {requests.length>0&&<div role="region" aria-label="GIZE AI review requests">
    {requests.map(req=><article className="panel" key={req.id}>
     <p><strong>{req.artifactId}</strong> · {req.status}</p>
     <p className="dim" style={{overflowWrap:'anywhere'}}>SHA-256: {req.sha256}</p>
