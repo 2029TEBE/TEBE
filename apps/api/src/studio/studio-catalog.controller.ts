@@ -29,6 +29,7 @@ const createBody=z.object({serviceKey:z.string().regex(/^[a-z][a-z0-9_-]{2,79}$/
 export class StudioCatalogController {
  constructor(private readonly svc:StudioCatalogService){}
  @Get('catalog') catalog(){return this.svc.catalog();}
+ @Get('catalog/:id') catalogItem(@Param('id',ParseUUIDPipe) id:string){return this.svc.catalogItem(id);}
  @Get('definitions') definitions(){return this.svc.myDefinitions();}
  @Post('definitions') create(@Body(new ZodPipe(createBody)) body:z.infer<typeof createBody>){
    return this.svc.create(body);

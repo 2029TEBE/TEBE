@@ -110,6 +110,21 @@ export class StudioCatalogService {
     `));
     return this.rows(rows);
   }
+  /** Return only a published form schema, never workflow assignee identities. */
+  async catalogItem(id:string) {
+    const caller=this.caller();
+    const rows=await withTenant(caller.tenantId,tx=>tx.execute(sql`
+      SELECT id,service_key AS "serviceKey",version,definition->'name' AS name,
+             definition->'fields' AS fields
+      FROM studio_service_versions
+      WHERE tenant_id=${caller.tenantId} AND id=${id} AND state='published'
+        AND definition->'accessUserIds' @> ${JSON.stringify([caller.id])}::jsonb
+      LIMIT 1
+    `));
+    const item=this.rows<any>(rows)[0];
+    if(!item) throw new ForbiddenException('Service not available to this account');
+    return item;
+  }
   async myDefinitions() {
     const caller=this.caller();
     if(!caller.roles.some(role=>role==='creator'||role==='reviewer'||role==='publisher'))
