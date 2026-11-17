@@ -50,3 +50,27 @@ test('Chinese region and script extensions retain the intended writing system', 
   }
   assert.equal(chooseFrontendLocale({browserLanguages:['zh-TW-u-ca-gregory']}), 'zh-TW');
 });
+
+
+test('every registered variant normalizes and round-trips without losing the selected locale', () => {
+  for (const locale of FRONTEND_LOCALES) {
+    assert.equal(normalizeFrontendLocale(locale), locale, locale);
+    assert.equal(chooseFrontendLocale({ selected: locale, saved: 'en-US', browserLanguages: ['ar'] }), locale);
+    assert.equal(chooseFrontendLocale({ saved: locale, browserLanguages: ['en-US'] }), locale);
+  }
+});
+
+test('all 23 locale variants preserve English fallback and Arabic/Urdu bidi direction', async () => {
+  const { directionForLocale, formatNumber, formatDate, formatCurrency } = await import('./locale-format.mjs');
+  const { uiLabel, catalogLocale, translationHasMatchingPlaceholders } = await import('./ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES) {
+    assert.equal(directionForLocale(locale), ['ar', 'ur'].includes(locale) ? 'rtl' : 'ltr', locale);
+    assert.ok(formatNumber(1234.5, locale).trim(), locale);
+    assert.ok(formatDate('2026-11-17T12:00:00Z', locale).trim(), locale);
+    assert.ok(formatCurrency(125, 'SAR', locale).trim(), locale);
+    assert.equal(uiLabel('__untranslated_navigation_test__', locale), '__untranslated_navigation_test__', locale);
+    assert.ok(catalogLocale(locale), locale);
+  }
+  assert.equal(translationHasMatchingPlaceholders('View {shown} of {total}', 'عرض {shown} من {total}'), true);
+  assert.equal(translationHasMatchingPlaceholders('View {shown} of {total}', 'عرض {shown}'), false);
+});
