@@ -6,15 +6,19 @@ ALTER TABLE public.studio_approval_delegations
  ADD CONSTRAINT studio_delegation_expiry_after_creation
  CHECK (expires_at IS NULL OR expires_at > created_at);
 
+ALTER TABLE public.studio_approval_delegations
+ ADD CONSTRAINT studio_delegation_tenant_id_unique UNIQUE(tenant_id,id);
+
 CREATE TABLE public.studio_approval_delegation_revocations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
- delegation_id uuid NOT NULL REFERENCES public.studio_approval_delegations(id),
+ delegation_id uuid NOT NULL,
  request_id uuid NOT NULL,
  revoked_by uuid NOT NULL REFERENCES public.users(id),
  reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 10 AND 1000),
  created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (tenant_id,delegation_id),
+ FOREIGN KEY (tenant_id,delegation_id) REFERENCES public.studio_approval_delegations(tenant_id,id),
  FOREIGN KEY (tenant_id,request_id) REFERENCES public.studio_service_requests(tenant_id,id)
 );
 CREATE INDEX studio_delegation_revocations_request
