@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {EscalationReviewForm} from './EscalationReviewForm';
 import {Page,Loaded} from '@/components/Page';
 import {api,getSession} from '@/lib/api';
 import {getFrontendLocale} from '@/lib/i18n';
@@ -25,6 +26,7 @@ export default async function StudioEscalationTriage(){
           <th scope="col">{t('Approval stage','مرحلة الموافقة')}</th>
           <th scope="col">{t('Due date','تاريخ الاستحقاق')}</th>
           <th scope="col">{t('Required human action','الإجراء البشري المطلوب')}</th>
+          <th scope="col">{t('Audit acknowledgment','توثيق المراجعة')}</th>
         </tr></thead><tbody>{items.map(item=><tr key={item.id}>
           <td><code>{item.serviceKey}</code></td>
           <td><code>{item.id}</code></td>
@@ -34,6 +36,7 @@ export default async function StudioEscalationTriage(){
           </time>}</td>
           <td><strong>{item.sla.actionRequired??'manual_review'}</strong>
             <span className="dim"> · {t('Not executed','لم ينفذ')}</span></td>
+          <td><EscalationReviewForm id={item.id} step={item.phase} locale={locale}/></td>
         </tr>)}</tbody></table>
       </div>:<p className="dim">{t('No overdue approvals found in this workspace.','لا توجد موافقات متأخرة في مساحة العمل.')}</p>}
     </Loaded>}
