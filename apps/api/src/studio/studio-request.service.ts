@@ -127,9 +127,12 @@ export class StudioRequestService {
         FROM studio_service_decisions WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
       tx.execute(sql`SELECT id,operator_id AS "operatorId",artifact_reference AS "artifactReference"
         FROM studio_service_evidence WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
-      tx.execute(sql`SELECT step_key AS "stepKey",original_approver_id AS "originalApproverId",
-          delegate_id AS "delegateId" FROM studio_approval_delegations
-        WHERE tenant_id=${actor.tenantId} AND request_id=${id}`),
+      tx.execute(sql`SELECT d.step_key AS "stepKey",d.original_approver_id AS "originalApproverId",
+          d.delegate_id AS "delegateId" FROM studio_approval_delegations d
+        WHERE d.tenant_id=${actor.tenantId} AND d.request_id=${id}
+          AND (d.expires_at IS NULL OR d.expires_at > now())
+          AND NOT EXISTS (SELECT 1 FROM studio_approval_delegation_revocations rev
+            WHERE rev.tenant_id=d.tenant_id AND rev.delegation_id=d.id)`),
     ]);
     const definition={...row.definition,tenantId:actor.tenantId,state:'published',
       version:row.form_version,contentHash:row.definition_sha256} as StudioDefinition;
@@ -191,12 +194,16 @@ export class StudioRequestService {
    * Request row lock serializes delegation against concurrent decisions.
    */
   async delegateApproval(id:string,body:{
-    step:'manager'|'finance';originalApproverId:string;delegateId:string;reason:string;
+    step:'manager'|'finance';originalApproverId:string;delegateId:string;reason:string;expiresAt:string;
   }){
     const actor=this.principal();
     if(!actor.roles.includes('publisher'))throw new ForbiddenException('Studio administrator capability required');
     const reason=body.reason.trim();
     if(reason.length<10||reason.length>1000)throw new ConflictException('Delegation justification must be 10-1000 characters');
+    const expiresAt=new Date(body.expiresAt);
+    const remaining=expiresAt.getTime()-Date.now();
+    if(!Number.isFinite(remaining)||remaining<60_000||remaining>30*24*60*60*1000)
+      throw new ConflictException('Delegation must expire in 1 minute to 30 days');
     if(body.originalApproverId===body.delegateId||actor.id===body.delegateId)
       throw new ForbiddenException('Delegation must target a distinct reviewer');
     return withTenant(actor.tenantId,async tx=>{
@@ -224,14 +231,51 @@ export class StudioRequestService {
         throw new ForbiddenException('Delegate must be an active, approval-capable member of this tenant');
       const [receipt]=this.rows<any>(await tx.execute(sql`
         INSERT INTO studio_approval_delegations
-          (tenant_id,request_id,step_key,original_approver_id,delegate_id,delegated_by,reason)
+          (tenant_id,request_id,step_key,original_approver_id,delegate_id,delegated_by,reason,expires_at)
         VALUES (${actor.tenantId},${id},${body.step},${body.originalApproverId},
-          ${body.delegateId},${actor.id},${reason})
+          ${body.delegateId},${actor.id},${reason},${expiresAt.toISOString()}::timestamptz)
         RETURNING id,request_id AS "requestId",step_key AS "step",
           original_approver_id AS "originalApproverId",delegate_id AS "delegateId",
-          created_at AS "createdAt"
+          created_at AS "createdAt",expires_at AS "expiresAt"
       `));
       return {...receipt,delegated:true,approved:false,phaseChanged:false,notified:false};
+    });
+  }
+
+  /** Revokes an active delegation by appending a receipt; preserves historical assignment.
+   * No vote is cast and the original approver regains the unvoted seat.
+   */
+  async revokeDelegation(id:string,delegationId:string,reason:string){
+    const actor=this.principal();
+    if(!actor.roles.includes('publisher'))throw new ForbiddenException('Studio administrator capability required');
+    const note=reason.trim();
+    if(note.length<10||note.length>1000)throw new ConflictException('Revocation reason must be 10-1000 characters');
+    return withTenant(actor.tenantId,async tx=>{
+      const {request}=await this.loadForUpdate(tx,actor,id);
+      const [d]=this.rows<any>(await tx.execute(sql`
+        SELECT id,step_key AS "step",original_approver_id AS "originalApproverId",
+               delegate_id AS "delegateId",expires_at AS "expiresAt"
+        FROM studio_approval_delegations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id} AND id=${delegationId}
+      `));
+      if(!d||request.phase!==d.step)throw new ConflictException('Active delegation not found');
+      if(d.expiresAt && new Date(d.expiresAt).getTime()<=Date.now())
+        throw new ConflictException('Delegation has already expired');
+      const [prior]=this.rows<any>(await tx.execute(sql`
+        SELECT id FROM studio_approval_delegation_revocations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id} AND delegation_id=${delegationId}
+      `));
+      if(prior)throw new ConflictException('Delegation already revoked');
+      const votes=d.step==='manager'?request.managerVotes:request.financeVotes;
+      if(votes[d.delegateId]||votes[d.originalApproverId])
+        throw new ConflictException('Cannot revoke a delegation after either approver votes');
+      const [receipt]=this.rows<any>(await tx.execute(sql`
+        INSERT INTO studio_approval_delegation_revocations
+          (tenant_id,delegation_id,request_id,revoked_by,reason)
+        VALUES (${actor.tenantId},${delegationId},${id},${actor.id},${note})
+        RETURNING id,created_at AS "createdAt"
+      `));
+      return {...receipt,revoked:true,requestChanged:false,autoDecision:false};
     });
   }
 
@@ -251,8 +295,18 @@ export class StudioRequestService {
       const delegations=this.rows<any>(await tx.execute(sql`
         SELECT id,step_key AS "step",original_approver_id AS "originalApproverId",
                delegate_id AS "delegateId",delegated_by AS "delegatedBy",
-               reason,created_at AS "createdAt"
+               reason,created_at AS "createdAt",expires_at AS "expiresAt",
+               EXISTS (SELECT 1 FROM studio_approval_delegation_revocations dr
+                 WHERE dr.tenant_id=studio_approval_delegations.tenant_id
+                   AND dr.delegation_id=studio_approval_delegations.id) AS "revoked"
         FROM studio_approval_delegations
+        WHERE tenant_id=${actor.tenantId} AND request_id=${id}
+        ORDER BY created_at DESC,id DESC LIMIT 100
+      `));
+      const revocations=this.rows<any>(await tx.execute(sql`
+        SELECT id,delegation_id AS "delegationId",revoked_by AS "revokedBy",
+               reason,created_at AS "createdAt"
+        FROM studio_approval_delegation_revocations
         WHERE tenant_id=${actor.tenantId} AND request_id=${id}
         ORDER BY created_at DESC,id DESC LIMIT 100
       `));
@@ -263,7 +317,7 @@ export class StudioRequestService {
         WHERE tenant_id=${actor.tenantId} AND request_id=${id}
         ORDER BY created_at DESC,id DESC LIMIT 100
       `));
-      return {requestId:id,phase:request.phase,delegations,reviews,
+      return {requestId:id,phase:request.phase,delegations,revocations,reviews,
         readOnly:true,autoDecision:false,autoDelegation:false,
         fulfillmentVerified:false};
     });
@@ -295,11 +349,17 @@ export class StudioRequestService {
               SELECT 1 FROM studio_approval_delegations dd
               WHERE dd.tenant_id=r.tenant_id AND dd.request_id=r.id
                 AND dd.step_key=r.phase AND dd.original_approver_id=${actor.id}
+                AND (dd.expires_at IS NULL OR dd.expires_at>now())
+                AND NOT EXISTS (SELECT 1 FROM studio_approval_delegation_revocations dr
+                  WHERE dr.tenant_id=dd.tenant_id AND dr.delegation_id=dd.id)
             ))
           OR EXISTS (
             SELECT 1 FROM studio_approval_delegations dd
             WHERE dd.tenant_id=r.tenant_id AND dd.request_id=r.id
               AND dd.step_key=r.phase AND dd.delegate_id=${actor.id}
+              AND (dd.expires_at IS NULL OR dd.expires_at>now())
+              AND NOT EXISTS (SELECT 1 FROM studio_approval_delegation_revocations dr
+                WHERE dr.tenant_id=dd.tenant_id AND dr.delegation_id=dd.id)
               AND step->'assignees' @> to_jsonb(dd.original_approver_id::text)
           )
         )

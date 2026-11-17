@@ -8,7 +8,8 @@ const submitBody=z.object({
  serviceVersionId:z.string().uuid(), values:z.record(z.string().max(100),z.unknown())
 }).strict();
 const decisionBody=z.object({decision:z.enum(['approved','rejected'])}).strict();
-const delegationBody=z.object({step:z.enum(['manager','finance']),originalApproverId:z.string().uuid(),delegateId:z.string().uuid(),reason:z.string().trim().min(10).max(1000)}).strict();
+const delegationBody=z.object({step:z.enum(['manager','finance']),originalApproverId:z.string().uuid(),delegateId:z.string().uuid(),reason:z.string().trim().min(10).max(1000),expiresAt:z.string().datetime({offset:true})}).strict();
+const revocationBody=z.object({delegationId:z.string().uuid(),reason:z.string().trim().min(10).max(1000)}).strict();
 const escalationBody=z.object({step:z.enum(['manager','finance']),action:z.enum(['acknowledged','contacted_owner','referred_to_governance']),note:z.string().trim().min(10).max(1000)}).strict();
 const evidenceBody=z.object({artifactReference:z.string().regex(/^sha256:[a-f0-9]{64}$/)}).strict();
 @Controller('api/v1/studio/requests')
@@ -28,6 +29,10 @@ export class StudioRequestController {
  @Post(':id/delegate')
  delegate(@Param('id',ParseUUIDPipe) id:string,@Body(new ZodPipe(delegationBody)) body:z.infer<typeof delegationBody>){
    return this.svc.delegateApproval(id,body);
+ }
+ @Post(':id/revoke-delegation')
+ revokeDelegation(@Param('id',ParseUUIDPipe) id:string,@Body(new ZodPipe(revocationBody)) body:z.infer<typeof revocationBody>){
+   return this.svc.revokeDelegation(id,body.delegationId,body.reason);
  }
  @Get(':id/audit')
  audit(@Param('id',ParseUUIDPipe) id:string){return this.svc.requestAudit(id);}

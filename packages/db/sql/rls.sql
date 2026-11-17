@@ -189,3 +189,11 @@ DO $$ BEGIN
   GRANT SELECT,INSERT ON public.studio_approval_delegations TO pmo_app;
  END IF;
 END $$;
+
+-- Studio delegation revocations are immutable event receipts.
+DO $$ BEGIN
+ IF to_regclass('public.studio_approval_delegation_revocations') IS NOT NULL THEN
+  REVOKE UPDATE,DELETE ON public.studio_approval_delegation_revocations FROM pmo_app;
+  GRANT SELECT,INSERT ON public.studio_approval_delegation_revocations TO pmo_app;
+ END IF;
+END $$;

@@ -84,7 +84,8 @@ export const api = {
   studioRequestAudit: (id:string) => get<{
     requestId:string;phase:string;readOnly:true;autoDecision:false;autoDelegation:false;
     fulfillmentVerified:false;
-    delegations:{id:string;step:string;originalApproverId:string;delegateId:string;delegatedBy:string;reason:string;createdAt:string}[];
+    delegations:{id:string;step:string;originalApproverId:string;delegateId:string;delegatedBy:string;reason:string;createdAt:string;expiresAt:string|null;revoked:boolean}[];
+    revocations:{id:string;delegationId:string;revokedBy:string;reason:string;createdAt:string}[];
     reviews:{id:string;step:string;reviewedBy:string;action:string;note:string;phaseStartedAt:string;createdAt:string}[];
   }>(`/api/v1/studio/requests/${encodeURIComponent(id)}/audit`),
   studioOverdueApprovals: () => get<{id:string;phase:'manager'|'finance';serviceKey:string;formVersion:number;submittedAt:string;phaseStartedAt:string;sla:{status:'overdue';deadlineAt:string;actionRequired:string|null};actionStatus:string;autoDecision:false;autoDelegation:false;approverIds:string[]}[]>('/api/v1/studio/requests/overdue'),

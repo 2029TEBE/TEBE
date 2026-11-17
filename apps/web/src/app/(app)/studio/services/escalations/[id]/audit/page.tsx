@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {Page,Loaded} from '@/components/Page';
 import {api,getSession} from '@/lib/api';
 import {getFrontendLocale} from '@/lib/i18n';
+import {DelegationRevocationForm} from './DelegationRevocationForm';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -26,12 +27,23 @@ export default async function StudioRequestAudit({params}:{params:Promise<{id:st
             <h2>{t('Delegation history','سجل التفويض')}</h2>
             {audit.delegations.length===0?<p>{t('No delegation records.','لا توجد سجلات تفويض.')}</p>:
               <div className="design-table-scroll" tabIndex={0}><table>
-                <thead><tr><th scope="col">{t('Date','التاريخ')}</th><th scope="col">{t('Stage','المرحلة')}</th><th scope="col">{t('Original approver','المعتمد الأصلي')}</th><th scope="col">{t('Delegate','المفوض إليه')}</th><th scope="col">{t('Admin','المسؤول')}</th><th scope="col">{t('Reason','السبب')}</th></tr></thead>
+                <thead><tr><th scope="col">{t('Date','التاريخ')}</th><th scope="col">{t('Stage','المرحلة')}</th><th scope="col">{t('Original approver','المعتمد الأصلي')}</th><th scope="col">{t('Delegate','المفوض إليه')}</th><th scope="col">{t('Admin','المسؤول')}</th><th scope="col">{t('Reason','السبب')}</th><th scope="col">{t('Expiry / revocation','الانتهاء والإلغاء')}</th></tr></thead>
                 <tbody>{audit.delegations.map(row=><tr key={row.id}>
                   <td><time dateTime={row.createdAt}>{new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(row.createdAt))}</time></td>
                   <td>{row.step}</td><td><code>{row.originalApproverId}</code></td><td><code>{row.delegateId}</code></td><td><code>{row.delegatedBy}</code></td><td>{row.reason}</td>
+                  <td>{row.revoked?t('Revoked','ملغى'):row.expiresAt&&new Date(row.expiresAt).getTime()<=Date.now()?t('Expired','منتهي'):
+                    <><p>{row.expiresAt?new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(row.expiresAt)):t('Legacy permanent grant','تفويض قديم دائم')}</p>
+                    {audit.phase===row.step&&<DelegationRevocationForm requestId={audit.requestId} delegationId={row.id} locale={locale}/>}</>}</td>
                 </tr>)}</tbody>
               </table></div>}
+          </section>
+          <section aria-label={t('Revocation history','سجل إلغاء التفويض')}>
+            <h2>{t('Revocation history','سجل إلغاء التفويض')}</h2>
+            {audit.revocations.length===0?<p>{t('No revocations recorded.','لا توجد عمليات إلغاء مسجلة.')}</p>:
+             <ul>{audit.revocations.map(item=><li key={item.id}>
+              <time dateTime={item.createdAt}>{new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(item.createdAt))}</time>
+              {' · '}<code>{item.delegationId}</code>{' · '}{item.reason}
+             </li>)}</ul>}
           </section>
           <section aria-label={t('Escalation review history','سجل مراجعة التصعيد')}>
             <h2>{t('Escalation review history','سجل مراجعة التصعيد')}</h2>

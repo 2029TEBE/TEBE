@@ -19,12 +19,20 @@ export function DelegationForm({id,step,approverIds,locale}:{
   <input id={'delegate-target-'+id} name="delegateId" required disabled={pending}
    type="text" pattern="[0-9a-fA-F-]{36}" maxLength={36}
    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/>
+  <label htmlFor={'delegate-duration-'+id}>{ar?'مدة التفويض':'Delegation duration'}</label>
+  <select id={'delegate-duration-'+id} name="durationHours" required disabled={pending} defaultValue="24">
+   <option value="1">{ar?'ساعة واحدة':'1 hour'}</option>
+   <option value="4">{ar?'4 ساعات':'4 hours'}</option>
+   <option value="24">{ar?'يوم واحد':'1 day'}</option>
+   <option value="72">{ar?'3 أيام':'3 days'}</option>
+   <option value="168">{ar?'7 أيام':'7 days'}</option>
+  </select>
   <label htmlFor={'delegate-reason-'+id}>{ar?'سبب التفويض':'Delegation justification'}</label>
   <textarea id={'delegate-reason-'+id} name="reason" minLength={10} maxLength={1000}
    rows={2} required disabled={pending}/>
   <p className="dim">{ar?
-   'تفويض نهائي لمقعد اعتماد واحد، ولا يعني الموافقة. يجب أن يكون المستخدم عضوا نشطا مخولا في نفس المستأجر.':
-   'Permanent reassignment of one approval seat, not an approval. Delegate must be an active authorized member of this tenant.'}</p>
+   'تفويض محدود المدة لمقعد اعتماد واحد، ولا يعني الموافقة. يجب أن يكون المستخدم عضوا نشطا مخولا في نفس المستأجر.':
+   'Time-limited delegation of one approval seat, not an approval. Delegate must be an active authorized member of this tenant.'}</p>
   <button type="submit" disabled={pending||!approverIds.length}>{ar?'تفويض المعتمد':'Delegate approval seat'}</button>
   {result.state!=='idle'&&<p role={result.state==='error'?'alert':'status'} aria-live="polite">{result.message}</p>}
  </form>;
