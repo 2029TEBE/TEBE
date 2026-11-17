@@ -76,6 +76,22 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
+      - name: Reclaim regenerable runner package caches before artifact download
+        run: |
+          set -euo pipefail
+          # Deploy runs on the dedicated Servitro runner. Only prune this
+          # account's regenerable package caches; never touch Docker images,
+          # application files, Git checkouts, logs, volumes or backups.
+          echo 'Runner disk before bounded cache maintenance:'
+          df -h "$RUNNER_TEMP"
+          if command -v npm >/dev/null 2>&1; then
+            npm cache clean --force >/dev/null 2>&1 || echo "::warning::npm cache prune was unavailable"
+          fi
+          if command -v pnpm >/dev/null 2>&1; then
+            pnpm store prune >/dev/null 2>&1 || echo "::warning::pnpm store prune was unavailable"
+          fi
+          echo 'Runner disk after bounded cache maintenance:'
+          df -h "$RUNNER_TEMP"
       - name: Reclaim abandoned release scratch and check download capacity
         id: scratch
         env:
