@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { z } from 'zod';
 import { ZodPipe } from '../common/zod.pipe';
 import { RequiresModule } from '../platform/module.guard';
@@ -23,6 +23,11 @@ const definition=z.object({
  fields:z.array(field).min(1).max(100),steps:z.array(step).min(1).max(50)
 }).strict();
 const createBody=z.object({serviceKey:z.string().regex(/^[a-z][a-z0-9_-]{2,79}$/),definition}).strict();
+const draftPatch=z.object({
+ expectedHash:z.string().regex(/^[a-f0-9]{64}$/),
+ name:localized,accessUserIds:z.array(z.string().uuid()).min(1).max(500),
+ fields:z.array(field).min(1).max(100),steps:z.array(step).min(1).max(50),
+}).strict();
 
 @Controller('api/v1/studio')
 @RequiresModule('pmo360')
@@ -31,6 +36,14 @@ export class StudioCatalogController {
  @Get('catalog') catalog(){return this.svc.catalog();}
  @Get('catalog/:id') catalogItem(@Param('id',ParseUUIDPipe) id:string){return this.svc.catalogItem(id);}
  @Get('definitions') definitions(){return this.svc.myDefinitions();}
+ @Get('definitions/:id')
+ detail(@Param('id',ParseUUIDPipe) id:string){return this.svc.definitionDetail(id);}
+ @Patch('definitions/:id/draft')
+ updateDraft(@Param('id',ParseUUIDPipe) id:string,@Body(new ZodPipe(draftPatch)) body:z.infer<typeof draftPatch>){
+   return this.svc.updateDraft(id,body);
+ }
+ @Post('definitions/:id/revise')
+ revise(@Param('id',ParseUUIDPipe) id:string){return this.svc.revise(id);}
  @Get('definitions/:id/readiness') readiness(@Param('id',ParseUUIDPipe) id:string){return this.svc.readiness(id);}
  @Post('definitions') create(@Body(new ZodPipe(createBody)) body:z.infer<typeof createBody>){
    return this.svc.create(body);
