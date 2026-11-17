@@ -181,3 +181,11 @@ DO $$ BEGIN
   GRANT SELECT,INSERT ON public.studio_escalation_reviews TO pmo_app;
  END IF;
 END $$;
+
+-- Delegation grants only immutable append records, never mutation of history.
+DO $$ BEGIN
+ IF to_regclass('public.studio_approval_delegations') IS NOT NULL THEN
+  REVOKE UPDATE,DELETE ON public.studio_approval_delegations FROM pmo_app;
+  GRANT SELECT,INSERT ON public.studio_approval_delegations TO pmo_app;
+ END IF;
+END $$;
