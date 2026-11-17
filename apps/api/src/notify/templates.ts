@@ -39,7 +39,7 @@ export function build(kind: NotificationKind, c: Ctx): Built {
 
   switch (kind) {
     case 'studio.approval.overdue': {
-      // Deliberately minimal metadata: never include requester values or attachments.
+      // Deliberately minimal metadata: only stage and tenant context are disclosed.
       const ar = c.lang === 'ar';
       const link = `${c.webOrigin}/studio/services/escalations`;
       return {
