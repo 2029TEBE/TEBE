@@ -47,7 +47,21 @@ export class StudioRequestService {
       || JSON.stringify(values).length>32000) throw new ConflictException('Invalid input size or type');
     const allowed=new Set(definition.fields.map(f=>f.id));
     for(const key of Object.keys(values)) if(!allowed.has(key)) throw new ConflictException('Unknown intake field');
+    // Conditions are evaluated against validated, preceding source values.
+    // Hidden values must not reach persistence or alter approval routing.
     for(const field of definition.fields){
+      if(field.visibleWhen){
+        const source=definition.fields.find(f=>f.id===field.visibleWhen!.fieldId);
+        if(!source || source.id===field.id || source.visibleWhen ||
+          definition.fields.indexOf(source)>=definition.fields.indexOf(field))
+          throw new ConflictException('Invalid conditional field dependency');
+        const visible=values[source.id]===field.visibleWhen.equals;
+        if(!visible){
+          if(Object.prototype.hasOwnProperty.call(values,field.id))
+            throw new ConflictException('Hidden conditional field was submitted: '+field.id);
+          continue;
+        }
+      }
       const v=values[field.id];
       if(field.readOnly && v!==undefined) throw new ConflictException('Read-only field provided');
       if(field.required && (v===undefined || v===null || v==='')) throw new ConflictException('Required field missing');
