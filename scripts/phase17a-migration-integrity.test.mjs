@@ -13,7 +13,7 @@ const hashes = { '0000_initial.sql': digest('CREATE TABLE t(id int);') };
 
 test('existing additive SQL migrations including Studio match pinned release digests', () => {
   const result = verifyRepositoryMigrations();
-  assert.equal(result.count, 30);
+  assert.equal(result.count, 31);
   assert.equal(result.checksumsVerified, true);
 });
 test('matching SQL contents accepted', () => assert.deepEqual(checkMigrationHashes(valid, hashes), []));
