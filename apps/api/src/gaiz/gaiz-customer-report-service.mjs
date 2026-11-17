@@ -1,7 +1,7 @@
 // Standalone GAIZ report customer service. SOURCE-ONLY, disabled, unregistered.
 // Does not call EPMO tenant auth and never bypasses paid-entitlement checks.
 import {authorizeGaizArtifact} from './gaiz-commercial-policy.mjs';
-const fail=()=>{throw Error('GAIZ report customer operation unavailable')};
+const fail=()=>{throw Error('GIZE AI report customer operation unavailable')};
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(x);
 const required=(x,keys)=>x&&keys.every(k=>typeof x[k]==='function');
 const formats={pdf:'application/pdf',html:'text/html; charset=utf-8',gaiz:'application/octet-stream'};

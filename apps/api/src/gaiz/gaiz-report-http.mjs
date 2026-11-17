@@ -1,7 +1,7 @@
 // Unmounted HTTP adapter for standalone ORGAIZ customer reports.
 // DO NOT attach this to EPMO AuthController or tenant middleware.
 // HTTPS reverse-proxy trust, trusted auth cookies and rate limits are required.
-const fail=()=>{throw Error('GAIZ report HTTP unavailable')};
+const fail=()=>{throw Error('GIZE AI report service unavailable')};
 const sessionCookie='__Host-orgaiz_session';
 const csrfCookie='__Host-orgaiz_csrf';
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[0-9a-f]{12}$/i.test(x);
