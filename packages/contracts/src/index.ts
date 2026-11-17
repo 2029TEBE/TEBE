@@ -36,3 +36,5 @@ export * from './semantic-locale';
 export * from './governed-studio';
 
 export * from './studio-workflow';
+
+export * from './studio-sla';
