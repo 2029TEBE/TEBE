@@ -75,3 +75,32 @@ test('admin audit screen is read-only and scoped to authorized tenant admins',()
  assert.match(queue,/View history/);
  assert.match(api,/studioRequestAudit:/);
 });
+
+test('time-limited delegations cannot retain vote authority after expiry or revocation',()=>{
+ const section=service.slice(service.indexOf('private async loadForUpdate('),service.indexOf('async decide('));
+ assert.match(section,/d\.expires_at IS NULL OR d\.expires_at > now\(\)/);
+ assert.match(section,/studio_approval_delegation_revocations/);
+ const inbox=service.slice(service.indexOf('async assignedApprovals('),service.indexOf('async overdueApprovals('));
+ assert.match(inbox,/dd\.expires_at IS NULL OR dd\.expires_at>now\(\)/);
+ assert.match(inbox,/studio_approval_delegation_revocations/);
+ const delegate=service.slice(service.indexOf('async delegateApproval('),service.indexOf('async revokeDelegation('));
+ assert.match(delegate,/expiresAt/);
+ assert.match(delegate,/remaining<60_000\|\|remaining>30\*24\*60\*60\*1000/);
+ assert.match(controller,/expiresAt:z\.string\(\)\.datetime/);
+});
+
+test('admin revocation appends a record without rewriting votes or assignments',()=>{
+ const section=service.slice(service.indexOf('async revokeDelegation('),service.indexOf('async requestAudit('));
+ assert.ok(section.length>0);
+ assert.match(section,/actor\.roles\.includes\('publisher'\)/);
+ assert.match(section,/request\.phase!==d\.step/);
+ assert.match(section,/votes\[d\.delegateId\]/);
+ assert.match(section,/INSERT INTO studio_approval_delegation_revocations/);
+ assert.doesNotMatch(section,/UPDATE studio_service_decisions|DELETE FROM studio_approval_delegations/);
+ assert.match(section,/autoDecision:false/);
+ assert.match(controller,/@Post\(':id\/revoke-delegation'\)/);
+ const migration=source('packages/db/migrations/0031_studio_delegation_revocations.sql');
+ assert.match(migration,/FOREIGN KEY \(tenant_id,delegation_id\)/);
+ assert.match(migration,/FORCE ROW LEVEL SECURITY/);
+ assert.match(migration,/REVOKE UPDATE,DELETE/);
+});
