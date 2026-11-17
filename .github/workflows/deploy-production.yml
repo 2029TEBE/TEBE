@@ -88,6 +88,22 @@ jobs:
           VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
           VERIFIED_RUN: ${{ github.event.workflow_run.id }}
         run: node scripts/ci-image-bundle.mjs verify "$RUNNER_TEMP/tested-images" "$VERIFIED_SHA" "$VERIFIED_RUN" "$GITHUB_REPOSITORY"
+      - name: Require headroom for verified image deployment on self-hosted runner
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/tested-images/images.tar.gz"
+          test -f "$archive"
+          archive_bytes=$(stat -c '%s' "$archive")
+          free_kib=$(df -Pk "$RUNNER_TEMP" | awk 'END { print $4 }')
+          [[ "$free_kib" =~ ^[0-9]+$ ]]
+          # Keep at least 2 GiB for runner logs, SSH streaming and job cleanup,
+          # independent of the size of the verified artifact already on disk.
+          minimum_kib=$((2 * 1024 * 1024))
+          echo "Runner disk: available=$((free_kib / 1024)) MiB; required=$((minimum_kib / 1024)) MiB; tested image archive=$((archive_bytes / 1024 / 1024)) MiB."
+          if (( free_kib < minimum_kib )); then
+            echo "::error title=Runner storage exhausted::At least 2 GiB free space is required after artifact download. Safely expand or clean the dedicated runner volume; no production transfer attempted."
+            exit 1
+          fi
       - name: Deploy and record the verified production revision
         env:
           EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
@@ -140,3 +156,14 @@ jobs:
             -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
             "test -d /opt/the-epmo && printf '%s\\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
           echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove this run's verified image archive from runner scratch
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          # Restrict cleanup to this workflow's private artifact directory only;
+          # never prune shared Docker images, deployments, or other runs.
+          artifact_dir="$RUNNER_TEMP/tested-images"
+          if [[ -d "$artifact_dir" && ! -L "$artifact_dir" ]]; then
+            rm -f -- "$artifact_dir/images.tar.gz" "$artifact_dir/manifest.json"
+            rmdir -- "$artifact_dir" 2>/dev/null || true
+          fi
