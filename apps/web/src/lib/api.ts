@@ -77,6 +77,7 @@ export const api = {
   studioCatalog: () => get<{id:string;serviceKey:string;version:number;name:Record<string,string>}[]>('/api/v1/studio/catalog'),
   studioCatalogItem: (id:string) => get<{id:string;serviceKey:string;version:number;name:Record<string,string>;fields:{id:string;type:string;label:Record<string,string>;help?:Record<string,string>;required?:boolean;readOnly?:boolean;options?:{id:string;label:Record<string,string>}[]}[]}>(`/api/v1/studio/catalog/${encodeURIComponent(id)}`),
   studioDefinitions: () => get<{id:string;serviceKey:string;version:number;state:string;creatorId:string}[]>('/api/v1/studio/definitions'),
+  studioReadiness: (id:string) => get<{state:string;publishable:boolean;requiredLocales:string[];missing:string[]}>(`/api/v1/studio/definitions/${encodeURIComponent(id)}/readiness`),
   studioRequests: () => get<{id:string;serviceVersionId:string;formVersion:number;workflowVersion:number;phase:string;submittedAt:string}[]>('/api/v1/studio/requests'),
   reports: () => get<any[]>('/api/v1/reports'),
   notifications: () => get<any>('/api/v1/notifications'),

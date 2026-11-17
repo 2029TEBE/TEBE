@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import {DraftCreator,DefinitionActions} from './manage/StudioGovernanceForms';
 import { Page, Loaded } from '@/components/Page';
 import { api } from '@/lib/api';
 import { getFrontendLocale, tr } from '@/lib/i18n';
@@ -61,6 +62,10 @@ export default async function GovernedServices() {
           </tbody></table></div> : <p className="dim">{copy('You have not submitted any service requests.','لم تقدم أي طلبات خدمات بعد.')}</p>}
       </Loaded>
     </section>
+    <section aria-labelledby="studio-draft-heading" className="panel">
+      <h2 id="studio-draft-heading">{copy('Create a governed service draft','إنشاء مسودة خدمة محكومة')}</h2>
+      <DraftCreator locale={locale}/>
+    </section>
     <section aria-labelledby="studio-definition-heading" className="panel">
       <h2 id="studio-definition-heading">{copy('Governance workspace','مساحة عمل الحوكمة')}</h2>
       <Loaded load={api.studioDefinitions}>
@@ -68,10 +73,10 @@ export default async function GovernedServices() {
           <table><thead><tr>
             <th scope="col">{copy('Service','الخدمة')}</th>
             <th scope="col">{copy('Version','الإصدار')}</th>
-            <th scope="col">{copy('State','الحالة')}</th>
+            <th scope="col">{copy('State','الحالة')}</th><th scope="col">{copy('Review actions','إجراءات المراجعة')}</th>
           </tr></thead><tbody>
             {items.map(item => <tr key={item.id}><td><code>{item.serviceKey}</code></td>
-              <td className="num">{item.version}</td><td>{item.state}</td></tr>)}
+              <td className="num">{item.version}</td><td>{item.state}</td><td><DefinitionActions id={item.id} state={item.state} locale={locale}/><Link href={`/studio/services/manage/${encodeURIComponent(item.id)}`}>{copy('Check translations','فحص الترجمات')}</Link></td></tr>)}
           </tbody></table>
         </div> : <p className="dim">{copy('No definitions visible with your current permissions.','لا توجد تعريفات ظاهرة وفق صلاحياتك الحالية.')}</p>}
       </Loaded>

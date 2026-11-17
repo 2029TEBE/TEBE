@@ -38,3 +38,13 @@ describe('governed Studio publication gates', () => {
     expect(pinStudioRequest({...draft,state:'published'})).toMatchObject({formVersion:1,workflowVersion:1,definitionHash:'h1'});
   });
 });
+
+
+describe('Studio all-locale readiness', () => {
+  it('reports every untranslated locale without silently falling back', () => {
+    const missing=validateStudioDefinition(draft, ['en-US','ar','fr','ur']);
+    expect(missing).toContain('name:fr');
+    expect(missing).toContain('name:ur');
+    expect(missing).not.toContain('name:ar');
+  });
+});

@@ -7,6 +7,7 @@ import {
   LOCALE_CODES, type StudioDefinition, type StudioPrincipal, type StudioRole,
 } from '@pmo/contracts';
 import { can } from '@pmo/contracts';
+import { studioPublicationReadiness } from './studio-readiness';
 import { currentContext } from '../tenancy/tenant-context';
 
 /**
@@ -98,6 +99,25 @@ export class StudioCatalogService {
       if(!updated) throw new ConflictException('State changed concurrently');
       return updated;
     });
+  }
+  async readiness(id:string) {
+    const caller=this.caller();
+    if(!caller.roles.some(role=>['creator','reviewer','publisher'].includes(role)))
+      throw new ForbiddenException('Governance permission required');
+    const rows=await withTenant(caller.tenantId,tx=>tx.execute(sql`
+      SELECT definition,state,content_sha256 AS "contentHash",created_by AS "creatorId",
+             reviewed_sha256 AS "reviewedHash",reviewed_by AS "reviewerId",version
+      FROM studio_service_versions
+      WHERE tenant_id=${caller.tenantId} AND id=${id}
+        AND (created_by=${caller.id} OR ${caller.roles.includes('reviewer')||caller.roles.includes('publisher')})
+      LIMIT 1
+    `));
+    const row=this.rows<any>(rows)[0];
+    if(!row) throw new ForbiddenException('Definition unavailable');
+    const d={...row.definition,tenantId:caller.tenantId,state:row.state,
+      creatorId:row.creatorId,reviewedHash:row.reviewedHash??undefined,
+      reviewerId:row.reviewerId??undefined,version:row.version,contentHash:row.contentHash} as StudioDefinition;
+    return {state:row.state,...studioPublicationReadiness(d)};
   }
   async catalog() {
     const caller=this.caller();
