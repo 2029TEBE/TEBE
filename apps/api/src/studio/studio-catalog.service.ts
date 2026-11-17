@@ -36,6 +36,9 @@ export class StudioCatalogService {
     if(!d || d.tenantId!==caller.tenantId || d.creatorId!==caller.id || d.state!=='draft' || d.version!==1
       || !d.id || !d.contentHash || d.reviewedHash || d.reviewerId) throw new ForbiddenException('Invalid draft owner/version');
     if (!/^[a-z][a-z0-9_-]{2,79}$/.test(body.serviceKey)) throw new ConflictException('Invalid service key');
+    const allowed = (d as StudioDefinition & {accessUserIds?:string[]}).accessUserIds;
+    if (!Array.isArray(allowed) || allowed.length === 0 || new Set(allowed).size !== allowed.length)
+      throw new ConflictException('Explicit unique catalog audience required');
     const { contentHash: suppliedHash, ...canonical } = d;
     const calculatedHash = createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
     if (calculatedHash !== suppliedHash) throw new ConflictException('Definition content checksum mismatch');
