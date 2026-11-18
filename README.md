@@ -18,7 +18,7 @@ modules on one platform.
 | Layer  | Choice |
 |--------|--------|
 | Web    | Next.js 15 (App Router), React 19 |
-| API    | NestJS 10, modular monolith |
+| API    | NestJS 11, modular monolith |
 | Data   | PostgreSQL 16 with row-level security, Redis |
 | Shared | Zod contracts imported by *both* sides; Drizzle ORM |
 

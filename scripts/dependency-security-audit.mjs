@@ -7,11 +7,17 @@ import { setTimeout as delay } from 'node:timers/promises';
 // The registry can lag GitHub withdrawals. Never maintain an ignore list:
 // confirm each blocking GHSA live, and fail closed when confirmation fails.
 export async function assessAudit(report, lookup) {
-  if (!report || !report.advisories || typeof report.advisories !== 'object' ||
+  if (!report || !report.advisories || typeof report.advisories !== 'object' || Array.isArray(report.advisories) ||
       !report.metadata?.vulnerabilities || report.error) throw new Error('Invalid audit report');
+  const levels = ['low', 'moderate', 'high', 'critical'];
+  const reported = report.metadata.vulnerabilities;
+  if (levels.some(level => !Number.isInteger(reported[level]) || reported[level] < 0))
+    throw new Error('Invalid audit severity counts');
   const results = [];
   for (const advisory of Object.values(report.advisories)) {
-    if (!['high', 'critical'].includes(advisory.severity)) continue;
+    if (!advisory || !['info', ...levels].includes(advisory.severity))
+      throw new Error('Invalid advisory severity');
+    if (advisory.severity === 'info') continue;
     const id = advisory.github_advisory_id;
     let state = 'blocking';
     let withdrawnAt = null;
@@ -29,8 +35,7 @@ export async function assessAudit(report, lookup) {
     results.push({ id: id ?? null, package: advisory.module_name, severity: advisory.severity,
       state, withdrawnAt, paths: advisory.findings?.flatMap(f => f.paths ?? []) ?? [] });
   }
-  const reported = report.metadata.vulnerabilities;
-  if ((reported.high > 0 || reported.critical > 0) && results.length === 0)
+  if ((levels.some(level => reported[level] > 0)) && results.length === 0)
     throw new Error('Audit counts contain unclassified blocking findings');
   return { checkedAt: new Date().toISOString(), blocking: results.filter(a => a.state === 'blocking').length,
     withdrawn: results.filter(a => a.state === 'withdrawn').length, registryCounts: reported, results };
@@ -72,7 +77,7 @@ async function main() {
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, 'registry.json'), JSON.stringify(report, null, 2));
   writeFileSync(join(directory, 'assessment.json'), JSON.stringify(result, null, 2));
-  const summary = `Dependency audit: ${result.blocking} active/unverified high or critical advisories; ${result.withdrawn} confirmed withdrawn. Lower-severity findings remain in registry.json.\n`;
+  const summary = `Dependency audit: ${result.blocking} active/unverified advisories (all severities); ${result.withdrawn} confirmed withdrawn. Original registry findings remain in registry.json.\n`;
   console.log(summary);
   console.log(JSON.stringify(result.results, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);

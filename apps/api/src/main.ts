@@ -18,6 +18,8 @@ async function bootstrap() {
   // Behind a load balancer the client IP arrives in X-Forwarded-For; without
   // this, rate limiting would see every request as coming from the proxy.
   app.set('trust proxy', env.TRUST_PROXY_HOPS);
+  // Preserve the Express 4 nested-query contract after the Express 5 upgrade.
+  app.set('query parser', 'extended');
 
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
   app.use(cookieParser());
