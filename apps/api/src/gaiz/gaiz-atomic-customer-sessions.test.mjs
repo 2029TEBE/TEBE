@@ -115,3 +115,16 @@ test('no session bearer can be issued from forged customer authorization flags',
  }
  assert.equal(f.calls.length,0);
 });
+
+test('invalid OIDC issuer and subject cannot issue a session',async()=>{
+ const f=fakePool(),s=service(f);
+ for(const invalid of [
+  {...identity,issuer:'http://issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/?untrusted=1'},
+  {...identity,issuer:'https://user:pass@issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/#fragment'},
+  {...identity,subject:'../../tenant'},
+  {...identity,subject:'a'.repeat(129)}
+ ])await assert.rejects(s.issueFromTrustedCallback({identity:invalid,callbackVerified:true}));
+ assert.equal(f.calls.length,0);
+});

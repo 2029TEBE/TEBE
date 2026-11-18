@@ -5,7 +5,12 @@ import {createHash,randomBytes} from 'node:crypto';
 
 const deny=()=>{throw new Error('ORGAIZ transactional session unavailable')};
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
-const label=x=>typeof x==='string'&&x.length>0&&x.length<=256&&!/[\x00-\x1f\x7f]/.test(x);
+const label=x=>typeof x==='string'&&x.length>0&&x.length<=128&&/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(x);
+const issuer=x=>{
+ if(typeof x!=='string'||x.length>512)return false;
+ try{const u=new URL(x);return u.protocol==='https:'&&!u.username&&!u.password&&
+  !u.search&&!u.hash&&u.href===x}catch{return false}
+};
 const tokenPattern=/^ogs1\.[A-Za-z0-9_-]{43}$/;
 const digest=t=>createHash('sha256').update('orgaiz:session:v1:'+t).digest('hex');
 const timeValue=t=>{if(!Number.isSafeInteger(t)||t<1700000000||t>32503680000)deny();return new Date(t*1000)};
@@ -18,7 +23,7 @@ function validToken(t){
 function validIdentity(i){
  if(!i||i.identityProvider!=='oidc'||i.epmoTenantBound!==false||
     i.gaizEntitled!==false||i.gaizDownloadAuthorized!==false||
-    i.gaizImportAuthorized!==false||!label(i.issuer)||!label(i.subject))deny();
+    i.gaizImportAuthorized!==false||!issuer(i.issuer)||!label(i.subject))deny();
  return i;
 }
 function one(r){return Array.isArray(r?.rows)&&r.rows.length===1?r.rows[0]:null}
@@ -45,7 +50,7 @@ export function createGaizAtomicCustomerSessions({
   }finally{client.release()}
  }
  function rowToPrincipal(row,currentTime){
-  if(!row||!uuid(row.id)||!uuid(row.customerId)||!label(row.issuer)||
+  if(!row||!uuid(row.id)||!uuid(row.customerId)||!issuer(row.issuer)||
      !label(row.subject)||row.customerStatus!=='active'||row.revokedAt!==null||
      !Number.isSafeInteger(row.expiresAt)||row.expiresAt<=currentTime)deny();
   return Object.freeze({
