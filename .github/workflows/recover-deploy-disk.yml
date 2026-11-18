@@ -18,12 +18,16 @@ jobs:
     timeout-minutes: 20
     environment: production
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Read-only runner storage inventory
         shell: bash
         run: |
           set -euo pipefail
           id
           printf 'Runner=%s temp=%s workspace=%s\n' "$RUNNER_NAME" "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS
           df -hT
           df -i
           findmnt -rn -o TARGET,SOURCE,FSTYPE
@@ -70,7 +74,7 @@ jobs:
           if (( free_kib < 4194304 || free_inodes < 4096 )); then
             echo '::warning title=Runner storage low::Less than 4 GiB or 4096 inodes free. Check capacity before the next release.'
           fi
-      - name: Reclaim only old dangling Docker images and unused build cache; report storage
+      - name: Apply bounded storage retention and report capacity
         env:
           DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
@@ -87,8 +91,8 @@ jobs:
           unset DEPLOY_KEY KNOWN_HOSTS
           echo 'Runner available space before recovery:'
           df -h "$RUNNER_TEMP" || true
-          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force --filter until=168h; docker image prune --force --filter until=168h; docker system df; df -h /var/lib/docker /var/lib/containerd'
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'bash -s' < infra/storage-maintenance.sh
           echo 'Runner available space after recovery:'
           df -h "$RUNNER_TEMP" || true
-# Only dangling images older than 7 days and unused build cache are removed.
-# No tagged image, running container, volume, backup, migration or app restart.
+# Current/container-referenced images and explicit rollback tags remain intact.
+# Dangling images: 24h; unused build cache: 7d; obsolete managed release aliases: 7d.
