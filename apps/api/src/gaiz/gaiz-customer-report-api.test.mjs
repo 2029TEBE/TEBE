@@ -217,3 +217,31 @@ test('HTTP download rejects malformed identifiers and unsafe origin host',async(
   req({params:{jobId,artifactId},secure:false}),otherHost
  ])await assert.rejects(h.download(value,res()));
 });
+
+test('all authenticated report endpoints prevent shared caching and inline delivery',async()=>{
+ const h=createGaizReportHttpHandlers({enabled:true,
+  siteOrigin:'https://orgaiz.example.test',service:service(),
+  productResolver:async()=>({product:{},policy:{}})});
+ const results=[];
+ const catalogue=res();await h.catalogue(req(),catalogue);results.push(catalogue);
+ const status=res();await h.status(req({params:{jobId}}),status);results.push(status);
+ const download=res();await h.download(req({params:{jobId,artifactId}}),download);results.push(download);
+ const denied=res();
+ const revoked=service({artifacts:{...source.artifacts,
+  async getMetadata(){return {...artifact,revokedAt:new Date()}}}});
+ const hDenied=createGaizReportHttpHandlers({enabled:true,
+  siteOrigin:'https://orgaiz.example.test',service:revoked,
+  productResolver:async()=>({product:{},policy:{}})});
+ await assert.rejects(hDenied.download(req({params:{jobId,artifactId}}),denied));
+ results.push(denied);
+ for(const response of results){
+  assert.equal(response.headers['Cache-Control'],'private, no-store');
+  assert.equal(response.headers['Pragma'],'no-cache');
+  assert.equal(response.headers['Vary'],'Cookie, Origin');
+  assert.equal(response.headers['X-Content-Type-Options'],'nosniff');
+  assert.equal(response.headers['Referrer-Policy'],'no-referrer');
+ }
+ assert.equal(download.headers['Content-Disposition'],'attachment; filename="gaiz-report.html"');
+ assert.equal(download.headers['Content-Length'],String(download.bytes.length));
+ assert.equal(download.headers['Content-Type'],'text/html; charset=utf-8');
+});
