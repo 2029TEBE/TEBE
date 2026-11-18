@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           root=$(realpath -e -- "${SCRATCH_ROOT:-$RUNNER_TEMP}")
           find "$root" -mindepth 1 -maxdepth 1 -type d -user "$(id -u)" \
-            -name 'epmo-verified-release.????????' -mmin +180 -exec rm -rf -- {} +
+            \\( -name 'epmo-verified-release.????????' -o -name 'epmo-deploy-ssh.????????' -o -name 'epmo-storage-ssh.????????' \) -mmin +180 -exec rm -rf -- {} +
           free_kib=$(df -Pk "$root" | awk 'END { print $4 }')
           free_inodes=$(df -Pi "$root" | awk 'END { print $4 }')
           [[ "$free_kib" =~ ^[0-9]+$ && "$free_inodes" =~ ^[0-9]+$ ]]
