@@ -28,6 +28,8 @@ test('GAIZ database role only inserts pending records and cannot overwrite hashe
  }
  assert.match(assertions,/has_column_privilege\('pmo_app','public\.gaiz_import_requests','status','INSERT'\)/);
  assert.match(assertions,/forged preapproved stage INSERT accepted/);
+ assert.match(assertions,/unset tenant context leaked GAIZ requests/);
+ assert.match(assertions,/cross-tenant GAIZ mutation accepted/);
  assert.match(assertions,/wrong custody\/stage pairing accepted/);
 });
 test('DB harness cannot target nonlocal or pre-existing production database',()=>{
