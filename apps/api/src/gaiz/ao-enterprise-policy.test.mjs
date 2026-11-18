@@ -81,3 +81,12 @@ test('deny unmodeled agent intents and artifact references even for otherwise au
  for(const artifactRefs of [['secret123456789012'],[],['cross-tenant-ref']])
   assert.equal(call({task:{...task,artifactRefs}}).verdict,artifactRefs.length===0?'ALLOW':'DENY');
 });
+
+test('AO v1 timeout and approval flag validation fails closed',()=>{
+ assert.equal(call({tool:{...tool,timeoutMs:100}}).verdict,'ALLOW');
+ assert.equal(call({tool:{...tool,timeoutMs:120000}}).verdict,'ALLOW');
+ for(const timeoutMs of [0,99,120001,NaN,'1000'])
+  assert.equal(call({tool:{...tool,timeoutMs}}).verdict,'DENY');
+ assert.equal(call({tool:{...tool,requiresApproval:'false'}}).verdict,'DENY');
+ assert.equal(call({tool:{...tool,requiresApproval:true}}).verdict,'ASK');
+});
