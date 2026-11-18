@@ -57,6 +57,8 @@ jobs:
           node --test \
             apps/api/src/gaiz/gaiz-queue-storage.test.mjs \
             apps/api/src/gaiz/gaiz-encrypted-file-object-store.test.mjs
+      - name: AO disabled enterprise authorization preflight and tenant denial tests
+        run: node --test apps/api/src/gaiz/ao-enterprise-authorization.test.mjs
       - name: GAIZ isolated enterprise integration security checks
         run: |
           node --test \
