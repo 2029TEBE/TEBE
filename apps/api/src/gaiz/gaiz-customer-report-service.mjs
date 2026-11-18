@@ -29,6 +29,12 @@ export function createGaizCustomerReportService({
  }
  const now=()=>{const t=clock();if(!Number.isSafeInteger(t)||t<1700000000)fail();return t};
  return Object.freeze({
+  // Revalidate the cookie-bound customer session before any trusted catalogue lookup.
+  // Return no identity data to the HTTP client; submit revalidates the session.
+  async requireSession(sessionToken){
+   await authenticated(sessionToken);
+   return true;
+  },
   async catalogue(){
    return Object.freeze({tools:catalogue.publicList()});
   },
