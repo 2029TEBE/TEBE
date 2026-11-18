@@ -94,5 +94,30 @@ jobs:
           ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'bash -s' < infra/storage-maintenance.sh
           echo 'Runner available space after recovery:'
           df -h "$RUNNER_TEMP" || true
+          echo 'Production runtime after maintenance:' | tee -a "$GITHUB_STEP_SUMMARY"
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
+            -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'bash -s' <<'REMOTE' | tee -a "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          cd /opt/the-epmo
+          revision=$(cat .deployed-revision 2>/dev/null || true)
+          if [[ ! "$revision" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'Verified release marker unavailable.'
+            revision=
+          fi
+          for service in api web; do
+            container=$(docker compose -f docker-compose.prod.yml -p pmo-prod --env-file .env.prod ps -q "$service")
+            [[ "$container" =~ ^[a-f0-9]{12,64}$ ]]
+            read -r image health < <(docker inspect --format '{{.Image}} {{.State.Health.Status}}' "$container")
+            [[ "$image" =~ ^sha256:[a-f0-9]{64}$ ]]
+            [[ "$health" == healthy ]]
+            image_revision=$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")
+            if [[ ! "$image_revision" =~ ^[a-f0-9]{40}$ ]]; then image_revision=unavailable; fi
+            printf '%s image=%s revision=%s health=%s\n' "$service" "$image" "$image_revision" "$health"
+            if [[ -z "$revision" || "$image_revision" != "$revision" ]]; then
+              printf '::warning::Running %s revision is not attested by the release marker.\n' "$service"
+            fi
+          done
+          REMOTE
 # Current/container-referenced images and explicit rollback tags remain intact.
 # Dangling images: 24h; unused build cache: 7d; obsolete managed release aliases: 7d.
