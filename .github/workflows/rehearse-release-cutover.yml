@@ -166,14 +166,17 @@ jobs:
             (cd "$1"; bash scripts/apply-sql-migrations.sh
               psql -X -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql)
           }
+          # Production-built API enforces HTTPS origins. Use a non-routable HTTPS
+          # fixture origin for config validation; loopback HTTP probes below
+          # exercise disposable routing only, not production TLS acceptance.
           start_release() {
             local slot=$1 api_port=$2 web_port=$3
             docker run -d --name "$slot-api" --network "$network" -p "127.0.0.1:$api_port:4000" \
               -e DATABASE_URL=postgres://pmo_app:local-ci-app-only@rehearsal-db:5432/pmo_rehearsal \
-              -e REDIS_URL=redis://rehearsal-cache:6379 -e WEB_ORIGIN=http://127.0.0.1:18080 \
+              -e REDIS_URL=redis://rehearsal-cache:6379 -e WEB_ORIGIN=https://rehearsal.invalid \
               -e ALLOW_HEADER_AUTH=false -e STRIPE_ENABLED=false -e MAIL_TRANSPORT=none "tebe-api:$slot"
             docker run -d --name "$slot-web" --network "$network" -p "127.0.0.1:$web_port:3000" \
-              -e "API_URL=http://$slot-api:4000" -e WEB_ORIGIN=http://127.0.0.1:18080 "tebe-web:$slot"
+              -e "API_URL=http://$slot-api:4000" -e WEB_ORIGIN=https://rehearsal.invalid "tebe-web:$slot"
             for _ in {1..60}; do
               if curl -fsS --max-time 2 "http://127.0.0.1:$api_port/health" | jq -e '.ok == true' >/dev/null &&
                  curl -fsS --max-time 2 "http://127.0.0.1:$web_port/login" >/dev/null; then return; fi
