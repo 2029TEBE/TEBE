@@ -1,0 +1,107 @@
+name: Rehearse release cutover and rollback
+on:
+  pull_request:
+    paths: [.github/workflows/rehearse-release-cutover.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rehearse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Switch loopback traffic between disposable releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          proxy="tebe-rollout-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            for pid in "${probe_pid:-}" "${candidate_pid:-}" "${current_pid:-}"; do
+              if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi
+            done
+            docker rm -f "$proxy" >/dev/null 2>&1 || true
+            rm -rf -- "$work"
+          }
+          trap cleanup EXIT
+
+          for slot in current candidate; do
+            mkdir -p "$work/$slot"
+            printf '%s\n' "$slot" > "$work/$slot/web"
+            printf '%s\n' "$slot" > "$work/$slot/api"
+          done
+
+          get() {
+            curl -fsS --max-time 2 "http://127.0.0.1:$1/$2"
+          }
+          await_release() {
+            local port=$1 revision=$2
+            for _ in {1..50}; do
+              if [[ "$(get "$port" web 2>/dev/null)" == "$revision" &&
+                    "$(get "$port" api 2>/dev/null)" == "$revision" ]]; then return; fi
+              sleep 0.1
+            done
+            return 1
+          }
+          config() {
+            cat > "$work/default.conf.next" <<EOF
+          server {
+            listen 127.0.0.1:18080;
+            location / { proxy_pass http://127.0.0.1:$1; }
+          }
+          EOF
+            mv "$work/default.conf.next" "$work/default.conf"
+          }
+
+          python3 -m http.server 18081 --bind 127.0.0.1 --directory "$work/current" > "$work/current.log" 2>&1 &
+          current_pid=$!
+          await_release 18081 current
+          config 18081
+          docker run -d --rm --name "$proxy" --network host \
+            -v "$work:/rehearsal:ro" nginx:1.28-alpine \
+            sh -c 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf && exec nginx -g "daemon off;"'
+          await_release 18080 current
+
+          (
+            for ((i=0; ; i++)); do
+              for route in api web; do
+                response=$(get 18080 "$route") || response=failed
+                printf '%s %s\n' "$route" "$response" >> "$work/probes"
+              done
+              sleep 0.05
+            done
+          ) &
+          probe_pid=$!
+          # An unavailable candidate must not receive traffic.
+          if get 18082 web 2>/dev/null; then
+            echo 'Candidate unexpectedly reachable before startup' >&2
+            exit 1
+          fi
+          await_release 18080 current
+          python3 -m http.server 18082 --bind 127.0.0.1 --directory "$work/candidate" > "$work/candidate.log" 2>&1 &
+          candidate_pid=$!
+          await_release 18082 candidate
+
+          switch_to() {
+            config "$1"
+            docker exec "$proxy" sh -ec 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf; nginx -t; nginx -s reload'
+          }
+          sleep 1
+          switch_to 18082
+          await_release 18080 candidate
+          sleep 1
+          switch_to 18081
+          await_release 18080 current
+          sleep 1
+          kill "$probe_pid"
+          wait "$probe_pid" 2>/dev/null || true
+          unset probe_pid
+          for route in api web; do
+            awk -v route="$route" '
+              $1 == route && $2 == "current" { if (candidate) rollback=1; else initial=1 }
+              $1 == route && $2 == "candidate" { if (initial) candidate=1 }
+              $1 == route && $2 != "current" && $2 != "candidate" { bad=1 }
+              END { exit !(initial && candidate && rollback && !bad) }
+            ' "$work/probes"
+          done
+          printf 'PASS: %s loopback requests during promotion and rollback. Synthetic fixture only.\n' "$(wc -l < "$work/probes")" | tee -a "$GITHUB_STEP_SUMMARY"
