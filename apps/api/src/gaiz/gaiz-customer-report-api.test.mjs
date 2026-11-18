@@ -97,6 +97,25 @@ test('HTTP adapter never trusts prices in browser JSON',async()=>{
  await assert.rejects(h.submit(req({origin:'https://evil.example.test',body:b}),res()));
  await assert.rejects(h.submit(req({body:{...b,priceMinor:1}}),res()));
 });
+test('HTTP submit rejects malformed payload before product resolution',async()=>{
+ let calls=0;
+ const handlers=createGaizReportHttpHandlers({
+  enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:service(),productResolver:async()=>{calls++;return {product:{},policy:{}}}
+ });
+ const valid={orderId,idempotencyKey:'test-idempotency-12345678',
+  request:{toolId:'gaiz.executive-brief.v1',format:'html',inputs:{}}};
+ const invalid=[
+  {...valid,idempotencyKey:'short'},
+  {...valid,idempotencyKey:'a'.repeat(129)},
+  {...valid,request:{...valid.request,toolId:'../../bad'}},
+  {...valid,request:{...valid.request,format:'exe'}},
+  {...valid,request:{...valid.request,inputs:[]}},
+  {...valid,request:null}
+ ];
+ for(const body of invalid)await assert.rejects(handlers.submit(req({body}),res()));
+ assert.equal(calls,0);
+});
 test('HTTP downloads set no-store attachment headers',async()=>{
  const h=createGaizReportHttpHandlers({enabled:true,
   siteOrigin:'https://orgaiz.example.test',service:service(),
