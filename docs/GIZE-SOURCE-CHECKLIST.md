@@ -109,6 +109,7 @@
 | 2026-11-18 | API-02, API-05, OPS-01 reclassified IN_PROGRESS | None verified | Owner-only source package, live RLS/tenant security, E2E interoperability, operational release proof | [#644](https://github.com/2029TEBE/TEBE/pull/644), [#645](https://github.com/2029TEBE/TEBE/pull/645), [#646](https://github.com/2029TEBE/TEBE/pull/646) merged with exact-head CI success | Validate acceptance cases individually and retain production release gates |
 
 
+| 2026-11-18 | OPS-01 deployment CI evidence and review-governance gap | None verified | Missing production evidence, independent review not recorded, AO/OT acceptance | [#664](https://github.com/2029TEBE/TEBE/pull/664) merged at `25cbb79f6d120fbfd12f0da7fbc98ddada88ee05`; exact-head CI success; zero submitted PR reviews seen | Confirm branch review requirements and real deployment acceptance; do not mark OPS-01 VERIFIED |
 | 2026-11-18 | API-04, SEC-01, SEC-02 reclassified IN_PROGRESS | None verified | Live proxy/tenant/OIDC acceptance and #656 full CI | #651/#652/#654/#655 merged with CI; source-only API cache regressions proposed in security test PR | Verify current-head CI, independent review, authenticated two-tenant HTTP, live CDN and MFA/SSO proof |
 
 ## Mandatory expert update after EVERY task — owner instruction 2026-11-18
