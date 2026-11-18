@@ -20,6 +20,13 @@ The responding expert must:
 | Change ID | UTC timestamp | Owner instruction | Related requirement IDs | Status | Evidence/issue URL |
 |---|---|---|---|---|---|
 | CHANGE-20261118-1 | 2026-11-18 | Maintain exact source-backed checklist and update after every completed/reclassified task; allow owner amendments via chat/issue | ALL | ACTIVE | https://github.com/2029TEBE/TEBE/issues/642 |
+| CHANGE-20261118-2 | 2026-11-18 | Non-disruptive GIZE × THEEPMO owner amendment; preserve 150 IDs, reviewable expert ownership and release gates | WF-01–WF-15; API-02; API-05; OPS-01; authentication/security, localization, artifact and release IDs in the 60-ID register | RECORDED; acceptance unverified | https://github.com/2029TEBE/TEBE/issues/642#issuecomment-6988320318 |
+
+## Amendment acceptance detail — CHANGE-20261118-2
+
+Permission-aware executive AI and agents; objective-to-benefit governance, Studio, tenant/recipient evidence and revocation, secure object lifecycle, versioned TO contracts, complete localized application and durable deploy/rollback; preserve GAIZ1/GAIZ2 identifiers and release gates.
+
+This records an owner instruction, **not** software implementation, review approval, deployment or requirement verification. Track evidence per source ID in `docs/GIZE-SOURCE-CHECKLIST.md` and report to the canonical issue. Do not overwrite active branches; any release remains separately gated.
 
 ## Do not confuse instruction with execution
 This Markdown is a persistent protocol. The check is run only when invoked by a GitHub-capable chat/agent or a separately configured and verified automation. A static MD cannot itself autonomously read tests, approve PRs, or deploy.
