@@ -228,7 +228,17 @@ jobs:
             -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
             -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
             "test -d /opt/the-epmo && printf '%s\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
-          echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
+          # Confirm the pinned production host persisted the exact CI-tested
+          # revision. A successful remote write is not sufficient evidence
+          # when release scratch and concurrent promotions are involved.
+          observed_revision=$(ssh "${ssh_opts[@]}" -- "$EPMO_DEPLOY_HOST" \
+            'cat /opt/the-epmo/.deployed-revision')
+          if [[ "$observed_revision" != "$EPMO_CI_VERIFIED_SHA" ]]; then
+            echo "::error title=Production readback mismatch::Production revision marker does not match the CI-tested commit."
+            exit 1
+          fi
+          echo "PASS: pinned production revision readback matched the CI-tested SHA."
+          echo "Deployed revision: $EPMO_CI_VERIFIED_SHA (confirmed by SSH readback)" >> "$GITHUB_STEP_SUMMARY"
       - name: Remove this run's private release scratch
         if: ${{ always() && steps.scratch.outputs.path != '' }}
         env:
