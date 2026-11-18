@@ -18,7 +18,7 @@ export function createGaizReportHttpHandlers({
  enabled=false,siteOrigin,service,productResolver
 }={}){
  if(enabled!==true||!service||
-    ['catalogue','submit','status','download'].some(k=>typeof service[k]!=='function')||
+    ['catalogue','requireSession','submit','status','download'].some(k=>typeof service[k]!=='function')||
     typeof productResolver!=='function')fail();
  const site=origin(siteOrigin);
  function secure(req){
@@ -54,6 +54,8 @@ export function createGaizReportHttpHandlers({
       !toolId(b.request.toolId)||!formats.has(b.request.format)||
       !b.request.inputs||typeof b.request.inputs!=='object'||
       Array.isArray(b.request.inputs))fail();
+   // Reject unauthenticated customers before any trusted product resolver access.
+   await service.requireSession(token(req));
    // No trusted prices or entitlements are ever accepted from JSON.
    const trusted=await productResolver({orderId:b.orderId,toolId:b.request?.toolId});
    if(!trusted||typeof trusted!=='object'||!trusted.product||
