@@ -249,3 +249,7 @@ jobs:
                 -d "$ARTIFACT_DIR" && ! -L "$ARTIFACT_DIR" && -O "$ARTIFACT_DIR" ]]; then
             rm -rf -- "$ARTIFACT_DIR"
           fi
+          {
+            echo 'Deployment scratch filesystem after cleanup:'
+            df -Pk -- "$(dirname -- "$ARTIFACT_DIR")"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
