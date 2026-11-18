@@ -39,13 +39,13 @@ import { RequestLogMiddleware } from './common/request-log.middleware';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Every /api route is tenant-scoped. /health deliberately is not.
-    consumer.apply(RequestLogMiddleware).forRoutes('*');
+    consumer.apply(RequestLogMiddleware).forRoutes('{*splat}');
     // Signed provider callbacks must not require an interactive customer session.
     // Authentication comes exclusively from the raw-body HMAC check.
     consumer.apply(TenantMiddleware)
       .exclude({ path: 'api/v1/onboarding/invitation/accept', method: RequestMethod.POST },
                { path: 'api/v1/billing/reference-webhook', method: RequestMethod.POST },
                { path: 'api/v1/billing/stripe-webhook', method: RequestMethod.POST })
-      .forRoutes('api/*');
+      .forRoutes('api/{*splat}');
   }
 }
