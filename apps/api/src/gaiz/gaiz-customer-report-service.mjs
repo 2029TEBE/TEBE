@@ -6,10 +6,19 @@ const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[8
 const required=(x,keys)=>x&&keys.every(k=>typeof x[k]==='function');
 const formats={pdf:'application/pdf',html:'text/html; charset=utf-8',gaiz:'application/octet-stream'};
 const stable=x=>typeof x==='string'&&x.length>=16&&x.length<=128&&/^[A-Za-z0-9_-]+$/.test(x);
+const identity=x=>typeof x==='string'&&x.length<=128&&/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(x);
+function trustedIssuer(x){
+ if(typeof x!=='string'||x.length>512)return false;
+ try{
+  const u=new URL(x);
+  return u.protocol==='https:'&&!u.username&&!u.password&&
+   !u.search&&!u.hash&&u.href===x;
+ }catch{return false}
+}
 function principal(p){
  if(!p||p.authenticated!==true||p.identityProvider!=='oidc'||
     p.epmoTenantBound!==false||!uuid(p.customerId)||
-    !p.issuer||!p.subject||!p.sessionId)fail();
+    !trustedIssuer(p.issuer)||!identity(p.subject)||!identity(p.sessionId))fail();
  return p;
 }
 export function createGaizCustomerReportService({
