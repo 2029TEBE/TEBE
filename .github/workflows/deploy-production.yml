@@ -169,7 +169,7 @@ jobs:
           EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
-          for tool in git bash ssh rsync curl jq; do
+          for tool in git bash ssh rsync curl jq python3; do
             command -v "$tool" >/dev/null || { echo "::error::Missing runner tool: $tool"; exit 1; }
           done
           test -n "$DEPLOY_KEY" && test -n "$DEPLOY_KNOWN_HOSTS" || {
