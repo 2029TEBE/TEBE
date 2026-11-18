@@ -1,31 +1,52 @@
-name: Publish release image pair
-
+name: Publish verified release image pair
 on:
   workflow_dispatch:
-
+    inputs:
+      ci_run_id:
+        description: Successful main CI run containing the tested image bundle
+        type: string
+        required: true
 permissions:
   contents: read
+  actions: read
   packages: write
-
 concurrency:
   group: publish-release-images
   cancel-in-progress: false
-
 jobs:
   publish:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Publish API and web images for the checked-out revision
+      - name: Bind publication to successful current main CI
         env:
-          GHCR_TOKEN: ${{ github.token }}
-        shell: bash
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_RUN: ${{ inputs.ci_run_id }}
         run: |
           set -euo pipefail
+          [[ "$REQUESTED_RUN" =~ ^[1-9][0-9]*$ ]]
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REQUESTED_RUN")
+          jq -e --arg repo "$GITHUB_REPOSITORY" '.name == "CI" and .path == ".github/workflows/ci.yml" and .conclusion == "success" and .head_branch == "main" and .head_repository.full_name == $repo and (.event == "push" or .event == "workflow_dispatch") and (.head_sha | test("^[a-f0-9]{40}$"))' <<< "$run"
+          sha=$(jq -er .head_sha <<< "$run")
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" == "$sha" ]]
+          echo "VERIFIED_SHA=$sha" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: epmo-tested-images-${{ env.VERIFIED_SHA }}
+          path: ${{ runner.temp }}/tested-images
+          run-id: ${{ inputs.ci_run_id }}
+          github-token: ${{ github.token }}
+      - name: Publish the tested content without rebuilding
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          VERIFIED_RUN: ${{ inputs.ci_run_id }}
+        run: |
+          set -euo pipefail
+          metadata=$(node scripts/ci-image-bundle.mjs verify "$RUNNER_TEMP/tested-images" "$VERIFIED_SHA" "$VERIFIED_RUN" "$GITHUB_REPOSITORY")
           umask 077
           work=$(mktemp -d)
           trap 'rm -rf -- "$work"' EXIT
@@ -33,20 +54,18 @@ jobs:
           mkdir "$DOCKER_CONFIG"
           printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
           unset GHCR_TOKEN
+          docker image load --input "$RUNNER_TEMP/tested-images/images.tar.gz"
           registry="ghcr.io/${GITHUB_REPOSITORY,,}"
           for service in api web; do
+            identity=$(docker image inspect "epmo-$service:ci" | node scripts/ci-image-bundle.mjs identity)
+            expected=$(jq -er --arg key "${service}RuntimeDigest" '.[$key]' <<< "$metadata")
+            [[ "$(jq -er .runtimeDigest <<< "$identity")" == "$expected" ]]
+            [[ "$(jq -er .revision <<< "$identity")" == "$VERIFIED_SHA" ]]
+            id=$(jq -er .id <<< "$identity")
             image="$registry-$service"
-            docker buildx build --platform linux/amd64 --push \
-              --file "apps/$service/Dockerfile" --tag "$image:$GITHUB_SHA" \
-              --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-              --metadata-file "$work/$service.json" .
-            digest=$(jq -er '."containerimage.digest" | select(test("^sha256:[a-f0-9]{64}$"))' "$work/$service.json")
-            printf '%s=%s@%s\n' "EPMO_RELEASE_${service^^}_IMAGE" "$image" "$digest" >> "$work/images.env"
+            docker image tag "$id" "$image:$VERIFIED_SHA"
+            docker push "$image:$VERIFIED_SHA"
+            digest=$(docker image inspect --format '{{json .RepoDigests}}' "$image:$VERIFIED_SHA" | jq -er --arg prefix "$image@sha256:" 'map(select(startswith($prefix))) | unique | if length == 1 then .[0] else error("ambiguous digest") end')
+            printf '%s=%s\n' "EPMO_RELEASE_${service^^}_IMAGE" "$digest" >> "$GITHUB_STEP_SUMMARY"
           done
-          {
-            printf 'Revision: `%s`\n\n' "$GITHUB_SHA"
-            printf 'Use this pair for staging first. Record the smoke-test result before promotion.\n\n'
-            printf '```shell\n'
-            cat "$work/images.env"
-            printf '```\n'
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf 'Source: %s; successful CI run: %s\n' "$VERIFIED_SHA" "$VERIFIED_RUN" >> "$GITHUB_STEP_SUMMARY"

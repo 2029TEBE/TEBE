@@ -7,20 +7,47 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: epmo-production-deployment
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy latest verified main to VPS
+  preflight:
+    name: Skip superseded releases before production
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.event == 'push' &&
+          (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
           github.event.workflow_run.head_branch == 'main' &&
           github.event.workflow_run.head_repository.full_name == github.repository &&
           vars.EPMO_DEPLOY_ENABLED == 'true' }}
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.head.outputs.current }}
+    steps:
+      - name: Compare tested revision with current main
+        id: head
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -er '.commit.sha')
+          if [[ "$current" == "$EXPECTED_SHA" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skipped superseded revision $EXPECTED_SHA; main is $current." >> "$GITHUB_STEP_SUMMARY"
+          fi
+  deploy:
+    name: Deploy latest verified main to VPS
+    needs: preflight
+    if: ${{ needs.preflight.outputs.current == 'true' }}
     runs-on: [self-hosted, linux, x64, servitro-tebe]
     timeout-minutes: 90
     environment: production
@@ -49,12 +76,96 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
+      - name: Reclaim regenerable runner package caches before artifact download
+        run: |
+          set -euo pipefail
+          # Deploy runs on the dedicated Servitro runner. Only prune this
+          # account's regenerable package caches; never touch Docker images,
+          # application files, Git checkouts, logs, volumes or backups.
+          echo 'Runner disk before bounded cache maintenance:'
+          df -h "$RUNNER_TEMP"
+          if command -v npm >/dev/null 2>&1; then
+            npm cache clean --force >/dev/null 2>&1 || echo "::warning::npm cache prune was unavailable"
+          fi
+          if command -v pnpm >/dev/null 2>&1; then
+            pnpm store prune >/dev/null 2>&1 || echo "::warning::pnpm store prune was unavailable"
+          fi
+          echo 'Runner disk after bounded cache maintenance:'
+          df -h "$RUNNER_TEMP"
+      - name: Reclaim abandoned release scratch and check download capacity
+        id: scratch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SCRATCH_ROOT: ${{ vars.EPMO_DEPLOY_SCRATCH_ROOT }}
+        run: |
+          set -euo pipefail
+          root=$(realpath -e -- "${SCRATCH_ROOT:-$RUNNER_TEMP}")
+          [[ -d "$root" && -w "$root" ]]
+          # This workflow serializes production deployments. Reap only its own
+          # private directories left behind by interrupted jobs.
+          find "$root" -mindepth 1 -maxdepth 1 -type d -user "$(id -u)" \
+            -name 'epmo-verified-release.????????' -mmin +180 \
+            -exec rm -rf -- {} +
+          artifact_bytes=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --get --data-urlencode "name=epmo-tested-images-$SOURCE_SHA" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/artifacts" |
+            jq -er '[.artifacts[] | select(.expired == false) | .size_in_bytes]
+              | select(length == 1) | .[0] | select(type == "number" and . > 0 and . <= 9663676416)')
+          free_kib=$(df -Pk "$root" | awk 'END { print $4 }')
+          free_inodes=$(df -Pi "$root" | awk 'END { print $4 }')
+          [[ "$free_kib" =~ ^[0-9]+$ && "$free_inodes" =~ ^[0-9]+$ ]]
+          # Allow space for both the compressed download and extracted bundle,
+          # plus the 2 GiB reserve checked again after extraction.
+          required_kib=$((2 * 1024 * 1024 + 2 * ((artifact_bytes + 1023) / 1024)))
+          printf 'Runner scratch: %s KiB free, %s KiB required, %s inodes free.\n' \
+            "$free_kib" "$required_kib" "$free_inodes" | tee -a "$GITHUB_STEP_SUMMARY"
+          if (( free_kib < required_kib || free_inodes < 1024 )); then
+            echo "::error title=Runner storage exhausted::Insufficient bytes or inodes before downloading the release artifact."
+            exit 1
+          fi
+          artifact_dir=$(mktemp -d "$root/epmo-verified-release.XXXXXXXX")
+          printf 'path=%s\n' "$artifact_dir" >> "$GITHUB_OUTPUT"
+      - name: Download images from the exact successful CI run
+        uses: actions/download-artifact@v4
+        with:
+          name: epmo-tested-images-${{ github.event.workflow_run.head_sha }}
+          path: ${{ steps.scratch.outputs.path }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Validate source, run, image identities and archive bytes
+        env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERIFIED_RUN: ${{ github.event.workflow_run.id }}
+        run: node scripts/ci-image-bundle.mjs verify "$ARTIFACT_DIR" "$VERIFIED_SHA" "$VERIFIED_RUN" "$GITHUB_REPOSITORY"
+      - name: Require headroom for verified image deployment on self-hosted runner
+        env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
+        run: |
+          set -euo pipefail
+          archive="$ARTIFACT_DIR/images.tar.gz"
+          test -f "$archive"
+          archive_bytes=$(stat -c '%s' "$archive")
+          free_kib=$(df -Pk "$ARTIFACT_DIR" | awk 'END { print $4 }')
+          [[ "$free_kib" =~ ^[0-9]+$ ]]
+          # Keep at least 2 GiB for runner logs, SSH streaming and job cleanup,
+          # independent of the size of the verified artifact already on disk.
+          minimum_kib=$((2 * 1024 * 1024))
+          echo "Runner disk: available=$((free_kib / 1024)) MiB; required=$((minimum_kib / 1024)) MiB; tested image archive=$((archive_bytes / 1024 / 1024)) MiB."
+          if (( free_kib < minimum_kib )); then
+            echo "::error title=Runner storage exhausted::At least 2 GiB free space is required after artifact download. Safely expand or clean the dedicated runner volume; no production transfer attempted."
+            exit 1
+          fi
       - name: Deploy and record the verified production revision
         env:
           EPMO_DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
           EPMO_CI_VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+          EPMO_TESTED_IMAGE_DIR: ${{ steps.scratch.outputs.path }}
           EPMO_CI_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
@@ -75,9 +186,38 @@ jobs:
           unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
           SHA_PATTERN='^[a-f0-9]{40}$'
           [[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]
+          [[ "$EPMO_DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]] || {
+            echo "::error title=Deploy preflight::Missing or invalid production SSH destination."
+            exit 1
+          }
+          # Read-only SSH and server readiness checks run before rsync or migrations.
+          ssh_opts=(-i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes
+            -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes
+            -o GlobalKnownHostsFile=/dev/null
+            -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS")
+          if ! ssh "${ssh_opts[@]}" -- "$EPMO_DEPLOY_HOST" 'true'; then
+            echo "::error title=Deploy preflight::Pinned SSH authentication or connectivity failed; check host, key, firewall and host-key rotation."
+            exit 1
+          fi
+          if ! ssh "${ssh_opts[@]}" -- "$EPMO_DEPLOY_HOST" \
+            'test -d /opt/the-epmo && test "$(realpath -e /opt/the-epmo)" = /opt/the-epmo && test -r /opt/the-epmo/.env.prod && command -v docker >/dev/null && command -v node >/dev/null'; then
+            echo "::error title=Deploy preflight::Production directory, environment, Docker or Node is not ready. No files copied."
+            exit 1
+          fi
+          echo "PASS: pinned SSH transport and read-only production prerequisites."
           bash infra/deploy.sh prod
           ssh -i "$EPMO_DEPLOY_SSH_KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
             -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null \
             -o "UserKnownHostsFile=$EPMO_DEPLOY_SSH_KNOWN_HOSTS" -- "$EPMO_DEPLOY_HOST" \
             "test -d /opt/the-epmo && printf '%s\\n' '$EPMO_CI_VERIFIED_SHA' > /opt/the-epmo/.deployed-revision"
           echo "Deployed revision: $EPMO_CI_VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove this run's private release scratch
+        if: ${{ always() && steps.scratch.outputs.path != '' }}
+        env:
+          ARTIFACT_DIR: ${{ steps.scratch.outputs.path }}
+        run: |
+          set -euo pipefail
+          if [[ "${ARTIFACT_DIR##*/}" == epmo-verified-release.???????? &&
+                -d "$ARTIFACT_DIR" && ! -L "$ARTIFACT_DIR" && -O "$ARTIFACT_DIR" ]]; then
+            rm -rf -- "$ARTIFACT_DIR"
+          fi

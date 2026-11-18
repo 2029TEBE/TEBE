@@ -21,6 +21,18 @@
     "0016_workspace_profiles_invitations.sql": "66d3e8b39759d6a6ca0982c685f268c1b394f9ff7a019ef05628203a2aa9763c",
     "0017_tenant_membership_status.sql": "cbe388ef3b8d4abb33e99caac44eb3220c1bee5cec24c45434e1ebc2844145bd",
     "0018_payment_exceptions.sql": "39eaa3a8ca600dc82fdad9dd47f9bb73f7bcee800dd5b2626ead91744d709d1c",
-    "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74"
+    "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74",
+    "0020_gaiz_import_staging.sql": "d14f2db627a8b5f6c32924d2202e217393b5183980f3bd03132db4ffa178f5ef",
+    "0021_gaiz_custody_attempts.sql": "bc7c835c1e1cc5d2f927f1b92534eda1ada2b24129dedb38d86678ae951378a0",
+    "0022_gaiz_import_authorizations.sql": "476d5599b375610a2b8d9aec41e705e768c0284b1715a3f968defa914d349a68",
+    "0023_gaiz_entity_revisions.sql": "33b02186079fcb316ee4b4d8ffd30fef720e10f74d100d70f3aa107b0ae145ea",
+    "0024_gaiz_mapping_profiles.sql": "6e0c9f876c855e856c204d9aaf554d0702b04675dda1316a00f58152b4efa89a",
+    "0025_gaiz_mapping_profile_binding.sql": "0fd5ebb6cd6ceaf5fdd9bdd2a9ac51f14afed8158cef7a1aa11be24d34f1a42a",
+    "0026_gaiz_trust_directory.sql": "fd19f19760932e97a2c51d8e1cf1666a3d6183962f880444b8a93d8e1fb81af3",
+    "0027_gaiz_execution_ledger.sql": "68bcb603ff3a5677b4355d46ec5156cca6ff9e68d397df707ace4938f23dc06d",
+    "0028_studio_tenant_records.sql": "5dd1051553c1dbf71cb231311eca3592cbf3b5c84adde6a0976abef0ba9aeea6",
+    "0029_studio_escalation_reviews.sql": "504d3287e70ac23095a274ab7e6ee47ce10648e13163523cf5755f4ff4afed1c",
+    "0030_studio_approval_delegations.sql": "b7a4a6f875ae37537bdaada295a2a373dec80189a7c13896a900788ee46c0dbd",
+    "0031_studio_delegation_revocations.sql": "6dc1c6af82e3ab3370dceaff1c8e27c8177387fb56b54bd80a0f86373934c8cb"
   }
 }

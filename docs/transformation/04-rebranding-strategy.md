@@ -10,3 +10,7 @@ Canonical English display name: **The EPMO**. Canonical Arabic display name: **Ø
 6. Release with regression coverage and rollback via source revision and deployment snapshot.
 
 The supplied archive is **source-only**. No live environment, production data or third-party configuration has been modified.
+
+## Legacy naming compatibility: GAIZ = GIZE
+
+GAIZ and GAIZ2 are former naming variants for the **GIZE** intelligence capability, commercially branded **GIZE AI**. Preserve `GAIZ1`, `GAIZ2`, `.gaiz`, existing protocol magic, endpoints and persisted identifiers as explicitly documented compatibility identifiers, not separate products. Customer-facing labels must say GIZE AI. Renaming any cryptographic bytes or APIs requires a versioned backward-compatible migration, tests and release authorization.

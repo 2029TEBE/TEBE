@@ -74,6 +74,9 @@ export class NotifyService implements OnModuleInit {
         if (on.has('gate.blocked'))  n += await this.gateBlocked(tx, t);
         if (on.has('gate.blocked'))  n += await this.approvalsPending(tx, t);
         if (on.has('task.overdue'))  n += await this.tasksOverdue(tx, t);
+        if (process.env.STUDIO_CATALOG_ENABLED === 'true' &&
+            process.env.STUDIO_ESCALATION_NOTIFICATIONS_ENABLED === 'true' &&
+            on.has('studio.approval.overdue')) n += await this.studioOverdue(tx, t);
         // Scheduled reports are their own thing: they are not a condition
         // going wrong, they are a date arriving.
         n += await this.scheduledReports(tx, t);
@@ -81,6 +84,56 @@ export class NotifyService implements OnModuleInit {
       });
     }
     return { tenants: tenants.length, queued };
+  }
+
+  /** Opt-in tenant-scoped overdue Studio alert; no workflow mutation. */
+  private async studioOverdue(tx: any, t: { id: string; name: string }): Promise<number> {
+    const overdue=rows(await tx.execute(sql`
+      SELECT r.id,r.phase,r.updated_at AS "phaseStartedAt"
+      FROM studio_service_requests r
+      JOIN studio_service_versions v
+        ON v.id=r.service_version_id AND v.tenant_id=r.tenant_id
+      CROSS JOIN LATERAL jsonb_array_elements(v.definition->'steps') step
+      WHERE r.tenant_id=${t.id} AND r.phase IN ('manager','finance')
+        AND step->>'id'=r.phase AND step->>'kind'='approval'
+        AND CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
+          THEN (step->>'timeoutHours')::int BETWEEN 1 AND 720 ELSE false END
+        AND r.updated_at +
+          CASE WHEN (step->>'timeoutHours') ~ '^[0-9]{1,3}$'
+          THEN (step->>'timeoutHours')::int ELSE 720 END * INTERVAL '1 hour' <= now()
+        AND NOT EXISTS (
+          SELECT 1 FROM studio_service_decisions d
+          WHERE d.tenant_id=r.tenant_id AND d.request_id=r.id
+            AND d.step_key=r.phase AND d.decision='rejected'
+        )
+      ORDER BY r.updated_at ASC,r.id ASC LIMIT 100
+    `));
+    if(!overdue.length) return 0;
+    const recipients=rows(await tx.execute(sql`
+      SELECT DISTINCT u.id,u.email,u.display_name
+      FROM memberships m JOIN users u ON u.id=m.user_id
+      WHERE m.tenant_id=${t.id} AND m.is_active=true AND u.is_active=true
+        AND m.role IN ('owner','admin') AND u.email IS NOT NULL
+      LIMIT 100
+    `));
+    let queued=0;
+    for(const request of overdue){
+      for(const who of recipients){
+        const lang:'en'|'ar'='en';
+        const built=build('studio.approval.overdue',{
+          lang,webOrigin:this.webOrigin,recipientName:who.display_name,
+          tenantName:t.name,data:{step:request.phase},
+        });
+        const started=new Date(request.phaseStartedAt).toISOString();
+        if(await this.enqueue(tx,{
+          tenantId:t.id,userId:who.id,toEmail:who.email,
+          kind:'studio.approval.overdue',subject:built.subject,body:built.body,lang,
+          entity:'studio_request',entityId:request.id,
+          dedupeKey:`studio.approval.overdue:${request.id}:${request.phase}:${started}:${who.id}`,
+        })) queued++;
+      }
+    }
+    return queued;
   }
 
   /** The accountable owner of a gate that cannot pass. */

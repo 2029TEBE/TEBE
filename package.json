@@ -34,7 +34,7 @@
     "verify:runtime-preflight": "node scripts/runtime-preflight.mjs",
     "verify:migrations": "node scripts/verify-migration-chain.mjs",
     "verify:rc1": "node scripts/rc1-release-gate.mjs",
-    "test:offline": "node --experimental-strip-types --test apps/api/src/platform/*.test.mjs apps/api/src/onboarding/*.test.mjs apps/api/src/notify/*.test.mjs apps/api/src/creates/*.test.mjs apps/web/src/lib/*.test.mjs packages/db/src/*.test.mjs scripts/*.test.mjs tests/*.test.mjs scripts/verify-staging-config.test.mjs",
+    "test:offline": "node --experimental-strip-types --test --test-concurrency=4 apps/api/src/platform/*.test.mjs apps/api/src/onboarding/*.test.mjs apps/api/src/notify/*.test.mjs apps/api/src/creates/*.test.mjs apps/web/src/lib/*.test.mjs packages/db/src/*.test.mjs scripts/*.test.mjs tests/*.test.mjs scripts/verify-staging-config.test.mjs",
     "verify:stripe:staging": "node scripts/stripe-staging-preflight.mjs",
     "test:stripe:evidence": "node --test scripts/stripe-staging-evidence.test.mjs",
     "verify:stripe:evidence": "node scripts/stripe-staging-evidence.mjs",
@@ -42,7 +42,8 @@
     "verify:stripe:db-rls": "node scripts/stripe-db-rls-audit.mjs",
     "verify:build-artifacts": "node scripts/verify-build-artifacts.mjs --scope all",
     "verify:web:acceptance": "bash scripts/phase15d-run-web-smoke.sh",
-    "verify:staging-config": "node scripts/verify-staging-config.mjs --env-file .env.staging"
+    "verify:staging-config": "node scripts/verify-staging-config.mjs --env-file .env.staging",
+    "audit:security": "node scripts/dependency-security-audit.mjs"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",

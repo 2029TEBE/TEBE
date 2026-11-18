@@ -4,14 +4,15 @@ on:
   pull_request:
   workflow_dispatch:
 concurrency:
-  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || format('tebe-ci-run-{0}', github.run_id) }}
+  # PRs replace stale checks; main release verification must finish once started.
+  group: ${{ github.event_name == 'pull_request' && format('tebe-ci-pr-{0}', github.event.pull_request.number) || format('tebe-ci-main-{0}', github.sha) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
   source-guards:
     name: Dependency-free source checks
-    runs-on: ${{ fromJSON(github.event_name == 'push' && github.ref == 'refs/heads/main' && '["self-hosted","linux","x64","servitro-tebe"]' || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -20,11 +21,45 @@ jobs:
       - run: node scripts/verify-ci-safety.mjs
       - name: Parse production deployment transport script
         run: bash -n infra/deploy.sh
+      - name: Verify fail-closed image identity diagnostic gate
+        run: node --test tests/ci-image-runtime-denial-diagnostics.test.mjs
       - run: node scripts/verify-release-static.mjs
       - run: node scripts/verify-migration-chain.mjs
       - run: node scripts/rc1-release-gate.mjs
       - run: node scripts/i18n-coverage-report.mjs
       - run: npm run test:offline
+      - name: Ensure main CI cannot be cancelled by repeated triggers
+        run: node --test tests/ci-main-concurrency.test.mjs
+      - name: GAIZ customer activation boundary source gate
+        run: node --test tests/gaiz-customer-activation-boundary.test.mjs
+      - name: GAIZ unmounted OIDC and atomic session source policy checks
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-oidc-provider-policy.test.mjs \
+            apps/api/src/gaiz/gaiz-oidc-code-exchange.test.mjs \
+            apps/api/src/gaiz/gaiz-atomic-customer-sessions.test.mjs
+      - name: GAIZ unmounted customer report authorization and HTTP denial tests
+        run: node --test apps/api/src/gaiz/gaiz-customer-report-api.test.mjs
+      - name: GAIZ isolated report-job transactional acceptance
+        run: node --test apps/api/src/gaiz/gaiz-transactional-report-jobs.test.mjs
+      - name: GAIZ isolated report renderer source tests (synthetic; no payments)
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-commercial-policy.test.mjs \
+            apps/api/src/gaiz/gaiz-report-worker.test.mjs \
+            apps/api/src/gaiz/gaiz-executive-brief-pdf.test.mjs
+      - name: GAIZ inactive PostgreSQL queue and encrypted storage tests
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz-queue-storage.test.mjs \
+            apps/api/src/gaiz/gaiz-encrypted-file-object-store.test.mjs
+      - name: GAIZ isolated enterprise integration security checks
+        run: |
+          node --test \
+            apps/api/src/gaiz/gaiz2-verifier-enterprise.test.mjs \
+            apps/api/src/gaiz/gaiz-workflow.test.mjs \
+            apps/api/src/gaiz/gaiz-draft-mapping.test.mjs \
+            apps/api/src/gaiz/gaiz-enterprise-isolation.integration.test.mjs
   # The PostgreSQL 16 client is available from Ubuntu 24.04 APT repositories.
   verify:
     runs-on: ubuntu-24.04
@@ -175,10 +210,27 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:4000
       - name: Verify deployable API and Next.js standalone artifacts
         run: node scripts/verify-build-artifacts.mjs --scope all
+      - uses: docker/setup-buildx-action@v3
       - name: Build production API Docker image
-        run: docker build --file apps/api/Dockerfile --tag epmo-api:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          load: true
+          tags: epmo-api:ci
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=tebe-api
+          cache-to: type=gha,mode=max,scope=tebe-api
       - name: Build production web Docker image
-        run: docker build --file apps/web/Dockerfile --tag epmo-web:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          load: true
+          tags: epmo-web:ci
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=tebe-web
+          cache-to: type=gha,mode=max,scope=tebe-web
       - name: Verify API and web image runtime identity
         run: bash scripts/verify-ci-docker-images.sh
       - name: Record production artifact evidence
@@ -201,8 +253,20 @@ jobs:
           path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Export the exact verified main images
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: node scripts/ci-image-bundle.mjs export "$RUNNER_TEMP/tested-images"
+      - name: Preserve exact tested main images for deployment
+        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@v4
+        with:
+          name: epmo-tested-images-${{ github.sha }}
+          path: ${{ runner.temp }}/tested-images/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 2
   audit:
-    runs-on: ${{ fromJSON(github.event_name == 'push' && github.ref == 'refs/heads/main' && '["self-hosted","linux","x64","servitro-tebe"]' || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -211,4 +275,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level high
+      - name: Dependency security gate with live withdrawal verification
+        run: pnpm audit:security
+      - name: Preserve dependency audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tebe-dependency-audit/*.json
+          if-no-files-found: warn
+          retention-days: 14

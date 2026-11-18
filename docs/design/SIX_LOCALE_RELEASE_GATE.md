@@ -6,7 +6,7 @@ Reviewed: 2026-11-08. Draft frontend PR #442 only; release NOT approved.
 - Same selector available on login. Legacy pmo_lang=en|ar preserved, separate pmo_locale frontend cookie; first-visit browser language hint and saved selection precedence.
 - One frontend-only English-source catalog apps/web/src/lib/ui-labels.mjs with 54 entries for DE/ZH/FR/JA; includes all shared navigation labels and selected executive-decision copy.
 - Shared web tr() adapter and inline executive story migration preserve existing Arabic @pmo/contracts dictionary and backend EN/AR document-generation contract.
-- RTL only for ar-SA, root document and authenticated shell use the selected locale. API status values, tenant, auth, data, billing, Paddle, finance and exports unchanged.
+- RTL only for ar-SA, root document and authenticated shell use the selected locale. API status values, tenant, auth, data, billing, finance and exports unchanged.
 - Source tests cover six-locale normalization, catalog fallback, full navigation labels, executive labels, cookie compatibility and semantic layout.
 
 ## Incomplete and unverified
@@ -19,7 +19,7 @@ Reviewed: 2026-11-08. Draft frontend PR #442 only; release NOT approved.
 ## Release blockers
 - TEBE full integration tests and pnpm high-severity dependency audit were failing in inspected pre-release CI, unrelated remediation ownership must be assessed; never waive.
 - CI source/Types/tenant-isolation pass is not proof of full end-to-end functionality.
-- Keep current backend REST/API/schema/enum/export contract and Paddle work unchanged.
+- Keep current backend REST/API/schema/enum/export contract and payment-provider rollout unchanged.
 - Do not merge, deploy or call this complete until translation coverage, independent browser acceptance and all mandatory security/integration gates pass.
 
 ## Evidence

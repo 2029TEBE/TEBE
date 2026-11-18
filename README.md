@@ -1,5 +1,8 @@
 # The EPMO — المكتب التنفيذي لإدارة المشاريع
 
+
+> **GIZE AI branding standard (17 Nov 2026):** Visible names use **ORGANIZATION + STRATEGIZE** (Integrated Organization and Strategy Management), **Powered by GIZE AI** (AI-Powered Intelligence and Decision Support). Preserve authorized THEEPMO branding. The existing `.gaiz` technical file extension and compatibility identifiers remain unchanged pending explicit versioned migration approval. See [GIZE AI brand standard](docs/GIZE_AI_BRAND_STANDARD.md). This is a naming decision, not evidence of deployed functionality.
+
 A multi-tenant delivery-governance platform: portfolios, programmes and projects
 governed by stage gates that the software actually enforces, sold as licensable
 modules on one platform.

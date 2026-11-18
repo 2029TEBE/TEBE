@@ -12,6 +12,8 @@ import { CreatesModule } from './creates/creates.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { ExcelModule } from './excel/excel.module';
 import { ExportsModule } from './exports/exports.module';
+import { GaizModule } from './gaiz/gaiz.module';
+import { StudioCatalogModule } from './studio/studio-catalog.module';
 import { NotifyModule } from './notify/notify.module';
 import { AskXModule } from './askx/askx.module';
 import { MicrosoftModule } from './microsoft/microsoft.module';
@@ -25,7 +27,7 @@ import { RequestLogMiddleware } from './common/request-log.middleware';
     // @Throttle overrides on the login route target.
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 300 }] }),
     AuthModule, PlatformModule, CreatesModule, OnboardingModule, PortfolioModule, GovernanceModule, InsightsModule,
-    ExcelModule, ExportsModule, NotifyModule, AskXModule, MicrosoftModule,
+    ExcelModule, ExportsModule, GaizModule, StudioCatalogModule, NotifyModule, AskXModule, MicrosoftModule,
   ],
   controllers: [HealthController],
   providers: [

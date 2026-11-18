@@ -74,6 +74,21 @@ export const api = {
   resources: () => get<any>('/api/v1/resources'),
   schedule: () => get<any[]>('/api/v1/schedule'),
   studio: () => get<any>('/api/v1/studio'),
+  studioCatalog: () => get<{id:string;serviceKey:string;version:number;name:Record<string,string>}[]>('/api/v1/studio/catalog'),
+  studioCatalogItem: (id:string) => get<{id:string;serviceKey:string;version:number;name:Record<string,string>;fields:{id:string;type:string;label:Record<string,string>;help?:Record<string,string>;required?:boolean;readOnly?:boolean;options?:{id:string;label:Record<string,string>}[];visibleWhen?:{fieldId:string;equals:string|number|boolean}}[]}>(`/api/v1/studio/catalog/${encodeURIComponent(id)}`),
+  studioDefinitions: () => get<{id:string;serviceKey:string;version:number;state:string;creatorId:string}[]>('/api/v1/studio/definitions'),
+  studioReadiness: (id:string) => get<{state:string;publishable:boolean;requiredLocales:string[];missing:string[]}>(`/api/v1/studio/definitions/${encodeURIComponent(id)}/readiness`),
+  studioDefinitionDetail: (id:string) => get<{id:string;serviceKey:string;version:number;state:string;contentHash:string;creatorId:string;definition:{name:Record<string,string>;fields:{id:string;type:'text'|'number'|'date'|'boolean'|'select'|'file';label:Record<string,string>;required?:boolean;readOnly?:boolean;help?:Record<string,string>;options?:{id:string;label:Record<string,string>}[];visibleWhen?:{fieldId:string;equals:string|number|boolean}}[];steps:{id:string;label:Record<string,string>}[]}}>(`/api/v1/studio/definitions/${encodeURIComponent(id)}`),
+  studioRequests: () => get<{id:string;serviceVersionId:string;formVersion:number;workflowVersion:number;phase:string;submittedAt:string}[]>('/api/v1/studio/requests'),
+  studioAssignedApprovals: () => get<{id:string;phase:'manager'|'finance';submittedAt:string;phaseStartedAt:string;formVersion:number;serviceKey:string;sla:{status:'unconfigured'|'pending'|'overdue';deadlineAt:string|null;actionRequired:string|null}}[]>('/api/v1/studio/requests/assigned'),
+  studioRequestAudit: (id:string) => get<{
+    requestId:string;phase:string;readOnly:true;autoDecision:false;autoDelegation:false;
+    fulfillmentVerified:false;
+    delegations:{id:string;step:string;originalApproverId:string;delegateId:string;delegatedBy:string;reason:string;createdAt:string;expiresAt:string|null;revoked:boolean}[];
+    revocations:{id:string;delegationId:string;revokedBy:string;reason:string;createdAt:string}[];
+    reviews:{id:string;step:string;reviewedBy:string;action:string;note:string;phaseStartedAt:string;createdAt:string}[];
+  }>(`/api/v1/studio/requests/${encodeURIComponent(id)}/audit`),
+  studioOverdueApprovals: () => get<{id:string;phase:'manager'|'finance';serviceKey:string;formVersion:number;submittedAt:string;phaseStartedAt:string;sla:{status:'overdue';deadlineAt:string;actionRequired:string|null};actionStatus:string;autoDecision:false;autoDelegation:false;approverIds:string[]}[]>('/api/v1/studio/requests/overdue'),
   reports: () => get<any[]>('/api/v1/reports'),
   notifications: () => get<any>('/api/v1/notifications'),
   trends: () => get<any>('/api/v1/trends'),

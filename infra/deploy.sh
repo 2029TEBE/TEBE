@@ -22,7 +22,23 @@ esac
 # Supply the same two digests that passed staging smoke tests.
 API_IMAGE=${EPMO_RELEASE_API_IMAGE:-}
 WEB_IMAGE=${EPMO_RELEASE_WEB_IMAGE:-}
-if [[ -n "$API_IMAGE" || -n "$WEB_IMAGE" ]]; then
+TESTED_BUNDLE=${EPMO_TESTED_IMAGE_DIR:-}
+TESTED_JSON=
+if [[ -n "$TESTED_BUNDLE" ]]; then
+  [[ "$MODE" == prod && -z "$API_IMAGE" && -z "$WEB_IMAGE" &&
+     "${GITHUB_ACTIONS:-}" == true && "${GITHUB_EVENT_NAME:-}" == workflow_run &&
+     "${EPMO_CI_VERIFIED_SHA:-}" =~ ^[a-f0-9]{40}$ &&
+     "${EPMO_CI_WORKFLOW_RUN_ID:-}" =~ ^[1-9][0-9]*$ ]] || {
+    echo 'BLOCKED: tested image bundle requires exact CI-bound production deployment' >&2; exit 1;
+  }
+  TESTED_JSON=$(node scripts/ci-image-bundle.mjs verify "$TESTED_BUNDLE" "$EPMO_CI_VERIFIED_SHA" "$EPMO_CI_WORKFLOW_RUN_ID" "$GITHUB_REPOSITORY")
+  command -v jq >/dev/null
+  API_IMAGE=$(jq -er .apiTag <<< "$TESTED_JSON")
+  WEB_IMAGE=$(jq -er .webTag <<< "$TESTED_JSON")
+  API_RUNTIME_DIGEST=$(jq -er .apiRuntimeDigest <<< "$TESTED_JSON")
+  WEB_RUNTIME_DIGEST=$(jq -er .webRuntimeDigest <<< "$TESTED_JSON")
+fi
+if [[ -z "$TESTED_BUNDLE" && ( -n "$API_IMAGE" || -n "$WEB_IMAGE" ) ]]; then
   IMAGE_REF='^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._/-]*@sha256:[a-f0-9]{64}$'
   if [[ "$MODE" == dev || ! "$API_IMAGE" =~ $IMAGE_REF || ! "$WEB_IMAGE" =~ $IMAGE_REF ]]; then
     echo 'BLOCKED: staging and prod require both registry image references pinned by SHA-256.' >&2
@@ -98,6 +114,25 @@ if ! ssh_remote "test -d '$DIR' && test \"\$(realpath -e '$DIR')\" = '$DIR' && t
   exit 1
 fi
 
+# Production CI image promotion can exhaust the shared self-hosted runner/VPS disk.
+# Reclaim only old *dangling* Docker images (never tagged releases, running
+# images, volumes or database backups), then fail closed before rsync/migration.
+if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
+  echo 'Inspecting storage before tested-image promotion (no app restart).'
+  ssh_remote 'docker builder prune --all --force >/dev/null && docker image prune --force --filter until=168h >/dev/null'
+  # The CI runner and the Docker daemon may use different filesystems.
+  # Both require headroom; never attempt a large load with near-zero disk.
+  local_free_kb=$(df -Pk "$TESTED_BUNDLE" | awk 'END {print $4}')
+  remote_free_kb=$(ssh_remote "df -Pk /var/lib/docker | awk 'END {print \$4}'")
+  if [[ ! "$local_free_kb" =~ ^[0-9]+$ || ! "$remote_free_kb" =~ ^[0-9]+$ ||
+        "$local_free_kb" -lt 2097152 || "$remote_free_kb" -lt 2097152 ]]; then
+    echo "BLOCKED: at least 2 GiB free is required on both runner artifact storage and Docker storage before verified image promotion." >&2
+    echo 'Keep current containers, release rollback images, volumes, snapshots and database backups; provision space or clear only verified unused artifacts.' >&2
+    exit 1
+  fi
+  echo 'PASS: runner artifact storage and Docker storage both have at least 2 GiB available.'
+fi
+
 echo "Deploying $MODE to $HOST:$DIR"
 # rsync --delete can remove old, untracked configuration backups and artifacts.
 # Protect *replaced or deleted* files in a root outside the deployment tree.
@@ -134,7 +169,38 @@ fi
 
 # Build BEFORE changing the database. A failed image build must leave the
 # currently running application and schema untouched.
-if [[ -n "$API_IMAGE" ]]; then
+if [[ -n "$TESTED_BUNDLE" ]]; then
+  # Docker load accepts the authenticated gzip archive over SSH stdin. No
+  # registry credentials, remote archive extraction or VPS rebuild is needed.
+  # Reclaim unused build cache before expanding the archive. Keep all images,
+  # containers, volumes and database backups for service continuity and rollback.
+  ssh_remote "docker builder prune --all --force && docker system df"
+  ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
+  # The verified manifest binds immutable Docker image config IDs to the
+  # exact CI run and archive. Inspect's runtime fields can vary across daemons.
+  # Compare the portable content-addressed IDs plus the independently checked
+  # source revision before any image promotion, migration or service replacement.
+  API_EXPECTED_ID=$(jq -er .apiId <<< "$TESTED_JSON")
+  WEB_EXPECTED_ID=$(jq -er .webId <<< "$TESTED_JSON")
+  for spec in "api|$API_EXPECTED_ID|$API_IMAGE" "web|$WEB_EXPECTED_ID|$WEB_IMAGE"; do
+    IFS='|' read -r service expected_id release_tag <<< "$spec"
+    loaded=$(ssh_remote "docker image inspect 'epmo-$service:ci'")
+    identity=$(printf '%s' "$loaded" | node scripts/ci-image-bundle.mjs identity)
+    actual=$(jq -er .id <<< "$identity")
+    revision=$(jq -er .revision <<< "$identity")
+    [[ "$actual" == "$expected_id" && "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || {
+      # Image IDs and commit SHAs are non-secret; never print runtime config,
+      # keys, environment variables or workload payloads.
+      echo "BLOCKED: loaded $service image content ID or revision differs from attested CI" >&2
+      [[ "$actual" == "$expected_id" ]] || echo "image ID mismatch for $service: expected=$expected_id actual=$actual" >&2
+      [[ "$revision" == "$EPMO_CI_VERIFIED_SHA" ]] || echo "revision mismatch for $service: expected=$EPMO_CI_VERIFIED_SHA actual=$revision" >&2
+      exit 1
+    }
+    ssh_remote "docker image tag '$actual' '$release_tag'"
+    if [[ "$service" == api ]]; then API_IMAGE_ID=$actual; else WEB_IMAGE_ID=$actual; fi
+  done
+  APP_COMPOSE="EPMO_RELEASE_API_IMAGE='$API_IMAGE' EPMO_RELEASE_WEB_IMAGE='$WEB_IMAGE' $COMPOSE -f docker-compose.tested-images.yml"
+elif [[ -n "$API_IMAGE" ]]; then
   APP_COMPOSE="EPMO_RELEASE_API_IMAGE='$API_IMAGE' EPMO_RELEASE_WEB_IMAGE='$WEB_IMAGE' $COMPOSE -f docker-compose.release-images.yml"
   ssh_remote "cd '$DIR' && $APP_COMPOSE pull api web"
 else
@@ -170,20 +236,22 @@ else
   ssh_remote "cd '$DIR' && $COMPOSE up -d api web"
 fi
 
-# Never spin forever on an unhealthy deployment. Expose useful logs on failure.
+# Health must hold for BOTH services before recording this release.
 ssh_remote "cd '$DIR' && \
   ready=0; \
   for attempt in \$(seq 1 60); do \
-    container=\$($COMPOSE ps -q web); \
-    if [ -n \"\$container\" ]; then \
+    ready=1; \
+    for service in api web; do \
+      container=\$($COMPOSE ps -q \"\$service\"); \
       status=\$(docker inspect -f '{{.State.Health.Status}}' \"\$container\" 2>/dev/null || true); \
-      if [ \"\$status\" = healthy ]; then ready=1; break; fi; \
-      if [ \"\$status\" = unhealthy ]; then break; fi; \
-    fi; \
+      if [ \"\$status\" = unhealthy ]; then ready=-1; break; fi; \
+      if [ \"\$status\" != healthy ]; then ready=0; fi; \
+    done; \
+    if [ \"\$ready\" -eq 1 ] || [ \"\$ready\" -eq -1 ]; then break; fi; \
     sleep 3; \
   done; \
   if [ \"\$ready\" -ne 1 ]; then \
-    echo 'BLOCKED: web did not become healthy within the deployment window' >&2; \
+    echo 'BLOCKED: API/web did not both become healthy within the deployment window' >&2; \
     $COMPOSE ps >&2; \
     $COMPOSE logs --tail 50 web api >&2; \
     exit 1; \
@@ -204,4 +272,12 @@ if [[ "$MODE" == staging ]]; then
   ssh_remote "cd '$DIR' && container=\$($COMPOSE ps -q api); \
     test -n \"\$container\" && node scripts/phase16d-verify-staging-api.mjs --env-file '$ENVFILE' --container \"\$container\""
 fi
-echo "PASS: $MODE web container healthy on $HOST"
+echo "PASS: $MODE API and web containers healthy on $HOST"
+
+if [[ -n "$TESTED_BUNDLE" ]]; then
+  for spec in "api|$API_IMAGE_ID" "web|$WEB_IMAGE_ID"; do
+    IFS='|' read -r service expected_id <<< "$spec"
+    actual=$(ssh_remote "cd '$DIR' && container=\$($COMPOSE ps -q '$service'); test -n \"\$container\" && docker inspect --format '{{.Image}}' \"\$container\"")
+    [[ "$actual" == "$expected_id" ]] || { echo 'BLOCKED: running image does not match tested content' >&2; exit 1; }
+  done
+fi

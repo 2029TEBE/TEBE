@@ -1,0 +1,52 @@
+name: .GAZE legacy-wire verifier conformance
+on:
+  pull_request:
+    paths:
+      - 'apps/api/src/gaiz/**'
+      - 'apps/web/src/app/(app)/gaiz/**'
+      - 'packages/db/migrations/0022_gaiz_import_authorizations.sql'
+      - 'packages/db/sql/rls.sql'
+      - 'packages/db/sql/gaiz2-*'
+      - '.github/workflows/gaiz2-conformance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gaiz2-verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify GAIZ2 module syntax
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-verifier.mjs
+          node --check apps/api/src/gaiz/gaiz2-verifier.test.mjs
+          node --check apps/api/src/gaiz/gaiz-custody-policy.mjs
+          node --check apps/api/src/gaiz/gaiz-custody-bridge.mjs
+          node --check apps/api/src/gaiz/gaiz-custodian-mtls.mjs
+          node --check apps/api/src/gaiz/gaiz-import-authorization.mjs
+      - name: Verify .GAZE display and legacy format boundary
+        run: node --test apps/api/src/gaiz/gaze-main-brand.test.mjs
+      - name: .GAZE disabled-by-default custody candidate regression
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.mjs
+          node --check apps/api/src/gaiz/gaiz2-key-release-eligibility.mjs
+          node --test apps/api/src/gaiz/gaiz2-recipient-key-lifecycle.test.mjs apps/api/src/gaiz/gaiz2-key-release-eligibility.test.mjs
+      - name: Check review-only .GAZE custody-ledger SQL invariants
+        run: node --test apps/api/src/gaiz/gaiz2-kms-ledger.static.test.mjs
+      - name: Check signed custody-grant candidate is fail-closed
+        run: |
+          node --check apps/api/src/gaiz/gaiz2-custody-grant-candidate.mjs
+          node --test apps/api/src/gaiz/gaiz2-custody-grant-candidate.test.mjs
+      - name: Run independently pinned TO fixture acceptance
+        run: node --test apps/api/src/gaiz/to-gaiz2-fixed-interop.test.mjs
+      - name: Test inactive GAIZ intake, draft mapping, and mTLS denial
+        run: |
+          node --test apps/api/src/gaiz/gaiz-intake.test.mjs
+          node --test apps/api/src/gaiz/gaiz-draft-mapping.test.mjs
+          node --test apps/api/src/gaiz/gaiz-mtls-peer-denial.test.mjs
+      - name: Run GAIZ2 synthetic wire compatibility and negative tests
+        run: node --test apps/api/src/gaiz/gaiz2-verifier.test.mjs apps/api/src/gaiz/gaiz-custody-policy.test.mjs apps/api/src/gaiz/gaiz-custody-attestation.test.mjs apps/api/src/gaiz/gaiz-import-plan.test.mjs apps/api/src/gaiz/gaiz-mapping-preview.test.mjs apps/api/src/gaiz/gaiz-import-authorization.test.mjs apps/api/src/gaiz/gaiz-import-authorization.contract.test.mjs apps/api/src/gaiz/gaiz-snapshot.contract.test.mjs apps/api/src/gaiz/gaiz-isolated-db.contract.test.mjs apps/api/src/gaiz/gaiz-mapping-attestation.test.mjs apps/api/src/gaiz/gaiz-completion.contract.test.mjs apps/api/src/gaiz/gaiz-trust-directory.contract.test.mjs apps/api/src/gaiz/gaiz-custodian-mtls.test.mjs apps/api/src/gaiz/gaiz-custody-bridge.test.mjs apps/api/src/gaiz/gaiz-custody-db.contract.test.mjs apps/api/src/gaiz/gaiz-staging.contract.test.mjs

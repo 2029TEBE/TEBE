@@ -1,0 +1,40 @@
+name: Reclaim unused production build cache
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/recover-deploy-disk.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: epmo-production-deployment
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: github.repository == '2029TEBE/TEBE'
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Reclaim only old dangling Docker images and unused build cache; report storage
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          umask 077
+          keydir=$(mktemp -d)
+          trap 'rm -rf -- "$keydir"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$keydir/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
+          unset DEPLOY_KEY KNOWN_HOSTS
+          echo 'Runner available space before recovery:'
+          df -h "$RUNNER_TEMP" || true
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force; docker image prune --force --filter until=168h; docker system df; df -h /var/lib/docker /var/lib/containerd'
+          echo 'Runner available space after recovery:'
+          df -h "$RUNNER_TEMP" || true
+# Only dangling images older than 7 days and unused build cache are removed.
+# No tagged image, running container, volume, backup, migration or app restart.

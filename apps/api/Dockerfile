@@ -14,6 +14,8 @@ COPY apps/api apps/api
 # Read-only Phase 16D staging acceptance probes run inside the API container.
 COPY scripts/phase16d-verify-staging-api.mjs scripts/phase16d-verify-staging-api.mjs
 COPY scripts/rc1-release-gate.mjs scripts/rc1-release-gate.mjs
+# API build invokes this runtime asset packager after Nest compilation.
+COPY scripts/package-api-runtime.mjs scripts/package-api-runtime.mjs
 RUN pnpm --filter @pmo/contracts build \
  && pnpm --filter @pmo/db build \
  && pnpm --filter @pmo/api build

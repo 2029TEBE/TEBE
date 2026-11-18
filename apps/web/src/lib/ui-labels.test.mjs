@@ -29,8 +29,10 @@ test('coverage enumerates untranslated strings without duplication', () => {
 test('all shared nav group headings have four catalogue translations', () => {
   for (const title of ['Home','Plan & Deliver','Govern','Analyse','Collaborate','Configure']) {
     for (const locale of ['de-DE','zh-CN','fr-FR','ja-JP']) {
+      const identical = UI_LABELS[title]?.[locale] === title;
       assert.deepEqual(uiLabelCoverage([title], locale), {
-        total: 1, translated: 1, missing: [], invalidPlaceholders: [],
+        total: 1, translated: identical ? 0 : 1,
+        missing: identical ? [title] : [], invalidPlaceholders: [],
       });
       assert.ok(uiLabel(title, locale).length > 0);
     }
@@ -42,7 +44,11 @@ test('every shared dashboard navigation label has a catalog entry in four new lo
   const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map((m) => m[1]))];
   assert.ok(labels.length >= 30, 'expected full navigation inventory');
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
-    assert.deepEqual(uiLabelCoverage(labels, locale).missing, [], `missing ${locale} nav labels`);
+    const entriesMissing = labels.filter(key => !Object.hasOwn(UI_LABELS[key] ?? {}, locale));
+    assert.deepEqual(entriesMissing, [], `missing ${locale} nav catalog entries`);
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing,
+      labels.filter(key => UI_LABELS[key]?.[locale] === key),
+      `unchanged English must be reported honestly for ${locale}`);
   }
 });
 
@@ -58,7 +64,9 @@ test('shared executive journey has all six translations without separate dashboa
     'Delivery trend', 'Portfolio performance', 'Portfolio mix', 'Project health',
   ];
   for (const locale of ['de-DE', 'zh-CN', 'fr-FR', 'ja-JP']) {
-    assert.deepEqual(uiLabelCoverage(keys, locale).missing, [], locale);
+    assert.deepEqual(keys.filter(key => !Object.hasOwn(UI_LABELS[key] ?? {}, locale)), [], locale);
+    assert.deepEqual(uiLabelCoverage(keys, locale).missing,
+      keys.filter(key => UI_LABELS[key]?.[locale] === key), locale);
   }
   const page = readFileSync(new URL('../app/(app)/page.tsx', import.meta.url), 'utf8');
   assert.ok(page.includes("t('Executive decision journey')"));
@@ -98,4 +106,84 @@ test('full UI label catalog preserves interpolation tokens across every translat
       assert.ok(translated.trim().length > 0, `blank translation: ${locale} / ${source}`);
     }
   }
+});
+
+test('Urdu has localized navigation with preserved source labels', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const label of labels) {
+    assert.ok(typeof UI_LABELS[label]?.ur === 'string' && UI_LABELS[label].ur.trim(), label);
+    assert.equal(uiLabel(label, 'ur'), UI_LABELS[label].ur);
+  }
+  assert.deepEqual(uiLabelCoverage(labels, 'ur').missing, ['Power BI']);
+});
+
+
+test('Spanish and Latin American Spanish have all shared navigation entries', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['es', 'es-419']) {
+    for (const label of labels) {
+      assert.ok(typeof UI_LABELS[label]?.[locale] === 'string', locale + ': ' + label);
+      assert.ok(UI_LABELS[label][locale].trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), UI_LABELS[label][locale]);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI']);
+  }
+  assert.equal(uiLabel('Portfolios', 'es'), 'Carteras');
+  assert.equal(uiLabel('Portfolios', 'es-419'), 'Portafolios');
+});
+
+
+test('Brazilian and European Portuguese navigation has regional terms', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['pt-BR', 'pt-PT']) {
+    for (const label of labels) {
+      assert.ok(typeof UI_LABELS[label]?.[locale] === 'string', locale + ': ' + label);
+      assert.ok(UI_LABELS[label][locale].trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), UI_LABELS[label][locale]);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI']);
+  }
+  assert.equal(uiLabel('Portfolios', 'pt-BR'), 'Portfólios');
+  assert.equal(uiLabel('Portfolios', 'pt-PT'), 'Portefólios');
+});
+
+test('Italian, Turkish and Russian navigation entries are present and guarded', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(m => m[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['it', 'tr', 'ru']) {
+    for (const label of labels) {
+      assert.ok(typeof UI_LABELS[label]?.[locale] === 'string' && UI_LABELS[label][locale].trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), UI_LABELS[label][locale]);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI']);
+  }
+  assert.equal(uiLabel('Projects', 'it'), 'Progetti');
+  assert.equal(uiLabel('Projects', 'tr'), 'Projeler');
+  assert.equal(uiLabel('Projects', 'ru'), 'Проекты');
+});
+
+
+test('all remaining eight frontend locales have real shared navigation translations', () => {
+  const nav = readFileSync(new URL('./nav.ts', import.meta.url), 'utf8');
+  const labels = [...new Set([...nav.matchAll(/label:\s*'([^']+)'/g)].map(match => match[1]))];
+  assert.equal(labels.length, 35);
+  for (const locale of ['bn', 'fil', 'hi', 'id', 'ko', 'sw', 'vi', 'zh-TW']) {
+    for (const label of labels) {
+      const value = UI_LABELS[label]?.[locale];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+      assert.ok(translationHasMatchingPlaceholders(label, value), locale + ': ' + label);
+    }
+    assert.deepEqual(uiLabelCoverage(labels, locale).missing, ['Power BI'],
+      'unchanged product trademarks must not count as translated');
+  }
+  assert.equal(uiLabel('Projects', 'bn'), 'প্রকল্পসমূহ');
+  assert.equal(uiLabel('Projects', 'zh-TW'), '專案');
 });

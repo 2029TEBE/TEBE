@@ -86,7 +86,7 @@ test('deployment verifies staging API only after web acceptance and before claim
   const shell=readFileSync(resolve(import.meta.dirname,'../infra/deploy.sh'),'utf8');
   const web=shell.indexOf('node scripts/phase16c-verify-staging-web.mjs');
   const api=shell.indexOf('node scripts/phase16d-verify-staging-api.mjs');
-  const success=shell.lastIndexOf('echo "PASS: $MODE web container healthy');
+  const success=shell.lastIndexOf('echo "PASS: $MODE API and web containers healthy');
   assert.ok(web>=0 && api>web && success>api);
   assert.match(shell,/if \[\[ "\$MODE" == staging \]\]; then[\s\S]*?phase16d-verify-staging-api/);
   const syntax=spawnSync('bash',['-n',resolve(import.meta.dirname,'../infra/deploy.sh')],{encoding:'utf8'});
