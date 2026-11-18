@@ -1,0 +1,53 @@
+name: Local server dependency security audit
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tebe-local-dependency-security
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    # Only trusted, successful main revisions may execute on the existing VPS runner.
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository &&
+           (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) }}
+    runs-on: [self-hosted, linux, x64, servitro-tebe]
+    timeout-minutes: 10
+    steps:
+      - name: Check out trusted revision without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Audit reads the lockfile; no package installation or lifecycle scripts are needed.
+      - name: Verify dependency security from the local server
+        run: pnpm audit:security
+        env:
+          DEPENDENCY_AUDIT_DIR: ${{ runner.temp }}/tebe-local-audit-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Preserve dated local-server audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tebe-local-audit-${{ github.run_id }}-${{ github.run_attempt }}/*.json
+          if-no-files-found: warn
+          retention-days: 14
