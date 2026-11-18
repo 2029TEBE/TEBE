@@ -8,8 +8,8 @@
 set -uo pipefail
 
 WEB=${WEB:-http://localhost:3000}
-USER_ID=${SMOKE_USER:-fatima@al-nakheel.test}
-PASS=${SMOKE_PASS:-pmoalign-dev}
+USER_ID=${SMOKE_USER:?Set SMOKE_USER to a synthetic test identity}
+PASS=${SMOKE_PASS:?Set SMOKE_PASS to the synthetic test password}
 
 PATHS=(/ /my-work /activity /portfolios /projects /board /planner /governance /raid /decisions
        /approvals /analytics /financials /benefits /resources /reports /reports/board-pack

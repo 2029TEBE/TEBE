@@ -10,12 +10,13 @@ import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const WEB = process.env.WEB ?? 'http://localhost:3000';
-const USER = process.env.SHOT_USER ?? 'ankit_aetherix';
-const PASS = process.env.SHOT_PASS ?? 'pmo-dev@123';
+const USER = process.env.SHOT_USER;
+const PASS = process.env.SHOT_PASS;
 const OUT = process.env.SHOT_DIR ?? '/tmp/shots';
 const PAGES = process.argv.slice(2).length ? process.argv.slice(2)
   : ['/', '/projects', '/governance', '/analytics', '/financials', '/raid', '/platform'];
 
+if (!USER || !PASS) throw Error('Set SHOT_USER and SHOT_PASS to a synthetic test account before capturing screenshots');
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const LANG = process.env.SHOT_LANG ?? 'en';

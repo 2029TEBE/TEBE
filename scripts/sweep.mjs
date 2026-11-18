@@ -9,8 +9,8 @@ import { mkdirSync } from 'node:fs';
 
 const WEB = process.env.WEB ?? 'http://localhost:3000';
 const OUT = process.env.SWEEP_DIR ?? '/tmp/sweep';
-const USER = process.env.SHOT_USER ?? 'ankit_aetherix';
-const PASS = process.env.SHOT_PASS ?? 'pmo-dev@123';
+const USER = process.env.SHOT_USER;
+const PASS = process.env.SHOT_PASS;
 
 const PAGES = ['/', '/my-work', '/activity', '/portfolios', '/projects', '/board', '/planner',
   '/governance', '/raid', '/decisions', '/approvals', '/analytics', '/financials', '/benefits',
@@ -21,6 +21,7 @@ const VARIANTS = process.env.SWEEP_ALL
   ? [['light-en','light','en'], ['dark-en','dark','en'], ['light-ar','light','ar']]
   : [['light-en','light','en']];
 
+if (!USER || !PASS) throw Error('Set SHOT_USER and SHOT_PASS to a synthetic test account before capturing screenshots');
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch();
 
