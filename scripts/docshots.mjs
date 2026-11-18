@@ -4,6 +4,9 @@ import { mkdirSync } from 'node:fs';
 
 const WEB = 'http://localhost:3000';
 const OUT = '/tmp/docshots';
+const USER = process.env.SHOT_USER;
+const PASS = process.env.SHOT_PASS;
+if (!USER || !PASS) throw Error('Set SHOT_USER and SHOT_PASS to a synthetic test account before capturing screenshots');
 const PAGES = [
   ['/', 'home'], ['/my-work', 'my-work'], ['/activity', 'attention'],
   ['/portfolios', 'portfolios'], ['/projects', 'projects'], ['/board', 'board'],
@@ -23,8 +26,8 @@ for (const lang of ['en', 'ar']) {
   await ctx.addCookies([{ name: 'pmo_lang', value: lang, url: WEB }]);
   const page = await ctx.newPage();
   await page.goto(`${WEB}/login`, { waitUntil: 'networkidle' });
-  await page.fill('input[name=identifier]', 'ankit_aetherix');
-  await page.fill('input[name=password]', 'pmo-dev@123');
+  await page.fill('input[name=identifier]', USER);
+  await page.fill('input[name=password]', PASS);
   await Promise.all([page.waitForURL('**/', { timeout: 30000 }), page.click('button[type=submit]')]);
   // Only a couple of screens are needed in Arabic to show the mirroring.
   const want = lang === 'ar' ? PAGES.filter(([, n]) => ['home', 'planner', 'analytics'].includes(n)) : PAGES;
