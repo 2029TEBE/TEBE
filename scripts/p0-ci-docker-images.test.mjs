@@ -24,15 +24,24 @@ function withMockDocker(failCase) {
 }
 
 test('CI builds both actual Dockerfiles before recording production evidence', () => {
-  const api = workflow.indexOf('file: apps/api/Dockerfile');
-  const web = workflow.indexOf('file: apps/web/Dockerfile');
+  const bake = JSON.parse(read('.github/workflows/release-images.bake.json'));
+  const build = workflow.indexOf('uses: docker/bake-action@v6');
   const verify = workflow.indexOf('bash scripts/verify-ci-docker-images.sh');
+  const roundtrip = workflow.indexOf('bash scripts/verify-ci-image-roundtrip.sh');
   const receipt = workflow.indexOf('record production_build');
-  assert.ok(api > 0 && web > api && verify > web && receipt > verify);
-  assert.equal((workflow.match(/uses: docker\/build-push-action@v6/g)||[]).length,2);
-  assert.equal((workflow.match(/load: true/g)||[]).length,2);
-  assert.match(workflow,/tags: epmo-api:ci/);
-  assert.match(workflow,/tags: epmo-web:ci/);
+  assert.ok(build > 0 && verify > build && roundtrip > verify && receipt > roundtrip);
+  assert.match(workflow, /targets: api,web/);
+  assert.match(workflow, /files: \.github\/workflows\/release-images\.bake\.json/);
+  assert.match(workflow, /load: true/);
+  assert.equal(bake.target.api.dockerfile, 'apps/api/Dockerfile');
+  assert.equal(bake.target.web.dockerfile, 'apps/web/Dockerfile');
+  assert.deepEqual(bake.target.api.tags, ['epmo-api:ci']);
+  assert.deepEqual(bake.target.web.tags, ['epmo-web:ci']);
+  for (const target of ['api', 'web']) {
+    assert.equal(bake.target[target].context, '.');
+    assert.ok(bake.target[target]['cache-from'].some(x => x.startsWith('type=gha,')));
+    assert.ok(bake.target[target]['cache-to'].some(x => x.startsWith('type=gha,')));
+  }
 });
 test('CI Docker steps do not publish images or require credentials', () => {
   assert.doesNotMatch(workflow, /docker (?:push|login)/);

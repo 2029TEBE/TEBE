@@ -1,0 +1,30 @@
+{
+  "target": {
+    "api": {
+      "context": ".",
+      "dockerfile": "apps/api/Dockerfile",
+      "tags": [
+        "epmo-api:ci"
+      ],
+      "cache-from": [
+        "type=gha,scope=tebe-api"
+      ],
+      "cache-to": [
+        "type=gha,mode=max,scope=tebe-api"
+      ]
+    },
+    "web": {
+      "context": ".",
+      "dockerfile": "apps/web/Dockerfile",
+      "tags": [
+        "epmo-web:ci"
+      ],
+      "cache-from": [
+        "type=gha,scope=tebe-web"
+      ],
+      "cache-to": [
+        "type=gha,mode=max,scope=tebe-web"
+      ]
+    }
+  }
+}
