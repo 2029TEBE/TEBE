@@ -7,13 +7,14 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {gzipSync} from 'node:zlib';
+import {tarArchive} from './image-archive-fixture.mjs';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {imageRuntimeIdentity} from './ci-image-bundle.mjs';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 test('tested-image deployment loads exact image IDs and never rebuilds or pulls',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'epmo-transport-'));try{
   const bin=join(dir,'bin'),bundle=join(dir,'bundle'),log=join(dir,'commands');await mkdir(bin);await mkdir(bundle);
-  const data=gzipSync(Buffer.from('synthetic CI bundle bytes, not a real docker archive'));
+  const data=gzipSync(tarArchive('layer.tar', Buffer.from('synthetic CI layer bytes')));
   const api='sha256:'+'d'.repeat(64),web='sha256:'+'e'.repeat(64);
   const image=(id)=>({Id:id,Os:'linux',Architecture:'amd64',Config:{User:'pmo',Labels:{'org.opencontainers.image.revision':revision},Cmd:['node','server.js']},RootFS:{Type:'layers',Layers:['sha256:'+'f'.repeat(64)]}});
   const apiInspect=image('sha256:'+'d'.repeat(64)),webInspect=image('sha256:'+'e'.repeat(64));
