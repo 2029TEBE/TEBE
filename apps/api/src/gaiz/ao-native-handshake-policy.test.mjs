@@ -28,7 +28,7 @@ test('native response cannot omit required protocol keys or return malformed typ
  }
  for(const reply of [null,undefined,[],[],new Date(),Object.create(null),{...nativeReply,tools:null},
   {...nativeReply,tools:{}},{...nativeReply,protocolVersion:'1'},'ok'])
-  assert.equal(run('ao_capabilities',reply).accepted,false);
+  assert.equal(inspect({command:'ao_capabilities',reply}).accepted,false);
 });
 test('OT host may omit optional explanatory note but cannot change it',()=>{
  const {note,...reply}=nativeReply;
