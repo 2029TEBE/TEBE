@@ -38,3 +38,24 @@ test('rejects empty invoice response and foreign invoice', () => {
   assert.throws(() => assertTenantInvoiceList([], A, B, 'inv-a'));
   assert.throws(() => assertTenantInvoiceList([{ id: 'inv-b', tenantId: B }], A, B, 'inv-a'));
 });
+
+test('invoice isolation rejects missing tenant identity and missing fixture identity', () => {
+  const own = [{ id: 'inv-a', tenantId: A }];
+  assert.throws(() => assertTenantInvoiceList(own, '', B, 'inv-a'));
+  assert.throws(() => assertTenantInvoiceList(own, A, '', 'inv-a'));
+  assert.throws(() => assertTenantInvoiceList(own, A, B, ''));
+  assert.throws(() => assertTenantInvoiceList([{ id: 'inv-a' }], undefined, B, 'inv-a'));
+});
+test('invoice isolation rejects incomplete rows even when expected invoice is present', () => {
+  assert.throws(() => assertTenantInvoiceList([
+    { id: 'inv-a', tenantId: A }, { tenantId: A }
+  ], A, B, 'inv-a'));
+  assert.throws(() => assertTenantInvoiceList([
+    { id: 'inv-a', tenantId: A }, null
+  ], A, B, 'inv-a'));
+});
+test('project detail and active session require nonempty expected identifiers', () => {
+  assert.throws(() => assertProjectDetail({ id: undefined, tenantId: A }, A, undefined));
+  assert.throws(() => assertProjectDetail({ id: 'project-a', tenantId: A }, '', 'project-a'));
+  assert.throws(() => assertActiveTenant({ authenticated: true, tenantId: '' }, ''));
+});
