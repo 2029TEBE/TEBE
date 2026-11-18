@@ -119,18 +119,24 @@ fi
 # images, volumes or database backups), then fail closed before rsync/migration.
 if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
   echo 'Inspecting storage before tested-image promotion (no app restart).'
-  ssh_remote 'docker builder prune --all --force >/dev/null && docker image prune --force --filter until=168h >/dev/null'
+  ssh_remote 'docker builder prune --all --force --filter until=168h >/dev/null && docker image prune --force --filter until=24h >/dev/null'
   # The CI runner and the Docker daemon may use different filesystems.
   # Both require headroom; never attempt a large load with near-zero disk.
+  required_load_kib=$(node scripts/deploy-storage-capacity.mjs "$TESTED_BUNDLE/images.tar.gz")
   local_free_kb=$(df -Pk "$TESTED_BUNDLE" | awk 'END {print $4}')
   remote_free_kb=$(ssh_remote "df -Pk /var/lib/docker | awk 'END {print \$4}'")
-  if [[ ! "$local_free_kb" =~ ^[0-9]+$ || ! "$remote_free_kb" =~ ^[0-9]+$ ||
-        "$local_free_kb" -lt 2097152 || "$remote_free_kb" -lt 2097152 ]]; then
-    echo "BLOCKED: at least 2 GiB free is required on both runner artifact storage and Docker storage before verified image promotion." >&2
+  containerd_free_kb=$(ssh_remote "df -Pk /var/lib/containerd | awk 'END {print \$4}'")
+  if [[ ! "$required_load_kib" =~ ^[0-9]+$ || ! "$local_free_kb" =~ ^[0-9]+$ ||
+        ! "$remote_free_kb" =~ ^[0-9]+$ || ! "$containerd_free_kb" =~ ^[0-9]+$ ]]; then
+    echo 'BLOCKED: cannot measure runner and Docker storage capacity.' >&2; exit 1
+  fi
+  echo "Capacity KiB: runner=$local_free_kb docker=$remote_free_kb containerd=$containerd_free_kb load-required=$required_load_kib"
+  if (( local_free_kb < 2097152 || remote_free_kb < required_load_kib || containerd_free_kb < required_load_kib )); then
+    echo "BLOCKED: Docker/containerd each require $required_load_kib KiB free for measured expansion plus 2 GiB reserve; runner requires 2097152 KiB after download." >&2
     echo 'Keep current containers, release rollback images, volumes, snapshots and database backups; provision space or clear only verified unused artifacts.' >&2
     exit 1
   fi
-  echo 'PASS: runner artifact storage and Docker storage both have at least 2 GiB available.'
+  echo 'PASS: measured Docker load headroom and runner reserve.'
 fi
 
 echo "Deploying $MODE to $HOST:$DIR"
@@ -174,7 +180,7 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
   # registry credentials, remote archive extraction or VPS rebuild is needed.
   # Reclaim unused build cache before expanding the archive. Keep all images,
   # containers, volumes and database backups for service continuity and rollback.
-  ssh_remote "docker builder prune --all --force && docker system df"
+  ssh_remote "docker builder prune --all --force --filter until=168h && docker system df"
   ssh_remote "docker image load" < "$TESTED_BUNDLE/images.tar.gz"
   # The verified manifest binds immutable Docker image config IDs to the
   # exact CI run and archive. Inspect's runtime fields can vary across daemons.
@@ -207,6 +213,16 @@ else
   APP_COMPOSE="$COMPOSE"
   ssh_remote "cd '$DIR' && $COMPOSE build api web"
 fi
+# Preserve the current healthy image pair before any container replacement.
+# Fixed rollback aliases bound retention without touching historical rollback tags.
+if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
+  for service in api web; do
+    previous_id=$(ssh_remote "cd '$DIR' && container=\$($COMPOSE ps -q '$service'); test -n \"\$container\" && docker inspect --format '{{.Image}}' \"\$container\"")
+    [[ "$previous_id" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'BLOCKED: cannot preserve previous image identity'; exit 1; }
+    ssh_remote "docker image tag '$previous_id' 'epmo-rollback-$service:previous'"
+  done
+fi
+
 # Bring up dependencies for the backup and migration; do not start new API/web
 # containers until both operations succeed.
 ssh_remote "cd '$DIR' && $COMPOSE up -d postgres redis"
