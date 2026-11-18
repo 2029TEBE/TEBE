@@ -18,7 +18,8 @@ export function assertTenantPage(page, ownTenantId, otherTenantId, expectedProje
 }
 
 export function assertProjectDetail(project, ownTenantId, expectedProjectId) {
-  if (!project || project.id !== expectedProjectId || project.tenantId !== ownTenantId)
+  if (!ownTenantId || !expectedProjectId || !project?.id ||
+      project.id !== expectedProjectId || project.tenantId !== ownTenantId)
     throw new Error('Project detail is not scoped to the authenticated tenant');
   return true;
 }
@@ -30,18 +31,19 @@ export function assertDeniedForeignRecord(response, label) {
 }
 
 export function assertActiveTenant(session, expectedTenantId) {
-  if (session?.authenticated !== true || session.tenantId !== expectedTenantId)
+  if (!expectedTenantId || session?.authenticated !== true || session.tenantId !== expectedTenantId)
     throw new Error('Session active tenant disagrees with the selected workspace');
   return true;
 }
 
 export function assertTenantInvoiceList(invoices, ownTenantId, otherTenantId, expectedInvoiceId) {
-  if (!Array.isArray(invoices) || invoices.length === 0 || ownTenantId === otherTenantId)
+  if (!Array.isArray(invoices) || invoices.length === 0 ||
+      !ownTenantId || !otherTenantId || ownTenantId === otherTenantId || !expectedInvoiceId)
     throw new Error('Two-tenant billing evidence is missing');
   if (!invoices.some(row => row?.id === expectedInvoiceId))
     throw new Error('Own tenant fixture invoice missing');
   for (const row of invoices) {
-    if (row?.tenantId !== ownTenantId || row.tenantId === otherTenantId)
+    if (!row?.id || row.tenantId !== ownTenantId || row.tenantId === otherTenantId)
       throw new Error('Cross-tenant invoice leaked after workspace switch');
   }
   return true;
