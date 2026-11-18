@@ -30,9 +30,12 @@ const safeHttpsEndpoint = value => {
  */
 export function evaluateAoEnterpriseCall({enabled=false, tool, task, actor, registry, approval}={}) {
   if (enabled !== true) return deny('disabled');
-  if (!exact(tool,['id','version','owner','risk','transport','enabled','requiresApproval','endpoint']) ||
+  if (!exact(tool,['id','version','owner','risk','transport','enabled','requiresApproval','timeoutMs','endpoint']) ||
       !ID.test(tool.id ?? '') || tool.version !== '1.0.0' || tool.owner !== 'TEBE' ||
-      !RISK.has(tool.risk) || !TRANSPORT.has(tool.transport) || tool.enabled !== true) return deny('tool_invalid');
+      !RISK.has(tool.risk) || !TRANSPORT.has(tool.transport) || tool.enabled !== true ||
+      (tool.requiresApproval !== undefined && typeof tool.requiresApproval !== 'boolean') ||
+      (tool.timeoutMs !== undefined && (!Number.isSafeInteger(tool.timeoutMs) ||
+        tool.timeoutMs < 100 || tool.timeoutMs > 120000))) return deny('tool_invalid');
   if (!exact(task,['version','requestId','taskId','toolId','tenantId','principalId','intent','approvalId','artifactRefs']) ||
       task.version !== '1.0.0' || !NONCE.test(task.requestId ?? '') || !NONCE.test(task.taskId ?? '') ||
       task.toolId !== tool.id || !UUID.test(task.tenantId ?? '') || !SUBJECT.test(task.principalId ?? '') ||
