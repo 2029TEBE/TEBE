@@ -42,7 +42,8 @@
     "verify:stripe:db-rls": "node scripts/stripe-db-rls-audit.mjs",
     "verify:build-artifacts": "node scripts/verify-build-artifacts.mjs --scope all",
     "verify:web:acceptance": "bash scripts/phase15d-run-web-smoke.sh",
-    "verify:staging-config": "node scripts/verify-staging-config.mjs --env-file .env.staging"
+    "verify:staging-config": "node scripts/verify-staging-config.mjs --env-file .env.staging",
+    "audit:security": "node scripts/dependency-security-audit.mjs"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
