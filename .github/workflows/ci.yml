@@ -19,6 +19,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node scripts/verify-ci-safety.mjs
+      - name: Validate measured deployment storage requirements
+        run: |
+          node --test scripts/deploy-storage-capacity.test.mjs
+          bash -n infra/storage-maintenance.sh
       - name: Parse production deployment transport script
         run: bash -n infra/deploy.sh
       - name: Verify fail-closed image identity diagnostic gate

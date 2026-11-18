@@ -6,13 +6,14 @@ import {mkdtemp,writeFile,readFile,rm,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {imageRuntimeIdentity} from './ci-image-bundle.mjs';
 const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 test('tested-image deployment loads exact image IDs and never rebuilds or pulls',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'epmo-transport-'));try{
   const bin=join(dir,'bin'),bundle=join(dir,'bundle'),log=join(dir,'commands');await mkdir(bin);await mkdir(bundle);
-  const data=Buffer.from('synthetic CI bundle bytes, not a real docker archive');
+  const data=gzipSync(Buffer.from('synthetic CI bundle bytes, not a real docker archive'));
   const api='sha256:'+'d'.repeat(64),web='sha256:'+'e'.repeat(64);
   const image=(id)=>({Id:id,Os:'linux',Architecture:'amd64',Config:{User:'pmo',Labels:{'org.opencontainers.image.revision':revision},Cmd:['node','server.js']},RootFS:{Type:'layers',Layers:['sha256:'+'f'.repeat(64)]}});
   const apiInspect=image('sha256:'+'d'.repeat(64)),webInspect=image('sha256:'+'e'.repeat(64));
@@ -25,6 +26,7 @@ printf '%s\\n' "$cmd" >> "$TEST_LOG"
 case "$cmd" in
   'printf "%s" "$HOME"') echo /home/fixture ;;
   *'df -Pk /var/lib/docker'*) echo "\${TEST_REMOTE_FREE_KB:-6291456}" ;;
+  *'df -Pk /var/lib/containerd'*) echo "\${TEST_REMOTE_FREE_KB:-6291456}" ;;
   'docker image load') cat >/dev/null ;;
   *"docker image inspect 'epmo-api:ci'"*) echo "$TEST_API_INSPECT" ;;
   *"docker image inspect 'epmo-web:ci'"*) echo "$TEST_WEB_INSPECT" ;;
@@ -36,14 +38,14 @@ esac
   await writeFile(join(bin,'rsync'),'#!/bin/sh\nexit 0\n',{mode:0o700});
   const env={...process.env,PATH:bin+':'+process.env.PATH,EPMO_DEPLOY_HOST:'fixture@invalid.example',EPMO_TESTED_IMAGE_DIR:bundle,EPMO_CI_VERIFIED_SHA:revision,EPMO_CI_WORKFLOW_RUN_ID:'123',GITHUB_REPOSITORY:'2029TEBE/TEBE',GITHUB_ACTIONS:'true',GITHUB_EVENT_NAME:'workflow_run',EPMO_RELEASE_API_IMAGE:'',EPMO_RELEASE_WEB_IMAGE:'',TEST_LOG:log,TEST_REVISION:revision,TEST_API_ID:apiInspect.Id,TEST_WEB_ID:webInspect.Id,TEST_API_INSPECT:JSON.stringify([apiInspect]),TEST_WEB_INSPECT:JSON.stringify([webInspect])};
   const run=spawnSync('bash',['infra/deploy.sh','prod'],{env,encoding:'utf8',timeout:30000});assert.equal(run.status,0,run.stdout+'\n'+run.stderr);
-  const commands=await readFile(log,'utf8');assert.match(commands,/docker image load/);assert.ok(commands.indexOf('docker builder prune --all --force')<commands.indexOf('docker image load'));assert.match(commands,/docker image prune --force --filter until=168h/);assert.doesNotMatch(commands,/docker (?:container|volume|system) prune|docker image prune\s+-a/);assert.doesNotMatch(commands,/compose[^\n]*(?: build | pull )/);assert.match(commands,/--no-build --pull never/);assert.ok(commands.indexOf('docker image load')<commands.indexOf('backup-db.sh'));assert.match(commands,/bootstrap-db.sh/);assert.match(commands,/\{\{.Image\}\}/);
+  const commands=await readFile(log,'utf8');assert.match(commands,/docker image load/);assert.ok(commands.indexOf('docker builder prune --all --force')<commands.indexOf('docker image load'));assert.match(commands,/docker image prune --force --filter until=24h/);assert.doesNotMatch(commands,/docker (?:container|volume|system) prune|docker image prune\s+-a/);assert.doesNotMatch(commands,/compose[^\n]*(?: build | pull )/);assert.match(commands,/--no-build --pull never/);assert.ok(commands.indexOf('docker image load')<commands.indexOf('backup-db.sh'));assert.match(commands,/bootstrap-db.sh/);assert.match(commands,/\{\{.Image\}\}/);assert.match(commands,/epmo-rollback-api:previous/);assert.match(commands,/epmo-rollback-web:previous/);assert.match(commands,/docker exec -i/);
   // Disk exhaustion must stop before rsync, migrations, image loading or services.
   await rm(log);
   const lowDisk=spawnSync('bash',['infra/deploy.sh','prod'],{
     env:{...env,TEST_REMOTE_FREE_KB:'73728'},encoding:'utf8',timeout:30000
   });
   assert.notEqual(lowDisk.status,0);
-  assert.match(lowDisk.stderr,/at least 2 GiB free/);
+  assert.match(lowDisk.stderr,/require [0-9]+ KiB free for measured expansion plus 2 GiB reserve/);
   const lowDiskCommands=await readFile(log,'utf8');
   assert.doesNotMatch(lowDiskCommands,/docker image load|backup-db.sh|bootstrap-db.sh/);
   await rm(log);
