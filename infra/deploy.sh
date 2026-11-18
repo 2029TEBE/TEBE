@@ -297,3 +297,9 @@ if [[ -n "$TESTED_BUNDLE" ]]; then
     [[ "$actual" == "$expected_id" ]] || { echo 'BLOCKED: running image does not match tested content' >&2; exit 1; }
   done
 fi
+
+# Read-only probes run inside the exact healthy production API container.
+# Never expose a port, seed data, create sessions or reuse staging credentials.
+if [[ "$MODE" == prod && -n "$TESTED_BUNDLE" ]]; then
+  ssh_remote "cd '$DIR' && container=\$($COMPOSE ps -q api); test -n \"\$container\" && docker exec -i \"\$container\" node --input-type=module -" < scripts/production-boundary-smoke.mjs
+fi
