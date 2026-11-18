@@ -50,7 +50,11 @@ test('deployment does not include an unguarded direct push trigger or bypass che
 test('successful deployment records exactly one validated revision marker',()=>{
   const section = workflow.split('      - name: Deploy and record the verified production revision\n')[1];
   assert.ok(section, 'Missing revision recording step');
-  assert.equal((section.match(/\.deployed-revision/g) || []).length,1);
+  // The revision marker may be read more than once, but must be written exactly once.
+  assert.equal((section.match(/> \/opt\/the-epmo\/\.deployed-revision/g) || []).length,1);
+  assert.ok(section.includes("observed_revision=$(ssh"), 'Missing independent pinned-SSH revision readback');
+  assert.ok(section.includes('[[ "$observed_revision" != "$EPMO_CI_VERIFIED_SHA" ]]'), 'Readback must fail closed on mismatch');
+  assert.ok(section.includes('::error title=Production readback mismatch'), 'Missing mismatch failure evidence');
   assert.ok(section.includes("SHA_PATTERN='^[a-f0-9]{40}$'"));
   assert.ok(section.includes('[[ "$EPMO_CI_VERIFIED_SHA" =~ $SHA_PATTERN ]]'));
   assert.match(section, /bash infra\/deploy\.sh prod[\s\S]*ssh [\s\S]*\.deployed-revision/);
