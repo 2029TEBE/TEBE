@@ -5,6 +5,9 @@ const fail=()=>{throw Error('GIZE AI report service unavailable')};
 const sessionCookie='__Host-orgaiz_session';
 const csrfCookie='__Host-orgaiz_csrf';
 const uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[0-9a-f]{12}$/i.test(x);
+const stable=x=>typeof x==='string'&&x.length>=16&&x.length<=128&&/^[A-Za-z0-9_-]+$/.test(x);
+const toolId=x=>typeof x==='string'&&x.length<=128&&/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(x);
+const formats=new Set(['pdf','html','gaiz']);
 function origin(x){
  let u;try{u=new URL(x)}catch{fail()}
  if(u.protocol!=='https:'||u.origin!==x||u.port||
@@ -15,7 +18,7 @@ export function createGaizReportHttpHandlers({
  enabled=false,siteOrigin,service,productResolver
 }={}){
  if(enabled!==true||!service||
-    ['catalogue','submit','status','download'].some(k=>typeof service[k]!=='function')||
+    ['catalogue','requireSession','submit','status','download'].some(k=>typeof service[k]!=='function')||
     typeof productResolver!=='function')fail();
  const site=origin(siteOrigin);
  function secure(req){
@@ -46,7 +49,13 @@ export function createGaizReportHttpHandlers({
    const b=req.body;
    if(!b||typeof b!=='object'||Array.isArray(b)||
       Object.keys(b).sort().join(',')!=='idempotencyKey,orderId,request'||
-      !uuid(b.orderId))fail();
+      !uuid(b.orderId)||!stable(b.idempotencyKey)||
+      !b.request||typeof b.request!=='object'||Array.isArray(b.request)||
+      !toolId(b.request.toolId)||!formats.has(b.request.format)||
+      !b.request.inputs||typeof b.request.inputs!=='object'||
+      Array.isArray(b.request.inputs))fail();
+   // Reject unauthenticated customers before any trusted product resolver access.
+   await service.requireSession(token(req));
    // No trusted prices or entitlements are ever accepted from JSON.
    const trusted=await productResolver({orderId:b.orderId,toolId:b.request?.toolId});
    if(!trusted||typeof trusted!=='object'||!trusted.product||

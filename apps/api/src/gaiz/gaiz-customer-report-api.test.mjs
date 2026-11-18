@@ -97,6 +97,43 @@ test('HTTP adapter never trusts prices in browser JSON',async()=>{
  await assert.rejects(h.submit(req({origin:'https://evil.example.test',body:b}),res()));
  await assert.rejects(h.submit(req({body:{...b,priceMinor:1}}),res()));
 });
+test('HTTP submit rejects malformed payload before product resolution',async()=>{
+ let calls=0;
+ const handlers=createGaizReportHttpHandlers({
+  enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:service(),productResolver:async()=>{calls++;return {product:{},policy:{}}}
+ });
+ const valid={orderId,idempotencyKey:'test-idempotency-12345678',
+  request:{toolId:'gaiz.executive-brief.v1',format:'html',inputs:{}}};
+ const invalid=[
+  {...valid,idempotencyKey:'short'},
+  {...valid,idempotencyKey:'a'.repeat(129)},
+  {...valid,request:{...valid.request,toolId:'../../bad'}},
+  {...valid,request:{...valid.request,format:'exe'}},
+  {...valid,request:{...valid.request,inputs:[]}},
+  {...valid,request:null}
+ ];
+ for(const body of invalid)await assert.rejects(handlers.submit(req({body}),res()));
+ assert.equal(calls,0);
+});
+test('HTTP submit denies missing or unauthorized sessions before product resolution',async()=>{
+ let calls=0;
+ const serviceWithDeniedSession=service({sessions:{async requireCustomer(){throw Error('unauthorized')}}});
+ const h=createGaizReportHttpHandlers({enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:serviceWithDeniedSession,productResolver:async()=>{calls++;return {product:{},policy:{}}}});
+ const body={orderId,idempotencyKey:'test-idempotency-12345678',
+  request:{toolId:'gaiz.executive-brief.v1',format:'html',inputs:{}}};
+ await assert.rejects(h.submit(req({body}),res()));
+ await assert.rejects(h.submit(req({body,cookies:{
+  '__Host-orgaiz_csrf':csrf}}),res()));
+ assert.equal(calls,0);
+});
+test('HTTP handlers fail closed without an authenticated preflight dependency',()=>{
+ assert.throws(()=>createGaizReportHttpHandlers({enabled:true,
+  siteOrigin:'https://orgaiz.example.test',
+  service:{catalogue(){},submit(){},status(){},download(){}},
+  productResolver:async()=>({product:{},policy:{}})}));
+});
 test('HTTP downloads set no-store attachment headers',async()=>{
  const h=createGaizReportHttpHandlers({enabled:true,
   siteOrigin:'https://orgaiz.example.test',service:service(),
@@ -115,7 +152,14 @@ test('customer report service refuses invalid OIDC principals and all tenant-bou
   {...principal,customerId:'not-a-uuid'},
   {...principal,issuer:''},
   {...principal,subject:''},
-  {...principal,sessionId:''}
+  {...principal,sessionId:''},
+  {...principal,issuer:'http://example.test/'},
+  {...principal,issuer:'https://example.test/?untrusted=1'},
+  {...principal,issuer:'https://user:password@example.test/'},
+  {...principal,issuer:'https://example.test/#fragment'},
+  {...principal,subject:'../../escape'},
+  {...principal,sessionId:'\n'},
+  {...principal,sessionId:'a'.repeat(129)}
  ];
  for(const identity of invalid){
   const s=service({sessions:{async requireCustomer(){return identity}}});
