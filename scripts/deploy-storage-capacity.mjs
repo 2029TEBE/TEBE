@@ -1,10 +1,9 @@
 // Docker load can retain both content-store blobs and unpacked layers.
 // Budget both copies plus a meaningful reserve; never consume rollback space.
-import {createReadStream} from 'node:fs';
 import {stat} from 'node:fs/promises';
-import {createGunzip} from 'node:zlib';
+import {execFileSync} from 'node:child_process';
 import {resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {pathToFileURL, fileURLToPath} from 'node:url';
 
 const GiB = 1024 ** 3;
 export function requiredLoadKiB(expandedBytes) {
@@ -16,21 +15,13 @@ export async function measureLoadCapacity(archive) {
   const info = await stat(archive);
   if (!info.isFile() || info.size <= 0 || info.size > 8 * GiB)
     throw Error('Invalid image archive');
-  let expandedBytes = 0;
-  const input = createReadStream(archive);
-  const output = createGunzip();
-  input.on('error', error => output.destroy(error));
-  input.pipe(output);
-  try {
-    for await (const chunk of output) {
-      expandedBytes += chunk.length;
-      if (expandedBytes > 32 * GiB) throw Error('Expanded image archive exceeds 32 GiB');
-    }
-  } finally {
-    input.destroy();
-    output.destroy();
-  }
-  return {archiveBytes: info.size, expandedBytes, requiredKiB: requiredLoadKiB(expandedBytes)};
+  // Containerd archives can contain gzip-compressed OCI layers inside tar.
+  // Count those layers too; outer gzip expansion alone underestimates loading.
+  const measured = JSON.parse(execFileSync('python3', [
+    fileURLToPath(new URL('./measure-image-archive.py', import.meta.url)), archive,
+  ], {encoding: 'utf8', maxBuffer: 16384, timeout: 600000}));
+  return {archiveBytes: info.size, ...measured,
+    requiredKiB: requiredLoadKiB(measured.effectiveExpandedBytes)};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
