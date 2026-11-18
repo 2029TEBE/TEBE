@@ -24,3 +24,7 @@ Sources:
 - https://github.com/micromatch/picomatch/pull/235#issuecomment-6315749381
 
 This command does not expose a local web endpoint, install a service, mutate production, or upgrade dependencies. Apply the repository change before running it on the actual local server. Do not expose development servers to untrusted networks or allow untrusted users to supply glob patterns.
+
+## Existing local server runner
+
+`Local server dependency security audit` runs the same command on the existing `servitro-tebe` self-hosted runner after successful, same-repository main CI from push/manual events. It also supports manual runs from main. Pull requests and other branches cannot execute this job. Checkout credentials are not persisted, the token is read-only, and no dependencies or package lifecycle scripts are installed. This workflow does not read application secrets, connect to databases, or deploy the application. Each run publishes dated audit evidence for 14 days; an offline runner leaves the run queued rather than falsely passing.
