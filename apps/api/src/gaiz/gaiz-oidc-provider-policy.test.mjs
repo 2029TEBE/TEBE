@@ -5,7 +5,9 @@ const approval={
  status:'approved',issuer:'https://identity.example.test',
  clientId:'orgaiz-standalone',redirectUri:'https://orgaiz.example.test/auth/callback',
  reviewId:'security-review-001',approvedBy:'synthetic-reviewer',
- allowedJwksUri:'https://identity.example.test/keys'
+ allowedAuthorizationEndpoint:'https://identity.example.test/authorize',
+ allowedTokenEndpoint:'https://identity.example.test/token',
+allowedJwksUri:'https://identity.example.test/keys'
 };
 const metadata={
  issuer:approval.issuer,authorization_endpoint:'https://identity.example.test/authorize',
@@ -44,4 +46,16 @@ test('requires code flow, S256 PKCE and supported signature algorithms',()=>{
 test('does not allow token or browser supplied metadata override',()=>{
  assert.throws(()=>validateOrgaizProviderOnboarding({approval,metadata:{...metadata,jwks_uri:'https://identity.example.test/keys',jku:'https://untrusted.test'}}));
  assert.throws(()=>validateOrgaizProviderOnboarding({approval:{...approval,unreviewed:true},metadata}));
+});
+
+test('same-origin but unapproved authorization and token endpoints fail closed',()=>{
+ for(const changed of [
+  {...metadata,authorization_endpoint:'https://identity.example.test/unreviewed-authorize'},
+  {...metadata,token_endpoint:'https://identity.example.test/other-token'}
+ ])assert.throws(()=>validateOrgaizProviderOnboarding({approval,metadata:changed}));
+ for(const changed of [
+  {...approval,allowedAuthorizationEndpoint:undefined},
+  {...approval,allowedTokenEndpoint:undefined},
+  {...approval,allowedAuthorizationEndpoint:'https://identity.example.test/malicious'}
+ ])assert.throws(()=>validateOrgaizProviderOnboarding({approval:changed,metadata}));
 });
