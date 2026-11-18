@@ -86,3 +86,16 @@ test('suspended customer and unknown token cannot be used for logout-all',async(
  assert.equal(f.calls.filter(x=>x.sql==='ROLLBACK').length,1);
  await assert.rejects(s.requireCustomer('invalid'));
 });
+
+test('invalid OIDC issuer and subject cannot issue a session',async()=>{
+ const f=fakePool(),s=service(f);
+ for(const invalid of [
+  {...identity,issuer:'http://issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/?untrusted=1'},
+  {...identity,issuer:'https://user:pass@issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/#fragment'},
+  {...identity,subject:'../../tenant'},
+  {...identity,subject:'a'.repeat(129)}
+ ])await assert.rejects(s.issueFromTrustedCallback({identity:invalid,callbackVerified:true}));
+ assert.equal(f.calls.length,0);
+});
