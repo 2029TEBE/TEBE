@@ -76,6 +76,24 @@ jobs:
             echo "::error::The tested commit is no longer main; refusing stale production deployment."
             exit 1
           fi
+      - name: Apply bounded maintenance before artifact download
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          umask 077
+          keydir=$(mktemp -d "$RUNNER_TEMP/epmo-deploy-ssh.XXXXXXXX")
+          trap 'rm -rf -- "$keydir"' EXIT
+          printf '%s\\n' "$DEPLOY_KEY" > "$keydir/key"
+          printf '%s\\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
+          unset DEPLOY_KEY KNOWN_HOSTS
+          # Checked-out successful main CI and the shared deployment lock
+          # authorize only the bounded maintenance script, never arbitrary input.
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'bash -s' < infra/storage-maintenance.sh
       - name: Reclaim regenerable runner package caches before artifact download
         run: |
           set -euo pipefail
