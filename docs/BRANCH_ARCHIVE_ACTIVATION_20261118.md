@@ -1,0 +1,3 @@
+# One-time historical branch archiving — 18 November 2026
+
+This documentation-only main commit activates the existing, CI-validated one-time archive workflow from merged PR #634. Each non-main branch must be preserved by a verified Git tag pointing to its exact commit before the branch ref can be retired. `main`, protected refs, open PRs, and moving heads are excluded. Original code remains recoverable from `refs/tags/branch-archive/20261118/...`, but unique branch code is not asserted to be merged into `main`. The archive workflow produces an execution report. This document changes no application, migrations, security rules, deployments, or credentials.
