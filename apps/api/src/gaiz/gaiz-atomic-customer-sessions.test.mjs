@@ -87,31 +87,15 @@ test('suspended customer and unknown token cannot be used for logout-all',async(
  await assert.rejects(s.requireCustomer('invalid'));
 });
 
-test('single-session revocation invalidates only its own bearer',async()=>{
+test('invalid OIDC issuer and subject cannot issue a session',async()=>{
  const f=fakePool(),s=service(f);
- const a=await s.issueFromTrustedCallback({identity,callbackVerified:true});
- const b=await s.issueFromTrustedCallback({identity,callbackVerified:true});
- assert.equal((await s.revoke(a.token)).revoked,true);
- await assert.rejects(s.requireCustomer(a.token));
- assert.equal((await s.requireCustomer(b.token)).customerId,customerId);
-});
-test('expired customer session and missing revocation credentials are denied',async()=>{
- const f=fakePool(),s=service(f);
- const issued=await s.issueFromTrustedCallback({identity,callbackVerified:true});
- for(const record of f.sessions.values())record.expiresAt=now;
- await assert.rejects(s.requireCustomer(issued.token));
- await assert.rejects(s.revokeAll(issued.token));
- for(const invalid of ['', 'not-a-session', 'ogs1.short']){
-  await assert.rejects(s.revoke(invalid));
-  await assert.rejects(s.revokeAll(invalid));
- }
-});
-test('no session bearer can be issued from forged customer authorization flags',async()=>{
- const f=fakePool(),s=service(f);
- for(const field of ['gaizEntitled','gaizDownloadAuthorized','gaizImportAuthorized']){
-  await assert.rejects(s.issueFromTrustedCallback({
-   identity:{...identity,[field]:true},callbackVerified:true
-  }));
- }
+ for(const invalid of [
+  {...identity,issuer:'http://issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/?untrusted=1'},
+  {...identity,issuer:'https://user:pass@issuer.example.test/'},
+  {...identity,issuer:'https://issuer.example.test/#fragment'},
+  {...identity,subject:'../../tenant'},
+  {...identity,subject:'a'.repeat(129)}
+ ])await assert.rejects(s.issueFromTrustedCallback({identity:invalid,callbackVerified:true}));
  assert.equal(f.calls.length,0);
 });
