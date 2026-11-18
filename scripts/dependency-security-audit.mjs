@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { setTimeout as delay } from 'node:timers/promises';
 
 // The registry can lag GitHub withdrawals. Never maintain an ignore list:
 // confirm each blocking GHSA live, and fail closed when confirmation fails.
@@ -35,13 +36,25 @@ export async function assessAudit(report, lookup) {
     withdrawn: results.filter(a => a.state === 'withdrawn').length, registryCounts: reported, results };
 }
 
-async function lookup(id) {
-  const response = await fetch(`https://api.github.com/advisories/${id}`, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'TEBE-dependency-security-audit' },
-    signal: AbortSignal.timeout(15000), redirect: 'error'
-  });
-  if (!response.ok) throw new Error(`Advisory lookup HTTP ${response.status}`);
-  return response.json();
+export async function lookupAdvisory(id, { request = fetch, token = process.env.GH_TOKEN } = {}) {
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'TEBE-dependency-security-audit',
+    'Cache-Control': 'no-cache'
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await request(`https://api.github.com/advisories/${id}`, {
+        headers, signal: AbortSignal.timeout(15000), redirect: 'error'
+      });
+      if (!response.ok) throw new Error(`Advisory lookup HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await delay(500 * (attempt + 1));
+    }
+  }
 }
 
 async function main() {
@@ -54,7 +67,7 @@ async function main() {
     maxBuffer: 16 * 1024 * 1024 });
   if (audit.error || ![0, 1].includes(audit.status)) throw new Error('Registry audit could not complete');
   const report = JSON.parse(audit.stdout);
-  const result = await assessAudit(report, lookup);
+  const result = await assessAudit(report, lookupAdvisory);
   const directory = resolve(process.env.DEPENDENCY_AUDIT_DIR ?? join(process.env.RUNNER_TEMP ?? '/tmp', 'tebe-dependency-audit'));
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, 'registry.json'), JSON.stringify(report, null, 2));
