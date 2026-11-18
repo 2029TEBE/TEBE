@@ -18,4 +18,13 @@ for(const item of prs){
 
 // GITHUB_TOKEN merges suppress push-triggered workflows. Explicit dispatch
 // runs trusted main CI; the existing exact-SHA deploy guard remains mandatory.
-if(mergedAny)execFileSync('gh',['workflow','run','ci.yml','--repo',repository,'--ref',base],{stdio:'inherit'});
+if(mergedAny){
+  execFileSync('gh',['workflow','run','ci.yml','--repo',repository,'--ref',base],{stdio:'inherit'});
+  // GitHub-token merges do not always create push events for cleanup.
+  // Retire only branches already verified as integrated into main.
+  try {
+    execFileSync('gh',['workflow','run','retire-integrated-branches.yml','--repo',repository,'--ref',base],{stdio:'inherit'});
+  } catch {
+    console.warn('Branch retirement dispatch failed; preserving branches for safe retry.');
+  }
+}
