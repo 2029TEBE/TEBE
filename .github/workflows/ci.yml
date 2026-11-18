@@ -34,6 +34,8 @@ jobs:
       - run: npm run test:offline
       - name: Ensure main CI cannot be cancelled by repeated triggers
         run: node --test tests/ci-main-concurrency.test.mjs
+      - name: AO raw Windows native capability compatibility and disabled-execution negative tests
+        run: node --test apps/api/src/gaiz/ao-native-handshake-policy.test.mjs
       - name: AO enterprise admission policy negative security regressions (source-only)
         run: node --test apps/api/src/gaiz/ao-enterprise-policy.test.mjs
       - name: GAIZ customer activation boundary source gate
