@@ -18,12 +18,15 @@ function oidcString(s,max=256) {
   return typeof s==='string'&&s.length>0&&s.length<=max&&!/[\x00-\x1f\x7f]/.test(s);
 }
 export function validateOrgaizProviderOnboarding({approval,metadata}={}){
-  if(!allowedKeys(approval,['status','issuer','clientId','redirectUri','reviewId','approvedBy','allowedJwksUri'])||
+  if(!allowedKeys(approval,['status','issuer','clientId','redirectUri','reviewId','approvedBy','allowedJwksUri','allowedAuthorizationEndpoint','allowedTokenEndpoint'])||
      approval.status!=='approved'||!oidcString(approval.reviewId,128)||
-     !oidcString(approval.approvedBy,128)||!oidcString(approval.clientId,160))reject('operator approval');
+     !oidcString(approval.approvedBy,128)||!oidcString(approval.clientId,160)||
+     !approval.allowedAuthorizationEndpoint||!approval.allowedTokenEndpoint)reject('operator approval');
   const issuer=httpsUrl(approval.issuer);
   const redirect=httpsUrl(approval.redirectUri);
   const jwks=httpsUrl(approval.allowedJwksUri);
+  const approvedAuth=httpsUrl(approval.allowedAuthorizationEndpoint);
+  const approvedToken=httpsUrl(approval.allowedTokenEndpoint);
   // Never allow an unreviewed endpoint to be fetched from token/header contents.
   if(!allowedKeys(metadata,[
     'issuer','authorization_endpoint','token_endpoint','jwks_uri',
@@ -34,6 +37,7 @@ export function validateOrgaizProviderOnboarding({approval,metadata}={}){
   const auth=httpsUrl(metadata.authorization_endpoint);
   const token=httpsUrl(metadata.token_endpoint);
   if(auth.origin!==issuer.origin||token.origin!==issuer.origin)reject('issuer origin mismatch');
+  if(auth.href!==approvedAuth.href||token.href!==approvedToken.href)reject('unapproved OAuth endpoint');
   // JWKS may use a provider-managed host, but only the exact explicitly approved URI.
   if(!jwks||metadata.jwks_uri!==jwks.toString())reject('unapproved trust source');
   if(!Array.isArray(metadata.response_types_supported)||!metadata.response_types_supported.includes('code')||
