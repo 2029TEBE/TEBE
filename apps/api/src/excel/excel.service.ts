@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { withTenant, auditEvents } from '@pmo/db';
 import { DEFAULT_GATES, WORKBOOK } from '@pmo/contracts';

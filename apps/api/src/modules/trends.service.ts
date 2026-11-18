@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { sql } from 'drizzle-orm';
 import { db, withTenant } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
