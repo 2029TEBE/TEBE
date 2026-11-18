@@ -26,7 +26,7 @@
 ## Summary
 - Assigned: **60** / 150 source requirements (provisional ownership)
 - Verified: **0 confirmed from this extraction** (not a measured failure rate)
-- Not assessed: **60**; no completion percentage until evidence inspection
+- In progress: **2** (API-05, OPS-01); not assessed: **58**; no completion percentage until independent acceptance evidence
 - Last source inventory: **2026-11-18**
 
 ## Full assigned checklist
@@ -62,7 +62,7 @@
 - [ ] **API-02** — Authorize artifact upload/download by tenant, identity, recipient and entitlement; prevent untrusted filenames/metadata from granting access. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#API-02](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **API-03** — Verify TLS/DNS/routes, security rules, CORS/CSRF where applicable, streaming/timeouts and encrypted-file upload limits. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#API-03](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **API-04** — Prevent shared caching of private responses/downloads; test URL/token expiry and authorized delivery behavior. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#API-04](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
-- [ ] **API-05** — Keep ciphertext storage separate from necessary access metadata; define object lifecycle, quotas, deletion and orphan cleanup. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#API-05](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
+- [ ] **API-05** — Keep ciphertext storage separate from necessary access metadata; define object lifecycle, quotas, deletion and orphan cleanup. · **IN_PROGRESS** · Source: [Theepmo-ref2.md#API-05](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: encrypted private-store implementation `apps/api/src/gaiz/gaiz-encrypted-file-object-store.mjs`; fail-closed regression tests proposed in [PR #645](https://github.com/2029TEBE/TEBE/pull/645), CI pending; object lifecycle/quotas/deletion/orphans still unverified
 - [ ] **INT-01** — Prioritize required Microsoft 365/Teams, email/calendar and Jira integrations against actual customer journeys; deliver a declared launch connector set and track others explicitly. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#INT-01](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **INT-02** — For each launch connector define authoritative system, scopes, mapping, sync direction, rate limits, retries, idempotency, conflict handling and reconciliation. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#INT-02](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **INT-03** — Test expired/revoked connector credentials, outages and cross-tenant denial; do not claim unsupported integrations. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#INT-03](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
@@ -75,7 +75,7 @@
 - [ ] **AI-06** — Maintain model/prompt versions, evaluation datasets and per-language quality checks with predefined pass criteria. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#AI-06](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **AI-07** — Test unsupported claims, injection attempts, sensitive-data leakage and tool scope violations; record failures and remediation. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#AI-07](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **AI-08** — Define provider data handling, retention, consent, usage metering, per-tenant limits and sustainable cost budgets. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#AI-08](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
-- [ ] **OPS-01** — Resolve verified release-blocking vulnerabilities and failing required checks; document severity and remediation. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#OPS-01](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
+- [ ] **OPS-01** — Resolve verified release-blocking vulnerabilities and failing required checks; document severity and remediation. · **IN_PROGRESS** · Source: [Theepmo-ref2.md#OPS-01](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: [PR #644](https://github.com/2029TEBE/TEBE/pull/644) image identity and deployment-capacity safety changes, [CI run](https://github.com/2029TEBE/TEBE/actions/runs/44371393267) in progress at audit; [PR #645](https://github.com/2029TEBE/TEBE/pull/645) private-store regressions, [CI run](https://github.com/2029TEBE/TEBE/actions/runs/44371929041) in progress; no release claim
 - [ ] **OPS-02** — Establish central logs, metrics, correlation IDs, bounded retention, alert thresholds and named incident ownership without leaking sensitive content. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#OPS-02](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **OPS-03** — Document customer incident/status communications and support escalation. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#OPS-03](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **OPS-04** — Run representative load/soak tests at the declared launch load; document bottlenecks, database/index/connection limits and scaling triggers. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#OPS-04](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
@@ -96,6 +96,7 @@
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
 | 2026-11-18 | Initial source ID inventory | None verified | Source storage and original OT handoff | Instruction-only initial commit | Check actual repo implementation and link durable source artifacts |
+| 2026-11-18 18:40 UTC | API-05, OPS-01 reclassified IN_PROGRESS | None verified | Pending PR #644/#645 CI, live release verification and full source acceptance | [#644](https://github.com/2029TEBE/TEBE/pull/644), [#645](https://github.com/2029TEBE/TEBE/pull/645); both CI runs in progress at inspection | Complete CI, review, operational evidence and all remaining source ID inspection |
 
 
 ## Mandatory expert update after EVERY task — owner instruction 2026-11-18
