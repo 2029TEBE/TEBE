@@ -44,3 +44,21 @@ test('DB harness cannot target nonlocal or pre-existing production database',()=
  assert.match(concurrency,/revision=0/);
  assert.match(concurrency,/stale compare-and-swap changed a project/);
 });
+
+test('isolated PostgreSQL fixtures use paired DO block delimiters', () => {
+ for (const [name, sql] of [['bootstrap', boot], ['assertions', assertions]]) {
+  const delimiters = sql.matchAll(/^\s*(DO|END)\s+(\$[\w$]*)/gmi);
+  let opening;
+  for (const [, keyword, delimiter] of delimiters) {
+   assert.match(delimiter, /^\$(?:[a-z_]\w*)?\$$/i, name + ' has an invalid dollar delimiter');
+   if (keyword.toUpperCase() === 'DO') {
+    assert.equal(opening, undefined, name + ' has an unclosed DO block');
+    opening = delimiter;
+   } else {
+    assert.equal(delimiter, opening, name + ' has mismatched DO block delimiters');
+    opening = undefined;
+   }
+  }
+  assert.equal(opening, undefined, name + ' has an unclosed DO block');
+ }
+});
