@@ -74,12 +74,13 @@ export function createGaizCustomerReportService({
       !uuid(job.orderId)||job.state!=='completed')fail();
    const record=await orders.getOrder(job.orderId,p.customerId);
    const a=await artifacts.getMetadata(artifactId,p.customerId);
-   if(!a||a.id!==artifactId||a.jobId!==jobId||a.customerId!==p.customerId)fail();
+   if(!a||a.id!==artifactId||a.jobId!==jobId||a.customerId!==p.customerId||
+      a.verifiedByServer!==true||a.revokedAt===undefined)fail();
    // Existing immutable policy requires completed unrefunded order, completed
    // owned job, active non-revoked verified artifact and unexpired metadata.
    const metadata={id:a.id,jobId:a.jobId,customerId:a.customerId,
     format:a.format,expiresAt:Math.floor(new Date(a.expiresAt).getTime()/1000),
-    revoked:a.revokedAt!==null,verifiedByServer:true};
+    revoked:a.revokedAt!==null,verifiedByServer:a.verifiedByServer};
    const grant=authorizeGaizArtifact({
     principal:p,order:record,job,artifact:metadata,nowSeconds:now()
    });
