@@ -103,6 +103,8 @@
 - **Bulk reconciliation (2026-11-18):** [PR #661](https://github.com/2029TEBE/TEBE/pull/661) closed unmerged as overlapping. Canonical [PR #663](https://github.com/2029TEBE/TEBE/pull/663) **merged** after successful CI and `.GAZE` conformance; implementation rejects non-empty unmodeled intents and non-empty artifact refs, and validates v1 timeouts/approval flags. It remains an unmounted admission policy (`executionSupported:false`), not a reviewed, deployable enterprise AO execution service. Independent review, OT contract integration and full source-ID acceptance are outstanding.
 
 ## Expert update log
+| 2026-11-18 22:03 UTC | OPS-01 — production-image cutover rehearsal CI diagnosis | None verified | Actual production HTTPS, full staging cutover, deployment authorization, rollback and migration acceptance | [PR #672](https://github.com/2029TEBE/TEBE/pull/672): [CI rehearsal run 44404656130](https://github.com/2029TEBE/TEBE/actions/runs/44404656130) failed because production-built API correctly rejected insecure `WEB_ORIGIN=http://127.0.0.1:18080`; fixture changed to non-routable HTTPS origin in commit `223d98eae4acf6099647fe0921b9238001dcb3dc` without relaxing application validation | Re-run exact-head cutover rehearsal and inspect both real-image migration/rollback probes; do not mark OPS-01 VERIFIED from disposable fixtures |
+
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
 | 2026-11-18 | Initial source ID inventory | None verified | Source storage and original OT handoff | Instruction-only initial commit | Check actual repo implementation and link durable source artifacts |
