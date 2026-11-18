@@ -1,57 +1,51 @@
 name: Reclaim unused production build cache
 on:
-  push:
-    branches: [main]
-    paths: [.github/workflows/recover-deploy-disk.yml]
   workflow_dispatch:
-  schedule:
-    - cron: '23 */6 * * *'
 permissions:
   contents: read
 concurrency:
   group: epmo-production-deployment
   cancel-in-progress: false
 jobs:
-  recover:
-    if: github.repository == '2029TEBE/TEBE'
+  diagnose:
     runs-on: [self-hosted, linux, x64, servitro-tebe]
-    timeout-minutes: 20
+    timeout-minutes: 15
     environment: production
     steps:
-      - name: Reclaim abandoned release scratch and report low runner capacity
-        env:
-          SCRATCH_ROOT: ${{ vars.EPMO_DEPLOY_SCRATCH_ROOT }}
+      - name: Read-only runner storage inventory
+        shell: bash
         run: |
           set -euo pipefail
-          root=$(realpath -e -- "${SCRATCH_ROOT:-$RUNNER_TEMP}")
-          find "$root" -mindepth 1 -maxdepth 1 -type d -user "$(id -u)" \
-            -name 'epmo-verified-release.????????' -mmin +180 -exec rm -rf -- {} +
-          free_kib=$(df -Pk "$root" | awk 'END { print $4 }')
-          free_inodes=$(df -Pi "$root" | awk 'END { print $4 }')
-          [[ "$free_kib" =~ ^[0-9]+$ && "$free_inodes" =~ ^[0-9]+$ ]]
-          printf 'Runner storage: %s KiB and %s inodes free.\n' "$free_kib" "$free_inodes" >> "$GITHUB_STEP_SUMMARY"
-          if (( free_kib < 4194304 || free_inodes < 4096 )); then
-            echo '::warning title=Runner storage low::Less than 4 GiB or 4096 inodes free. Check capacity before the next release.'
+          id
+          printf 'Runner=%s temp=%s workspace=%s\n' "$RUNNER_NAME" "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          df -hT
+          df -i
+          findmnt -rn -o TARGET,SOURCE,FSTYPE
+          for path in "$HOME" /opt /var/cache /var/log /var/lib/docker /var/lib/containerd /tmp /mnt /srv; do
+            if [[ -d "$path" ]]; then
+              echo "Directory usage: $path"
+              du -x -h --max-depth=2 "$path" 2>/dev/null | sort -h | tail -25 || true
+            fi
+          done
+          systemctl list-units --type=service --all --no-pager | grep -E 'actions.runner|docker|containerd' || true
+          if command -v docker >/dev/null; then
+            docker info --format 'DockerRootDir={{.DockerRootDir}}' || true
+            docker system df -v || true
+            docker ps -a --format '{{.ID}} {{.Image}} {{.Status}}' || true
           fi
-      - name: Reclaim only old dangling Docker images and unused build cache; report storage
+      - name: Read-only production storage inventory
         env:
           DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
           DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
           KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        shell: bash
         run: |
           set -euo pipefail
           [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]
-          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
           umask 077
-          keydir=$(mktemp -d)
+          keydir=$(mktemp -d "$RUNNER_TEMP/epmo-storage-ssh.XXXXXXXX")
           trap 'rm -rf -- "$keydir"' EXIT
           printf '%s\n' "$DEPLOY_KEY" > "$keydir/key"
           printf '%s\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
           unset DEPLOY_KEY KNOWN_HOSTS
-          echo 'Runner available space before recovery:'
-          df -h "$RUNNER_TEMP" || true
-          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; df -h /var/lib/docker /var/lib/containerd; docker system df; docker builder prune --all --force --filter until=168h; docker image prune --force --filter until=168h; docker system df; df -h /var/lib/docker /var/lib/containerd'
-          echo 'Runner available space after recovery:'
-          df -h "$RUNNER_TEMP" || true
-# Only dangling images older than 7 days and unused build cache are removed.
-# No tagged image, running container, volume, backup, migration or app restart.
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; id; df -hT; df -i; findmnt -rn -o TARGET,SOURCE,FSTYPE; stat -c "%d %n" /opt/the-epmo /var/lib/docker /tmp; docker info --format "DockerRootDir={{.DockerRootDir}}"; docker system df -v; docker ps -a --format "{{.ID}} {{.Image}} {{.Status}}"; for p in /opt /var/cache /var/log /var/lib/docker /var/lib/containerd /tmp /mnt /srv; do if test -d "$p"; then echo "Directory usage: $p"; du -x -h --max-depth=2 "$p" 2>/dev/null | sort -h | tail -25; fi; done'
