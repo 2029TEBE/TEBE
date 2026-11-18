@@ -12,7 +12,7 @@ const order={id:orderId,customerId:owner,toolId:'gaiz.executive-brief.v1',
  currency:'USD',amountMinor:1000,providerTransactionId:'txn-1',state:'completed',revision:4};
 const job={id:jobId,orderId,customerId:owner,state:'completed'};
 const artifact={id:artifactId,jobId,customerId:owner,format:'html',
- revokedAt:null,expiresAt:new Date(Date.now()+86400000)};
+ revokedAt:null,verifiedByServer:true,expiresAt:new Date(Date.now()+86400000)};
 const principal={authenticated:true,identityProvider:'oidc',epmoTenantBound:false,
  customerId:owner,issuer:'https://example.test/',subject:'customer-1',sessionId:'session-1'};
 const source={
@@ -54,6 +54,15 @@ test('report only downloads from completed and unrevoked record',async()=>{
  assert.equal(r.filename,'gaiz-report.html');
  assert.equal(r.contentDisposition,'attachment');
  assert.equal(r.bytes.toString(),'safe report');
+ const unverified=service({artifacts:{...source.artifacts,
+   async getMetadata(){return {...artifact,verifiedByServer:false}}}});
+ await assert.rejects(unverified.download({sessionToken,jobId,artifactId}));
+ const missingProof=service({artifacts:{...source.artifacts,
+   async getMetadata(){const {verifiedByServer,...unverifiedRecord}=artifact;return unverifiedRecord}}});
+ await assert.rejects(missingProof.download({sessionToken,jobId,artifactId}));
+ const missingRevocation=service({artifacts:{...source.artifacts,
+   async getMetadata(){const {revokedAt,...incomplete}=artifact;return incomplete}}});
+ await assert.rejects(missingRevocation.download({sessionToken,jobId,artifactId}));
  const revoked=service({artifacts:{...source.artifacts,
    async getMetadata(){return {...artifact,revokedAt:new Date()}}}});
  await assert.rejects(revoked.download({sessionToken,jobId,artifactId}));
