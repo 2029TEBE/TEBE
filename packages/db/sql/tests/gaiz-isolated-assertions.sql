@@ -24,7 +24,7 @@ SELECT set_config('app.tenant_id','',true);
 DO $$ BEGIN
  IF (SELECT count(*) FROM public.gaiz_import_requests)<>0
  THEN RAISE EXCEPTION 'unset tenant context leaked GAIZ requests'; END IF;
-END $;
+END $$;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
 DO $$ BEGIN
  IF (SELECT count(*) FROM public.gaiz_import_requests WHERE tenant_id='22222222-2222-4222-8222-222222222222')<>0
@@ -58,7 +58,7 @@ DO $$ DECLARE changed integer; BEGIN
  WHERE id='55555555-5555-4555-8555-555555555555';
  GET DIAGNOSTICS changed = ROW_COUNT;
  IF changed<>0 THEN RAISE EXCEPTION 'cross-tenant GAIZ mutation accepted'; END IF;
-END $;
+END $$;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
 DO $$ DECLARE blocked boolean:=false; BEGIN
  BEGIN
