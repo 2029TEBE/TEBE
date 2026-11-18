@@ -102,9 +102,18 @@
 
 - **Bulk reconciliation (2026-11-18):** [PR #661](https://github.com/2029TEBE/TEBE/pull/661) closed unmerged as overlapping. Canonical [PR #663](https://github.com/2029TEBE/TEBE/pull/663) **merged** after successful CI and `.GAZE` conformance; implementation rejects non-empty unmodeled intents and non-empty artifact refs, and validates v1 timeouts/approval flags. It remains an unmounted admission policy (`executionSupported:false`), not a reviewed, deployable enterprise AO execution service. Independent review, OT contract integration and full source-ID acceptance are outstanding.
 
+## AO replay-resistant review reservation — source-only prototype (2026-11-19 UTC)
+
+- **IDs under investigation:** INT-02 (connector idempotency/reconciliation), AI-05 (explicit authorized execution decisions), SEC-01 (tenant/role isolation). **Original checkboxes and VERIFIED count remain unchanged.**
+- **Proposed:** `apps/api/src/gaiz/ao-review-reservation.mjs` with injected PostgreSQL client, parameterized `app.tenant_id` transaction context, server-owned verifier callback, hashed request IDs and a unique-key duplicate reservation attempt. The only return state is `PENDING_REVIEW`; `executionSupported:false`, `grantIssued:false`. No commands, tools, payments, users or customer data are touched.
+- **Tests:** seven synthetic Node test groups in `ao-review-reservation.test.mjs`, invoked by required CI source-guards. Test suite uses a mock client; real PostgreSQL concurrency, RLS and migration evidence **not yet collected**.
+- **Critical prerequisites:** [storage/RLS/activation handoff](./ao-reservation-storage-handoff.md); no `ao_task_reservations` production migration exists, no trusted verifier registered and no AO execution path is mounted. A DB-backed release would require strict FORCE RLS + unique constraint + two-tenant concurrent E2E, immutable audit/retention, Studio approval and OT bridge acceptance.
+- **Current evidence status:** proposed PR only; do not count this as completed INT-02, AI-05, SEC-01 or GIZE paid-customer readiness.
+
 ## Expert update log
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
+| 2026-11-19 | INT-02, AI-05, SEC-01 — AO replay-safe review reservation prototype | None verified | Production AO table/RLS/unique key, trusted transactional verifier, concurrency/tenant E2E, immutable audit and runtime activation | New unmounted reservation source + 7 synthetic negative/positive tests + mandatory CI proposed | Validate exact-head CI, then implement restricted DB schema and real PostgreSQL acceptance before any live route |
 | 2026-11-18 | Initial source ID inventory | None verified | Source storage and original OT handoff | Instruction-only initial commit | Check actual repo implementation and link durable source artifacts |
 | 2026-11-18 | API-02, API-05, OPS-01 reclassified IN_PROGRESS | None verified | Owner-only source package, live RLS/tenant security, E2E interoperability, operational release proof | [#644](https://github.com/2029TEBE/TEBE/pull/644), [#645](https://github.com/2029TEBE/TEBE/pull/645), [#646](https://github.com/2029TEBE/TEBE/pull/646) merged with exact-head CI success | Validate acceptance cases individually and retain production release gates |
 
