@@ -53,3 +53,34 @@ test('cannot read a symlink placed at the encrypted-object path', async () => fi
   await symlink('/etc/passwd',join(root,'a'.repeat(64)+'.genc'));
   await assert.rejects(storage.getPrivate({objectKey,maxBytes:1024,allowPublic:false}));
 }));
+
+
+test('ciphertext is bound to its exact private object identity', async () => fixture(async ({root,key}) => {
+  const storage = createGaizEncryptedFileObjectStore({enabled:true,rootDirectory:root,encryptionKey:key});
+  const otherObjectKey = 'orgaiz/private/staging/' + 'b'.repeat(64);
+  await storage.putEncrypted({objectKey,bytes:Buffer.from('sensitive'),
+    contentType:'application/pdf',immutable:true,public:false});
+  const source = join(root,'a'.repeat(64)+'.genc');
+  const target = join(root,'b'.repeat(64)+'.genc');
+  await writeFile(target,await readFile(source));
+  await assert.rejects(storage.getPrivate({objectKey:otherObjectKey,maxBytes:1024,allowPublic:false}));
+}));
+
+test('corrupted encrypted file header is rejected without plaintext fallback', async () => fixture(async ({root,key}) => {
+  const storage = createGaizEncryptedFileObjectStore({enabled:true,rootDirectory:root,encryptionKey:key});
+  await storage.putEncrypted({objectKey,bytes:Buffer.from('confidential'),
+    contentType:'application/pdf',immutable:true,public:false});
+  const path = join(root,'a'.repeat(64)+'.genc');
+  const blob = await readFile(path);
+  blob[0] ^= 1;
+  await writeFile(path,blob);
+  await assert.rejects(storage.getPrivate({objectKey,maxBytes:1024,allowPublic:false}));
+}));
+
+test('unsafe shared directory permissions deny encrypted reads and writes', async () => fixture(async ({root,key}) => {
+  const storage = createGaizEncryptedFileObjectStore({enabled:true,rootDirectory:root,encryptionKey:key});
+  await chmod(root,0o755);
+  await assert.rejects(storage.putEncrypted({objectKey,bytes:Buffer.from('secret'),
+    contentType:'application/pdf',immutable:true,public:false}));
+  await assert.rejects(storage.getPrivate({objectKey,maxBytes:1024,allowPublic:false}));
+}));
