@@ -19,6 +19,12 @@ INSERT INTO public.gaiz_import_requests(tenant_id,artifact_id,sha256,issuer_id,r
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 BEGIN;
 SET LOCAL ROLE pmo_app;
+-- No tenant context must expose no rows. Missing context is never evidence of isolation.
+SELECT set_config('app.tenant_id','',true);
+DO $ BEGIN
+ IF (SELECT count(*) FROM public.gaiz_import_requests)<>0
+ THEN RAISE EXCEPTION 'unset tenant context leaked GAIZ requests'; END IF;
+END $;
 SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
 DO $$ BEGIN
  IF (SELECT count(*) FROM public.gaiz_import_requests WHERE tenant_id='22222222-2222-4222-8222-222222222222')<>0
@@ -44,7 +50,17 @@ INSERT INTO public.gaiz_import_requests
 VALUES
  ('55555555-5555-4555-8555-555555555555','11111111-1111-4111-8111-111111111111','synthetic-a',repeat('a',64),'synthetic-issuer','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
  ('66666666-6666-4666-8666-666666666666','11111111-1111-4111-8111-111111111111','synthetic-b',repeat('b',64),'synthetic-issuer','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
-DO $$ DECLARE blocked boolean:=false; BEGIN
+-- Switching to tenant-2 must neither reveal nor mutate tenant-1 staged records.
+SELECT set_config('app.tenant_id','22222222-2222-4222-8222-222222222222',true);
+DO $ DECLARE changed integer; BEGIN
+ UPDATE public.gaiz_import_requests SET status='rejected',
+   reviewed_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', reviewed_at=now()
+ WHERE id='55555555-5555-4555-8555-555555555555';
+ GET DIAGNOSTICS changed = ROW_COUNT;
+ IF changed<>0 THEN RAISE EXCEPTION 'cross-tenant GAIZ mutation accepted'; END IF;
+END $;
+SELECT set_config('app.tenant_id','11111111-1111-4111-8111-111111111111',true);
+DO $ DECLARE blocked boolean:=false; BEGIN
  BEGIN
   UPDATE public.gaiz_import_requests SET status='approved',
    reviewed_by='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reviewed_at=now()
