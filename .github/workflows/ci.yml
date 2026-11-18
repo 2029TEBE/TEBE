@@ -275,4 +275,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level high
+      - name: Dependency security gate with live withdrawal verification
+        run: pnpm audit:security
+      - name: Preserve dependency audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tebe-dependency-audit/*.json
+          if-no-files-found: warn
+          retention-days: 14
