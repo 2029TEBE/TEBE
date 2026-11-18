@@ -92,6 +92,14 @@
 - [ ] **COM-06** — Confirm production merchant configuration, approved live credentials and required activation without exposing secrets or making unauthorized charges. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#COM-06](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 - [ ] **COM-08** — Demonstrate full paid-plan journey from provisioning to value delivery and account closure/export; verify launch configuration separately from test billing. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#COM-08](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
 
+## AO enterprise admission — source-only evidence (2026-11-18 UTC)
+
+- **Scope / source IDs:** [API-01](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md), API-02, INT-02, INT-03, AI-03, AI-05, SEC-01 and SEC-03. These are **implementation evidence only**, not completion of any full source requirement.
+- **Shared contracts:** [OT AO accelerator PR #79](https://github.com/faisalwrokksa-hub/TO/pull/79) proposes versioned tool, task and approval schemas; [TEBE AO crosswalk PR #660](https://github.com/2029TEBE/TEBE/pull/660) maps all 60 source IDs without claiming completion.
+- **New backend work:** `apps/api/src/gaiz/ao-enterprise-policy.mjs` is disabled by default, unmounted and never invokes tools. Requires backend-verified principal, membership, entitlement and tenant-scoped registry; denies cross-tenant identities, arbitrary native/STDIO commands, unapproved/private HTTP targets and privileged execution, including forged approval attempts.
+- **Tests / CI:** `apps/api/src/gaiz/ao-enterprise-policy.test.mjs` (8 local Node test groups passed) and a mandatory CI source-guard step. Current-head GitHub CI, code review and runtime/security penetration tests are **pending**; do not mark any item VERIFIED.
+- **Blockers:** no trusted NestJS middleware/transactional authorization integration, PostgreSQL AO registry RLS/migrations, production-owned OAuth audience and pinned resolver, secrets/egress custody, replay-safe durable jobs, signed approval audit, two-tenant authenticated E2E, full locale matrix, KMS/Windows interoperability, legal review of upstream AGPL-3.0 vs alleged permission, and live production/rollback evidence. Final release remains gated.
+
 ## Expert update log
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
