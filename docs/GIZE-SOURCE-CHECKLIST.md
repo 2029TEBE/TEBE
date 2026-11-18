@@ -29,6 +29,13 @@
 - In progress: **6** (API-02, API-04, API-05, OPS-01, SEC-01, SEC-02); not assessed: **54**; verified: **0**. No completion percentage until independent acceptance evidence
 - Last source inventory: **2026-11-18**
 
+## AO enterprise integration — source-only security increment (2026-11-18)
+- **AO candidate contract:** [OT PR #79](https://github.com/faisalwrokksa-hub/TO/pull/79) defines v1 tool/task/approval schemas; [OT PR #80](https://github.com/faisalwrokksa-hub/TO/pull/80) proposes a disabled, read-only native handshake. Both require independent exact-head reviews and tests before consumer contracts are final.
+- **TEBE implementation in this branch:** `apps/api/src/ao/ao-enterprise-policy.mjs` and its negative tests provide a disabled-by-default **source-only** authorization decision. `.github/workflows/ci.yml` is extended to run this test suite. No API route, task dispatch, MCP transport, credential storage or write execution is enabled.
+- **Mapping:** API-01, API-02, INT-02, AI-02, AI-03, AI-05, SEC-01, SEC-02 and OPS-01 are **IN_PROGRESS specifically for AO integration**; do not change their original status/checkbox without full source acceptance. The 60-row AO applicability crosswalk is proposed independently on `sync/ao-checklist-20261118`, pending review.
+- **Blocking gates:** Trusted server-side identity/role/entitlement extraction, tenant-bound RLS tests, pinned tool registry, audit and replay-safe idempotency, human-approved authorization provenance, SSRF/egress and MCP credential custody, OT contract acceptance, review of upstream AGPL-3.0 rights, full locale matrix, Windows/Chrome E2E and production go/no-go.
+- **Evidence level:** implementation written and local prototype policy tests passed in the engineering workspace; exact GitHub PR-head CI pending. **0 new VERIFIED source IDs**, no deployment evidence and production remains **NO_GO**.
+
 ## Full assigned checklist
 
 - [ ] **WF-01** — Strategy: objectives, owners, measurable outcomes, targets and links to portfolios/programs/projects. · **NOT_ASSESSED** · Source: [Theepmo-ref2.md#WF-01](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/gize-sources/Theepmo-ref2.md) · Evidence: pending
