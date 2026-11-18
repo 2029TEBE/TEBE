@@ -116,6 +116,24 @@ test('HTTP submit rejects malformed payload before product resolution',async()=>
  for(const body of invalid)await assert.rejects(handlers.submit(req({body}),res()));
  assert.equal(calls,0);
 });
+test('HTTP submit denies missing or unauthorized sessions before product resolution',async()=>{
+ let calls=0;
+ const serviceWithDeniedSession=service({sessions:{async requireCustomer(){throw Error('unauthorized')}}});
+ const h=createGaizReportHttpHandlers({enabled:true,siteOrigin:'https://orgaiz.example.test',
+  service:serviceWithDeniedSession,productResolver:async()=>{calls++;return {product:{},policy:{}}}});
+ const body={orderId,idempotencyKey:'test-idempotency-12345678',
+  request:{toolId:'gaiz.executive-brief.v1',format:'html',inputs:{}}};
+ await assert.rejects(h.submit(req({body}),res()));
+ await assert.rejects(h.submit(req({body,cookies:{
+  '__Host-orgaiz_csrf':csrf}}),res()));
+ assert.equal(calls,0);
+});
+test('HTTP handlers fail closed without an authenticated preflight dependency',()=>{
+ assert.throws(()=>createGaizReportHttpHandlers({enabled:true,
+  siteOrigin:'https://orgaiz.example.test',
+  service:{catalogue(){},submit(){},status(){},download(){}},
+  productResolver:async()=>({product:{},policy:{}})}));
+});
 test('HTTP downloads set no-store attachment headers',async()=>{
  const h=createGaizReportHttpHandlers({enabled:true,
   siteOrigin:'https://orgaiz.example.test',service:service(),
