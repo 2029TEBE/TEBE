@@ -152,7 +152,14 @@ test('customer report service refuses invalid OIDC principals and all tenant-bou
   {...principal,customerId:'not-a-uuid'},
   {...principal,issuer:''},
   {...principal,subject:''},
-  {...principal,sessionId:''}
+  {...principal,sessionId:''},
+  {...principal,issuer:'http://example.test/'},
+  {...principal,issuer:'https://example.test/?untrusted=1'},
+  {...principal,issuer:'https://user:password@example.test/'},
+  {...principal,issuer:'https://example.test/#fragment'},
+  {...principal,subject:'../../escape'},
+  {...principal,sessionId:'\n'},
+  {...principal,sessionId:'a'.repeat(129)}
  ];
  for(const identity of invalid){
   const s=service({sessions:{async requireCustomer(){return identity}}});
