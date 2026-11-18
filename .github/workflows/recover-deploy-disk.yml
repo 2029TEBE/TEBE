@@ -18,6 +18,43 @@ jobs:
     timeout-minutes: 20
     environment: production
     steps:
+      - name: Read-only runner storage inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          id
+          printf 'Runner=%s temp=%s workspace=%s\n' "$RUNNER_NAME" "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          df -hT
+          df -i
+          findmnt -rn -o TARGET,SOURCE,FSTYPE
+          for path in "$HOME" /opt /var/cache /var/log /var/lib/docker /var/lib/containerd /tmp /mnt /srv; do
+            if [[ -d "$path" ]]; then
+              echo "Directory usage: $path"
+              du -x -h --max-depth=2 "$path" 2>/dev/null | sort -h | tail -25 || true
+            fi
+          done
+          systemctl list-units --type=service --all --no-pager | grep -E 'actions.runner|docker|containerd' || true
+          if command -v docker >/dev/null; then
+            docker info --format 'DockerRootDir={{.DockerRootDir}}' || true
+            docker system df -v || true
+            docker ps -a --format '{{.ID}} {{.Image}} {{.Status}}' || true
+          fi
+      - name: Read-only production storage inventory
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ ]]
+          umask 077
+          keydir=$(mktemp -d "$RUNNER_TEMP/epmo-storage-ssh.XXXXXXXX")
+          trap 'rm -rf -- "$keydir"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$keydir/key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$keydir/known_hosts"
+          unset DEPLOY_KEY KNOWN_HOSTS
+          ssh -i "$keydir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o "UserKnownHostsFile=$keydir/known_hosts" -- "$DEPLOY_HOST" 'set -eu; id; df -hT; df -i; findmnt -rn -o TARGET,SOURCE,FSTYPE; stat -c "%d %n" /opt/the-epmo /var/lib/docker /tmp; docker info --format "DockerRootDir={{.DockerRootDir}}"; docker system df -v; docker ps -a --format "{{.ID}} {{.Image}} {{.Status}}"; for p in /opt /var/cache /var/log /var/lib/docker /var/lib/containerd /tmp /mnt /srv; do if test -d "$p"; then echo "Directory usage: $p"; du -x -h --max-depth=2 "$p" 2>/dev/null | sort -h | tail -25; fi; done'
       - name: Reclaim abandoned release scratch and report low runner capacity
         env:
           SCRATCH_ROOT: ${{ vars.EPMO_DEPLOY_SCRATCH_ROOT }}
