@@ -38,6 +38,8 @@ jobs:
         run: node --test apps/api/src/gaiz/ao-native-handshake-policy.test.mjs
       - name: AO isolated replay-resistant tenant review reservation regression tests
         run: node --test apps/api/src/gaiz/ao-review-reservation.test.mjs
+      - name: AO unmounted enterprise preflight negative security regressions
+        run: node --test apps/api/src/gaiz/ao-enterprise-authorization.test.mjs
       - name: AO enterprise admission policy negative security regressions (source-only)
         run: node --test apps/api/src/gaiz/ao-enterprise-policy.test.mjs
       - name: GAIZ customer activation boundary source gate
