@@ -33,8 +33,13 @@ export function createAoReviewReservation({
   typeof verifyTrustedReadInTransaction!=='function')deny();
  return Object.freeze({
   async reserve(task){
-   const t=valid(task),client=await pool.connect();
-   if(!client||typeof client.query!=='function'||typeof client.release!=='function')deny();
+   const t=valid(task);
+   let client;
+   try { client=await pool.connect(); } catch { deny(); }
+   if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
+    if(typeof client?.release==='function'){try{client.release()}catch{}}
+    deny();
+   }
    let began=false;
    try{
     await client.query('BEGIN');began=true;
