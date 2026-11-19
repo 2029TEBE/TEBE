@@ -29,7 +29,8 @@ esac
   if(state==='SUCCESS'){
    const merge=lines.findIndex(x=>x.startsWith('pr merge ')),dispatch=lines.findIndex(x=>x==='workflow run ci.yml --repo 2029TEBE/TEBE --ref main');
    assert.ok(merge>=0&&dispatch>merge);assert.match(lines[merge],/--match-head-commit a{40}/);
-   assert.equal(lines.filter(x=>x.startsWith('workflow run ')).length,1);
+   assert.equal(lines.filter(x=>x.startsWith('workflow run ')).length,2);
+   assert.ok(lines.some(x=>x==='workflow run retire-integrated-branches.yml --repo 2029TEBE/TEBE --ref main'));
   }else assert.ok(lines.every(x=>!x.startsWith('pr merge ')&&!x.startsWith('workflow run ')));
  }
  }finally{await rm(dir,{recursive:true,force:true});}
