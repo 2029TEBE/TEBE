@@ -66,12 +66,16 @@ export function createAoReviewReservation({
      [t.tenantId,t.requestHash,t.requestDigest,t.principalId,t.toolId,t.taskId]));
     let replayed=false;
     if(!inserted){
+     // UNIQUE(tenant_id,request_hash) serializes competing inserts. A read
+     // suffices once the conflicting row is committed: the restricted AO role
+     // cannot UPDATE or DELETE reservations, so FOR UPDATE is both unnecessary
+     // and incompatible with least-privilege SELECT/INSERT-only grants.
      replayed=true;
      const prior=one(await client.query(
       `SELECT request_digest AS "requestDigest",principal_id AS "principalId",
         tool_id AS "toolId",task_id AS "taskId",state
         FROM ao_task_reservations
-        WHERE tenant_id=$1 AND request_hash=$2 FOR UPDATE`,
+        WHERE tenant_id=$1 AND request_hash=$2`,
       [t.tenantId,t.requestHash]));
      if(!prior||prior.requestDigest!==t.requestDigest||prior.principalId!==t.principalId||
         prior.toolId!==t.toolId||prior.taskId!==t.taskId||prior.state!=='pending_review')deny();

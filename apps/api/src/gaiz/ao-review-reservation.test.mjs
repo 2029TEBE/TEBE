@@ -47,7 +47,9 @@ test('first read-only request atomically reserves for review but never execution
 test('identical retry is idempotent with no second admission',async()=>{
  const m=mock({existing:'match'});const out=await build(m).reserve(task);
  assert.equal(out.replayed,true);assert.equal(out.executionSupported,false);
- assert.ok(m.calls.some(x=>x.sql.includes('FOR UPDATE')));
+ assert.ok(m.calls.some(x=>x.sql.startsWith('SELECT request_digest AS')));
+ assert.equal(m.calls.some(x=>/FOR (?:UPDATE|SHARE|KEY SHARE)/.test(x.sql)),false);
+ assert.equal(m.calls.some(x=>/^UPDATE |^DELETE /i.test(x.sql)),false);
  assert.equal(m.calls.filter(x=>x.sql==='COMMIT').length,1);
 });
 test('nonce reuse for altered request or different tenant is rejected',async()=>{

@@ -6,6 +6,8 @@ on:
       - 'packages/db/sql/tests/ao-isolated-*.sql'
       - 'packages/db/scripts/ao-isolated-*.sh'
       - 'apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs'
+      - 'apps/api/src/gaiz/ao-review-reservation*.mjs'
+      - 'packages/db/scripts/ao-review-reservation.integration.mjs'
   push:
     branches: [main]
     paths:
@@ -13,6 +15,8 @@ on:
       - 'packages/db/sql/tests/ao-isolated-*.sql'
       - 'packages/db/scripts/ao-isolated-*.sh'
       - 'apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs'
+      - 'apps/api/src/gaiz/ao-review-reservation*.mjs'
+      - 'packages/db/scripts/ao-review-reservation.integration.mjs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -48,6 +52,11 @@ jobs:
           bash -n packages/db/scripts/ao-isolated-smoke.sh
           bash -n packages/db/scripts/ao-isolated-concurrency.sh
           node --test apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.0
+      - name: Install pinned workspace dependencies for PostgreSQL adapter test
+        run: pnpm install --frozen-lockfile
       - name: Install PostgreSQL 16 client
         run: |
           sudo apt-get update
@@ -55,3 +64,5 @@ jobs:
           echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
       - name: Enforce live RLS, tenant isolation, nonce and concurrent retry denial
         run: bash packages/db/scripts/ao-isolated-smoke.sh
+      - name: Exercise AO reservation adapter under restricted PostgreSQL login
+        run: pnpm --dir packages/db exec node scripts/ao-review-reservation.integration.mjs
