@@ -7,15 +7,19 @@ const toolId=x=>typeof x==='string'&&/^[a-z][a-z0-9_.-]{2,79}$/.test(x);
 const risks=new Set(['read','reversible_write','external_write','privileged']);
 const owners=new Set(['TEBE']);
 const transports=new Set(['native','mcp_stdio','mcp_http','tebe_api']);
-const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&
- Object.keys(x).every(k=>keys.includes(k));
+// Reject prototype-inherited claims: authorization facts must be explicit own properties.
+// Exact shape validation also prohibits class instances and null-prototype payloads.
+const exact=(x,keys,required=keys)=>x!==null&&typeof x==='object'&&
+ !Array.isArray(x)&&Object.getPrototypeOf(x)===Object.prototype&&
+ Object.keys(x).every(k=>keys.includes(k))&&required.every(k=>Object.hasOwn(x,k));
 
 /** Advisory authorization only. Never constitutes an execution grant.
  * A future runtime must independently verify and bind trusted database records,
  * reserve an idempotency key, validate schemas, and append audit evidence.
  */
-export function assessAoEnterpriseTask({task,tool,principal,entitlement,approval}={}){
- if(!exact(task,['version','requestId','taskId','toolId','tenantId','principalId','intent','approvalId','artifactRefs'])||
+function assess({task,tool,principal,entitlement,approval}={}){
+ if(!exact(task,['version','requestId','taskId','toolId','tenantId','principalId','intent','approvalId','artifactRefs'],
+   ['version','requestId','taskId','toolId','tenantId','principalId','intent'])||
     task.version!=='1.0.0'||!requestId(task.requestId)||!requestId(task.taskId)||
     !toolId(task.toolId)||!id(task.tenantId)||!id(task.principalId)||
     !exact(task.intent,[])||Object.keys(task.intent).length!==0||
@@ -53,4 +57,9 @@ export function assessAoEnterpriseTask({task,tool,principal,entitlement,approval
  return Object.freeze({status:'ELIGIBLE_FOR_REVIEW',reason:'preflight_only',
    requestId:task.requestId,toolId:tool.id,tenantId:task.tenantId,
    executionEnabled:false,requiresDurableReplayReservation:true});
+}
+
+// Malformed or adversarial objects fail closed without propagating accessor/proxy errors.
+export function assessAoEnterpriseTask(input={}){
+ try {return assess(input);} catch {return deny('malformed_trusted_context');}
 }
