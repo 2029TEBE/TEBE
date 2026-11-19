@@ -1,11 +1,14 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
-import { createProject, pageQuery } from '@pmo/contracts';
+import { createProject, pageQuery, health } from '@pmo/contracts';
 import { z } from 'zod';
 import { ZodPipe } from '../common/zod.pipe';
 import { RequiresModule } from '../platform/module.guard';
 import { PortfolioService } from './portfolio.service';
 
-const projectPageQuery = pageQuery.extend({ programId: z.string().uuid().optional() });
+const projectPageQuery = pageQuery.extend({
+  programId: z.string().uuid().optional(),
+  health: health.optional(),
+});
 
 @RequiresModule('pmo360')
 @Controller('api/v1')

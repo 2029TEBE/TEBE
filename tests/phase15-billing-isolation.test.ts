@@ -249,4 +249,96 @@ describe.skipIf(!liveAcceptance)('Phase 16E: authenticated tenant isolation and 
     expect(assertTenantInvoiceList(right.body, tenantB, tenantA, invoiceB)).toBe(true);
     expect((await get('/api/v1/subscription/billing/invoices', consultant)).status).toBe(403);
   });
+
+  it('filters health across 90+ projects before cursor paging and preserves tenant and programme isolation', async () => {
+    // Use the already-approved disposable two-tenant PostgreSQL seed.
+    // This must remain the last test in this file: it inserts synthetic rows.
+    const firstUuid = (value: string) => value.split(/\r?\n/).map(x => x.trim())
+      .find(x => /^[a-f0-9-]{36}$/i.test(x));
+    const programmeA = firstUuid(psql(`SELECT id FROM programs WHERE tenant_id='${tenantA}' ORDER BY id LIMIT 1;`));
+    const programmeB = firstUuid(psql(`SELECT id FROM programs WHERE tenant_id='${tenantB}' ORDER BY id LIMIT 1;`));
+    expect(programmeA).toMatch(/^[a-f0-9-]{36}$/i);
+    expect(programmeB).toMatch(/^[a-f0-9-]{36}$/i);
+
+    psql(`
+      INSERT INTO projects(tenant_id,program_id,code,name,health,created_at,budget_amount)
+      SELECT '${tenantA}', '${programmeA}', 'HLCIA-' || x,
+        'Health Filter CI 20261119 ' || lpad(x::text,3,'0'),
+        CASE WHEN x % 3 = 0 THEN 'critical'::health
+             WHEN x % 3 = 1 THEN 'at_risk'::health
+             ELSE 'on_track'::health END,
+        now() - x * interval '1 minute', '199.99'
+      FROM generate_series(1,90) x;
+      INSERT INTO projects(tenant_id,program_id,code,name,health,created_at)
+      SELECT '${tenantB}', '${programmeB}', 'HLCIB-' || x,
+        'Health Filter CI 20261119 ' || lpad(x::text,3,'0'),
+        'critical'::health, now() - x * interval '1 minute'
+      FROM generate_series(1,4) x;
+    `);
+    const base = '/api/v1/projects?health=critical&limit=12&programId=' + programmeA
+      + '&q=' + encodeURIComponent('Health Filter CI 20261119');
+    const ids = new Set<string>();
+    let cursor: string | null = null;
+    let pages = 0;
+    do {
+      const page = await get(base + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''), ownerA);
+      expect(page.status).toBe(200);
+      expect(Array.isArray(page.body.items)).toBe(true);
+      expect(page.body.items.length).toBeGreaterThan(0);
+      expect(page.body.items.length).toBeLessThanOrEqual(12);
+      for (const p of page.body.items) {
+        expect(p.tenantId).toBe(tenantA);
+        expect(p.programId).toBe(programmeA);
+        expect(p.health).toBe('critical');
+        expect(p.name.startsWith('Health Filter CI 20261119')).toBe(true);
+        expect(ids.has(p.id)).toBe(false);
+        ids.add(p.id);
+      }
+      cursor = page.body.nextCursor;
+      pages++;
+      expect(pages).toBeLessThanOrEqual(4);
+    } while (cursor);
+    // 90 mixed-health rows must yield all 30 critical projects, not just
+    // the critical rows present in the first unfiltered page.
+    expect(pages).toBe(3);
+    expect(ids.size).toBe(30);
+
+    const wrongProgramme = await get(base.replace(programmeA, programmeB), ownerA);
+    expect(wrongProgramme.status).toBe(200);
+    expect(wrongProgramme.body.items).toEqual([]);
+
+    const foreign = await get('/api/v1/projects?health=critical&limit=20&q='
+      + encodeURIComponent('Health Filter CI 20261119'), ownerB);
+    expect(foreign.status).toBe(200);
+    expect(foreign.body.items).toHaveLength(4);
+    for (const p of foreign.body.items) {
+      expect(p.tenantId).toBe(tenantB);
+      expect(ids.has(p.id)).toBe(false);
+    }
+
+    const atRisk = await get('/api/v1/projects?health=at_risk&limit=12&programId='
+      + programmeA + '&q=' + encodeURIComponent('Health Filter CI 20261119'), ownerA);
+    expect(atRisk.status).toBe(200);
+    expect(atRisk.body.items).toHaveLength(12);
+    expect(atRisk.body.nextCursor).toBeTruthy();
+    expect(atRisk.body.items.every((p: any) => p.health === 'at_risk')).toBe(true);
+    // Backward compatibility: omitting health must still show mixed-health
+    // results, rather than silently applying a default portfolio-wide filter.
+    const unfiltered = await get('/api/v1/projects?limit=12&programId='
+      + programmeA + '&q=' + encodeURIComponent('Health Filter CI 20261119'), ownerA);
+    expect(unfiltered.status).toBe(200);
+    expect(unfiltered.body.items).toHaveLength(12);
+    expect(new Set(unfiltered.body.items.map((p: any) => p.health)).size).toBeGreaterThan(1);
+    expect(unfiltered.body.nextCursor).toBeTruthy();
+    for (const row of unfiltered.body.items) {
+      expect(row.tenantId).toBe(tenantA);
+      expect(row.programId).toBe(programmeA);
+    }
+
+    for (const invalid of ['unknown', 'CRITICAL', 'on-track', '', 'critical ', '%', 'critical,on_track']) {
+      const bad = await get('/api/v1/projects?health=' + encodeURIComponent(invalid), ownerA);
+      expect(bad.status).toBe(400);
+    }
+  });
+
 });
