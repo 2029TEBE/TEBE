@@ -41,3 +41,12 @@ test('project UI sends health and cursor to the backend, never post-filters a re
  assert.ok(api.includes("if (health) params.set('health', health)"));
  assert.ok(api.includes("if (cursor) params.set('cursor', cursor)"));
 });
+
+test('empty paginated project pages offer a first-page recovery link',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const page=readFileSync(new URL('../app/(app)/projects/page.tsx',import.meta.url),'utf8');
+ assert.ok(page.includes('cursorFilter && <p><Link href={projectPageHref(null, programFilter, healthFilter)}>'));
+ assert.match(page,/Return to first page/);
+ assert.match(page,/العودة إلى الصفحة الأولى/);
+ assert.equal(projectPageHref(null,program,'critical'),'/projects?program='+program+'&health=critical');
+});
