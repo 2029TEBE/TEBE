@@ -165,3 +165,19 @@ test('malformed and hostile task objects fail closed before pool checkout',async
   assert.equal(connected,0);
  }
 });
+
+test('hostile reservation factory configuration is denied with constant message',()=>{
+ const raw=Error('postgres://private-credential@internal');
+ const hostilePrototype=new Proxy({}, {getPrototypeOf(){throw raw}});
+ const hostileEnabled={get enabled(){throw raw}};
+ const hostilePool={enabled:true,get pool(){throw raw}};
+ const hostileVerifier={enabled:true,pool:mock().pool,get verifyTrustedReadInTransaction(){throw raw}};
+ const invalid=[null,1,'settings',[],hostilePrototype,hostileEnabled,hostilePool,hostileVerifier];
+ for(const candidate of invalid){
+  assert.throws(()=>createAoReviewReservation(candidate),e=>{
+   assert.equal(e.message,'AO task reservation denied');
+   assert.equal(e.message.includes('private-credential'),false);
+   return true;
+  });
+ }
+});
