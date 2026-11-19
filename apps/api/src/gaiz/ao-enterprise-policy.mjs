@@ -74,7 +74,9 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
         approval.tenantId !== task.tenantId || approval.principalId !== task.principalId ||
         !SUBJECT.test(approval.approvedBy ?? '') || approval.approvedBy === task.principalId ||
         approval.policyVersion !== 'ao-tebe-v1' || !Array.isArray(approval.evidenceRefs) ||
-        approval.evidenceRefs.length === 0 || !Number.isSafeInteger(approval.expiresAt) ||
+        approval.evidenceRefs.length === 0 || approval.evidenceRefs.length > 32 ||
+        !approval.evidenceRefs.every(ref => typeof ref === 'string' && ref.length >= 1 && ref.length <= 256) ||
+        !Number.isSafeInteger(approval.expiresAt) ||
         approval.expiresAt <= Math.floor(Date.now()/1000)) return decision('ASK','human_approval_required');
     // A signature/assertion from a caller is never enough for privileged execution.
     return deny('privileged_executor_not_integrated');
