@@ -21,6 +21,17 @@ The responding expert must:
 |---|---|---|---|---|---|
 | CHANGE-20261118-1 | 2026-11-18 | Maintain exact source-backed checklist and update after every completed/reclassified task; allow owner amendments via chat/issue | ALL | ACTIVE | https://github.com/2029TEBE/TEBE/issues/642 |
 | CHANGE-20261118-2 | 2026-11-18 | Non-disruptive GIZE × THEEPMO owner amendment; preserve 150 IDs, reviewable expert ownership and release gates | WF-01–WF-15; API-02; API-05; OPS-01; authentication/security, localization, artifact and release IDs in the 60-ID register | RECORDED; acceptance unverified | https://github.com/2029TEBE/TEBE/issues/642#issuecomment-6988320318 |
+| CHANGE-20261119-3 | 2026-11-19 | Bulk autonomous code changes, routine merges and verified deployments approved; optional PR review waived, technical release gates preserved | ALL GIZE TEBE IDs; OPS-01, SEC-01, SEC-02 and release tasks | ACTIVE; source acceptance remains independent | https://github.com/2029TEBE/TEBE/issues/642 |
+
+## Standing execution authorization — CHANGE-20261119-3
+
+Owner instruction: **"make any code or deployment changes, approve auto for completion to fix any pending tasks"**. The owner also clarified that optional independent PR review is not required for routine merges.
+
+Autonomously implement and test bounded GIZE–TEBE changes; create PRs; merge after **all GitHub-enforced** reviews, checks and branch rules pass; retire only proven-integrated branches; and initiate gated deployment of the exact latest tested main revision using the established CI artifacts and protected production workflow. Update issue #642 after each evidenced change.
+
+This standing permission **does not bypass** branch protection, failing security/tenant tests, backup/snapshot/rollback preflight, credentials and trusted-host verification, release identity readback or independent business acceptance. No blanket enablement of paid billing, merchant charges, public AI/agent tool execution, destructive database work, new unsafe permissions or distribution of unreviewed AGPL/vendor code. Any such activation must separately satisfy product-specific prerequisites. Do not mark requirements VERIFIED solely because a PR merged or a deploy ran.
+
+A deployment attempt is authorized when existing safeguards are green; customer-release GO requires its own complete, traceable acceptance. Retain original 150 IDs and 60 TEBE checkboxes. Record exact source, CI, artifact SHA, live deployed revision, tenant/identity health and any blocker instead of assuming success.
 
 ## Amendment acceptance detail — CHANGE-20261118-2
 
