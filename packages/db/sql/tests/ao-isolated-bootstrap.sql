@@ -29,6 +29,38 @@ CREATE POLICY ao_ci_isolation ON public.ao_task_reservations
 REVOKE ALL ON TABLE public.ao_task_reservations FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO ao_ci_app;
 GRANT SELECT,INSERT ON TABLE public.ao_task_reservations TO ao_ci_app;
+
+-- Disposable adapter-only LOGIN principal. No production role is created.
+-- This role inherits ONLY the restricted fixture grants; no BYPASSRLS/admin.
+CREATE ROLE ao_ci_client LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE
+ NOREPLICATION NOBYPASSRLS PASSWORD 'ao_local_test_only_adapter_2026';
+GRANT ao_ci_app TO ao_ci_client;
+-- Server-owned synthetic entitlement store. No write access from the app role.
+CREATE TABLE public.ao_ci_actor_rights (
+ tenant_id uuid NOT NULL,
+ principal_id text NOT NULL,
+ tool_id text NOT NULL,
+ active boolean NOT NULL,
+ entitled boolean NOT NULL,
+ risk text NOT NULL CHECK(risk IN ('read','privileged')),
+ transport text NOT NULL CHECK(transport IN ('tebe_api','native')),
+ PRIMARY KEY(tenant_id,principal_id,tool_id)
+);
+ALTER TABLE public.ao_ci_actor_rights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ao_ci_actor_rights FORCE ROW LEVEL SECURITY;
+CREATE POLICY ao_ci_actor_isolation ON public.ao_ci_actor_rights
+ USING (tenant_id=ao_ci_current_tenant())
+ WITH CHECK (tenant_id=ao_ci_current_tenant());
+REVOKE ALL ON public.ao_ci_actor_rights FROM PUBLIC;
+GRANT SELECT ON public.ao_ci_actor_rights TO ao_ci_app;
+INSERT INTO public.ao_ci_actor_rights
+ (tenant_id,principal_id,tool_id,active,entitled,risk,transport)
+VALUES
+ ('11111111-1111-4111-8111-111111111111','principal-a','ao.read',true,true,'read','tebe_api'),
+ ('22222222-2222-4222-8222-222222222222','principal-b','ao.read',true,true,'read','tebe_api'),
+ ('11111111-1111-4111-8111-111111111111','disabled-a','ao.read',false,false,'read','tebe_api'),
+ ('11111111-1111-4111-8111-111111111111','privileged-a','ao.exec',true,true,'privileged','native');
+
 -- Fixtures are seeded by the disposable database superuser.
 INSERT INTO public.ao_task_reservations
  (tenant_id,request_hash,request_digest,principal_id,tool_id,task_id)
