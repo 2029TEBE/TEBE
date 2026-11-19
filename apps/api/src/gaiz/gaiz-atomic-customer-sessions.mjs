@@ -21,7 +21,13 @@ function validToken(t){
  return t;
 }
 function validIdentity(i){
- if(!i||i.identityProvider!=='oidc'||i.epmoTenantBound!==false||
+ // Only callback-owned, plain data can assert identity or disabled entitlements.
+ // Inherited authorization claims must never be treated as trusted facts.
+ if(!i||typeof i!=='object'||Object.getPrototypeOf(i)!==Object.prototype||
+    !['identityProvider','issuer','subject','epmoTenantBound','gaizEntitled',
+      'gaizDownloadAuthorized','gaizImportAuthorized'].every(k=>
+       Object.hasOwn(i,k)&&Object.getOwnPropertyDescriptor(i,k)?.get===undefined))deny();
+ if(i.identityProvider!=='oidc'||i.epmoTenantBound!==false||
     i.gaizEntitled!==false||i.gaizDownloadAuthorized!==false||
     i.gaizImportAuthorized!==false||!issuer(i.issuer)||!label(i.subject))deny();
  return i;
