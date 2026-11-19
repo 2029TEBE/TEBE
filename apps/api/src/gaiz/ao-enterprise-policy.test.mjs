@@ -207,3 +207,29 @@ test('AO principal and registry grant arrays reject sparse and accessor-backed e
  }
  assert.equal(call().reason,'admissible_read_only');
 });
+
+test('AO permission lists ignore proxy-overridden array includes methods',()=>{
+ const spoof = original => new Proxy(original, {
+  get(target,key,receiver) {
+   if (key === 'includes') return () => true;
+   return Reflect.get(target,key,receiver);
+  }
+ });
+ const cases=[
+  {actor:{...actor,allowedToolIds:spoof(['ao.other'])}},
+  {actor:{...actor,roles:spoof(['viewer'])}},
+  {registry:{...registry,toolIds:spoof(['ao.other'])}},
+ ];
+ for (const input of cases) {
+  const result=call(input);
+  assert.equal(result.verdict,'DENY');
+  assert.equal(result.executionSupported,false);
+ }
+ const endpoint='https://api.example.com/mcp';
+ const result=call({
+  tool:{...tool,transport:'mcp_http',endpoint},
+  registry:{...registry,allowedHttpsEndpoints:spoof(['https://other.example/mcp'])}
+ });
+ assert.equal(result.reason,'endpoint_not_pinned');
+ assert.equal(result.executionSupported,false);
+});
