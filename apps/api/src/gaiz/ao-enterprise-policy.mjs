@@ -46,7 +46,7 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
   if (!exact(task,['version','requestId','taskId','toolId','tenantId','principalId','intent','approvalId','artifactRefs']) ||
       task.version !== '1.0.0' || !NONCE.test(task.requestId ?? '') || !NONCE.test(task.taskId ?? '') ||
       task.toolId !== tool.id || !UUID.test(task.tenantId ?? '') || !SUBJECT.test(task.principalId ?? '') ||
-      !plain(task.intent) || Object.keys(task.intent).length !== 0 ||
+      !plain(task.intent) || Reflect.ownKeys(task.intent).length !== 0 ||
       (task.artifactRefs !== undefined && (!Array.isArray(task.artifactRefs) || task.artifactRefs.length !== 0))) return deny('task_invalid');
   if (!exact(actor,['authenticated','principalId','tenantId','active','tenantMember','entitled','allowedToolIds','roles','serverVerified']) ||
       actor.serverVerified !== true || actor.authenticated !== true || actor.active !== true || actor.tenantMember !== true || actor.entitled !== true ||
