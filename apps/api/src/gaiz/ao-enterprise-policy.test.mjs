@@ -102,3 +102,28 @@ test('malformed top-level and hostile nested inputs deny without throwing or exe
   assert.equal(Object.isFrozen(decision),true);
  }
 });
+
+test('AO approval is bound to request, tool, principal, tenant, evidence and expiry',()=>{
+ const writeTool={...tool,risk:'external_write'};
+ const valid={requestId:task.requestId,toolId:tool.id,tenantId:A,principalId:task.principalId,
+  verdict:'ALLOW',approvedBy:'independent-reviewer',policyVersion:'ao-tebe-v1',
+  serverVerified:true,expiresAt:4102444800,evidenceRefs:['audit-record']};
+ assert.equal(call({tool:writeTool,approval:valid}).reason,'privileged_executor_not_integrated');
+ for(const approval of [
+  {...valid,requestId:'different-request-id'},
+  {...valid,toolId:'ao.other'},
+  {...valid,tenantId:B},
+  {...valid,principalId:'other-principal'},
+  {...valid,verdict:'DENY'},
+  {...valid,approvedBy:task.principalId},
+  {...valid,policyVersion:'ao-tebe-v2'},
+  {...valid,serverVerified:false},
+  {...valid,expiresAt:1},
+  {...valid,evidenceRefs:[]},
+  {...valid,evidenceRefs:['audit-record'],unexpected:'untrusted'},
+ ]) {
+  const result=call({tool:writeTool,approval});
+  assert.equal(result.verdict,'ASK');
+  assert.equal(result.executionSupported,false);
+ }
+});
