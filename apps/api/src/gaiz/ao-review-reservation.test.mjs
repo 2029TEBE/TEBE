@@ -98,3 +98,18 @@ test('pool acquisition errors are redacted and malformed checked-out clients are
  await assert.rejects(malformed.reserve(task),/AO task reservation denied/);
  assert.equal(released,1);
 });
+
+test('connection release errors never leak database credentials or report successful reservation',async()=>{
+ const m=mock();
+ const failing={...m.pool,async connect(){
+  const client=await m.pool.connect();
+  return {...client,release(){throw Error('postgres://internal-user:secret@db.internal')}};
+ }};
+ const reserve=createAoReviewReservation({enabled:true,pool:failing,verifyTrustedReadInTransaction:trust});
+ await assert.rejects(reserve.reserve(task),e=>{
+  assert.equal(e.message,'AO task reservation denied');
+  assert.equal(e.message.includes('secret'),false);
+  return true;
+ });
+ assert.equal(m.calls.filter(c=>c.sql==='COMMIT').length,1);
+});
