@@ -110,6 +110,8 @@
 - **Critical prerequisites:** [storage/RLS/activation handoff](./ao-reservation-storage-handoff.md); no `ao_task_reservations` production migration exists, no trusted verifier registered and no AO execution path is mounted. A DB-backed release would require strict FORCE RLS + unique constraint + two-tenant concurrent E2E, immutable audit/retention, Studio approval and OT bridge acceptance.
 - **Current evidence status:** proposed PR only; do not count this as completed INT-02, AI-05, SEC-01 or GIZE paid-customer readiness.
 
+**2026-11-19 00:02 UTC / 03:02 Riyadh AO safety hardening:** INT-02, AI-05 and SEC-01 remain **NOT_ASSESSED at full acceptance**, with source-only prototype evidence advanced in [#673](https://github.com/2029TEBE/TEBE/pull/673). `apps/api/src/gaiz/ao-review-reservation.mjs` now redacts rejected PostgreSQL pool acquisition errors and releases malformed checked-out connections when possible; `ao-review-reservation.test.mjs` adds a negative regression. Code commits `711a1096624c26004ea3861cf4d16651e22d309b`, `69981e451d13b496335f26f46728188739c3d369`. Exact-head CI is pending after changes; no new real DB/RLS, signed approval, tenant concurrency, immutable audit, or runtime execution proof. PR #673 currently reports mergeable=false; investigate conflicts/review gate before merge. **0 newly VERIFIED, production NO_GO.**
+
 ## Expert update log
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
