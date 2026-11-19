@@ -5,8 +5,8 @@ const TOOL=/^[a-z][a-z0-9_.-]{2,79}$/;
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const risks=new Set(['read','reversible_write','external_write','privileged']);
 const transports=new Set(['native','mcp_stdio','mcp_http','tebe_api']);
-const deny=reason=>Object.freeze({verdict:'DENY',reason});
-const ask=reason=>Object.freeze({verdict:'ASK',reason});
+const deny=reason=>Object.freeze({verdict:'DENY',reason,executionEnabled:false});
+const ask=reason=>Object.freeze({verdict:'ASK',reason,executionEnabled:false});
 const exact=(o,allowed)=>{
  try {
   if(!o||typeof o!=='object'||Array.isArray(o)||Object.getPrototypeOf(o)!==Object.prototype)return false;
@@ -50,5 +50,7 @@ export function decideAoEnterprise({enabled=false,tool,task,principal,grant,appr
   return deny('write_execution_not_implemented');
  }
  if(tool.risk!=='read')return deny('unknown_risk');
- return Object.freeze({verdict:'ALLOW',reason:'server_policy_allow'});
+ // Source-only advisory: caller-provided flags are not server-proven authorization.
+ // Never grant execution or return an executable ALLOW verdict from this helper.
+ return Object.freeze({verdict:'ELIGIBLE_FOR_REVIEW',reason:'read_requires_server_admission',executionEnabled:false});
 }

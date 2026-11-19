@@ -7,7 +7,12 @@ const principal={authenticated:true,active:true,id:'user-a',tenantId:'tenant-a'}
 const grant={verifiedByServer:true,entitled:true,roleAuthorized:true,tenantId:'tenant-a',principalId:'user-a',toolIds:['ao.read']};
 const run=overrides=>decideAoEnterprise({enabled:true,tool,task,principal,grant,...overrides});
 test('disabled by default',()=>assert.equal(decideAoEnterprise({tool,task,principal,grant}).verdict,'DENY'));
-test('read-only TEBE policy decision',()=>assert.equal(run().verdict,'ALLOW'));
+test('read-only TEBE policy remains advisory, never authorizes execution',()=>{
+ const decision=run();
+ assert.equal(decision.verdict,'ELIGIBLE_FOR_REVIEW');
+ assert.equal(decision.executionEnabled,false);
+ assert.notEqual(decision.verdict,'ALLOW');
+});
 test('cross-tenant request denied',()=>assert.equal(run({task:{...task,tenantId:'tenant-b'}}).verdict,'DENY'));
 test('unauthenticated principal denied',()=>assert.equal(run({principal:{...principal,authenticated:false}}).verdict,'DENY'));
 test('unverified grant denied',()=>assert.equal(run({grant:{...grant,verifiedByServer:false}}).verdict,'DENY'));
@@ -39,4 +44,12 @@ test('inherited and accessor-backed AO tool/task claims denied',()=>{
  assert.equal(run({tool:accessorTool}).verdict,'DENY');
  const symbolTool={...tool,[Symbol('hidden')]:'extra'};
  assert.equal(run({tool:symbolTool}).verdict,'DENY');
+});
+
+test('every risk and transport decision remains non-executable even with caller-supplied approval',()=>{
+ for(const transport of ['native','mcp_stdio','mcp_http','tebe_api'])for(const risk of ['read','reversible_write','external_write','privileged']){
+  const result=run({tool:{...tool,transport,risk,requiresApproval:false}});
+  assert.equal(result.executionEnabled,false,`${transport}/${risk}`);
+  assert.notEqual(result.verdict,'ALLOW',`${transport}/${risk}`);
+ }
 });
