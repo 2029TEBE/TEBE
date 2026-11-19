@@ -42,7 +42,7 @@ export function assessAoEnterpriseTask({task,tool,principal,entitlement,approval
  // No remote/native transport or write-capable action can pass this advisory boundary.
  if(tool.transport!=='tebe_api'||tool.risk!=='read') return deny('unsupported_execution_surface');
  if(tool.requiresApproval){
-    if(!exact(approval,['serverVerified','requestId','toolId','tenantId','principalId','verdict','approvedBy','policyVersion'])||
+    if(!exact(approval,['serverVerified','requestId','toolId','tenantId','principalId','verdict','approvedBy','policyVersion','approvalId'])||
        approval?.serverVerified!==true||approval.verdict!=='ALLOW'||
        approval.requestId!==task.requestId||approval.toolId!==tool.id||
        approval.tenantId!==task.tenantId||approval.principalId!==task.principalId||
