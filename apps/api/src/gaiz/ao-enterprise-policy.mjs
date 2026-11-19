@@ -37,6 +37,14 @@ const validStringList = values => {
   }
   return true;
 };
+// Compare descriptor values directly; do not invoke a caller-controlled
+// Array.prototype.includes override supplied through an array proxy.
+const listHas = (values, expected) => {
+  for (let i = 0; i < values.length; i++) {
+    if (Object.getOwnPropertyDescriptor(values, i)?.value === expected) return true;
+  }
+  return false;
+};
 const plain = x => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 // Reject hidden/symbol fields and accessor-backed inputs, not just enumerable JSON keys.
 // Otherwise a forged "exact" security object can smuggle unreviewed properties.
@@ -79,18 +87,18 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
   if (!exact(actor,['authenticated','principalId','tenantId','active','tenantMember','entitled','allowedToolIds','roles','serverVerified']) ||
       actor.serverVerified !== true || actor.authenticated !== true || actor.active !== true || actor.tenantMember !== true || actor.entitled !== true ||
       actor.principalId !== task.principalId || actor.tenantId !== task.tenantId ||
-      !validStringList(actor.allowedToolIds) || !actor.allowedToolIds.includes(tool.id) ||
-      !validStringList(actor.roles) || !actor.roles.includes('ao_operator')) return deny('unauthorized_principal');
+      !validStringList(actor.allowedToolIds) || !listHas(actor.allowedToolIds, tool.id) ||
+      !validStringList(actor.roles) || !listHas(actor.roles, 'ao_operator')) return deny('unauthorized_principal');
   if (!exact(registry,['tenantId','enabled','toolIds','allowedHttpsEndpoints','serverVerified','revision']) ||
       registry.serverVerified !== true || registry.enabled !== true || registry.tenantId !== task.tenantId ||
       !Number.isSafeInteger(registry.revision) || registry.revision < 1 ||
-      !validStringList(registry.toolIds) || !registry.toolIds.includes(tool.id) ||
+      !validStringList(registry.toolIds) || !listHas(registry.toolIds, tool.id) ||
       !validStringList(registry.allowedHttpsEndpoints)) return deny('untrusted_tenant_registry');
   // No arbitrary executable host/STDIO/native process path may be approved by this module.
   if (tool.transport === 'native' || tool.transport === 'mcp_stdio') return deny('transport_not_integrated');
   if (tool.transport === 'mcp_http') {
     if (!safeHttpsEndpoint(tool.endpoint) ||
-        !registry.allowedHttpsEndpoints.includes(tool.endpoint)) return deny('endpoint_not_pinned');
+        !listHas(registry.allowedHttpsEndpoints, tool.endpoint)) return deny('endpoint_not_pinned');
     // TLS/OAuth audience, DNS pinning and egress still require a dedicated transport executor.
     return deny('mcp_http_executor_not_integrated');
   }
