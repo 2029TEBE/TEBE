@@ -99,7 +99,7 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
 // Untrusted plugin input must never escape as an exception or become an execution grant.
 export function evaluateAoEnterpriseCall(input) {
   try {
-    if (input !== undefined && !plain(input)) return deny('malformed_request');
+    if (input !== undefined && !exact(input, ['enabled','tool','task','actor','registry','approval'])) return deny('malformed_request');
     return evaluateAoEnterpriseCallInternal(input);
   } catch {
     return deny('malformed_request');
