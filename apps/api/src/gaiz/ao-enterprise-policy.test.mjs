@@ -125,6 +125,10 @@ test('AO approval is bound to request, tool, principal, tenant, evidence and exp
   {...valid,evidenceRefs:['']},
   {...valid,evidenceRefs:['x'.repeat(257)]},
   {...valid,evidenceRefs:Array(33).fill('audit-evidence')},
+  {...valid,evidenceRefs:Array(1)},
+  {...valid,evidenceRefs:[,'valid-evidence']},
+  {...valid,evidenceRefs:Object.assign(['audit-evidence'],{extra:'untrusted'})},
+  {...valid,evidenceRefs:Object.assign(['audit-evidence'],{[Symbol('hiddenEvidence')]:'untrusted'})},
   {...valid,evidenceRefs:['audit-record'],unexpected:'untrusted'},
  ]) {
   const result=call({tool:writeTool,approval});
