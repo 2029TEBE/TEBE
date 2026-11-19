@@ -336,7 +336,7 @@ describe.skipIf(!liveAcceptance)('Phase 16E: authenticated tenant isolation and 
     }
 
     for (const invalid of ['unknown', 'CRITICAL', 'on-track', '', 'critical ', '%', 'critical,on_track']) {
-      const bad = await get('/api/v1/projects?health=' + invalid, ownerA);
+      const bad = await get('/api/v1/projects?health=' + encodeURIComponent(invalid), ownerA);
       expect(bad.status).toBe(400);
     }
   });
