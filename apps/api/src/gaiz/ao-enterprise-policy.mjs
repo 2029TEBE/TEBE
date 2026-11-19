@@ -15,8 +15,11 @@ const validEvidenceRefs = refs => {
   if (!Array.isArray(refs) || refs.length < 1 || refs.length > 32) return false;
   if (Reflect.ownKeys(refs).length !== refs.length + 1) return false;
   for (let i = 0; i < refs.length; i++) {
-    if (!Object.prototype.hasOwnProperty.call(refs, i) ||
-        typeof refs[i] !== 'string' || refs[i].length < 1 || refs[i].length > 256) return false;
+    const descriptor = Object.getOwnPropertyDescriptor(refs, i);
+    if (!descriptor || descriptor.enumerable !== true ||
+        !Object.prototype.hasOwnProperty.call(descriptor, 'value') ||
+        typeof descriptor.value !== 'string' ||
+        descriptor.value.length < 1 || descriptor.value.length > 256) return false;
   }
   return true;
 };
