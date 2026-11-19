@@ -322,7 +322,20 @@ describe.skipIf(!liveAcceptance)('Phase 16E: authenticated tenant isolation and 
     expect(atRisk.body.items).toHaveLength(12);
     expect(atRisk.body.nextCursor).toBeTruthy();
     expect(atRisk.body.items.every((p: any) => p.health === 'at_risk')).toBe(true);
-    for (const invalid of ['unknown', 'CRITICAL', 'on-track']) {
+    // Backward compatibility: omitting health must still show mixed-health
+    // results, rather than silently applying a default portfolio-wide filter.
+    const unfiltered = await get('/api/v1/projects?limit=12&programId='
+      + programmeA + '&q=' + encodeURIComponent('Health Filter CI 20261119'), ownerA);
+    expect(unfiltered.status).toBe(200);
+    expect(unfiltered.body.items).toHaveLength(12);
+    expect(new Set(unfiltered.body.items.map((p: any) => p.health)).size).toBeGreaterThan(1);
+    expect(unfiltered.body.nextCursor).toBeTruthy();
+    for (const row of unfiltered.body.items) {
+      expect(row.tenantId).toBe(tenantA);
+      expect(row.programId).toBe(programmeA);
+    }
+
+    for (const invalid of ['unknown', 'CRITICAL', 'on-track', '', 'critical ', '%', 'critical,on_track']) {
       const bad = await get('/api/v1/projects?health=' + invalid, ownerA);
       expect(bad.status).toBe(400);
     }
