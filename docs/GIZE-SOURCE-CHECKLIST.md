@@ -118,6 +118,8 @@
 
 - **OT disabled native handshake compatibility (2026-11-19):** TEBE adds source-only `apps/api/src/gaiz/ao-native-handshake-policy.mjs` and synthetic tests for OT #80's raw `ao_capabilities` v1 response, rejecting injected tools, enabled/executable flags, version/status mismatch, malformed replies, and privileged commands. CI source-guard tests added. This is an isolated protocol acceptance fixture, **not** a live Windows connection, customer authorization or runtime enablement; the 60 full requirements remain unchecked.
 
+**2026-11-19 — Merge-conflict reconciliation:** [PR #674](https://github.com/2029TEBE/TEBE/pull/674) preserves all unique source, tests, and security evidence from [conflicted PR #673](https://github.com/2029TEBE/TEBE/pull/673) while incorporating already-merged OT handshake CI and GIZE checklist evidence from TEBE main. The previous branch was not force-updated; source-only AO reservation remains unmounted and execution-disabled. No original requirement is VERIFIED. Current-head CI, real PostgreSQL tenant/RLS/concurrency tests and audited activation remain gates.
+
 ## Expert update log
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
