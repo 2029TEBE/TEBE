@@ -58,3 +58,29 @@ test('read requiring approval binds separate approver and exact approval id',()=
  assert.equal(check({tool:reviewTool,task:reviewTask,approval:{...valid,extra:'untrusted'}}).status,'DENY');
  assert.equal(check({tool:reviewTool,task:task,approval:valid}).status,'DENY');
 });
+
+test('authorization facts must be own properties on plain records',()=>{
+ for(const override of [
+  {task:Object.create(task)},
+  {tool:Object.create(tool)},
+  {principal:Object.create(principal)},
+  {entitlement:Object.create(entitlement)}
+ ])assert.equal(check(override).status,'DENY');
+ const reviewTool={...tool,requiresApproval:true};
+ const reviewTask={...task,approvalId:'approval-12345'};
+ const approved={...approval,approvalId:'approval-12345'};
+ assert.equal(check({tool:reviewTool,task:reviewTask,approval:Object.create(approved)}).status,'DENY');
+ const nullProto=Object.assign(Object.create(null),principal);
+ assert.equal(check({principal:nullProto}).status,'DENY');
+});
+test('untrusted accessors and proxies fail closed without leaking exceptions',()=>{
+ const throwingPrincipal={...principal};
+ Object.defineProperty(throwingPrincipal,'roles',{
+  enumerable:true,get(){throw Error('secret database detail')}
+ });
+ assert.deepEqual(check({principal:throwingPrincipal}),
+  {status:'DENY',reason:'malformed_trusted_context',executionEnabled:false});
+ const trap=new Proxy(task,{ownKeys(){throw Error('private token')}});
+ assert.equal(check({task:trap}).status,'DENY');
+ assert.equal(assess(null).status,'DENY');
+});
