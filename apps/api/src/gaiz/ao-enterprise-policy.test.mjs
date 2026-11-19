@@ -127,3 +127,22 @@ test('AO approval is bound to request, tool, principal, tenant, evidence and exp
   assert.equal(result.executionSupported,false);
  }
 });
+
+
+test('AO admission rejects hidden, symbol and accessor-backed security fields',()=>{
+ const cases=[
+  {tool:Object.defineProperty({...tool},'hiddenGrant',{value:true,enumerable:false})},
+  {tool:{...tool,[Symbol('hiddenGrant')]:true}},
+  {task:Object.defineProperty({...task},'hiddenIntent',{value:'execute',enumerable:false})},
+  {actor:Object.defineProperty({...actor},'shadowRole',{value:'admin',enumerable:false})},
+  {registry:{...registry,[Symbol('extraEndpoint')]:'https://untrusted.example'}},
+  {tool:Object.defineProperty({...tool},'risk',{get(){throw Error('must not invoke accessor')},enumerable:true,configurable:true})},
+ ];
+ for(const input of cases){
+  const result=assert.doesNotThrow(()=>call(input));
+  const value=call(input);
+  assert.equal(value.verdict,'DENY');
+  assert.equal(value.executionSupported,false);
+  assert.equal(Object.isFrozen(value),true);
+ }
+});
