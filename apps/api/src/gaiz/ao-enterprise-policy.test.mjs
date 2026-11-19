@@ -159,3 +159,22 @@ test('AO admission rejects hidden, symbol and accessor-backed security fields',(
   assert.equal(Object.isFrozen(value),true);
  }
 });
+
+
+test('AO top-level envelope rejects unknown, hidden, symbol and accessor fields',()=>{
+ const valid={enabled:true,tool,task,actor,registry};
+ const cases=[
+  {...valid,unreviewedGrant:true},
+  Object.defineProperty({...valid},'hiddenGrant',{value:true,enumerable:false}),
+  {...valid,[Symbol('unreviewedGrant')]:true},
+  Object.defineProperty({...valid},'enabled',{get(){throw Error('untrusted getter')},enumerable:true}),
+ ];
+ for(const input of cases){
+  const result=decide(input);
+  assert.equal(result.verdict,'DENY');
+  assert.equal(result.reason,'malformed_request');
+  assert.equal(result.executionSupported,false);
+  assert.equal(Object.isFrozen(result),true);
+ }
+ assert.equal(decide(valid).reason,'admissible_read_only');
+});
