@@ -1,0 +1,57 @@
+name: AO disposable PostgreSQL isolation and replay verification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ao-isolated-postgres.yml'
+      - 'packages/db/sql/tests/ao-isolated-*.sql'
+      - 'packages/db/scripts/ao-isolated-*.sh'
+      - 'apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ao-isolated-postgres.yml'
+      - 'packages/db/sql/tests/ao-isolated-*.sql'
+      - 'packages/db/scripts/ao-isolated-*.sh'
+      - 'apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ao_ci_fixture_only
+          POSTGRES_DB: ao_ci_isolated
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ao_ci_isolated"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      AO_TEST_DB_ACK: DISPOSABLE_DB_ONLY
+      PGHOST: 127.0.0.1
+      PGPORT: '5433'
+      PGDATABASE: ao_ci_isolated
+      PGUSER: postgres
+      PGPASSWORD: ao_ci_fixture_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify disposable target guards and fixture shape
+        run: |
+          bash -n packages/db/scripts/ao-isolated-smoke.sh
+          bash -n packages/db/scripts/ao-isolated-concurrency.sh
+          node --test apps/api/src/gaiz/ao-isolated-postgres.contract.test.mjs
+      - name: Install PostgreSQL 16 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+      - name: Enforce live RLS, tenant isolation, nonce and concurrent retry denial
+        run: bash packages/db/scripts/ao-isolated-smoke.sh
