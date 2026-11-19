@@ -54,5 +54,7 @@ test('read requiring approval binds separate approver and exact approval id',()=
  assert.equal(check({tool:reviewTool,task:reviewTask,approval:valid}).status,'ELIGIBLE_FOR_REVIEW');
  assert.equal(check({tool:reviewTool,task:reviewTask,approval:{...valid,approvedBy:'user-1'}}).status,'DENY');
  assert.equal(check({tool:reviewTool,task:reviewTask,approval:{...valid,approvalId:'other-approval'}}).status,'DENY');
+ assert.equal(check({tool:reviewTool,task:reviewTask,approval:{...valid,approvalId:undefined}}).status,'DENY');
+ assert.equal(check({tool:reviewTool,task:reviewTask,approval:{...valid,extra:'untrusted'}}).status,'DENY');
  assert.equal(check({tool:reviewTool,task:task,approval:valid}).status,'DENY');
 });
