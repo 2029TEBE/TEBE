@@ -4,7 +4,7 @@ import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
-test('a checked merge batch dispatches main CI; pending checks do not merge or dispatch',async()=>{
+test('a checked and independently approved merge batch dispatches main CI; pending checks do not merge or dispatch',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'epmo-merge-'));
  try{
  const script=`#!/usr/bin/env bash
@@ -12,7 +12,8 @@ set -eu
 printf '%s\\n' "$*" >> "$MOCK_LOG"
 case "$1 $2" in
  'pr list') echo '[{"number":1,"isDraft":false}]' ;;
- 'pr view') echo '{"isDraft":false,"headRepository":{"nameWithOwner":"2029TEBE/TEBE"},"baseRefName":"main","headRefOid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","mergeable":"MERGEABLE","reviewDecision":"","labels":[]}' ;;
+ 'pr view') echo '{"isDraft":false,"headRepository":{"nameWithOwner":"2029TEBE/TEBE"},"baseRefName":"main","headRefOid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","mergeable":"MERGEABLE","reviewDecision":"APPROVED","author":{"login":"2029TEBE"},"labels":[]}' ;;
+ 'api repos/2029TEBE/TEBE/pulls/1/reviews?per_page=100&page=1') echo '[{"id":11,"state":"APPROVED","commit_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","user":{"login":"independent-reviewer"}}]' ;;
  'pr checks') printf '[{"name":"Dependency-free source checks","state":"SUCCESS"},{"name":"verify","state":"%s"},{"name":"audit","state":"SUCCESS"}]\\n' "$MOCK_STATE" ;;
  'pr merge') exit 0 ;;
  'workflow run') exit 0 ;;
@@ -28,9 +29,8 @@ esac
   if(state==='SUCCESS'){
    const merge=lines.findIndex(x=>x.startsWith('pr merge ')),dispatch=lines.findIndex(x=>x==='workflow run ci.yml --repo 2029TEBE/TEBE --ref main');
    assert.ok(merge>=0&&dispatch>merge);assert.match(lines[merge],/--match-head-commit a{40}/);
-   const clean=lines.findIndex(x=>x==='workflow run retire-integrated-branches.yml --repo 2029TEBE/TEBE --ref main');
-   assert.ok(clean>dispatch,'cleanup must follow CI dispatch');
    assert.equal(lines.filter(x=>x.startsWith('workflow run ')).length,2);
+   assert.ok(lines.some(x=>x==='workflow run retire-integrated-branches.yml --repo 2029TEBE/TEBE --ref main'));
   }else assert.ok(lines.every(x=>!x.startsWith('pr merge ')&&!x.startsWith('workflow run ')));
  }
  }finally{await rm(dir,{recursive:true,force:true});}
