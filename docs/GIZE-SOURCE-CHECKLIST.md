@@ -120,6 +120,8 @@
 
 **2026-11-19 — Merge-conflict reconciliation:** [PR #674](https://github.com/2029TEBE/TEBE/pull/674) preserves all unique source, tests, and security evidence from [conflicted PR #673](https://github.com/2029TEBE/TEBE/pull/673) while incorporating already-merged OT handshake CI and GIZE checklist evidence from TEBE main. The previous branch was not force-updated; source-only AO reservation remains unmounted and execution-disabled. No original requirement is VERIFIED. Current-head CI, real PostgreSQL tenant/RLS/concurrency tests and audited activation remain gates.
 
+**2026-11-19 — Restricted-role AO adapter acceptance candidate:** The disposable PostgreSQL #675 RLS/replay suite has merged with CI success. New PR work addresses a least-privilege issue in the unmounted `ao-review-reservation.mjs`: immutable request replay used `FOR UPDATE` despite the role's read/insert-only grants. Replace it with SELECT after unique-key conflict serialization and run `packages/db/scripts/ao-review-reservation.integration.mjs` against an ephemeral PostgreSQL 16 login with no BYPASSRLS/UPDATE/DELETE. Synthetic two-tenant, identical replay, changed payload, disabled entitlement, privileged tool and revoked-entitlement cases are planned. **Until exact-head CI confirms it, this is proposed code, not verified DB-adapter acceptance.** No production AO schema, live authorization, OT execution, immutable audit or customer release is enabled. GIZE original 60 IDs remain unchecked.
+
 ## Expert update log
 | UTC time | Checked IDs | Verified IDs | Blocked IDs | PR/commit and tests | Next action |
 |---|---|---|---|---|---|
