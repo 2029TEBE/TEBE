@@ -9,8 +9,29 @@ const RISK = new Set(['read', 'reversible_write', 'external_write', 'privileged'
 const TRANSPORT = new Set(['tebe_api', 'native', 'mcp_stdio', 'mcp_http']);
 const decision = (verdict, reason) => Object.freeze({verdict, reason, executionSupported: false, policyVersion:'ao-tebe-v1'});
 const deny = reason => decision('DENY', reason);
+// Approval evidence must be a dense list of bounded strings. Array#every
+// skips holes, so sparse arrays and extra properties must be rejected.
+const validEvidenceRefs = refs => {
+  if (!Array.isArray(refs) || refs.length < 1 || refs.length > 32) return false;
+  if (Reflect.ownKeys(refs).length !== refs.length + 1) return false;
+  for (let i = 0; i < refs.length; i++) {
+    const descriptor = Object.getOwnPropertyDescriptor(refs, i);
+    if (!descriptor || descriptor.enumerable !== true ||
+        !Object.prototype.hasOwnProperty.call(descriptor, 'value') ||
+        typeof descriptor.value !== 'string' ||
+        descriptor.value.length < 1 || descriptor.value.length > 256) return false;
+  }
+  return true;
+};
 const plain = x => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
-const exact = (x, keys) => plain(x) && Object.keys(x).every(k => keys.includes(k));
+// Reject hidden/symbol fields and accessor-backed inputs, not just enumerable JSON keys.
+// Otherwise a forged "exact" security object can smuggle unreviewed properties.
+const exact = (x, keys) => plain(x) && Reflect.ownKeys(x).every(k => {
+  if (typeof k !== 'string' || !keys.includes(k)) return false;
+  const descriptor = Object.getOwnPropertyDescriptor(x, k);
+  return descriptor !== undefined && descriptor.enumerable === true &&
+    Object.prototype.hasOwnProperty.call(descriptor, 'value');
+});
 const safeHttpsEndpoint = value => {
   if (typeof value !== 'string' || value.length > 512) return false;
   try {
@@ -39,7 +60,7 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
   if (!exact(task,['version','requestId','taskId','toolId','tenantId','principalId','intent','approvalId','artifactRefs']) ||
       task.version !== '1.0.0' || !NONCE.test(task.requestId ?? '') || !NONCE.test(task.taskId ?? '') ||
       task.toolId !== tool.id || !UUID.test(task.tenantId ?? '') || !SUBJECT.test(task.principalId ?? '') ||
-      !plain(task.intent) || Object.keys(task.intent).length !== 0 ||
+      !plain(task.intent) || Reflect.ownKeys(task.intent).length !== 0 ||
       (task.artifactRefs !== undefined && (!Array.isArray(task.artifactRefs) || task.artifactRefs.length !== 0))) return deny('task_invalid');
   if (!exact(actor,['authenticated','principalId','tenantId','active','tenantMember','entitled','allowedToolIds','roles','serverVerified']) ||
       actor.serverVerified !== true || actor.authenticated !== true || actor.active !== true || actor.tenantMember !== true || actor.entitled !== true ||
@@ -66,8 +87,8 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
         approval.requestId !== task.requestId || approval.toolId !== tool.id ||
         approval.tenantId !== task.tenantId || approval.principalId !== task.principalId ||
         !SUBJECT.test(approval.approvedBy ?? '') || approval.approvedBy === task.principalId ||
-        approval.policyVersion !== 'ao-tebe-v1' || !Array.isArray(approval.evidenceRefs) ||
-        approval.evidenceRefs.length === 0 || !Number.isSafeInteger(approval.expiresAt) ||
+        approval.policyVersion !== 'ao-tebe-v1' || !validEvidenceRefs(approval.evidenceRefs) ||
+        !Number.isSafeInteger(approval.expiresAt) ||
         approval.expiresAt <= Math.floor(Date.now()/1000)) return decision('ASK','human_approval_required');
     // A signature/assertion from a caller is never enough for privileged execution.
     return deny('privileged_executor_not_integrated');

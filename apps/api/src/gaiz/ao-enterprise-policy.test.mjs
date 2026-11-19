@@ -102,3 +102,60 @@ test('malformed top-level and hostile nested inputs deny without throwing or exe
   assert.equal(Object.isFrozen(decision),true);
  }
 });
+
+test('AO approval is bound to request, tool, principal, tenant, evidence and expiry',()=>{
+ const writeTool={...tool,risk:'external_write'};
+ const valid={requestId:task.requestId,toolId:tool.id,tenantId:A,principalId:task.principalId,
+  verdict:'ALLOW',approvedBy:'independent-reviewer',policyVersion:'ao-tebe-v1',
+  serverVerified:true,expiresAt:4102444800,evidenceRefs:['audit-record']};
+ assert.equal(call({tool:writeTool,approval:valid}).reason,'privileged_executor_not_integrated');
+ for(const approval of [
+  {...valid,requestId:'different-request-id'},
+  {...valid,toolId:'ao.other'},
+  {...valid,tenantId:B},
+  {...valid,principalId:'other-principal'},
+  {...valid,verdict:'DENY'},
+  {...valid,approvedBy:task.principalId},
+  {...valid,policyVersion:'ao-tebe-v2'},
+  {...valid,serverVerified:false},
+  {...valid,expiresAt:1},
+  {...valid,evidenceRefs:[]},
+  {...valid,evidenceRefs:[null]},
+  {...valid,evidenceRefs:[42]},
+  {...valid,evidenceRefs:['']},
+  {...valid,evidenceRefs:['x'.repeat(257)]},
+  {...valid,evidenceRefs:Array(33).fill('audit-evidence')},
+  {...valid,evidenceRefs:Array(1)},
+  {...valid,evidenceRefs:Object.defineProperty(['audit-record'],'0',{get(){return 'audit-record'},enumerable:true,configurable:true})},
+  {...valid,evidenceRefs:Object.defineProperty(['audit-record'],'0',{value:'audit-record',enumerable:false,configurable:true})},
+  {...valid,evidenceRefs:[,'valid-evidence']},
+  {...valid,evidenceRefs:Object.assign(['audit-evidence'],{extra:'untrusted'})},
+  {...valid,evidenceRefs:Object.assign(['audit-evidence'],{[Symbol('hiddenEvidence')]:'untrusted'})},
+  {...valid,evidenceRefs:['audit-record'],unexpected:'untrusted'},
+ ]) {
+  const result=call({tool:writeTool,approval});
+  assert.equal(result.verdict,'ASK');
+  assert.equal(result.executionSupported,false);
+ }
+});
+
+
+test('AO admission rejects hidden, symbol and accessor-backed security fields',()=>{
+ const cases=[
+  {tool:Object.defineProperty({...tool},'hiddenGrant',{value:true,enumerable:false})},
+  {tool:{...tool,[Symbol('hiddenGrant')]:true}},
+  {task:Object.defineProperty({...task},'hiddenIntent',{value:'execute',enumerable:false})},
+  {task:{...task,intent:Object.defineProperty({},'execute',{value:'hidden',enumerable:false})}},
+  {task:{...task,intent:{[Symbol('hiddenCommand')]:'run'}}},
+  {actor:Object.defineProperty({...actor},'shadowRole',{value:'admin',enumerable:false})},
+  {registry:{...registry,[Symbol('extraEndpoint')]:'https://untrusted.example'}},
+  {tool:Object.defineProperty({...tool},'risk',{get(){throw Error('must not invoke accessor')},enumerable:true,configurable:true})},
+ ];
+ for(const input of cases){
+  const result=assert.doesNotThrow(()=>call(input));
+  const value=call(input);
+  assert.equal(value.verdict,'DENY');
+  assert.equal(value.executionSupported,false);
+  assert.equal(Object.isFrozen(value),true);
+ }
+});
