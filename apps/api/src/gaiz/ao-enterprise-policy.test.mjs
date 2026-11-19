@@ -178,3 +178,32 @@ test('AO top-level envelope rejects unknown, hidden, symbol and accessor fields'
  }
  assert.equal(decide(valid).reason,'admissible_read_only');
 });
+
+
+test('AO principal and registry grant arrays reject sparse and accessor-backed entries',()=>{
+ const accessor = Object.defineProperty(['ao.read'],'0',{
+  get(){return 'ao.read'},enumerable:true,configurable:true
+ });
+ const hidden = Object.defineProperty(['ao_operator'],'0',{
+  value:'ao_operator',enumerable:false,configurable:true
+ });
+ const cases=[
+  {actor:{...actor,allowedToolIds:accessor}},
+  {actor:{...actor,allowedToolIds:Object.assign(['ao.read'],{unreviewed:true})}},
+  {actor:{...actor,allowedToolIds:[,'ao.read']}},
+  {actor:{...actor,roles:hidden}},
+  {actor:{...actor,roles:['ao_operator',,]}},
+  {registry:{...registry,toolIds:Object.defineProperty(['ao.read'],'0',{
+   get(){return 'ao.read'},enumerable:true,configurable:true
+  })}},
+  {registry:{...registry,allowedHttpsEndpoints:Object.assign([],{[Symbol('extraEndpoint')]:true})}},
+  {registry:{...registry,allowedHttpsEndpoints:Array(1)}},
+ ];
+ for(const value of cases){
+  const decision=call(value);
+  assert.equal(decision.verdict,'DENY');
+  assert.equal(decision.executionSupported,false);
+  assert.equal(Object.isFrozen(decision),true);
+ }
+ assert.equal(call().reason,'admissible_read_only');
+});
