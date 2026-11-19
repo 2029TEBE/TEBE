@@ -1,0 +1,253 @@
+name: Rehearse release cutover and rollback
+on:
+  pull_request:
+    paths: [.github/workflows/rehearse-release-cutover.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rehearse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Switch loopback traffic between disposable releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          proxy="tebe-rollout-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() {
+            for pid in "${probe_pid:-}" "${candidate_pid:-}" "${current_pid:-}"; do
+              if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi
+            done
+            docker rm -f "$proxy" >/dev/null 2>&1 || true
+            rm -rf -- "$work"
+          }
+          trap cleanup EXIT
+
+          for slot in current candidate; do
+            mkdir -p "$work/$slot"
+            printf '%s\n' "$slot" > "$work/$slot/web"
+            printf '%s\n' "$slot" > "$work/$slot/api"
+          done
+
+          get() {
+            curl -fsS --max-time 2 "http://127.0.0.1:$1/$2"
+          }
+          await_release() {
+            local port=$1 revision=$2
+            for _ in {1..50}; do
+              if [[ "$(get "$port" web 2>/dev/null)" == "$revision" &&
+                    "$(get "$port" api 2>/dev/null)" == "$revision" ]]; then return; fi
+              sleep 0.1
+            done
+            return 1
+          }
+          config() {
+            cat > "$work/default.conf.next" <<EOF
+          server {
+            listen 127.0.0.1:18080;
+            location / { proxy_pass http://127.0.0.1:$1; }
+          }
+          EOF
+            mv "$work/default.conf.next" "$work/default.conf"
+          }
+
+          python3 -m http.server 18081 --bind 127.0.0.1 --directory "$work/current" > "$work/current.log" 2>&1 &
+          current_pid=$!
+          await_release 18081 current
+          config 18081
+          docker run -d --rm --name "$proxy" --network host \
+            -v "$work:/rehearsal:ro" nginx:1.28-alpine \
+            sh -c 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf && exec nginx -g "daemon off;"'
+          await_release 18080 current
+
+          (
+            for ((i=0; ; i++)); do
+              for route in api web; do
+                response=$(get 18080 "$route") || response=failed
+                printf '%s %s\n' "$route" "$response" >> "$work/probes"
+              done
+              sleep 0.05
+            done
+          ) &
+          probe_pid=$!
+          # An unavailable candidate must not receive traffic.
+          if get 18082 web 2>/dev/null; then
+            echo 'Candidate unexpectedly reachable before startup' >&2
+            exit 1
+          fi
+          await_release 18080 current
+          python3 -m http.server 18082 --bind 127.0.0.1 --directory "$work/candidate" > "$work/candidate.log" 2>&1 &
+          candidate_pid=$!
+          await_release 18082 candidate
+
+          switch_to() {
+            config "$1"
+            docker exec "$proxy" sh -ec 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf; nginx -t; nginx -s reload'
+          }
+          sleep 1
+          switch_to 18082
+          await_release 18080 candidate
+          sleep 1
+          switch_to 18081
+          await_release 18080 current
+          sleep 1
+          kill "$probe_pid"
+          wait "$probe_pid" 2>/dev/null || true
+          unset probe_pid
+          for route in api web; do
+            awk -v route="$route" '
+              $1 == route && $2 == "current" { if (candidate) rollback=1; else initial=1 }
+              $1 == route && $2 == "candidate" { if (initial) candidate=1 }
+              $1 == route && $2 != "current" && $2 != "candidate" { bad=1 }
+              END { exit !(initial && candidate && rollback && !bad) }
+            ' "$work/probes"
+          done
+          printf 'PASS: %s loopback requests during promotion and rollback. Synthetic fixture only.\n' "$(wc -l < "$work/probes")" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  rehearse-tebe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '15432'
+      PGUSER: postgres
+      PGDATABASE: pmo_rehearsal
+      PGPASSWORD: local-ci-postgres-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: current
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install migration client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+      - name: Build both revisions from their Dockerfiles
+        run: |
+          set -euo pipefail
+          for slot in current candidate; do
+            for service in api web; do
+              docker build --tag "tebe-$service:$slot" --file "$slot/apps/$service/Dockerfile" "$slot"
+            done
+          done
+      - name: Rehearse API and web cutover with a shared disposable migration ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          network=tebe-cutover
+          cleanup() {
+            if [[ -n "${probe_pid:-}" ]]; then kill "$probe_pid" 2>/dev/null || true; fi
+            docker rm -f proxy current-api current-web candidate-api candidate-web rehearsal-db rehearsal-cache >/dev/null 2>&1 || true
+            docker network rm "$network" >/dev/null 2>&1 || true
+            rm -rf -- "$work"
+          }
+          trap cleanup EXIT
+          docker network create "$network"
+          docker run -d --name rehearsal-db --network "$network" -p 127.0.0.1:15432:5432 \
+            -e POSTGRES_PASSWORD="$PGPASSWORD" -e POSTGRES_DB="$PGDATABASE" postgres:16-alpine
+          docker run -d --name rehearsal-cache --network "$network" redis:7-alpine
+          for _ in {1..50}; do
+            if psql -X -v ON_ERROR_STOP=1 -qAtc 'SELECT 1' >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          psql -X -v ON_ERROR_STOP=1 -c "CREATE ROLE pmo_app LOGIN PASSWORD 'local-ci-app-only'"
+          migrate() {
+            (cd "$1"; bash scripts/apply-sql-migrations.sh
+              psql -X -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql)
+          }
+          # Production-built API enforces HTTPS origins. Use a non-routable HTTPS
+          # fixture origin for config validation; loopback HTTP probes below
+          # exercise disposable routing only, not production TLS acceptance.
+          start_release() {
+            local slot=$1 api_port=$2 web_port=$3
+            docker run -d --name "$slot-api" --network "$network" -p "127.0.0.1:$api_port:4000" \
+              -e DATABASE_URL=postgres://pmo_app:local-ci-app-only@rehearsal-db:5432/pmo_rehearsal \
+              -e REDIS_URL=redis://rehearsal-cache:6379 -e WEB_ORIGIN=https://rehearsal.invalid \
+              -e ALLOW_HEADER_AUTH=false -e STRIPE_ENABLED=false -e MAIL_TRANSPORT=none "tebe-api:$slot"
+            docker run -d --name "$slot-web" --network "$network" -p "127.0.0.1:$web_port:3000" \
+              -e "API_URL=http://$slot-api:4000" -e WEB_ORIGIN=https://rehearsal.invalid "tebe-web:$slot"
+            for _ in {1..60}; do
+              if curl -fsS --max-time 2 "http://127.0.0.1:$api_port/health" | jq -e '.ok == true' >/dev/null &&
+                 curl -fsS --max-time 2 "http://127.0.0.1:$web_port/login" >/dev/null; then return; fi
+              sleep 1
+            done
+            docker logs "$slot-api"
+            docker logs "$slot-web"
+            return 1
+          }
+          config() {
+            cat > "$work/default.conf" <<EOF
+          server {
+            listen 127.0.0.1:18080;
+            add_header X-Rehearsal-Slot $1 always;
+            location = /health { proxy_pass http://127.0.0.1:$2; }
+            location / { proxy_pass http://127.0.0.1:$3; }
+          }
+          EOF
+          }
+          probe() {
+            local path=$1 headers status
+            headers=$(curl -sS --max-time 2 -D - -o /dev/null "http://127.0.0.1:18080/$path") || return
+            status=$(awk 'NR==1 { print $2 }' <<< "$headers")
+            [[ "$status" == 200 ]] || return 1
+            awk 'tolower($1)=="x-rehearsal-slot:" { sub(/\r$/, "", $2); print $2; found=1 } END { if (!found) exit 1 }' <<< "$headers"
+          }
+          await_slot() {
+            for _ in {1..50}; do
+              if [[ "$(probe health 2>/dev/null)" == "$1" && "$(probe login 2>/dev/null)" == "$1" ]]; then return; fi
+              sleep 0.1
+            done
+            return 1
+          }
+          switch_slot() {
+            config "$@"
+            docker exec proxy sh -ec 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf; nginx -t; nginx -s reload'
+            await_slot "$1"
+          }
+
+          migrate current
+          start_release current 18081 18082
+          config current 18081 18082
+          docker run -d --name proxy --network host -v "$work:/rehearsal:ro" nginx:1.28-alpine \
+            sh -c 'cp /rehearsal/default.conf /etc/nginx/conf.d/default.conf && exec nginx -g "daemon off;"'
+          await_slot current
+          (
+            while true; do
+              for route in health login; do
+                result=$(probe "$route" 2>/dev/null) || result=failed
+                printf '%s %s\n' "$route" "$result" >> "$work/probes"
+              done
+              sleep 0.1
+            done
+          ) &
+          probe_pid=$!
+          migrate candidate
+          await_slot current
+          start_release candidate 18083 18084
+          switch_slot candidate 18083 18084
+          sleep 2
+          switch_slot current 18081 18082
+          sleep 2
+          kill "$probe_pid"
+          wait "$probe_pid" 2>/dev/null || true
+          unset probe_pid
+          for route in health login; do
+            awk -v route="$route" '
+              $1 == route && $2 == "current" { if (candidate) rollback=1; else initial=1 }
+              $1 == route && $2 == "candidate" { if (initial) candidate=1 }
+              $1 == route && $2 != "current" && $2 != "candidate" { bad=1 }
+              END { exit !(initial && candidate && rollback && !bad) }
+            ' "$work/probes"
+          done
+          printf 'PASS: %s real API/web HTTP probes during migration, cutover and rollback.\n' "$(wc -l < "$work/probes")" | tee -a "$GITHUB_STEP_SUMMARY"
