@@ -28,7 +28,7 @@ const safeHttpsEndpoint = value => {
 /** Deny-first, no side effects. All flags/registries must be DB-backed and freshly verified.
  * An AO approval may be recorded for review, but is NOT an executable grant.
  */
-export function evaluateAoEnterpriseCall({enabled=false, tool, task, actor, registry, approval}={}) {
+function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, registry, approval}={}) {
   if (enabled !== true) return deny('disabled');
   if (!exact(tool,['id','version','owner','risk','transport','enabled','requiresApproval','timeoutMs','endpoint']) ||
       !ID.test(tool.id ?? '') || tool.version !== '1.0.0' || tool.owner !== 'TEBE' ||
@@ -73,4 +73,14 @@ export function evaluateAoEnterpriseCall({enabled=false, tool, task, actor, regi
     return deny('privileged_executor_not_integrated');
   }
   return decision('ALLOW','admissible_read_only');
+}
+
+// Untrusted plugin input must never escape as an exception or become an execution grant.
+export function evaluateAoEnterpriseCall(input) {
+  try {
+    if (input !== undefined && !plain(input)) return deny('malformed_request');
+    return evaluateAoEnterpriseCallInternal(input);
+  } catch {
+    return deny('malformed_request');
+  }
 }
