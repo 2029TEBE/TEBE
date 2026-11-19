@@ -10,7 +10,14 @@ const TRANSPORT = new Set(['tebe_api', 'native', 'mcp_stdio', 'mcp_http']);
 const decision = (verdict, reason) => Object.freeze({verdict, reason, executionSupported: false, policyVersion:'ao-tebe-v1'});
 const deny = reason => decision('DENY', reason);
 const plain = x => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
-const exact = (x, keys) => plain(x) && Object.keys(x).every(k => keys.includes(k));
+// Reject hidden/symbol fields and accessor-backed inputs, not just enumerable JSON keys.
+// Otherwise a forged "exact" security object can smuggle unreviewed properties.
+const exact = (x, keys) => plain(x) && Reflect.ownKeys(x).every(k => {
+  if (typeof k !== 'string' || !keys.includes(k)) return false;
+  const descriptor = Object.getOwnPropertyDescriptor(x, k);
+  return descriptor !== undefined && descriptor.enumerable === true &&
+    Object.prototype.hasOwnProperty.call(descriptor, 'value');
+});
 const safeHttpsEndpoint = value => {
   if (typeof value !== 'string' || value.length > 512) return false;
   try {
