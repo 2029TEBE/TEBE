@@ -3,7 +3,7 @@ import { projectDateError } from '../creates/project-dates';
 import { requireCapability } from '../common/require-capability';
 import { and, eq, desc, ilike, lt } from 'drizzle-orm';
 import { withTenant, projects, portfolios, programs, memberships } from '@pmo/db';
-import { can, type CreateProject } from '@pmo/contracts';
+import { can, type CreateProject, type Health } from '@pmo/contracts';
 import { currentContext } from '../tenancy/tenant-context';
 import { AuditService } from '../audit/audit.service';
 
@@ -25,12 +25,14 @@ export class PortfolioService {
     );
   }
 
-  async listProjects(opts: { limit: number; cursor?: string; q?: string; programId?: string }) {
+  async listProjects(opts: { limit: number; cursor?: string; q?: string; programId?: string; health?: Health }) {
     return withTenant(this.tenant(), async (tx) => {
       // No tenant_id predicate needed — RLS adds it. Kept honest by verify-rls.
       const where = [
         opts.q ? ilike(projects.name, `%${opts.q}%`) : undefined,
         opts.programId ? eq(projects.programId, opts.programId) : undefined,
+        // Apply authoritative health filtering inside tenant RLS, before cursor/limit.
+        opts.health ? eq(projects.health, opts.health) : undefined,
         opts.cursor ? lt(projects.createdAt, new Date(opts.cursor)) : undefined,
       ].filter(Boolean) as any[];
 
