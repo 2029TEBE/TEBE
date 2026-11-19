@@ -90,3 +90,15 @@ test('AO v1 timeout and approval flag validation fails closed',()=>{
  assert.equal(call({tool:{...tool,requiresApproval:'false'}}).verdict,'DENY');
  assert.equal(call({tool:{...tool,requiresApproval:true}}).verdict,'ASK');
 });
+
+test('malformed top-level and hostile nested inputs deny without throwing or execution',()=>{
+ const hostile = new Proxy({}, {getPrototypeOf(){throw Error('hostile prototype')}});
+ const throwing = {enabled:true, get tool(){throw Error('hostile getter')}};
+ for (const input of [null, 1, 'enabled', [], hostile, throwing, {enabled:true,tool:hostile}, {enabled:true,tool:{...tool},task:hostile}]) {
+  const result = assert.doesNotThrow(() => decide(input));
+  const decision = decide(input);
+  assert.equal(decision.verdict,'DENY');
+  assert.equal(decision.executionSupported,false);
+  assert.equal(Object.isFrozen(decision),true);
+ }
+});
