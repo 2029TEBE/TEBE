@@ -82,3 +82,19 @@ test('database error, empty insert and commit failure never return an admission'
   assert.ok(m.calls.some(x=>x.sql==='ROLLBACK'));assert.equal(m.released.length,1);
  }
 });
+
+test('pool acquisition errors are redacted and malformed checked-out clients are released',async()=>{
+ const raw=Error('postgres://sensitive-user:secret@internal-db');
+ const failing=createAoReviewReservation({enabled:true,
+  pool:{async connect(){throw raw}},verifyTrustedReadInTransaction:trust});
+ await assert.rejects(failing.reserve(task),e=>{
+  assert.equal(e.message,'AO task reservation denied');
+  assert.equal(e.message.includes('secret'),false);
+  return true;
+ });
+ let released=0;
+ const malformed=createAoReviewReservation({enabled:true,
+  pool:{async connect(){return {release(){released++}}}},verifyTrustedReadInTransaction:trust});
+ await assert.rejects(malformed.reserve(task),/AO task reservation denied/);
+ assert.equal(released,1);
+});
