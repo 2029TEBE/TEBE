@@ -9,6 +9,17 @@ const RISK = new Set(['read', 'reversible_write', 'external_write', 'privileged'
 const TRANSPORT = new Set(['tebe_api', 'native', 'mcp_stdio', 'mcp_http']);
 const decision = (verdict, reason) => Object.freeze({verdict, reason, executionSupported: false, policyVersion:'ao-tebe-v1'});
 const deny = reason => decision('DENY', reason);
+// Approval evidence must be a dense list of bounded strings. Array#every
+// skips holes, so sparse arrays and extra properties must be rejected.
+const validEvidenceRefs = refs => {
+  if (!Array.isArray(refs) || refs.length < 1 || refs.length > 32) return false;
+  if (Reflect.ownKeys(refs).length !== refs.length + 1) return false;
+  for (let i = 0; i < refs.length; i++) {
+    if (!Object.prototype.hasOwnProperty.call(refs, i) ||
+        typeof refs[i] !== 'string' || refs[i].length < 1 || refs[i].length > 256) return false;
+  }
+  return true;
+};
 const plain = x => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 // Reject hidden/symbol fields and accessor-backed inputs, not just enumerable JSON keys.
 // Otherwise a forged "exact" security object can smuggle unreviewed properties.
@@ -73,9 +84,7 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
         approval.requestId !== task.requestId || approval.toolId !== tool.id ||
         approval.tenantId !== task.tenantId || approval.principalId !== task.principalId ||
         !SUBJECT.test(approval.approvedBy ?? '') || approval.approvedBy === task.principalId ||
-        approval.policyVersion !== 'ao-tebe-v1' || !Array.isArray(approval.evidenceRefs) ||
-        approval.evidenceRefs.length === 0 || approval.evidenceRefs.length > 32 ||
-        !approval.evidenceRefs.every(ref => typeof ref === 'string' && ref.length >= 1 && ref.length <= 256) ||
+        approval.policyVersion !== 'ao-tebe-v1' || !validEvidenceRefs(approval.evidenceRefs) ||
         !Number.isSafeInteger(approval.expiresAt) ||
         approval.expiresAt <= Math.floor(Date.now()/1000)) return decision('ASK','human_approval_required');
     // A signature/assertion from a caller is never enough for privileged execution.
