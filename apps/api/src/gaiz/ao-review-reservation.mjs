@@ -33,7 +33,10 @@ export function createAoReviewReservation({
   typeof verifyTrustedReadInTransaction!=='function')deny();
  return Object.freeze({
   async reserve(task){
-   const t=valid(task);
+   // Normalize validation failures before opening a DB connection. Hostile
+   // getters/proxies must not leak caller-controlled errors or connection data.
+   let t;
+   try { t=valid(task); } catch { deny(); }
    let client;
    try { client=await pool.connect(); } catch { deny(); }
    if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
