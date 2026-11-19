@@ -98,7 +98,10 @@ export default async function ProjectsPage({ searchParams }:
                 : (lang === 'ar' ? 'لا توجد مشاريع بعد' : 'No projects yet')}</strong>
                 <p>{mayCreate
                   ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
-                  : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p></div>
+                  : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p>
+                {cursorFilter && <p><Link href={projectPageHref(null, programFilter, healthFilter)}>
+                  {lang === 'ar' ? 'العودة إلى الصفحة الأولى' : 'Return to first page'}
+                </Link></p>}</div>
             ) : (
               <>
                 {healthFilter && (
