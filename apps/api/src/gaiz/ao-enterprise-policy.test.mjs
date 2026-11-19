@@ -134,6 +134,8 @@ test('AO admission rejects hidden, symbol and accessor-backed security fields',(
   {tool:Object.defineProperty({...tool},'hiddenGrant',{value:true,enumerable:false})},
   {tool:{...tool,[Symbol('hiddenGrant')]:true}},
   {task:Object.defineProperty({...task},'hiddenIntent',{value:'execute',enumerable:false})},
+  {task:{...task,intent:Object.defineProperty({},'execute',{value:'hidden',enumerable:false})}},
+  {task:{...task,intent:{[Symbol('hiddenCommand')]:'run'}}},
   {actor:Object.defineProperty({...actor},'shadowRole',{value:'admin',enumerable:false})},
   {registry:{...registry,[Symbol('extraEndpoint')]:'https://untrusted.example'}},
   {tool:Object.defineProperty({...tool},'risk',{get(){throw Error('must not invoke accessor')},enumerable:true,configurable:true})},
