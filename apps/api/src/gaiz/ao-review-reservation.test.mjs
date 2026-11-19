@@ -144,3 +144,24 @@ test('failed tenant transaction setup never calls authorization verifier or inse
  assert.equal(verifierCalls,0);
  assert.equal(released,1);
 });
+
+test('malformed and hostile task objects fail closed before pool checkout',async()=>{
+ const raw=Error('secret://credential-from-untrusted-getter');
+ const hostileGetter={...task,get requestId(){throw raw}};
+ const hostileProxy=new Proxy({}, {getPrototypeOf(){throw raw}});
+ const hostileKeys=new Proxy({...task},{ownKeys(){throw raw}});
+ for(const invalid of [null, 1, 'task', [], hostileGetter, hostileProxy, hostileKeys]){
+  let connected=0;
+  const reserve=createAoReviewReservation({
+   enabled:true,
+   pool:{async connect(){connected++;throw Error('DB must not be touched')}},
+   verifyTrustedReadInTransaction:trust
+  });
+  await assert.rejects(reserve.reserve(invalid),e=>{
+   assert.equal(e.message,'AO task reservation denied');
+   assert.equal(e.message.includes('credential'),false);
+   return true;
+  });
+  assert.equal(connected,0);
+ }
+});
