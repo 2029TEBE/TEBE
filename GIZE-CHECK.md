@@ -39,7 +39,7 @@ Backend APIs, identity and tenant isolation, locale propagation, data and migrat
 
 **Cross-repository audit:** command `gize the epmo` -> [GIZE master 150-ID register](https://github.com/faisalwrokksa-hub/TO/blob/main/docs/GIZE-MASTER-150-REGISTER.md) and [master audit instructions](https://github.com/faisalwrokksa-hub/TO/blob/main/GIZE-THE-EPMO-AUDIT.md).
 
-**Release constraint:** Source material explicitly requires **final production release authorization** before production merge/deployment/public installer release. Routine user approval must not be interpreted as that final authorization.
+**Release authorization update (CHANGE-20261119-3):** The owner has now explicitly authorized autonomous code changes, eligible routine merges and deployment **attempts** within the existing passing CI, host identity, security/RLS, backup/rollback and exact-revision readback gates. Optional independent PR review is not required when GitHub itself does not require it. This is **not** blanket paid-customer GO, payment/merchant activation, destructive database approval, privileged tool execution, or permission to bypass GitHub rules. Full product-specific production/customer acceptance and any independent approvals enforced by repository policy remain binding. Record actual live SHA and endpoint evidence; if absent, keep customer release NO_GO.
 
 
 ## Mandatory per-task completion and owner changes (2026-11-18)
