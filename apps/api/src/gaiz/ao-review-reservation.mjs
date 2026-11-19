@@ -26,14 +26,22 @@ function valid(t){
   ]))
  });
 }
-export function createAoReviewReservation({
- enabled=false,pool,verifyTrustedReadInTransaction
-}={}){
- if(enabled!==true||!pool||typeof pool.connect!=='function'||
-  typeof verifyTrustedReadInTransaction!=='function')deny();
+export function createAoReviewReservation(options={}){
+ // Defensive factory boundary: malformed caller configuration must not leak
+ // exceptions from getters/proxies or expose trusted pool implementation.
+ let enabled,pool,verifyTrustedReadInTransaction;
+ try {
+  if(!plain(options))deny();
+  ({enabled=false,pool,verifyTrustedReadInTransaction}=options);
+  if(enabled!==true||!pool||typeof pool.connect!=='function'||
+   typeof verifyTrustedReadInTransaction!=='function')deny();
+ } catch { deny(); }
  return Object.freeze({
   async reserve(task){
-   const t=valid(task);
+   // Normalize validation failures before opening a DB connection. Hostile
+   // getters/proxies must not leak caller-controlled errors or connection data.
+   let t;
+   try { t=valid(task); } catch { deny(); }
    let client;
    try { client=await pool.connect(); } catch { deny(); }
    if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
