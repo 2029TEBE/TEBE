@@ -113,3 +113,32 @@ test('connection release errors never leak database credentials or report succes
  });
  assert.equal(m.calls.filter(c=>c.sql==='COMMIT').length,1);
 });
+
+test('trusted verifier failure is redacted, rolled back and releases checked-out client',async()=>{
+ const m=mock();
+ const secret='postgres://private-user:private-password@db.internal';
+ const reserve=build(m,async()=>{throw Error(secret)});
+ await assert.rejects(reserve.reserve(task),e=>{
+  assert.equal(e.message,'AO task reservation denied');
+  assert.equal(e.message.includes(secret),false);
+  return true;
+ });
+ assert.equal(m.calls.filter(c=>c.sql==='ROLLBACK').length,1);
+ assert.equal(m.calls.filter(c=>c.sql==='COMMIT').length,0);
+ assert.equal(m.released.length,1);
+});
+
+test('failed tenant transaction setup never calls authorization verifier or inserts reservation',async()=>{
+ let verifierCalls=0, released=0;
+ const pool={async connect(){return {
+  async query(sql){
+   if(sql.startsWith('SELECT set_config'))throw Error('postgres://secret@db.internal');
+   return {rows:[]};
+  },release(){released++}
+ }}};
+ const reserve=createAoReviewReservation({enabled:true,pool,
+  verifyTrustedReadInTransaction:async()=>{verifierCalls++;return trust(null,task)}});
+ await assert.rejects(reserve.reserve(task),e=>e.message==='AO task reservation denied');
+ assert.equal(verifierCalls,0);
+ assert.equal(released,1);
+});
