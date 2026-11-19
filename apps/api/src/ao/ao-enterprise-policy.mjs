@@ -7,7 +7,14 @@ const risks=new Set(['read','reversible_write','external_write','privileged']);
 const transports=new Set(['native','mcp_stdio','mcp_http','tebe_api']);
 const deny=reason=>Object.freeze({verdict:'DENY',reason});
 const ask=reason=>Object.freeze({verdict:'ASK',reason});
-const exact=(o,allowed)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>allowed.includes(k));
+const exact=(o,allowed)=>{
+ try {
+  if(!o||typeof o!=='object'||Array.isArray(o)||Object.getPrototypeOf(o)!==Object.prototype)return false;
+  return Reflect.ownKeys(o).every(k=>typeof k==='string'&&allowed.includes(k)&&
+   Object.getOwnPropertyDescriptor(o,k)?.get===undefined&&
+   Object.getOwnPropertyDescriptor(o,k)?.set===undefined);
+ } catch { return false; }
+};
 const id=x=>typeof x==='string'&&ID.test(x);
 export function decideAoEnterprise({enabled=false,tool,task,principal,grant,approval}={}){
  if(enabled!==true)return deny('integration_disabled');
