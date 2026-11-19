@@ -45,3 +45,18 @@ test('AO smoke runner refuses all nonlocal, unacknowledged and production-like t
  assert.match(smoke,/ao-isolated-assertions.sql/);
  assert.match(smoke,/ao-isolated-concurrency.sh/);
 });
+
+test('restricted AO adapter proof is gated on real disposable PostgreSQL CI',()=>{
+ assert.ok(boot.includes('CREATE ROLE ao_ci_client LOGIN INHERIT'));
+ assert.ok(boot.includes('GRANT ao_ci_app TO ao_ci_client'));
+ assert.ok(boot.includes('CREATE TABLE public.ao_ci_actor_rights'));
+ assert.ok(boot.includes('FORCE ROW LEVEL SECURITY'));
+ assert.ok(boot.includes('GRANT SELECT ON public.ao_ci_actor_rights TO ao_ci_app'));
+ assert.ok(!boot.includes('GRANT UPDATE ON public.ao_ci_actor_rights TO ao_ci_app'));
+ const workflow=readFileSync(new URL('../../../../.github/workflows/ao-isolated-postgres.yml',import.meta.url),'utf8');
+ assert.ok(workflow.includes('pnpm install --frozen-lockfile'));
+ assert.ok(workflow.includes('pnpm --dir packages/db exec node scripts/ao-review-reservation.integration.mjs'));
+ const adapter=src('scripts/ao-review-reservation.integration.mjs');
+ for(const requirement of ['AO_TEST_DB_ACK','app.reserve()','createAoReviewReservation','parallel.map','postrevoke'])
+  assert.ok(adapter.includes(requirement),'AO acceptance missing '+requirement);
+});
