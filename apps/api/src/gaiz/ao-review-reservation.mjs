@@ -82,7 +82,10 @@ export function createAoReviewReservation({
    }catch{
     if(began){try{await client.query('ROLLBACK')}catch{}}
     deny();
-   }finally{client.release()}
+   }finally{
+    // Pool release failures must not expose driver internals or credentials.
+    try { await client.release(); } catch { deny(); }
+   }
   }
  });
 }
