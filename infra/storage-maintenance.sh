@@ -8,7 +8,9 @@ echo 'Storage before bounded maintenance:'
 df -Pk /var/lib/docker /var/lib/containerd
 docker system df
 # Keep tagged rollback images; only dangling, unused images expire at 24h.
-docker builder prune --all --force --filter until=168h
+# Build cache is reproducible from CI. Retain one day rather than seven to
+# recover deploy headroom without touching images, volumes or rollback tags.
+docker builder prune --all --force --filter until=24h
 docker image prune --force --filter until=24h
 # Managed immutable release aliases expire after seven days. Running images
 # remain protected; the fixed previous-release rollback tags retain rollback.
