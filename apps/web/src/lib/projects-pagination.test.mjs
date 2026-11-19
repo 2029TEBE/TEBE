@@ -29,3 +29,15 @@ test('clearing health retains programme but discards the old cursor',()=>{
  assert.equal(url.searchParams.has('cursor'),false);
  assert.equal(url.searchParams.has('health'),false);
 });
+
+test('project UI sends health and cursor to the backend, never post-filters a returned page',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const page=readFileSync(new URL('../app/(app)/projects/page.tsx',import.meta.url),'utf8');
+ const api=readFileSync(new URL('./api.ts',import.meta.url),'utf8');
+ assert.ok(page.includes('api.projects(programFilter, cursorFilter, healthFilter)'));
+ assert.ok(page.includes('rows={d.items as any[]}'));
+ assert.ok(page.includes('projectPageHref(d.nextCursor, programFilter, healthFilter)'));
+ assert.ok(!page.includes('.filter((p) => p.health === health)'));
+ assert.ok(api.includes("if (health) params.set('health', health)"));
+ assert.ok(api.includes("if (cursor) params.set('cursor', cursor)"));
+});
