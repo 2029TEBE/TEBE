@@ -28,3 +28,15 @@ test('artifact refs and out-of-range timeouts denied',()=>{
  assert.equal(run({task:{...task,artifactRefs:['private-artifact']}}).verdict,'DENY');
  assert.equal(run({tool:{...tool,timeoutMs:120001}}).verdict,'DENY');
 });
+
+test('inherited and accessor-backed AO tool/task claims denied',()=>{
+ const inheritedTool=Object.create(tool);
+ assert.equal(run({tool:inheritedTool}).verdict,'DENY');
+ const inheritedIntent=Object.create({url:'https://example.invalid'});
+ assert.equal(run({task:{...task,intent:inheritedIntent}}).verdict,'DENY');
+ const accessorTool={...tool};
+ Object.defineProperty(accessorTool,'id',{enumerable:true,get(){return tool.id}});
+ assert.equal(run({tool:accessorTool}).verdict,'DENY');
+ const symbolTool={...tool,[Symbol('hidden')]:'extra'};
+ assert.equal(run({tool:symbolTool}).verdict,'DENY');
+});
