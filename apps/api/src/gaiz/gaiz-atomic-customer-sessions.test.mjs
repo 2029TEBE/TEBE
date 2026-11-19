@@ -128,3 +128,19 @@ test('invalid OIDC issuer and subject cannot issue a session',async()=>{
  ])await assert.rejects(s.issueFromTrustedCallback({identity:invalid,callbackVerified:true}));
  assert.equal(f.calls.length,0);
 });
+
+test('prototype-forged callback identity claims and accessors are denied before DB calls',async()=>{
+ const f=fakePool(),s=service(f);
+ const inherited=Object.assign(Object.create({gaizEntitled:false}),identity);
+ delete inherited.gaizEntitled;
+ const inheritedSubject=Object.assign(Object.create({subject:'synthetic-sub'}),identity);
+ delete inheritedSubject.subject;
+ const getter={...identity};
+ Object.defineProperty(getter,'gaizEntitled',{enumerable:true,get(){return false}});
+ const nullPrototype=Object.assign(Object.create(null),identity);
+ for(const forged of [inherited,inheritedSubject,getter,nullPrototype]){
+  await assert.rejects(s.issueFromTrustedCallback({identity:forged,callbackVerified:true}),
+   /ORGAIZ transactional session unavailable/);
+ }
+ assert.equal(f.calls.length,0);
+});
