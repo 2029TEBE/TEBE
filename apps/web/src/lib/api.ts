@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
+import type { Project, Portfolio, GateSummary, RaidItem, Task, Health } from '@pmo/contracts';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -59,8 +59,15 @@ export const api = {
   workspaceProfile: () => get<{id:string;slug:string;displayName:string;nameAr:string|null;contactEmail:string|null}>('/api/v1/onboarding/profile'),
   workspaceInvitations: () => get<{id:string;email:string;role:string;deliveryStatus:string;expiresAt:string;consumedAt:string|null;revokedAt:string|null}[]>('/api/v1/onboarding/invitations'),
   onboarding: () => get<OnboardingStatus>('/api/v1/onboarding/status'),
-  projects: (programId?: string) => get<{ items: Project[]; nextCursor: string | null }>(
-    `/api/v1/projects${programId ? `?programId=${encodeURIComponent(programId)}` : ''}`),
+  projects: (programId?: string, cursor?: string, health?: Health) => {
+    const params = new URLSearchParams();
+    if (programId) params.set('programId', programId);
+    if (cursor) params.set('cursor', cursor);
+    if (health) params.set('health', health);
+    const query = params.toString();
+    return get<{ items: Project[]; nextCursor: string | null }>(
+      `/api/v1/projects${query ? '?' + query : ''}`);
+  },
   portfolios: () => get<Portfolio[]>('/api/v1/portfolios'),
   programs: () => get<any[]>('/api/v1/programs'),
   gates: () => get<GateSummary[]>('/api/v1/gates'),
