@@ -23,6 +23,28 @@ const validEvidenceRefs = refs => {
   }
   return true;
 };
+// Privilege-bearing lists are treated as untrusted even when a caller claims
+// server verification. Reject holes, getters, symbols and injected properties.
+const validStringList = values => {
+  if (!Array.isArray(values) || values.length > 128 ||
+      Reflect.ownKeys(values).length !== values.length + 1) return false;
+  for (let i = 0; i < values.length; i++) {
+    const entry = Object.getOwnPropertyDescriptor(values, i);
+    if (!entry || !entry.enumerable ||
+        !Object.prototype.hasOwnProperty.call(entry, 'value') ||
+        typeof entry.value !== 'string' ||
+        entry.value.length < 1 || entry.value.length > 512) return false;
+  }
+  return true;
+};
+// Compare descriptor values directly; do not invoke a caller-controlled
+// Array.prototype.includes override supplied through an array proxy.
+const listHas = (values, expected) => {
+  for (let i = 0; i < values.length; i++) {
+    if (Object.getOwnPropertyDescriptor(values, i)?.value === expected) return true;
+  }
+  return false;
+};
 const plain = x => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 // Reject hidden/symbol fields and accessor-backed inputs, not just enumerable JSON keys.
 // Otherwise a forged "exact" security object can smuggle unreviewed properties.
@@ -65,18 +87,18 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
   if (!exact(actor,['authenticated','principalId','tenantId','active','tenantMember','entitled','allowedToolIds','roles','serverVerified']) ||
       actor.serverVerified !== true || actor.authenticated !== true || actor.active !== true || actor.tenantMember !== true || actor.entitled !== true ||
       actor.principalId !== task.principalId || actor.tenantId !== task.tenantId ||
-      !Array.isArray(actor.allowedToolIds) || !actor.allowedToolIds.includes(tool.id) ||
-      !Array.isArray(actor.roles) || !actor.roles.includes('ao_operator')) return deny('unauthorized_principal');
+      !validStringList(actor.allowedToolIds) || !listHas(actor.allowedToolIds, tool.id) ||
+      !validStringList(actor.roles) || !listHas(actor.roles, 'ao_operator')) return deny('unauthorized_principal');
   if (!exact(registry,['tenantId','enabled','toolIds','allowedHttpsEndpoints','serverVerified','revision']) ||
       registry.serverVerified !== true || registry.enabled !== true || registry.tenantId !== task.tenantId ||
       !Number.isSafeInteger(registry.revision) || registry.revision < 1 ||
-      !Array.isArray(registry.toolIds) || !registry.toolIds.includes(tool.id) ||
-      !Array.isArray(registry.allowedHttpsEndpoints)) return deny('untrusted_tenant_registry');
+      !validStringList(registry.toolIds) || !listHas(registry.toolIds, tool.id) ||
+      !validStringList(registry.allowedHttpsEndpoints)) return deny('untrusted_tenant_registry');
   // No arbitrary executable host/STDIO/native process path may be approved by this module.
   if (tool.transport === 'native' || tool.transport === 'mcp_stdio') return deny('transport_not_integrated');
   if (tool.transport === 'mcp_http') {
     if (!safeHttpsEndpoint(tool.endpoint) ||
-        !registry.allowedHttpsEndpoints.includes(tool.endpoint)) return deny('endpoint_not_pinned');
+        !listHas(registry.allowedHttpsEndpoints, tool.endpoint)) return deny('endpoint_not_pinned');
     // TLS/OAuth audience, DNS pinning and egress still require a dedicated transport executor.
     return deny('mcp_http_executor_not_integrated');
   }
@@ -99,7 +121,7 @@ function evaluateAoEnterpriseCallInternal({enabled=false, tool, task, actor, reg
 // Untrusted plugin input must never escape as an exception or become an execution grant.
 export function evaluateAoEnterpriseCall(input) {
   try {
-    if (input !== undefined && !plain(input)) return deny('malformed_request');
+    if (input !== undefined && !exact(input, ['enabled','tool','task','actor','registry','approval'])) return deny('malformed_request');
     return evaluateAoEnterpriseCallInternal(input);
   } catch {
     return deny('malformed_request');

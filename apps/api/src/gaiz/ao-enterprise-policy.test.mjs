@@ -159,3 +159,77 @@ test('AO admission rejects hidden, symbol and accessor-backed security fields',(
   assert.equal(Object.isFrozen(value),true);
  }
 });
+
+
+test('AO top-level envelope rejects unknown, hidden, symbol and accessor fields',()=>{
+ const valid={enabled:true,tool,task,actor,registry};
+ const cases=[
+  {...valid,unreviewedGrant:true},
+  Object.defineProperty({...valid},'hiddenGrant',{value:true,enumerable:false}),
+  {...valid,[Symbol('unreviewedGrant')]:true},
+  Object.defineProperty({...valid},'enabled',{get(){throw Error('untrusted getter')},enumerable:true}),
+ ];
+ for(const input of cases){
+  const result=decide(input);
+  assert.equal(result.verdict,'DENY');
+  assert.equal(result.reason,'malformed_request');
+  assert.equal(result.executionSupported,false);
+  assert.equal(Object.isFrozen(result),true);
+ }
+ assert.equal(decide(valid).reason,'admissible_read_only');
+});
+
+
+test('AO principal and registry grant arrays reject sparse and accessor-backed entries',()=>{
+ const accessor = Object.defineProperty(['ao.read'],'0',{
+  get(){return 'ao.read'},enumerable:true,configurable:true
+ });
+ const hidden = Object.defineProperty(['ao_operator'],'0',{
+  value:'ao_operator',enumerable:false,configurable:true
+ });
+ const cases=[
+  {actor:{...actor,allowedToolIds:accessor}},
+  {actor:{...actor,allowedToolIds:Object.assign(['ao.read'],{unreviewed:true})}},
+  {actor:{...actor,allowedToolIds:[,'ao.read']}},
+  {actor:{...actor,roles:hidden}},
+  {actor:{...actor,roles:['ao_operator',,]}},
+  {registry:{...registry,toolIds:Object.defineProperty(['ao.read'],'0',{
+   get(){return 'ao.read'},enumerable:true,configurable:true
+  })}},
+  {registry:{...registry,allowedHttpsEndpoints:Object.assign([],{[Symbol('extraEndpoint')]:true})}},
+  {registry:{...registry,allowedHttpsEndpoints:Array(1)}},
+ ];
+ for(const value of cases){
+  const decision=call(value);
+  assert.equal(decision.verdict,'DENY');
+  assert.equal(decision.executionSupported,false);
+  assert.equal(Object.isFrozen(decision),true);
+ }
+ assert.equal(call().reason,'admissible_read_only');
+});
+
+test('AO permission lists ignore proxy-overridden array includes methods',()=>{
+ const spoof = original => new Proxy(original, {
+  get(target,key,receiver) {
+   if (key === 'includes') return () => true;
+   return Reflect.get(target,key,receiver);
+  }
+ });
+ const cases=[
+  {actor:{...actor,allowedToolIds:spoof(['ao.other'])}},
+  {actor:{...actor,roles:spoof(['viewer'])}},
+  {registry:{...registry,toolIds:spoof(['ao.other'])}},
+ ];
+ for (const input of cases) {
+  const result=call(input);
+  assert.equal(result.verdict,'DENY');
+  assert.equal(result.executionSupported,false);
+ }
+ const endpoint='https://api.example.com/mcp';
+ const result=call({
+  tool:{...tool,transport:'mcp_http',endpoint},
+  registry:{...registry,allowedHttpsEndpoints:spoof(['https://other.example/mcp'])}
+ });
+ assert.equal(result.reason,'endpoint_not_pinned');
+ assert.equal(result.executionSupported,false);
+});
