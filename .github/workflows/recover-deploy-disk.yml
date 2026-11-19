@@ -105,6 +105,10 @@ jobs:
             echo 'Verified release marker unavailable.'
             revision=
           fi
+          echo 'Production disk headroom (KiB):'
+          df -Pk /opt/the-epmo /var/lib/docker /var/lib/containerd
+          echo 'Production memory headroom (MiB):'
+          free -m
           for service in api web; do
             container=$(docker compose -f docker-compose.prod.yml -p pmo-prod --env-file .env.prod ps -q "$service")
             [[ "$container" =~ ^[a-f0-9]{12,64}$ ]]
@@ -118,6 +122,11 @@ jobs:
               printf '::warning::Running %s revision is not attested by the release marker.\n' "$service"
             fi
           done
+          echo 'Production container memory (instantaneous sample):'
+          if ! timeout 15s docker stats --no-stream --format '{{.Name}} {{.MemUsage}}' \
+            pmo-prod-api-1 pmo-prod-web-1 pmo-prod-postgres-1 pmo-prod-redis-1; then
+            echo '::warning::Container memory sample unavailable.'
+          fi
           REMOTE
 # Current/container-referenced images and explicit rollback tags remain intact.
 # Dangling images: 24h; unused build cache: 7d; obsolete managed release aliases: 7d.
