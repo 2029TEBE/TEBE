@@ -1,0 +1,41 @@
+name: Hosted runner production SSH probe
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 3
+    steps:
+      - name: Verify pinned SSH with a read-only command
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.EPMO_PROD_DEPLOY_HOST }}
+          DEPLOY_KEY: ${{ secrets.EPMO_PROD_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.EPMO_PROD_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9_.@-]+$ && "$DEPLOY_HOST" != -* ]]
+          test -n "$DEPLOY_KEY" && test -n "$DEPLOY_KNOWN_HOSTS"
+
+          umask 077
+          credential_dir=$(mktemp -d "$RUNNER_TEMP/epmo-ssh-probe.XXXXXXXX")
+          trap 'rm -rf -- "$credential_dir"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$credential_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$credential_dir/known_hosts"
+          unset DEPLOY_KEY DEPLOY_KNOWN_HOSTS
+
+          if ! ssh -F /dev/null -i "$credential_dir/key" -o IdentitiesOnly=yes \
+            -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes \
+            -o GlobalKnownHostsFile=/dev/null \
+            -o "UserKnownHostsFile=$credential_dir/known_hosts" \
+            -- "$DEPLOY_HOST" true >/dev/null 2>&1; then
+            echo '::error::Hosted runner could not establish pinned production SSH.'
+            exit 1
+          fi
+          echo 'PASS: Hosted runner authenticated using the pinned production host key.' >> "$GITHUB_STEP_SUMMARY"
