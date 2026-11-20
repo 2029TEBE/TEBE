@@ -41,8 +41,12 @@ export function createGaizAtomicCustomerSessions({
   !Number.isSafeInteger(ttlSeconds)||ttlSeconds<300||ttlSeconds>86400)deny();
  const now=()=>{const n=clock();timeValue(n);return n};
  async function transaction(fn){
-  const client=await pool.connect();
-  if(!client||typeof client.query!=='function'||typeof client.release!=='function')deny();
+  let client;
+  try { client=await pool.connect(); } catch { deny(); }
+  if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
+   if(typeof client?.release==='function'){try{await client.release()}catch{}}
+   deny();
+  }
   let began=false;
   try{
    await client.query('BEGIN');began=true;
@@ -53,7 +57,7 @@ export function createGaizAtomicCustomerSessions({
   }catch{
    if(began){try{await client.query('ROLLBACK')}catch{}}
    deny(); // Fail closed without leaking SQL rows, secrets, or PII.
-  }finally{client.release()}
+  }finally{try{await client.release()}catch{deny()}}
  }
  function rowToPrincipal(row,currentTime){
   if(!row||!uuid(row.id)||!uuid(row.customerId)||!issuer(row.issuer)||
