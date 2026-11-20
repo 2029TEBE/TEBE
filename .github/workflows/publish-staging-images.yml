@@ -1,0 +1,84 @@
+name: Publish verified staging images
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful main CI run with the tested image bundle
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-verified-staging-images
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && github.repository == '2029TEBE/TEBE'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve verified source run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          revision=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" |
+            jq -er --arg repository "$GITHUB_REPOSITORY" '
+              select(.conclusion == "success" and .head_branch == "main" and
+                (.path | split("@")[0]) == ".github/workflows/ci.yml" and
+                .head_repository.full_name == $repository and
+                (.event == "push" or .event == "workflow_dispatch")) | .head_sha')
+          [[ "$revision" =~ ^[a-f0-9]{40}$ ]]
+          printf 'revision=%s\nrun=%s\n' "$revision" "$SOURCE_RUN" >> "$GITHUB_OUTPUT"
+      - name: Download tested image bundle
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run }}
+          name: epmo-tested-images-${{ steps.source.outputs.revision }}
+          path: ${{ runner.temp }}/tested-staging-images
+      - name: Verify archive and both loaded images
+        env:
+          SOURCE_RUN: ${{ steps.source.outputs.run }}
+          REVISION: ${{ steps.source.outputs.revision }}
+          BUNDLE: ${{ runner.temp }}/tested-staging-images
+        run: |
+          set -euo pipefail
+          verified=$(node scripts/ci-image-bundle.mjs verify "$BUNDLE" "$REVISION" "$SOURCE_RUN" "$GITHUB_REPOSITORY")
+          docker image load --input "$BUNDLE/images.tar.gz"
+          for component in api web; do
+            expected=$(jq -er --arg field "${component}Id" '.[$field]' <<< "$verified")
+            actual=$(docker image inspect --format '{{.Id}}' "epmo-$component:ci")
+            [[ "$actual" == "$expected" ]]
+          done
+      - name: Publish staging image digests
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          REVISION: ${{ steps.source.outputs.revision }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          trap 'docker logout ghcr.io >/dev/null' EXIT
+          for component in api web; do
+            image="ghcr.io/${GITHUB_REPOSITORY,,}-northflank-staging-$component"
+            docker tag "epmo-$component:ci" "$image:$REVISION"
+            docker push "$image:$REVISION"
+            digest=$(docker buildx imagetools inspect "$image:$REVISION" --format '{{json .Manifest}}' | jq -er '.digest')
+            [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+            printf -- '- %s: `%s@%s`\n' "$component" "$image" "$digest" >> "$GITHUB_STEP_SUMMARY"
+          done
