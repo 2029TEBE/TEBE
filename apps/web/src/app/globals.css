@@ -1797,3 +1797,36 @@ html[dir='rtl'] .design-journey-step small{letter-spacing:0}
 .locale-login-control{display:flex;justify-content:flex-end;margin-block:0 16px;max-inline-size:100%}
 .locale-login-control .locale-picker{flex-wrap:wrap;justify-content:flex-end}
 .locale-login-control .locale-picker select{max-inline-size:155px}
+
+/* GIZE workspace shell: introduce a shared visual hierarchy across app routes. */
+.page > h1 {
+  margin-block: 0 .5rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line-2);
+  font-size: clamp(1.55rem, 1.2rem + 1.1vw, 2.25rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.page > .sub {
+  max-inline-size: 68ch;
+  line-height: 1.6;
+}
+.topbar { border-block-end: 1px solid var(--line-2); }
+.rail a[aria-current='page'] {
+  box-shadow: inset 0 0 0 1px var(--accent-ring);
+}
+.rail a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.page .tiles {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
+  gap: clamp(.625rem, 1.5vw, 1rem);
+}
+.page .tile {
+  min-inline-size: 0;
+  border-color: var(--line-2);
+  background: linear-gradient(150deg, var(--surface-3), var(--surface-2));
+}
+.page .tile > span, .page .tile > strong { overflow-wrap: anywhere; }
+.page .tile > strong { font-variant-numeric: tabular-nums; }
