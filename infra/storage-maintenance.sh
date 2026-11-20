@@ -43,17 +43,36 @@ for candidate in epmo-api:ci epmo-web:ci; do
   # Other release/rollback tags retain their image and shared layers.
   docker image rm "$candidate"
 done
-while IFS='|' read -r repository tag id; do
+# Under storage pressure, retire additional superseded aliases only when
+# both production services are healthy and the previous release is pinned.
+pressure_cutoff=$(( $(date +%s) - 86400 ))
+pressure_target_kib=$(( 5 * 1024 * 1024 + 512 * 1024 ))
+pressure_retention_ready() {
+  local service live_image rollback_id
+  for service in api web; do
+    live_image=$(docker ps --filter "name=^/pmo-prod-${service}-1$" \
+      --filter health=healthy --format '{{.Image}}') || return 1
+    [[ "$live_image" =~ ^epmo-release-${service}:[a-f0-9]{40}$ ]] || return 1
+    rollback_id=$(docker image inspect --format '{{.Id}}' \
+      "epmo-rollback-${service}:previous" 2>/dev/null) || return 1
+    [[ "$rollback_id" =~ ^sha256:[a-f0-9]{64}$ && "$rollback_id" != "$image_id" ]] || return 1
+  done
+  df -Pk /var/lib/docker /var/lib/containerd |
+    awk -v target="$pressure_target_kib" 'NR > 1 && $4 < target { low = 1 } END { exit !low }'
+}
+
+while IFS='|' read -r repository tag; do
   [[ "$repository" =~ ^epmo-release-(api|web)$ && "$tag" =~ ^[a-f0-9]{40}$ ]] || continue
   image_id=$(docker image inspect --format '{{.Id}}' "$repository:$tag")
   if grep -Fxq "$image_id" <<< "$running"; then continue; fi
   created=$(docker image inspect --format '{{.Created}}' "$repository:$tag")
   created_epoch=$(date -d "$created" +%s)
-  if (( created_epoch < cutoff )); then
+  if (( created_epoch < cutoff )) ||
+     { (( created_epoch < pressure_cutoff )) && pressure_retention_ready; }; then
     # No --force: Docker refuses a container/image reference conflict.
     docker image rm "$repository:$tag"
   fi
-done < <(docker image ls --no-trunc --format '{{.Repository}}|{{.Tag}}|{{.ID}}')
+done < <(docker image ls --format '{{.Repository}}|{{.Tag}}')
 docker system df
 echo 'Storage after bounded maintenance:'
 df -Pk /var/lib/docker /var/lib/containerd
