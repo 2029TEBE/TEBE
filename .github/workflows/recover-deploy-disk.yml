@@ -71,8 +71,12 @@ jobs:
           free_inodes=$(df -Pi "$root" | awk 'END { print $4 }')
           [[ "$free_kib" =~ ^[0-9]+$ && "$free_inodes" =~ ^[0-9]+$ ]]
           printf 'Runner storage: %s KiB and %s inodes free.\n' "$free_kib" "$free_inodes" >> "$GITHUB_STEP_SUMMARY"
-          if (( free_kib < 4194304 || free_inodes < 4096 )); then
-            echo '::warning title=Runner storage low::Less than 4 GiB or 4096 inodes free. Check capacity before the next release.'
+          # The successful release needed 4,817,787 KiB after download and
+          # staged about 496,130 KiB on the shared runner/Docker filesystem.
+          # Warn at 5.25 GiB to leave room for growth before the next release.
+          warning_kib=$((5 * 1024 * 1024 + 256 * 1024))
+          if (( free_kib < warning_kib || free_inodes < 4096 )); then
+            printf '::warning title=Runner storage low::%s KiB and %s inodes free. Review deployment capacity before the next release (warning below %s KiB or 4096 inodes).\n' "$free_kib" "$free_inodes" "$warning_kib"
           fi
       - name: Apply bounded storage retention and report capacity
         env:
