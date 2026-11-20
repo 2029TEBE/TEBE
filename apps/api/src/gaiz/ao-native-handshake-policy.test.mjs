@@ -40,3 +40,29 @@ test('even a valid reply cannot assert a runnable TEBE capability',()=>{
  assert.equal(r.executionSupported,false);assert.equal(r.accepted,true);
  assert.equal(Object.hasOwn(r,'grant'),false);assert.equal(Object.hasOwn(r,'execute'),false);
 });
+
+test('accessors are rejected without being invoked',()=>{
+ let reads=0;
+ for(const key of Object.keys(nativeReply)){
+  const reply={...nativeReply};
+  Object.defineProperty(reply,key,{enumerable:true,get(){reads++;throw Error('must not run')}});
+  assert.equal(run('ao_capabilities',reply).accepted,false);
+ }
+ assert.equal(reads,0);
+});
+test('hostile and revoked proxies fail closed instead of crashing callers',()=>{
+ for(const trap of ['getPrototypeOf','ownKeys','getOwnPropertyDescriptor']){
+  const reply=new Proxy(nativeReply,{[trap](){throw Error('hostile')}});
+  assert.equal(run('ao_capabilities',reply).accepted,false);
+ }
+ const revoked=Proxy.revocable({},{});revoked.revoke();
+ assert.equal(run('ao_capabilities',revoked.proxy).accepted,false);
+ const noReads=new Proxy(nativeReply,{get(){throw Error('must not read properties')}});
+ assert.equal(run('ao_capabilities',noReads).accepted,true);
+});
+test('unknown non-enumerable and symbol authority fields are refused',()=>{
+ const hidden={...nativeReply};Object.defineProperty(hidden,'grant',{value:'execute'});
+ assert.equal(run('ao_capabilities',hidden).accepted,false);
+ assert.equal(run('ao_capabilities',{...nativeReply,[Symbol('grant')]:'execute'}).accepted,false);
+});
+

@@ -310,3 +310,11 @@
 
 
 **2026-11-20 04:40 UTC — SEC-01 / SEC-02 session error-redaction fix candidate:** [PR #709](https://github.com/2029TEBE/TEBE/pull/709), head `6ad1160651d1c592f353c2183dcf36af21e0e2fd`, hardens review-only `apps/api/src/gaiz/gaiz-atomic-customer-sessions.mjs` to redact database pool acquisition and release exceptions, and release malformed checked-out clients. Added regression tests in `apps/api/src/gaiz/gaiz-atomic-customer-sessions.test.mjs` for secret redaction, invalid clients and release failures. **Code committed; CI/review not yet verified; no production deployment or runtime mount.** SEC-01/SEC-02 remain IN_PROGRESS and unchecked; 0 VERIFIED / 6 IN_PROGRESS / 54 NOT_ASSESSED. AO execution and billing remain disabled; customer NO_GO.
+
+
+## Amuse intake and policy hardening — 2026-11-20 UTC
+
+Owner instruction: "fix in bulk" after requesting relevant source files pushed across repositories, latest-build PC acceptance and removal of the superseded installed app. Selected uploaded source is now readable and hash-pinned in the OT companion candidate. Native disabled-discovery parsing rejects accessor/proxy/hidden-field input; 9 targeted tests pass. See `AMUSE-INTEGRATION-BOUNDARY.md`.
+
+Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newly VERIFIED. Amuse runtime/credential broker wiring, exact-build physical Chrome/Windows acceptance, signing and release remain outstanding. The older TheOrg Workspace 2 observations are excluded from current-build acceptance. The prior claim of no open OT PRs was stale at this audit. Follow the linked candidate PR and canonical issue for exact SHA/CI and subsequent device evidence.
+
