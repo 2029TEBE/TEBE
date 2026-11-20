@@ -144,3 +144,38 @@ test('prototype-forged callback identity claims and accessors are denied before 
  }
  assert.equal(f.calls.length,0);
 });
+
+
+test('database acquisition failure redacts credentials and malformed client releases',async()=>{
+ const secret='postgres://private-user:private-password@db.internal';
+ const failed=createGaizAtomicCustomerSessions({enabled:true,
+  pool:{query:async()=>({rows:[]}),async connect(){throw Error(secret)}},
+  clock:()=>now});
+ await assert.rejects(failed.issueFromTrustedCallback({identity,callbackVerified:true}),e=>{
+  assert.equal(e.message,'ORGAIZ transactional session unavailable');
+  assert.equal(e.message.includes(secret),false);
+  return true;
+ });
+ let released=0;
+ const malformed=createGaizAtomicCustomerSessions({enabled:true,
+  pool:{query:async()=>({rows:[]}),async connect(){return {release(){released++}}}},
+  clock:()=>now});
+ await assert.rejects(malformed.issueFromTrustedCallback({identity,callbackVerified:true}),
+  /ORGAIZ transactional session unavailable/);
+ assert.equal(released,1);
+});
+
+test('database client release failure never leaks credentials or returns session bearer',async()=>{
+ const f=fakePool();
+ const secret='postgres://private-user:private-password@db.internal';
+ const s=createGaizAtomicCustomerSessions({enabled:true,
+  pool:{...f.pool,async connect(){
+   const client=await f.pool.connect();
+   return {...client,release(){throw Error(secret)}};
+  }},clock:()=>now});
+ await assert.rejects(s.issueFromTrustedCallback({identity,callbackVerified:true}),e=>{
+  assert.equal(e.message,'ORGAIZ transactional session unavailable');
+  assert.equal(e.message.includes(secret),false);
+  return true;
+ });
+});
