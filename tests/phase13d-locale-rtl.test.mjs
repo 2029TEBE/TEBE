@@ -68,7 +68,7 @@ test('localized chrome translations exist', () => {
 test('account switcher isolates bidi names and localizes count and state', () => {
   const s = read('apps/web/src/components/TenantSwitcher.tsx');
   assert.match(s, /<bdi>\{session\.displayName\}<\/bdi>/);
-  assert.match(s, /Intl\.NumberFormat\(lang === 'ar' \? 'ar-SA' : 'en-US'\)/);
+  assert.match(s, /Intl\.NumberFormat\(selectedLocale === 'ar' \? 'ar-SA' : selectedLocale\)/);
   assert.match(s, /tx\('current'\)/);
 });
 
@@ -98,6 +98,18 @@ test('mobile navigation actions explicitly cover every supported locale', async 
       const value = UI_LABELS[label]?.[catalogLocale(locale)];
       assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
       assert.ok(translationHasMatchingPlaceholders(label, value));
+      assert.equal(uiLabel(label, locale), value);
+    }
+  }
+});
+
+test('account controls cover every supported frontend locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ["capabilities","current","Switch workspace","Workspace","Sign out all devices","revoke every active session","Sign out","end this session"]) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
       assert.equal(uiLabel(label, locale), value);
     }
   }
