@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav className="rail" aria-label={uiLabel('Modules', locale, navigationArabic('Modules'))}>{rail}</nav>
       <div>
         <header className="topbar">
-          <MobileNav ar={ar}>{rail}</MobileNav>
+          <MobileNav ar={ar} locale={locale}>{rail}</MobileNav>
           <Crumbs ar={ar} locale={locale} />
           <div className="spacer" />
           <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} />

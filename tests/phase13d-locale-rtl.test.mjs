@@ -30,7 +30,7 @@ test('English counts have Western digits and Arabic counts have Arabic numbering
 });
 test('mobile navigation supports locale and route-aware closing', () => {
   const s = read('apps/web/src/components/MobileNav.tsx');
-  assert.match(s, /translator\(ar \? 'ar' : 'en'\)/);
+  assert.match(s, /uiLabel\(label, selectedLocale, legacy\(label\)\)/);
   assert.match(s, /aria-label=\{t\('Open navigation'\)\}/);
   assert.match(s, /aria-label=\{t\('Close navigation'\)\}/);
   assert.match(s, /aria-expanded=\{open\}/);
@@ -40,7 +40,7 @@ test('mobile navigation supports locale and route-aware closing', () => {
 });
 test('navigation passes selected locale and translates command groups', () => {
   const s = read('apps/web/src/app/(app)/layout.tsx');
-  assert.match(s, /<MobileNav ar=\{ar\}>/);
+  assert.match(s, /<MobileNav ar=\{ar\} locale=\{locale\}>/);
   // The nav label is translated through the frontend-only catalog, preserving
   // Arabic names and stable links instead of branching on language at each use.
   assert.ok(s.includes('group: uiLabel(g.label, locale, navigationArabic(g.label))'));
@@ -85,6 +85,19 @@ test('shared table controls and count templates cover the selected frontend loca
       const value = UI_LABELS[label]?.[catalogLocale(locale)];
       assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
       assert.ok(translationHasMatchingPlaceholders(label, value), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+    }
+  }
+});
+
+test('mobile navigation actions explicitly cover every supported locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, translationHasMatchingPlaceholders } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ['Open navigation', 'Close navigation', 'Close', 'Modules']) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.ok(translationHasMatchingPlaceholders(label, value));
       assert.equal(uiLabel(label, locale), value);
     }
   }

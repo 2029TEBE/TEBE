@@ -2,15 +2,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { translator } from '@/lib/i18n-dict';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
 
 /** Small-screen rail. A link selection or Escape closes it; focus returns to the trigger. */
-export function MobileNav({ children, ar = false }: { children: React.ReactNode; ar?: boolean }) {
+export function MobileNav({ children, ar = false, locale }: { children: React.ReactNode; ar?: boolean; locale?: FrontendLocale }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const previousPath = useRef(path);
   const trigger = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
-  const t = translator(ar ? 'ar' : 'en');
+  const selectedLocale = locale ?? (ar ? 'ar' : 'en-US');
+  const legacy = translator(selectedLocale === 'ar' ? 'ar' : 'en');
+  const t = (label: string) => uiLabel(label, selectedLocale, legacy(label));
 
   function close(restoreFocus = true) {
     setOpen(false);
