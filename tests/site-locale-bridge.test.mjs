@@ -35,9 +35,26 @@ test('the first dashboard visit respects a locale selected on the public site', 
   assert.ok(app.indexOf('if (hasPreference) return;') < app.indexOf('chooseFrontendLocale({ browserLanguages: languages })'));
 });
 
-test('all locale option names have screen-reader language and fallback English is tagged', () => {
+test('locale options, selector and localized fallback disclosure declare their spoken language', () => {
   assert.match(app, /<option key=\{item.code\} value=\{item.code\} lang=\{item.code\}>/);
-  assert.match(app, /<select id="epmo-header-locale" aria-label=\{label\} lang=\{locale === 'ar' \? 'ar' : 'en'\}/);
-  assert.match(app, /className="dim" lang="en" aria-live="polite"/);
-  assert.match(app, /className="sr-only" lang=\{locale === 'ar' \? 'ar' : 'en'\}/);
+  assert.match(app, /<select id="epmo-header-locale" aria-label=\{label\} lang=\{locale\}/);
+  assert.match(app, /className="dim" lang=\{locale\} aria-live="polite"/);
+  assert.match(app, /className="sr-only" lang=\{locale\}/);
+  assert.match(app, /uiLabel\('Interface language', locale,/);
+  assert.match(app, /uiLabel\('English fallback', locale\)/);
+  assert.match(app, /title=\{uiLabel\("Translations are being reviewed; missing strings appear in English\.", locale\)\}/);
+  assert.match(app, /\{fallback &&/);
+});
+
+test('selector disclosure strings resolve explicitly for every supported non-English locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ['Interface language', 'English fallback', 'Translations are being reviewed; missing strings appear in English.']) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.notEqual(value, label, locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+    }
+  }
 });
