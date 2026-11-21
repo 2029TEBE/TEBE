@@ -91,3 +91,16 @@ test('unrecognized deployments and local live keys fail closed', () => {
  assert.equal(stripeDeploymentModeAllowed(true, 'development', undefined, undefined), false);
  assert.equal(stripeDeploymentModeAllowed(false, 'development', undefined, undefined), true);
 });
+
+
+test('signed event mode must also match checkout session identity',()=>{
+ for (const liveMode of [false,true]) {
+  const id=liveMode?'cs_test_MISMATCH':'cs_live_MISMATCH';
+  const payload=Buffer.from(JSON.stringify({id:'evt_MODE123',type:'checkout.session.completed',livemode:liveMode,data:{object:{...session,id}}}));
+  assert.throws(()=>parsePaidStripeEvent(payload,liveMode),/session is missing or invalid/);
+ }
+});
+test('matching live event and session identity accepted by parser',()=>{
+ const payload=Buffer.from(JSON.stringify({id:'evt_MODE456',type:'checkout.session.completed',livemode:true,data:{object:{...session,id:'cs_live_MATCH'}}}));
+ assert.equal(parsePaidStripeEvent(payload,true)?.session.id,'cs_live_MATCH');
+});
