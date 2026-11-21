@@ -71,3 +71,21 @@ test('account switcher isolates bidi names and localizes count and state', () =>
   assert.match(s, /Intl\.NumberFormat\(lang === 'ar' \? 'ar-SA' : 'en-US'\)/);
   assert.match(s, /tx\('current'\)/);
 });
+
+test('shared table controls and count templates cover the selected frontend locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, translationHasMatchingPlaceholders } = await import('../apps/web/src/lib/ui-labels.mjs');
+  const s = read('apps/web/src/components/DataTable.tsx');
+  assert.match(s, /normalizeFrontendLocale\(root.lang\)/);
+  assert.match(s, /uiLabel\(label, locale, legacy\(label\)\)/);
+  assert.match(s, /aria-label=\{t\('Table results'\)\}/);
+  assert.ok(s.includes("t('Sort by {column}').replace"));
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ["Filter…","Filter rows","Clear filter","{count} rows","{shown} of {total}","Nothing matches that filter","Nothing here yet","Try a shorter search, or clear the filter.","Table results","Sort by {column}"]) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.ok(translationHasMatchingPlaceholders(label, value), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+    }
+  }
+});
