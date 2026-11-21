@@ -84,7 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} />
           <UniversalLocaleSwitch locale={locale} />
           <ThemeToggle locale={locale} />
-          <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} />
+          <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} locale={locale} />
         </header>
         <main id="main" tabIndex={-1}><div className="page">{children}</div></main>
         <Cursor />
