@@ -74,3 +74,12 @@ test('all 23 locale variants preserve English fallback and Arabic/Urdu bidi dire
   assert.equal(translationHasMatchingPlaceholders('View {shown} of {total}', 'عرض {shown} من {total}'), true);
   assert.equal(translationHasMatchingPlaceholders('View {shown} of {total}', 'عرض {shown}'), false);
 });
+
+ test('skip navigation is explicitly translated across all non-English locales', async () => {
+  const { uiLabel, catalogLocale, UI_LABELS } = await import('./ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    const expected = UI_LABELS['Skip to content'][catalogLocale(locale)];
+    assert.ok(expected && expected !== 'Skip to content', locale);
+    assert.equal(uiLabel('Skip to content', locale), expected, locale);
+  }
+});
