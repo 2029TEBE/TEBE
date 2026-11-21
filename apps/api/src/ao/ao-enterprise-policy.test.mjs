@@ -53,3 +53,19 @@ test('every risk and transport decision remains non-executable even with caller-
   assert.notEqual(result.verdict,'ALLOW',`${transport}/${risk}`);
  }
 });
+
+
+test('malformed policy envelope and forged principal or grant fail closed',()=>{
+ let reads=0;
+ const getter={get enabled(){reads++;throw Error('private detail')}};
+ for(const input of [null,[],getter,new Proxy({}, {ownKeys(){throw Error('private detail')}})]){
+  const result=decideAoEnterprise(input);assert.equal(result.verdict,'DENY');assert.equal(result.executionEnabled,false);
+ }
+ assert.equal(reads,0);
+ for(const overrides of [{principal:Object.create(principal)},{grant:Object.create(grant)},
+  {principal:{...principal,get authenticated(){reads++;return true}}},
+  {grant:{...grant,get verifiedByServer(){reads++;return true}}}]){
+  assert.equal(run(overrides).verdict,'DENY');
+ }
+ assert.equal(reads,0);
+});

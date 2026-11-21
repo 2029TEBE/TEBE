@@ -16,7 +16,13 @@ const exact=(o,allowed)=>{
  } catch { return false; }
 };
 const id=x=>typeof x==='string'&&ID.test(x);
-export function decideAoEnterprise({enabled=false,tool,task,principal,grant,approval}={}){
+export function decideAoEnterprise(options={}){
+ try {
+  if(!exact(options,['enabled','tool','task','principal','grant','approval']))return deny('invalid_policy_input');
+  return decide(options);
+ } catch { return deny('invalid_policy_input'); }
+}
+function decide({enabled=false,tool,task,principal,grant,approval}){
  if(enabled!==true)return deny('integration_disabled');
  if(!exact(tool,['id','version','owner','risk','transport','enabled','requiresApproval','timeoutMs'])||
   !TOOL.test(tool.id||'')||tool.version!=='1.0.0'||tool.owner!=='TEBE'||
@@ -29,10 +35,10 @@ export function decideAoEnterprise({enabled=false,tool,task,principal,grant,appr
   task.toolId!==tool.id||!exact(task.intent,[])||
   (task.artifactRefs!==undefined&&(!Array.isArray(task.artifactRefs)||task.artifactRefs.length!==0)))
   return deny('invalid_task_envelope');
- if(!principal||principal.authenticated!==true||principal.active!==true||
+ if(!exact(principal,['authenticated','active','id','tenantId'])||principal.authenticated!==true||principal.active!==true||
   principal.tenantId!==task.tenantId||principal.id!==task.principalId||!id(principal.id))
   return deny('unauthenticated_or_cross_tenant');
- if(!grant||grant.verifiedByServer!==true||grant.tenantId!==task.tenantId||
+ if(!exact(grant,['verifiedByServer','entitled','roleAuthorized','tenantId','principalId','toolIds'])||grant.verifiedByServer!==true||grant.tenantId!==task.tenantId||
   grant.principalId!==principal.id||grant.entitled!==true||grant.roleAuthorized!==true||
   !Array.isArray(grant.toolIds)||!grant.toolIds.includes(tool.id))
   return deny('missing_server_authorization');
@@ -41,7 +47,7 @@ export function decideAoEnterprise({enabled=false,tool,task,principal,grant,appr
  if(tool.transport!=='tebe_api')return deny('transport_not_approved');
  if(tool.risk==='external_write'||tool.risk==='privileged')return deny('privileged_tool_not_available');
  if(tool.risk==='reversible_write'||tool.requiresApproval===true){
-  if(!approval||approval.verdict!=='ALLOW'||approval.requestId!==task.requestId||
+  if(!exact(approval,['verdict','requestId','toolId','policyVersion','verifiedByServer','approvedByHuman','tenantId','principalId','approvedBy','approvalId'])||approval.verdict!=='ALLOW'||approval.requestId!==task.requestId||
    approval.toolId!==tool.id||approval.policyVersion!=='1.0.0'||approval.verifiedByServer!==true||
    approval.approvedByHuman!==true||approval.tenantId!==task.tenantId||
    approval.principalId!==principal.id||!id(approval.approvedBy)||

@@ -40,6 +40,9 @@ export function createGaizAtomicCustomerSessions({
   typeof pool.query!=='function'||typeof clock!=='function'||
   !Number.isSafeInteger(ttlSeconds)||ttlSeconds<300||ttlSeconds>86400)deny();
  const now=()=>{const n=clock();timeValue(n);return n};
+ async function safeQuery(sql,args){
+  try{return await pool.query(sql,args)}catch{deny()}
+ }
  async function transaction(fn){
   let client;
   try { client=await pool.connect(); } catch { deny(); }
@@ -102,7 +105,7 @@ export function createGaizAtomicCustomerSessions({
   },
   async requireCustomer(token){
    validToken(token);
-   const result=one(await pool.query(
+   const result=one(await safeQuery(
     `SELECT s.id,s.customer_id AS "customerId",c.issuer,c.subject,
       c.status AS "customerStatus",s.revoked_at AS "revokedAt",
       floor(extract(epoch from s.expires_at))::bigint AS "expiresAt"
@@ -114,7 +117,7 @@ export function createGaizAtomicCustomerSessions({
   },
   async revoke(token){
    validToken(token);
-   await pool.query(
+   await safeQuery(
     `UPDATE orgaiz_customer_sessions SET revoked_at=COALESCE(revoked_at,$2)
       WHERE token_digest=$1`,[digest(token),timeValue(now())]);
    return Object.freeze({revoked:true});

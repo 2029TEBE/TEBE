@@ -8,7 +8,10 @@ const nonce=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{16,128}$/.test(x);
 const toolId=x=>typeof x==='string'&&/^[a-z][a-z0-9_.-]{2,79}$/.test(x);
 const principal=x=>typeof x==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(x);
 const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x)&&Object.getPrototypeOf(x)===Object.prototype;
-const exact=(x,keys)=>plain(x)&&Object.keys(x).every(k=>keys.includes(k));
+const exact=(x,keys)=>plain(x)&&Reflect.ownKeys(x).every(k=>{
+ const d=Object.getOwnPropertyDescriptor(x,k);
+ return typeof k==='string'&&keys.includes(k)&&d?.enumerable===true&&Object.hasOwn(d,'value');
+});
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const one=r=>Array.isArray(r?.rows)&&r.rows.length===1?r.rows[0]:null;
 function valid(t){
@@ -45,7 +48,7 @@ export function createAoReviewReservation(options={}){
    let client;
    try { client=await pool.connect(); } catch { deny(); }
    if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
-    if(typeof client?.release==='function'){try{client.release()}catch{}}
+    if(typeof client?.release==='function'){try{await client.release()}catch{}}
     deny();
    }
    let began=false;

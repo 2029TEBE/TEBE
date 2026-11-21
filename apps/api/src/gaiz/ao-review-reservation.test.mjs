@@ -181,3 +181,20 @@ test('hostile reservation factory configuration is denied with constant message'
   });
  }
 });
+
+
+test('reservation rejects accessor and hidden fields without reading them or opening a connection',async()=>{
+ let reads=0;
+ const getter={...task,get requestId(){reads++;return task.requestId}};
+ const hidden={...task};Object.defineProperty(hidden,'extra',{value:true});
+ const symbol={...task,[Symbol('extra')]:true};
+ const m=mock();
+ for(const invalid of [getter,hidden,symbol])await assert.rejects(build(m).reserve(invalid),/AO task reservation denied/);
+ assert.equal(reads,0);assert.equal(m.calls.length,0);
+});
+test('malformed client asynchronous release rejection is normalized',async()=>{
+ let released=0;
+ const s=createAoReviewReservation({enabled:true,pool:{async connect(){return {async release(){released++;throw Error('synthetic private connection detail')}}}},verifyTrustedReadInTransaction:trust});
+ await assert.rejects(s.reserve(task),e=>e.message==='AO task reservation denied');
+ assert.equal(released,1);
+});
