@@ -119,3 +119,19 @@ test('dashboard trend and portfolio labels explicitly cover every non-English lo
  }
  assert.equal(uiLabel('Home', 'ar', 'الصفحة الرئيسية'), 'الصفحة الرئيسية');
 });
+
+ test('non-billing catalog has explicit locale coverage and matching placeholders', async () => {
+ const { UI_LABELS, uiLabel, catalogLocale, translationHasMatchingPlaceholders } = await import('./ui-labels.mjs');
+ const excluded = new Set(['Billing & Renewals','Subscriptions','The EPMO']);
+ for (const [label, row] of Object.entries(UI_LABELS)) {
+   if (excluded.has(label)) continue;
+   for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+     const key = catalogLocale(locale);
+     assert.ok(Object.hasOwn(row,key), locale + ': ' + label);
+     const value = row[key];
+     assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+     assert.ok(translationHasMatchingPlaceholders(label,value), locale + ': ' + label);
+     assert.equal(uiLabel(label,locale),value,locale + ': ' + label);
+   }
+ }
+ });
