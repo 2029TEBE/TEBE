@@ -3,6 +3,7 @@ import { useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { LOCALE_REGISTRY, navigationArabic, type LocaleCode } from '@pmo/contracts';
 import { chooseFrontendLocale } from '@/lib/frontend-locale.mjs';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 
 /** Display language only. Never change pmo_session or other auth/tenant cookies. */
 function persistSharedLocale(locale: string) {
@@ -17,7 +18,7 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const fallback = !['en-US', 'en-GB', 'ar'].includes(locale);
-  const label = locale === 'ar' ? navigationArabic('Interface language') : 'Interface language';
+  const label = uiLabel('Interface language', locale, navigationArabic('Interface language'));
 
   useEffect(() => {
     // A marketing-site choice is authoritative; never overwrite it with
@@ -43,16 +44,16 @@ export function UniversalLocaleSwitch({ locale }: { locale: LocaleCode }) {
   }
 
   return <div className="locale-picker">
-    <label htmlFor="epmo-header-locale" className="sr-only" lang={locale === 'ar' ? 'ar' : 'en'}>{label}</label>
+    <label htmlFor="epmo-header-locale" className="sr-only" lang={locale}>{label}</label>
     <span aria-hidden="true">🌐</span>
-    <select id="epmo-header-locale" aria-label={label} lang={locale === 'ar' ? 'ar' : 'en'} value={locale}
+    <select id="epmo-header-locale" aria-label={label} lang={locale} value={locale}
       disabled={pending} onChange={event => setLocale(event.target.value)}>
       {LOCALE_REGISTRY.map(item =>
         <option key={item.code} value={item.code} lang={item.code}>{item.name}</option>)}
     </select>
-    {fallback && <span className="dim" lang="en" aria-live="polite"
-      title="Translations are being reviewed; missing strings appear in English.">
-      English fallback
+    {fallback && <span className="dim" lang={locale} aria-live="polite"
+      title={uiLabel("Translations are being reviewed; missing strings appear in English.", locale)}>
+      {uiLabel('English fallback', locale)}
     </span>}
   </div>;
 }
