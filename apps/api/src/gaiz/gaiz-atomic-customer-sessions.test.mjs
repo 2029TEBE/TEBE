@@ -179,3 +179,14 @@ test('database client release failure never leaks credentials or returns session
   return true;
  });
 });
+
+
+test('direct lookup and revocation errors redact database credentials',async()=>{
+ const f=fakePool();
+ const issued=await service(f).issueFromTrustedCallback({identity,callbackVerified:true});
+ const s=createGaizAtomicCustomerSessions({enabled:true,pool:{...f.pool,
+  async query(){throw Error('postgres://private-user:private-password@db.internal')}},clock:()=>now});
+ for(const action of [()=>s.requireCustomer(issued.token),()=>s.revoke(issued.token)]){
+  await assert.rejects(action(),e=>e.message==='ORGAIZ transactional session unavailable');
+ }
+});
