@@ -83,3 +83,14 @@ test('all 23 locale variants preserve English fallback and Arabic/Urdu bidi dire
     assert.equal(uiLabel('Skip to content', locale), expected, locale);
   }
 });
+
+test('dashboard trend and portfolio labels explicitly cover every non-English locale', async () => {
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('./ui-labels.mjs');
+  for (const label of ['Delivery trend','Portfolio performance','Portfolio mix','Project health','Cumulative, by month']) {
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const expected = UI_LABELS[label][catalogLocale(locale)];
+      assert.ok(typeof expected === 'string' && expected.trim() && expected !== label, locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), expected);
+    }
+  }
+});
