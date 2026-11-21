@@ -94,3 +94,16 @@ test('dashboard trend and portfolio labels explicitly cover every non-English lo
     }
   }
 });
+
+ test('executive decision and evidence labels cover all supported locales without fallback', async () => {
+  const { UI_LABELS, catalogLocale, uiLabel, translationHasMatchingPlaceholders } = await import('./ui-labels.mjs');
+  for (const label of ["Executive decision journey","FROM SIGNALS TO DECISIONS","Turn delivery signals into accountable reviews","These are the current workspace API signals, not automated decisions or approvals.","OBSERVE","Overdue register items","VERIFY","Blocked gates needing evidence review","HUMAN DECISION","Projects returned in the attention queue","Check the source evidence and accountable owner before acting.","Showing the first {shown} of {total} projects needing review."]) {
+    for (const locale of FRONTEND_LOCALES) {
+      const expected = locale.startsWith('en-') ? label : UI_LABELS[label][catalogLocale(locale)];
+      assert.ok(typeof expected === 'string' && expected.trim(), locale + ': ' + label);
+      if (!locale.startsWith('en-')) assert.notEqual(expected, label, locale + ': ' + label);
+      assert.ok(translationHasMatchingPlaceholders(label, expected), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), expected);
+    }
+  }
+});
