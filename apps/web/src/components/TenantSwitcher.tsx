@@ -1,6 +1,8 @@
 'use client';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { useState } from 'react';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import { normalizeFrontendLocale } from '@/lib/frontend-locale.mjs';
 import { usePathname } from 'next/navigation';
 
 export type SignedInSession = {
@@ -14,8 +16,10 @@ export type SignedInSession = {
  * than Server Actions — stable URLs, no generated ids to go stale, and they
  * still work if the client bundle fails to load.
  */
-export function TenantSwitcher({ session, lang }: {session: SignedInSession; lang?: Lang }) {
-  const tx = translator(lang ?? 'en');
+export function TenantSwitcher({ session, lang, locale }: {session: SignedInSession; lang?: Lang; locale?: string }) {
+  const selectedLocale = normalizeFrontendLocale(locale) ?? (lang === 'ar' ? 'ar' : 'en-US');
+  const legacy = translator(selectedLocale === 'ar' ? 'ar' : 'en');
+  const tx = (label: string) => uiLabel(label, selectedLocale, legacy(label));
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const initials = session.displayName.split(' ').map((s) => s[0]).slice(0, 2).join('');
@@ -38,7 +42,7 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
         <>
           <div className="sheet-backdrop" onClick={() => setOpen(false)} />
           <div className="sheet" role="menu">
-            <header>{session.email}<small>{new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US').format(session.capabilities.length)} {tx('capabilities')}</small></header>
+            <header>{session.email}<small>{new Intl.NumberFormat(selectedLocale === 'ar' ? 'ar-SA' : selectedLocale).format(session.capabilities.length)} {tx('capabilities')}</small></header>
             <section>
               <h4>{tx(session.tenants.length > 1 ? 'Switch workspace' : 'Workspace')}</h4>
               {session.tenants.map((t) => {
