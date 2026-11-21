@@ -5,11 +5,10 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutDestinationAllowed, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const CHECKOUT_HOST = 'checkout.stripe.com';
 
 function stripeConfig() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -68,10 +67,16 @@ export class StripeBillingService {
       const existing = rows(await tx.execute(sql`
         SELECT stripe_session_id AS "sessionId", checkout_url AS url,
                expires_at AS "expiresAt" FROM billing_stripe_checkout_sessions
-        WHERE tenant_id = ${tenantId} AND invoice_id = ${invoiceId} AND expires_at > now() + interval '60 seconds'
+        WHERE tenant_id = ${tenantId} AND invoice_id = ${invoiceId} AND expires_at > now()
         ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
-      if (existing) return { invoiceId, sessionId: existing.sessionId, url: existing.url,
-        expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+      if (existing) {
+        if (!stripeCheckoutDestinationAllowed(existing.sessionId, existing.url, config.liveMode))
+          throw new ConflictException('Existing Stripe Checkout requires reconciliation');
+        if (new Date(existing.expiresAt).getTime() <= Date.now() + 60_000)
+          throw new ConflictException('Existing Stripe Checkout is expiring; retry after expiry');
+        return { invoiceId, sessionId: existing.sessionId, url: existing.url,
+          expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+      }
 
       // Stripe caches requests by idempotency key. A fixed invoice-only key
       // would return the *expired* session after a customer retries checkout.
@@ -95,14 +100,8 @@ export class StripeBillingService {
       let session: any;
       try { session = await response.json(); }
       catch { throw new BadGatewayException('Invalid Stripe Checkout response'); }
-      const url = typeof session.url === 'string' ? session.url : '';
-      let parsedUrl: URL;
-      try { parsedUrl = new URL(url); }
-      catch { throw new BadGatewayException('Stripe Checkout returned an invalid URL'); }
-      if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== CHECKOUT_HOST ||
-          typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
-          (config.liveMode && !session.id.startsWith('cs_live_')) ||
-          (!config.liveMode && !session.id.startsWith('cs_test_')) ||
+      const url = typeof session?.url === 'string' ? session.url : '';
+      if (!stripeCheckoutDestinationAllowed(session?.id, url, config.liveMode) ||
           !Number.isSafeInteger(session.expires_at) || session.expires_at * 1000 <= Date.now() + 60_000 ||
           session.client_reference_id !== invoiceId || session.metadata?.tenantId !== tenantId ||
           session.metadata?.invoiceId !== invoiceId || session.amount_total !== invoice.amountMinor ||
