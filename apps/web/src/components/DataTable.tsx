@@ -1,6 +1,8 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
+import { normalizeFrontendLocale } from '@/lib/frontend-locale.mjs';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { compareTableValues, formatTableCount } from '@/lib/table-locale.mjs';
 
 export type Col<T> = {
@@ -24,8 +26,17 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
   /** A string, not a function — this crosses the server/client boundary. */
   lang?: Lang;
 }) {
-  const locale = lang ?? 'en';
-  const t = translator(locale);
+  const [locale, setLocale] = useState<string>(lang ?? 'en');
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setLocale(normalizeFrontendLocale(root.lang) ?? lang ?? 'en');
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    return () => observer.disconnect();
+  }, [lang]);
+  const legacy = translator(locale === 'ar' ? 'ar' : 'en');
+  const t = (label: string) => uiLabel(label, locale, legacy(label));
   const [q, setQ] = useState('');
   const [sort, setSort] = useState(initialSort ?? null);
 
@@ -68,8 +79,8 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
         </div>
         <span className="dim" aria-live="polite">
           {view.length === rows.length
-            ? `${formatTableCount(rows.length, locale)} ${t('rows')}`
-            : `${formatTableCount(view.length, locale)} ${t('of')} ${formatTableCount(rows.length, locale)}`}
+            ? t('{count} rows').replace('{count}', formatTableCount(rows.length, locale))
+            : t('{shown} of {total}').replace('{shown}', formatTableCount(view.length, locale)).replace('{total}', formatTableCount(rows.length, locale))}
         </span>
       </div>
 
@@ -79,7 +90,7 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
           {q && <p>{t('Try a shorter search, or clear the filter.')}</p>}
         </div>
       ) : (
-        <div className="scrollx" role="region" aria-label={locale === 'ar' ? 'نتائج الجدول' : 'Table results'} tabIndex={0}>
+        <div className="scrollx" role="region" aria-label={t('Table results')} tabIndex={0}>
           <table>
             <thead>
               <tr>
@@ -91,7 +102,7 @@ export function DataTable<T>({ rows, cols, filterPlaceholder, empty, initialSort
                         aria-sort={can ? (on ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}>
                       {can ? (
                         <button type="button" className={`sortbtn${on ? ' on' : ''}`}
-                                aria-label={locale === 'ar' ? `ترتيب حسب ${t(c.head)}` : `Sort by ${t(c.head)}`}
+                                aria-label={t('Sort by {column}').replace('{column}', () => t(c.head))}
                                 onClick={() => toggle(c.key)}>
                           {t(c.head)}
                           <span className="arrow" aria-hidden="true">{on ? (sort!.dir === 'asc' ? '↑' : '↓') : '↕'}</span>
