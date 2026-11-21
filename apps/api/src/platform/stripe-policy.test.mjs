@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { verifyStripeSignature, parsePaidStripeEvent, assertStripeSettlement, stripeCheckoutParams, stripeCheckoutIdempotencyKey, stripeDeploymentModeAllowed } from './stripe-policy.ts';
+import { verifyStripeSignature, parsePaidStripeEvent, assertStripeSettlement, stripeCheckoutParams, stripeCheckoutDestinationAllowed, stripeCheckoutIdempotencyKey, stripeDeploymentModeAllowed } from './stripe-policy.ts';
 const tenantId = '2bb4c19e-ac7d-47a3-8fa1-f917640e127a';
 const invoiceId = 'ae6c076e-c4fe-4cb0-9eda-476ea8d59024';
 const subId = '72c72f05-c371-43c0-9f2a-9eb4b9945805';
@@ -104,3 +104,12 @@ test('matching live event and session identity accepted by parser',()=>{
  const payload=Buffer.from(JSON.stringify({id:'evt_MODE456',type:'checkout.session.completed',livemode:true,data:{object:{...session,id:'cs_live_MATCH'}}}));
  assert.equal(parsePaidStripeEvent(payload,true)?.session.id,'cs_live_MATCH');
 });
+
+ test('checkout destination requires matching mode and exact trusted HTTPS origin',()=>{
+ const url='https://checkout.stripe.com/c/pay/example';
+ assert.equal(stripeCheckoutDestinationAllowed('cs_test_ABC',url,false),true);
+ assert.equal(stripeCheckoutDestinationAllowed('cs_live_ABC',url,true),true);
+ assert.equal(stripeCheckoutDestinationAllowed('cs_test_ABC',url,true),false);
+ assert.equal(stripeCheckoutDestinationAllowed('cs_live_ABC',url,false),false);
+ for(const bad of ['http://checkout.stripe.com/c/pay/example','https://checkout.stripe.com:8443/c/pay/example','https://user@checkout.stripe.com/c/pay/example','https://checkout.stripe.com.example.org/c/pay/example','invalid',null]) assert.equal(stripeCheckoutDestinationAllowed('cs_test_ABC',bad,false),false);
+ });
