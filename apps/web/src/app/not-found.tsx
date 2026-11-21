@@ -7,7 +7,7 @@ export default async function NotFound() {
         <span className="tag">404</span>
         <h1 style={{ marginBlock: '16px 8px' }}>{t('That page does not exist')}</h1>
         <p className="dim" style={{ maxWidth: '46ch' }}>
-          The link may be out of date, or the module may not be part of your workspace.
+          {t('The link may be out of date, or the module may not be part of your workspace.')}
         </p>
         <a className="btn" href="/" style={{ marginBlockStart: 18 }}>{t('Back to overview')}</a>
       </div>
