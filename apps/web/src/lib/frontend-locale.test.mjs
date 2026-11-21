@@ -107,3 +107,15 @@ test('dashboard trend and portfolio labels explicitly cover every non-English lo
     }
   }
 });
+
+ test('Arabic navigation catalog resolves without caller-provided legacy copy', async () => {
+ const { UI_LABELS, uiLabel, translationHasMatchingPlaceholders } = await import('./ui-labels.mjs');
+ for (const label of ["Home","Plan & Deliver","Govern","Analyse","Collaborate","Configure","Projects","Reports","Settings","Getting Started","Executive Overview","My Work","Attention","Portfolios","Work Board","Schedule","Stage Gates","RAID Register","Decisions","Approvals","Analytics","Financials","Benefits","Resources","Notifications","Import & Export","Power BI","Platform Studio","Integrations","Documents","Updates","Stakeholders","Modules"]) {
+   const expected = UI_LABELS[label]['ar-SA'];
+   assert.ok(typeof expected === 'string' && expected.trim(), label);
+   if (label !== 'Power BI') assert.notEqual(expected, label);
+   assert.ok(translationHasMatchingPlaceholders(label, expected), label);
+   assert.equal(uiLabel(label, 'ar'), expected, label);
+ }
+ assert.equal(uiLabel('Home', 'ar', 'الصفحة الرئيسية'), 'الصفحة الرئيسية');
+});
