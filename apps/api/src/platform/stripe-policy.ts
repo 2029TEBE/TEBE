@@ -52,7 +52,8 @@ export function parsePaidStripeEvent(rawBody: Buffer, liveMode: boolean):
   if (!STRIPE_EVENTS.has(event.type)) return null; // Other signed Stripe events are ignored.
   const session = event.data?.object;
   if (!session || typeof session !== 'object' || session.object !== 'checkout.session' ||
-      typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id))
+      typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
+      !session.id.startsWith(liveMode ? 'cs_live_' : 'cs_test_'))
     throw new Error('Stripe Checkout session is missing or invalid');
   if (session.mode !== 'payment' || session.status !== 'complete' || session.payment_status !== 'paid')
     return null; // Never grant on an unpaid/async-pending checkout.
