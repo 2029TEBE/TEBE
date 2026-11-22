@@ -1,13 +1,17 @@
 'use client';
 import { translator, type Lang } from '@/lib/i18n-dict';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
 
 export type Cmd = { label: string; href: string; group: string };
 
-export function CommandPalette({ commands, lang }: { commands: Cmd[]; lang?: Lang }) {
-  const t = translator(lang ?? 'en');
+export function CommandPalette({ commands, lang, locale }: { commands: Cmd[]; lang?: Lang; locale?: FrontendLocale }) {
+  const selectedLocale = locale ?? (lang === 'ar' ? 'ar' : 'en-US');
+  const legacy = translator(selectedLocale === 'ar' ? 'ar' : 'en');
+  const t = (label: string) => uiLabel(label, selectedLocale, legacy(label));
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
