@@ -114,3 +114,18 @@ test('account controls cover every supported frontend locale', async () => {
     }
   }
 });
+
+test('account role display labels cover each supported locale without modifying role identifiers', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale } = await import('../apps/web/src/lib/ui-labels.mjs');
+  const s = read('apps/web/src/components/TenantSwitcher.tsx');
+  assert.ok(s.includes("tx(session.role.replace(/_/g, ' '))"));
+  assert.ok(s.includes("tx(t.role.replace(/_/g, ' '))"));
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const role of ["owner","admin","manager","member","viewer"]) {
+      const value = UI_LABELS[role]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + role);
+      assert.equal(uiLabel(role, locale), value);
+    }
+  }
+});
