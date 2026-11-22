@@ -83,7 +83,7 @@ export default async function Documents({ searchParams }:
                     ? <span className="good">{d.evidenceFor}</span>
                     : <span className="dim">—</span>}</td>
                   <td className="num">{size(d.sizeKb)}</td>
-                  <td>{when(d.updatedAt, lang)}</td>
+                  <td>{when(d.updatedAt, locale)}</td>
                   <td><span className={`pill ${d.status === 'approved' ? 'on_track'
                     : d.status === 'in_review' ? 'at_risk' : 's-closed'}`}>
                     {statusLabel(d.status, lang)}</span></td>
