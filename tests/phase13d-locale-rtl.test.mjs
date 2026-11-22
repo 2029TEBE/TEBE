@@ -230,3 +230,24 @@ test('project governance table action resolves every supported frontend locale',
     assert.notEqual(translated, 'Open governance', locale);
   }
 });
+
+
+test('project empty states and create permissions are localized across frontend locales', async () => {
+  const page = read('apps/web/src/app/(app)/projects/page.tsx');
+  const labels = [
+    'Create your first project above with its governance gates.',
+    'Ask an authorized administrator to create the first project.',
+    'Creating projects requires project-management permission and an enabled PMO module.',
+  ];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': localized call');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': missing translation');
+      assert.equal(uiLabel(label, locale), translated, locale + ': catalog lookup');
+    }
+  }
+});
