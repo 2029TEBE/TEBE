@@ -36,7 +36,7 @@ export default async function Decisions() {
                 <td className="num"><bdi>{d.projectCode}</bdi></td>
                 <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim">{labelFor("not gate-linked")}</span>}</td>
                 <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim">{labelFor("unassigned")}</span>}</td>
-                <td>{when(d.decidedAt, lang)}</td>
+                <td>{when(d.decidedAt, locale)}</td>
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>
           </table></div>
