@@ -55,6 +55,8 @@ for (const record of catalogResults) {
   process.stdout.write('CATALOG ' + record.locale.padEnd(8) + ' ' + record.translated + '/' + record.total +
     ' mapped; missing-or-English=' + record.missing.length +
     '; invalid-placeholders=' + record.invalidPlaceholders.length + '\n');
+  if (record.missing.length) process.stdout.write('  REVIEW ' + record.locale + ' missing-or-identical keys: ' + JSON.stringify(record.missing) + '\n');
+  if (record.invalidPlaceholders.length) process.stdout.write('  INVALID ' + record.locale + ' keys: ' + JSON.stringify(record.invalidPlaceholders) + '\n');
 }
 const uncertified = catalogResults.filter(row =>
   !row.locale.startsWith('en-') && (row.missing.length || row.invalidPlaceholders.length));
