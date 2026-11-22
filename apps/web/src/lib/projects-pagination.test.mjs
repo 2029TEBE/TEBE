@@ -47,6 +47,10 @@ test('empty paginated project pages offer a first-page recovery link',async()=>{
  const page=readFileSync(new URL('../app/(app)/projects/page.tsx',import.meta.url),'utf8');
  assert.ok(page.includes('cursorFilter && <p><Link href={projectPageHref(null, programFilter, healthFilter)}>'));
  assert.match(page,/Return to first page/);
- assert.match(page,/العودة إلى الصفحة الأولى/);
+ const {uiLabel} = await import('./ui-labels.mjs');
+ assert.equal(uiLabel('Return to first page','ar'), 'العودة إلى الصفحة الأولى');
+ for (const locale of ['de','fr','es','ur','zh-TW']) {
+  assert.notEqual(uiLabel('Return to first page',locale), 'Return to first page', locale);
+ }
  assert.equal(projectPageHref(null,program,'critical'),'/projects?program='+program+'&health=critical');
 });
