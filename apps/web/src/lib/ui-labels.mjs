@@ -114,7 +114,7 @@ export const UI_LABELS = Object.freeze({
   "Cumulative, by month": { 'ar-SA': "تراكمي، حسب الشهر", 'de-DE': "Kumuliert, nach Monat", 'zh-CN': "按月累计", 'fr-FR': "Cumulé, par mois", 'ja-JP': "月別累計", "bn": "মাসভিত্তিক ক্রমপুঞ্জিত", "es": "Acumulado por mes", "es-419": "Acumulado por mes", "fil": "Pinagsama-sama ayon sa buwan", "hi": "माहवार संचयी", "id": "Kumulatif per bulan", "it": "Cumulativo per mese", "ko": "월별 누적", "pt-BR": "Acumulado por mês", "pt-PT": "Acumulado por mês", "ru": "Нарастающим итогом по месяцам", "sw": "Jumla limbikizi kwa mwezi", "tr": "Aylık kümülatif", "ur": "ماہ وار مجموعی", "vi": "Lũy kế theo tháng", "zh-TW": "按月累計" },
   'Skip to content': { 'ar-SA': 'انتقل إلى المحتوى', 'de-DE': 'Zum Inhalt springen', 'zh-CN': '跳转到内容', 'fr-FR': 'Aller au contenu', 'ja-JP': '本文へスキップ', 'bn': 'মূল বিষয়বস্তুতে যান', 'es': 'Saltar al contenido', 'es-419': 'Ir al contenido', 'fil': 'Lumaktaw sa nilalaman', 'hi': 'मुख्य सामग्री पर जाएँ', 'id': 'Lewati ke konten', 'it': 'Vai al contenuto', 'ko': '본문으로 건너뛰기', 'pt-BR': 'Ir para o conteúdo', 'pt-PT': 'Saltar para o conteúdo', 'ru': 'Перейти к содержимому', 'sw': 'Nenda kwenye maudhui', 'tr': 'İçeriğe geç', 'ur': 'مرکزی مواد پر جائیں', 'vi': 'Chuyển đến nội dung', 'zh-TW': '跳至主要內容' },
   'Modules': { 'ar-SA': "الوحدات", 'de-DE': 'Module', 'zh-CN': '模块', 'fr-FR': 'Modules', 'ja-JP': 'モジュール'  , 'ur': "ماڈیولز" , 'es': "Módulos", 'es-419': "Módulos" , 'pt-BR': "Módulos", 'pt-PT': "Módulos", 'it': "Moduli", 'tr': "Modüller", 'ru': "Модули" , 'bn': "মডিউলসমূহ", 'fil': "Mga module", 'hi': "मॉड्यूल", 'id': "Modul", 'ko': "모듈", 'sw': "Moduli", 'vi': "Mô-đun", 'zh-TW': "模組" },
-  'The EPMO': { 'de-DE': 'The EPMO', 'zh-CN': 'The EPMO', 'fr-FR': 'The EPMO', 'ja-JP': 'The EPMO' },
+  'The EPMO': {"ar-SA":"The EPMO","de-DE":"The EPMO","zh-CN":"The EPMO","fr-FR":"The EPMO","ja-JP":"The EPMO","bn":"The EPMO","es":"The EPMO","es-419":"The EPMO","fil":"The EPMO","hi":"The EPMO","id":"The EPMO","it":"The EPMO","ko":"The EPMO","pt-BR":"The EPMO","pt-PT":"The EPMO","ru":"The EPMO","sw":"The EPMO","tr":"The EPMO","ur":"The EPMO","vi":"The EPMO","zh-TW":"The EPMO"},
 });
 
 /**
@@ -156,6 +156,22 @@ export function translationHasMatchingPlaceholders(english, translated) {
  * a map of English source text to existing Arabic translations.
  * Do not count English fallback strings as translated.
  */
+// Explicitly reviewed invariant brand names and legitimate identical translations.
+const INVARIANT_LABELS = Object.freeze({
+  'Power BI': 'all',
+  'The EPMO': 'all',
+  'Analyse': ['de-DE', 'fr-FR'],
+  'Portfolios': ['de-DE'],
+  'Notifications': ['fr-FR'],
+  'Documents': ['fr-FR'],
+  'Modules': ['fr-FR'],
+});
+
+function isReviewedInvariant(english, locale) {
+  const allowed = Object.hasOwn(INVARIANT_LABELS, english) ? INVARIANT_LABELS[english] : null;
+  return allowed === 'all' || (Array.isArray(allowed) && allowed.includes(locale));
+}
+
 export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
   locale = catalogLocale(locale);
   const unique = [...new Set(englishLabels)];
@@ -168,7 +184,7 @@ export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
       ? legacyArabic[english] : null;
     const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
       ? legacy : row?.[locale];
-    if (typeof translated !== 'string' || !translated.trim() || translated === english) {
+    if (typeof translated !== 'string' || !translated.trim() || (translated === english && !isReviewedInvariant(english, locale))) {
       // An English fallback is not proof of a completed translation.
       missing.push(english);
     } else if (!translationHasMatchingPlaceholders(english, translated)) {
