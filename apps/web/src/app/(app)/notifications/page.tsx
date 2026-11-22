@@ -72,7 +72,7 @@ export default async function Notifications({ searchParams }:
                           {m.error && <div className="crit" style={{ fontSize: 'var(--fs-sm)' }}>{m.error}</div>}
                         </td>
                         <td className="num">
-                          {m.sentAt ? when(m.sentAt, lang) : ago(m.createdAt, lang)}
+                          {m.sentAt ? when(m.sentAt, locale) : ago(m.createdAt, locale)}
                         </td>
                       </tr>
                     ))}
