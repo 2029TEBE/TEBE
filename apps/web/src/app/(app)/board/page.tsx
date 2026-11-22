@@ -67,8 +67,8 @@ export default async function BoardPage({ searchParams }:
               const prev = COLS[i - 1];
               const next = COLS[i + 1];
               return (
-                <section key={state} className="col" aria-label={t(label)}>
-                  <header>{t(label)} <span className="count" aria-label={tx('{count} tasks').replace('{count}', formatNumber(col.length, locale))}>{formatNumber(col.length, locale)}</span></header>
+                <section key={state} className="col" aria-label={tx(label)}>
+                  <header>{tx(label)} <span className="count" aria-label={tx('{count} tasks').replace('{count}', formatNumber(col.length, locale))}>{formatNumber(col.length, locale)}</span></header>
                   {col.length === 0
                     ? <p className="dim" style={{ padding: '8px 2px' }}>—</p>
                     : col.map((t) => (
