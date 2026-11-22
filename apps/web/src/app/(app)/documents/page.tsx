@@ -4,13 +4,16 @@ import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
-import { when } from '@/lib/fmt';
+import { when, num } from '@/lib/fmt';
+import { formatNumber } from '@/lib/locale-format.mjs';
+import { safeDocumentWebUrl } from '@/lib/document-link.mjs';
 import { tr, getLang } from '@/lib/i18n';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { localizedStatus } from '@pmo/contracts';
 
-const size = (kb: number | null) =>
-  kb == null ? '—' : kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+const size = (kb: number | null, locale: string) =>
+  kb == null || !Number.isFinite(kb) || kb < 0 ? '—'
+    : kb > 1024 ? `${num(kb / 1024, 1, locale)} MB` : `${num(kb, 0, locale)} KB`;
 
 /** Labels only; preserve the original status values for classes and API data. */
 const statusLabel = (status: string, lang: string) => localizedStatus('documents', status, lang);
@@ -53,9 +56,9 @@ export default async function Documents({ searchParams }:
                 <h2>{t('Evidence inventory')}</h2>
                 <p>{t('Document status and evidence linkage shown from authorized workspace records. File access remains governed by its existing integration.')}</p></div>
               <div className="design-summary">
-                <div className="design-metric"><small>{t('Documents')}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{t('Approved')}</small><strong>{list.filter((d: any) => d.status === 'approved').length}</strong></div>
-                <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{list.filter((d: any) => Boolean(d.evidenceFor)).length}</strong></div>
+                <div className="design-metric"><small>{t('Documents')}</small><strong>{formatNumber(list.length, locale)}</strong></div>
+                <div className="design-metric"><small>{t('Approved')}</small><strong>{formatNumber(list.filter((d: any) => d.status === 'approved').length, locale)}</strong></div>
+                <div className="design-metric"><small>{t('Linked to evidence')}</small><strong>{formatNumber(list.filter((d: any) => Boolean(d.evidenceFor)).length, locale)}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Document register")} tabIndex={0}><table>
@@ -68,25 +71,25 @@ export default async function Documents({ searchParams }:
                       signed in to that tenant in this browser. */}
                   <td><strong>{d.storageProvider === 'microsoft'
                     ? <a href={`/api/microsoft/documents/${d.id}/open`} target="_blank" rel="noreferrer">
-                        {d.name}</a>
-                    : d.url
-                      ? <a href={d.url} target="_blank" rel="noreferrer">{d.name}</a>
-                      : d.name}</strong>
+                        <bdi>{d.name}</bdi></a>
+                    : safeDocumentWebUrl(d.url)
+                      ? <a href={safeDocumentWebUrl(d.url)!} target="_blank" rel="noopener noreferrer"><bdi>{d.name}</bdi></a>
+                      : <bdi>{d.name}</bdi>}</strong>
                     {d.storageProvider === 'microsoft' && (
                       <div className="dim">{t('in SharePoint')}</div>
                     )}
-                    {d.owner && <div className="dim">{d.owner}</div>}</td>
-                  <td className="num">{d.projectCode ?? '—'}</td>
-                  <td><span className="kind">{d.kind}</span></td>
-                  <td className="num">{d.version}</td>
+                    {d.owner && <div className="dim"><bdi>{d.owner}</bdi></div>}</td>
+                  <td className="num"><bdi>{d.projectCode ?? '—'}</bdi></td>
+                  <td><span className="kind"><bdi>{d.kind}</bdi></span></td>
+                  <td className="num"><bdi>{d.version}</bdi></td>
                   <td>{d.evidenceFor
-                    ? <span className="good">{d.evidenceFor}</span>
+                    ? <span className="good"><bdi>{d.evidenceFor}</bdi></span>
                     : <span className="dim">—</span>}</td>
-                  <td className="num">{size(d.sizeKb)}</td>
-                  <td>{when(d.updatedAt, locale)}</td>
+                  <td className="num">{size(d.sizeKb, locale)}</td>
+                  <td>{d.updatedAt ? <time dateTime={d.updatedAt}>{when(d.updatedAt, locale)}</time> : '—'}</td>
                   <td><span className={`pill ${d.status === 'approved' ? 'on_track'
                     : d.status === 'in_review' ? 'at_risk' : 's-closed'}`}>
-                    {statusLabel(d.status, lang)}</span></td>
+                    {statusLabel(d.status, locale)}</span></td>
                 </tr>))}</tbody>
             </table></div>
             <details className="explain">
