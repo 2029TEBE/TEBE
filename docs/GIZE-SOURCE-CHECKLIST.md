@@ -330,3 +330,8 @@ Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newl
 - [PR #760](https://github.com/2029TEBE/TEBE/pull/760) adds 105 locale mappings for five customer-facing report table/summary labels in `apps/web/src/lib/ui-labels.mjs` and all-locale regressions in `tests/phase13d-locale-rtl.test.mjs`. This is a **source-only implementation batch awaiting exact-head CI**, not user acceptance or full translation.
 - Previously merged [PR #757](https://github.com/2029TEBE/TEBE/pull/757) had exact-head CI success and merged as `ffb4288aeb0e9f2f783165b3d4c8975ad540810c`; [PR #759](https://github.com/2029TEBE/TEBE/pull/759) is pending its own CI and merge. No production readback for these changes has been established.
 - **Do not promote LOC-02, LOC-03 or LOC-09 to VERIFIED:** backend-generated reports/exports, missing required catalog keys, regional language variants, RTL browser and document checks, native linguistic review and end-to-end acceptance are outstanding. Billing remains deferred.
+
+
+## 2026-11-22 UTC — Report action label coverage (LOC-02 / LOC-03 / LOC-09 partial)
+- Four report action labels (Word, PowerPoint, PDF downloads and open board pack) gain 84 explicit non-English frontend translations in `apps/web/src/lib/ui-labels.mjs`, with all-locale regression assertions in `tests/phase13d-locale-rtl.test.mjs`. Source-only; exact-head CI and release acceptance pending.
+- This batch does NOT change backend document generation, language propagation to export endpoints, or release status. LOC-02/03/09 remain not fully assessed/verified until missing-copy inventory, native linguistic and RTL browser reviews, translated backend exports and authenticated production/customer evidence are complete.
