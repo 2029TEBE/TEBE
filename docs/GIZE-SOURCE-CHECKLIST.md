@@ -344,3 +344,8 @@ Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newl
 ## 2026-11-22 UTC — Reporting explanatory copy partial translation (LOC-02 / LOC-03 / LOC-09)
 - Added 63 explicit non-English translations for report catalogue summary, editable Word pack explanation, and PowerPoint slide-description copy in `apps/web/src/lib/ui-labels.mjs`; regression coverage in `tests/phase13d-locale-rtl.test.mjs`. Pending exact-head CI and review.
 - This source-only work does not change actual generated documents or guarantee all report-page copy has been translated. PDF descriptions, technical explanation, all backend exports, live production readback, RTL/linguistic acceptance and full 23-locale E2E checks remain open. No billing or production activation.
+
+
+## 2026-11-22 UTC — PDF description localization subcheck (LOC-02 / LOC-03 / LOC-09)
+- Added 21 explicit non-English translations for the report page's PDF layout/Arabic shaping description in `apps/web/src/lib/ui-labels.mjs`, with frontend-locale regression assertions in `tests/phase13d-locale-rtl.test.mjs`. Source-level work only, pending exact-head CI.
+- Product names Word, PowerPoint and PDF remain intentionally unchanged across locales. The lengthy technical PDF generation explanation is still missing full translated copy, and backend-generated export documents, native linguistic review, RTL PDF/browser acceptance and production readback remain unverified. This does not promote any full acceptance requirement to VERIFIED. Billing excluded.
