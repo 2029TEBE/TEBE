@@ -62,7 +62,7 @@ export default async function Resources({ searchParams }:
                     <tr key={p.id}>
                       <td><strong><bdi>{p.name}</bdi></strong></td>
                       <td className="num">{num(p.projects, 0, locale)}</td>
-                      <td className="num"><span className={over ? 'crit' : p.allocatedPct >= 90 ? 'warnt' : 'good'}>
+                      <td className="num"><span className={over ? 'crit' : hasAllocation && p.allocatedPct >= 90 ? 'warnt' : hasAllocation ? 'good' : 'dim'}>
                         {hasAllocation ? `${num(p.allocatedPct, 0, locale)}%` : '—'}</span></td>
                       <td>
                         <div className="bar" style={{ inlineSize: 180 }}>
