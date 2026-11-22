@@ -2,10 +2,11 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { ago } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 
 export default async function Studio() {
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   return (
     <Page title="Platform Studio"
@@ -45,7 +46,7 @@ export default async function Studio() {
                     <td><code>{a.trigger}</code></td>
                     <td><code>{a.action}</code></td>
                     <td className="num">{a.runCount}</td>
-                    <td>{a.lastRunAt ? ago(a.lastRunAt, lang) : <span className="dim">never</span>}</td>
+                    <td>{a.lastRunAt ? ago(a.lastRunAt, locale) : <span className="dim">never</span>}</td>
                     <td><span className={`pill ${a.isActive ? 'on_track' : 's-closed'}`}>
                       {a.isActive ? 'active' : 'paused'}</span></td>
                   </tr>
