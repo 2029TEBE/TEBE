@@ -156,3 +156,13 @@ test('record validation messages cover all registered locales', async () => {
   }
   assert.equal(formErrorText('__proto__', 'de'), formErrorText('invalid', 'de'));
 });
+
+test('shared page loading errors have explicit locale coverage', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ["Unable to load this data","There was a problem loading this content. Refresh the page, or contact your workspace administrator if the issue continues."]) {
+      assert.notEqual(uiLabel(label, locale), label, locale + ': ' + label);
+    }
+  }
+});
