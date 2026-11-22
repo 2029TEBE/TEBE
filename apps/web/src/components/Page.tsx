@@ -42,7 +42,7 @@ export async function Loaded<T>({ load, children, empty }:
         <div className="panel locked">
           <span className="tag">{t('Not permitted')}</span>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: '14px 0 8px' }}>{t('Your role cannot open this')}</h2>
-          <p className="dim">{err.detail}</p>
+          <p className="dim">{t('Contact your workspace administrator for access.')}</p>
         </div>
       );
     }
@@ -54,7 +54,7 @@ export async function Loaded<T>({ load, children, empty }:
     );
   }
   if (Array.isArray(data) && data.length === 0) {
-    return <div className="panel">{t(empty ?? 'Nothing here yet.')}</div>;
+    return <div className="panel">{t(empty ?? 'Nothing here yet')}</div>;
   }
   return <>{children(data)}</>;
 }
