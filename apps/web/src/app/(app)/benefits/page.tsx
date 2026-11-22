@@ -71,14 +71,14 @@ export default async function Benefits({ searchParams }:
                     <td className="num">{b.projectCode ?? '—'}</td>
                     <td className="dim">{b.measure}
                       {b.direction === 'decrease' && <div className="kind">{labelFor("lower is better")}</div>}</td>
-                    <td className="num">{num(b.baseline)}</td>
-                    <td className="num">{num(b.target)}</td>
-                    <td className="num">{num(b.actual)}</td>
+                    <td className="num">{num(b.baseline, 0, locale)}</td>
+                    <td className="num">{num(b.target, 0, locale)}</td>
+                    <td className="num">{num(b.actual, 0, locale)}</td>
                     <td>{b.pctOfTarget == null ? <span className="dim">—</span> : (
                       <><div className="bar" style={{ inlineSize: 110 }}>
                         <i aria-hidden="true" style={{ width: `${benefitBarWidth(Number(b.pctOfTarget))}%` }} /></div>
                         <span className="dim">{fill(labelFor('{pct}% of the way from baseline to target'), {pct: b.pctOfTarget})}</span></>)}</td>
-                    <td>{when(b.reviewDate, lang)}</td>
+                    <td>{when(b.reviewDate, locale)}</td>
                     <td><span className={`pill b-${b.status}`}>{localizedStatus('benefits', b.status, locale)}</span></td>
                   </tr>
                 ))}

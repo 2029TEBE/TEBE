@@ -5,10 +5,9 @@ import { api } from '@/lib/api';
 import { fill, localizedStatus } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { when, num } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr } from '@/lib/i18n';
 
 export default async function MyWork() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("my-work", english));
   const t = await tr();
@@ -27,7 +26,7 @@ export default async function MyWork() {
               <div className="tile"><span>{t('Criteria to evidence')}</span>
                 <strong>{d.criteria.length}</strong></div>
               <div className="tile"><span>{t('Hours logged, 7 days')}</span>
-                <strong>{num(d.effortLast7Days, 1)}</strong></div>
+                <strong>{num(d.effortLast7Days, 1, locale)}</strong></div>
             </div>
 
             <h2 className="sec">{t('Approvals waiting on you')}</h2>
@@ -66,7 +65,7 @@ export default async function MyWork() {
                     <td className="num">{t.projectCode}</td><td>{t.title}</td>
                     <td><span className={`pill s-${t.state === 'blocked' ? 'open' : 'closed'}`}>
                       {localizedStatus('work', t.state, locale)}</span></td>
-                    <td className={t.overdue ? 'crit' : undefined}>{when(t.dueDate, lang)}</td>
+                    <td className={t.overdue ? 'crit' : undefined}>{when(t.dueDate, locale)}</td>
                   </tr>))}</tbody>
               </table></div>
             )}

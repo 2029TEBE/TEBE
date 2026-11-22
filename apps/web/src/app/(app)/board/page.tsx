@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { Flash } from '@/components/NewRecord';
-import { getLang } from '@/lib/i18n';
+import { getLang, getFrontendLocale } from '@/lib/i18n';
 import { when } from '@/lib/fmt';
 
 const COLS = [
@@ -35,6 +35,7 @@ export default async function BoardPage({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   return (
     <Page title={lang === 'ar' ? 'لوحة العمل' : 'Work Board'}
           sub={lang === 'ar'
@@ -74,7 +75,7 @@ export default async function BoardPage({ searchParams }:
                           <strong><bdi>{t.title}</bdi></strong>
                           <div className="dim">
                             <bdi>{t.assignee ?? (lang === 'ar' ? 'غير معين' : 'unassigned')}</bdi>
-                            {t.dueDate && <> {' · '}{lang === 'ar' ? 'الاستحقاق' : 'due'} <time dateTime={t.dueDate}>{when(t.dueDate, lang)}</time></>}
+                            {t.dueDate && <> {' · '}{lang === 'ar' ? 'الاستحقاق' : 'due'} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
                           </div>
                           <div className="moverow">
                             {prev ? <Move id={t.id} to={prev[0]} label={lang === 'ar' ? prev[2] : prev[1]}

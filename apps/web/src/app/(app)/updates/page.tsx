@@ -3,13 +3,14 @@ import { can, type Capability } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { ago } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { term } from '@pmo/contracts';
 
 export default async function Updates({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   const session = await getSession();
   const mayPost = session.authenticated && can(session.capabilities as Capability[], 'pmoa_post_updates');
@@ -42,7 +43,7 @@ export default async function Updates({ searchParams }:
                   <span className="av">{(u.author ?? '?').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}</span>
                   <div>
                     <strong><bdi>{u.author ?? t('Unknown')}</bdi></strong>
-                    <span className="dim">{u.projectCode ? <><bdi>{u.projectCode}</bdi>{' · '}</> : ''}{ago(u.createdAt, lang)}</span>
+                    <span className="dim">{u.projectCode ? <><bdi>{u.projectCode}</bdi>{' · '}</> : ''}{ago(u.createdAt, locale)}</span>
                   </div>
                   <span className={`kind ${u.kind === 'escalation' ? 'k-issue' : u.kind === 'status' ? 'k-assumption' : ''}`}>
                     {term(t, u.kind)}</span>

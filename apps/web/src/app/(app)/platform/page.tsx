@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getFrontendLocale } from '@/lib/i18n';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   ga: { label: 'available', cls: 'on_track' },
@@ -12,7 +12,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 export default async function Platform({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
-  const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   return (
     <Page title="Platform & Modules"
@@ -57,7 +57,7 @@ export default async function Platform({ searchParams }:
                           {m.isCore ? t('Part of the platform')
                             : m.dependsOn.length ? `${t('Requires')} ${m.dependsOn.join(', ')}`
                             : t('No dependencies')}
-                          {m.enabled && m.enabledAt ? ` · ${t('on since')} ${when(m.enabledAt, lang)}` : ''}
+                          {m.enabled && m.enabledAt ? ` · ${t('on since')} ${when(m.enabledAt, locale)}` : ''}
                         </span>
                         {m.isCore ? (
                           <span className="pill on_track">{t('always on')}</span>

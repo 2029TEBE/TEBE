@@ -3,7 +3,7 @@ import { uiLabel } from '@/lib/ui-labels.mjs';
 import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
-import { tr, getLang, term } from '@/lib/i18n';
+import { tr, term } from '@/lib/i18n';
 import { when, ago } from '@/lib/fmt';
 
 const PILL: Record<string, string> = {
@@ -13,7 +13,6 @@ const PILL: Record<string, string> = {
 export default async function Notifications({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("notifications", english));
   const t = await tr();
@@ -72,7 +71,7 @@ export default async function Notifications({ searchParams }:
                           {m.error && <div className="crit" style={{ fontSize: 'var(--fs-sm)' }}>{m.error}</div>}
                         </td>
                         <td className="num">
-                          {m.sentAt ? when(m.sentAt, lang) : ago(m.createdAt, lang)}
+                          {m.sentAt ? when(m.sentAt, locale) : ago(m.createdAt, locale)}
                         </td>
                       </tr>
                     ))}

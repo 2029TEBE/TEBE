@@ -53,15 +53,15 @@ export default async function Financials({ searchParams }:
           return (
             <>
               <div className="tiles">
-                <div className="tile"><span>{t('Approved budget')}</span><strong>{money(tot.budget)}</strong>
+                <div className="tile"><span>{t('Approved budget')}</span><strong>{money(tot.budget, locale)}</strong>
                   <div className="split"><i className="dim">SAR</i></div></div>
-                <div className="tile"><span>{t('Committed')}</span><strong>{money(tot.committed)}</strong>
+                <div className="tile"><span>{t('Committed')}</span><strong>{money(tot.committed, locale)}</strong>
                   <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.committed, tot.budget)}%` }} /></div></div>
-                <div className="tile"><span>{t('Actual spend')}</span><strong>{money(tot.actual)}</strong>
+                <div className="tile"><span>{t('Actual spend')}</span><strong>{money(tot.actual, locale)}</strong>
                   <div className="bar"><i aria-hidden="true" style={{ width: `${financialBarWidth(tot.actual, tot.budget)}%` }} /></div></div>
                 <div className={`tile${over > 0 ? ' alarm' : ''}`}>
                   <span>{t('Forecast variance')}</span>
-                  <strong className={over > 0 ? 'crit' : 'good'}>{over > 0 ? '+' : ''}{money(over)}</strong>
+                  <strong className={over > 0 ? 'crit' : 'good'}>{over > 0 ? '+' : ''}{money(over, locale)}</strong>
                   <div className="split"><i className="dim">{t('forecast vs approved')}</i></div></div>
               </div>
 
@@ -76,10 +76,10 @@ export default async function Financials({ searchParams }:
                     {d.byProject.map((r: any) => (
                       <tr key={r.id}>
                         <td><strong><bdi>{r.code}</bdi></strong><div className="dim">{r.progressPct}% {labelFor("complete")}</div></td>
-                        <td className="num">{money(r.budget)}</td>
-                        <td className="num">{money(r.committed)}</td>
-                        <td className="num">{money(r.actual)}</td>
-                        <td className="num">{money(r.earnedValue)}</td>
+                        <td className="num">{money(r.budget, locale)}</td>
+                        <td className="num">{money(r.committed, locale)}</td>
+                        <td className="num">{money(r.actual, locale)}</td>
+                        <td className="num">{money(r.earnedValue, locale)}</td>
                         <td className="num">{r.cpi == null
                           ? <span className="dim" title={r.cpiSuppressed
                               ? (fill(labelFor('Only {pct}% of budget drawn — too early for a meaningful CPI'), {pct: Math.round(r.drawnPct)}))
@@ -88,14 +88,14 @@ export default async function Financials({ searchParams }:
                                 ? (labelFor("too early"))
                                 : (labelFor("no spend"))}
                             </span>
-                          : <span className={r.cpi >= 1 ? 'good' : 'crit'}>{num(r.cpi, 2)}</span>}</td>
-                        <td className="num">{money(r.forecast)}
+                          : <span className={r.cpi >= 1 ? 'good' : 'crit'}>{num(r.cpi, 2, locale)}</span>}</td>
+                        <td className="num">{money(r.forecast, locale)}
                           {r.forecastCoverage < 1 && (
                             <div className="dim" title={labelFor("Categories without their own forecast fall back to budget")}>
                               {Math.round(r.forecastCoverage * 100)}% {labelFor("forecast, rest at budget")}
                             </div>)}</td>
                         <td className="num">{r.variance > 0
-                          ? <span className="crit">+{money(r.variance)}</span>
+                          ? <span className="crit">+{money(r.variance, locale)}</span>
                           : <span className="good">—</span>}</td>
                       </tr>
                     ))}
@@ -120,8 +120,8 @@ export default async function Financials({ searchParams }:
                   {d.byCategory.map((c: any) => (
                     <tr key={c.category}>
                       <td>{c.category}</td>
-                      <td className="num">{money(c.budget)}</td>
-                      <td className="num">{money(c.actual)}</td>
+                      <td className="num">{money(c.budget, locale)}</td>
+                      <td className="num">{money(c.actual, locale)}</td>
                       <td><div className="bar" style={{ inlineSize: 140 }}>
                         <i aria-hidden="true" style={{ width: `${financialBarWidth(c.actual, c.budget)}%` }} />
                       </div></td>

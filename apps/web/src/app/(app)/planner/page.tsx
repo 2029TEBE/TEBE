@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { when } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { fill } from '@pmo/contracts';
 
 const day = 86400000;
@@ -15,6 +15,7 @@ export default async function Planner({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   // Outside <Loaded> on purpose: the create form must render even when the
   // list below is empty, which is precisely when someone needs it.
@@ -83,16 +84,16 @@ export default async function Planner({ searchParams }:
                         <span key={k} className="gline" style={{ left: `${t.at}%` }} />
                       ))}
                       {i.baselineStart && i.baselineEnd && (
-                        <span className="gbase" title={`${lang === 'ar' ? 'الخطة الأساسية' : 'Baseline'}: ${when(i.baselineStart, lang)} → ${when(i.baselineEnd, lang)}`}
+                        <span className="gbase" title={`${lang === 'ar' ? 'الخطة الأساسية' : 'Baseline'}: ${when(i.baselineStart, locale)} → ${when(i.baselineEnd, locale)}`}
                               style={{ left: `${left(i.baselineStart)}%`, width: `${width(i.baselineStart, i.baselineEnd)}%` }} />
                       )}
                       {i.startDate && i.endDate && (
                         i.kind === 'milestone'
                           ? <span className={`gdiamond${i.slipDays > 0 ? ' slipped' : ''}`}
-                                  title={`${i.name} — ${when(i.startDate, lang)}`}
+                                  title={`${i.name} — ${when(i.startDate, locale)}`}
                                   style={{ left: `${left(i.startDate)}%` }} />
                           : <span className={`gbar${i.slipDays > 0 ? ' slipped' : ''}`}
-                                  title={`${when(i.startDate, lang)} → ${when(i.endDate, lang)} · ${lang === 'ar' ? 'الإنجاز' : 'progress'} ${i.progressPct}%${i.slipDays > 0 ? ` · ${fill(t('{n} days late'), { n: i.slipDays })}` : ''}`}
+                                  title={`${when(i.startDate, locale)} → ${when(i.endDate, locale)} · ${lang === 'ar' ? 'الإنجاز' : 'progress'} ${i.progressPct}%${i.slipDays > 0 ? ` · ${fill(t('{n} days late'), { n: i.slipDays })}` : ''}`}
                                   style={{ left: `${left(i.startDate)}%`, width: `${width(i.startDate, i.endDate)}%` }}>
                               <i aria-hidden="true" style={{ width: `${progressFill(i.progressPct)}%` }} />
                             </span>
@@ -117,8 +118,8 @@ export default async function Planner({ searchParams }:
                     <tr key={i.id}>
                       <td className="num">{i.projectCode}</td>
                       <td><bdi>{i.name}</bdi>{i.isCritical && <div className="crit">{t('on critical path')}</div>}</td>
-                      <td>{when(i.baselineEnd, lang)}</td>
-                      <td>{when(i.endDate, lang)}</td>
+                      <td>{when(i.baselineEnd, locale)}</td>
+                      <td>{when(i.endDate, locale)}</td>
                       <td className={i.slipDays > 0 ? 'crit' : 'good'}>
                         {i.slipDays > 0
                           ? <bdi>{fill(t('{n} days late'), { n: i.slipDays })}</bdi>

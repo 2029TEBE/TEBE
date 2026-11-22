@@ -4,10 +4,9 @@ import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { ago, when } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr } from '@/lib/i18n';
 
 export default async function Activity() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("activity", english));
   const t = await tr();
@@ -51,7 +50,7 @@ export default async function Activity() {
                     <td className="num">{n.ref}</td>
                     <td>{n.detail}</td>
                     <td className={n.due && new Date(n.due) < new Date() ? 'crit' : undefined}>
-                      {when(n.due, lang)}</td>
+                      {when(n.due, locale)}</td>
                   </tr>))}</tbody>
                 </table>
               </div>
@@ -67,7 +66,7 @@ export default async function Activity() {
                       <span className="kind">{e.entity} {e.action}</span>
                       <strong>{e.actor}</strong>
                       {e.diff && <code>{JSON.stringify(e.diff)}</code>}
-                      <i>{ago(e.at, lang)}</i>
+                      <i>{ago(e.at, locale)}</i>
                     </li>
                   ))}
                 </ol>

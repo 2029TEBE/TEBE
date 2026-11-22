@@ -4,10 +4,9 @@ import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
-import { tr, getLang, term } from '@/lib/i18n';
+import { tr, term } from '@/lib/i18n';
 
 export default async function Decisions() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("decisions", english));
   const t = await tr();
@@ -36,7 +35,7 @@ export default async function Decisions() {
                 <td className="num"><bdi>{d.projectCode}</bdi></td>
                 <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim">{labelFor("not gate-linked")}</span>}</td>
                 <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim">{labelFor("unassigned")}</span>}</td>
-                <td>{when(d.decidedAt, lang)}</td>
+                <td>{when(d.decidedAt, locale)}</td>
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>
           </table></div>
