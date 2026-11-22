@@ -29,9 +29,9 @@ export default async function ProjectsPage({ searchParams }:
         {({ d, o }) => (
           <>
             {d.items.length > 0 && <section className="design-context" aria-label={t('Project snapshot')}>
-              <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'متابعة التنفيذ' : 'DELIVERY SNAPSHOT'}</span>
-                <h2>{lang === 'ar' ? 'صحة المشاريع الحالية' : 'Project delivery at a glance'}</h2>
-                <p>{lang === 'ar' ? 'مؤشرات من سجلات المشاريع المسترجعة في الصفحة الحالية فقط.' : 'Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.'}</p>
+              <div className="design-context-head"><span className="design-kicker">{t('DELIVERY SNAPSHOT')}</span>
+                <h2>{t('Project delivery at a glance')}</h2>
+                <p>{t('Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.')}</p>
               </div>
               <div className="design-summary">
                 <div className="design-metric"><small>{t('Returned projects')}</small><strong>{d.items.length}</strong></div>
