@@ -61,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <>
       {/* Their wordmark treatment: no icon, the second half in the brand mint. */}
       <div className="brand"><span className="wordmark">{uiLabel('The EPMO', locale, navigationArabic('The EPMO'))}</span></div>
-      <RailToggle />
+      <RailToggle locale={locale} />
       {groups.map((g) => (
         <RailGroup key={g.key} label={uiLabel(g.label, locale, navigationArabic(g.label))} hrefs={g.items.map((i) => i.href)}>
           {g.items.map((i) => (
@@ -81,7 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <MobileNav ar={ar} locale={locale}>{rail}</MobileNav>
           <Crumbs ar={ar} locale={locale} />
           <div className="spacer" />
-          <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} />
+          <CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} locale={locale} />
           <UniversalLocaleSwitch locale={locale} />
           <ThemeToggle locale={locale} />
           <TenantSwitcher session={session} lang={ar ? 'ar' : 'en'} locale={locale} />
