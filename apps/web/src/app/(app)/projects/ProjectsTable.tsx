@@ -1,5 +1,8 @@
 'use client';
 import { DataTable, type Col } from '@/components/DataTable';
+import { useEffect, useState } from 'react';
+import { normalizeFrontendLocale } from '@/lib/frontend-locale.mjs';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { money, when } from '@/lib/fmt';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import Link from 'next/link';
@@ -18,7 +21,7 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
     cell: (r) => <span className="num">{r.code}</span> },
   { key: 'name', head: 'Project', value: (r) => r.name,
     cell: (r) => <><strong>{r.name}</strong><div><Link href={`/governance/${r.id}`}>
-      {lang === 'ar' ? 'فتح الحوكمة' : 'Open governance'}
+      {t('Open governance')}
     </Link></div></> },
   { key: 'status', head: 'Status', value: (r) => r.status,
     cell: (r) => <span className="kind">{t(r.status.replace('_', ' '))}</span> },
@@ -41,7 +44,18 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
 ];
 
 export function ProjectsTable({ rows, lang }: { rows: Row[]; lang?: Lang }) {
-  const cols = makeCols(translator(lang ?? 'en'), lang ?? 'en');
+  const [locale, setLocale] = useState<string>(lang === 'ar' ? 'ar' : 'en-US');
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setLocale(normalizeFrontendLocale(root.lang) ?? (lang === 'ar' ? 'ar' : 'en-US'));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    return () => observer.disconnect();
+  }, [lang]);
+  const legacy = translator(lang ?? 'en');
+  const t = (label: string) => uiLabel(label, locale, legacy(label));
+  const cols = makeCols(t, lang ?? 'en');
   return <DataTable rows={rows} cols={cols} lang={lang}
                     filterPlaceholder="Filter by code, name or status…"
                     initialSort={{ key: 'health', dir: 'asc' }} empty="No projects yet." />;
