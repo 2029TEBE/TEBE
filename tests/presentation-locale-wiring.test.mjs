@@ -14,7 +14,7 @@ test('shared date/number formatter delegates to tested 23-locale presentation mo
   assert.match(moduleSource, /new Intl\.RelativeTimeFormat/);
 });
 
-test('reports, board pack, analytics, financials, benefits and task board use selected locale for display values', () => {
+test('twenty application routes use the selected frontend locale for financial, date and time display', () => {
   const checks = new Map([
     ['apps/web/src/app/(app)/reports/page.tsx', ["when(r.lastRunAt, locale)"]],
     ['apps/web/src/app/(app)/reports/board-pack/page.tsx', [
@@ -27,6 +27,20 @@ test('reports, board pack, analytics, financials, benefits and task board use se
       'money(tot.budget, locale)', 'num(r.cpi, 2, locale)', 'money(r.variance, locale)']],
     ['apps/web/src/app/(app)/benefits/page.tsx', [
       'num(b.baseline, 0, locale)', 'num(b.target, 0, locale)', 'when(b.reviewDate, locale)']],
+    ['apps/web/src/app/(app)/activity/page.tsx', ['when(n.due, locale)', 'ago(e.at, locale)']],
+    ['apps/web/src/app/(app)/approvals/page.tsx', ['when(a.decidedAt, locale)']],
+    ['apps/web/src/app/(app)/ask/page.tsx', ['ago(m.createdAt, locale)', 'ago(x.createdAt, locale)']],
+    ['apps/web/src/app/(app)/decisions/page.tsx', ['when(d.decidedAt, locale)']],
+    ['apps/web/src/app/(app)/documents/page.tsx', ['when(d.updatedAt, locale)']],
+    ['apps/web/src/app/(app)/integrations/page.tsx', ['num(i.recordsSynced, 0, locale)', 'ago(i.lastSyncAt, locale)']],
+    ['apps/web/src/app/(app)/my-work/page.tsx', ['num(d.effortLast7Days, 1, locale)', 'when(t.dueDate, locale)']],
+    ['apps/web/src/app/(app)/notifications/page.tsx', ['when(m.sentAt, locale)', 'ago(m.createdAt, locale)']],
+    ['apps/web/src/app/(app)/planner/page.tsx', ['when(i.baselineStart, locale)', 'when(i.baselineEnd, locale)', 'when(i.endDate, locale)']],
+    ['apps/web/src/app/(app)/platform/page.tsx', ['when(m.enabledAt, locale)']],
+    ['apps/web/src/app/(app)/resources/page.tsx', ['num(p.hoursLast7, 1, locale)']],
+    ['apps/web/src/app/(app)/settings/page.tsx', ['when(d.tenant.createdAt, locale)']],
+    ['apps/web/src/app/(app)/studio/page.tsx', ['ago(a.lastRunAt, locale)']],
+    ['apps/web/src/app/(app)/updates/page.tsx', ['ago(u.createdAt, locale)']],
   ]);
   for (const [path, calls] of checks) {
     const source = read(path);
