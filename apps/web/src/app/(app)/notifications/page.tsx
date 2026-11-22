@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { tr, term } from '@/lib/i18n';
 import { when, ago } from '@/lib/fmt';
+import { formatNumber } from '@/lib/locale-format.mjs';
 
 const PILL: Record<string, string> = {
   sent: 'on_track', queued: 'at_risk', failed: 'critical', suppressed: 's-closed',
@@ -18,9 +19,9 @@ export default async function Notifications({ searchParams }:
   const t = await tr();
 
   return (
-    <Page title="Notifications"
+    <Page title={t('Notifications')}
           sub="What the platform has decided someone needs to be told, and whether it reached them. Every message is recorded before it is sent, so nothing is lost when mail is not configured.">
-      {error && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{t(error)}</p>}
+      {error && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{t('Notification action failed.')}</p>}
       {done && !error && <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}>{t('Rules run.')}</p>}
 
       <Loaded load={api.notifications}>
@@ -30,7 +31,7 @@ export default async function Notifications({ searchParams }:
               <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
                 {d.transport.delivers ? t('Mail is being delivered') : t('Nothing is being sent yet')}
               </h2>
-              <p className="dim" style={{ margin: '10px 0 0', maxWidth: '78ch' }}>{d.transport.status}</p>
+              <p className="dim" style={{ margin: '10px 0 0', maxWidth: '78ch' }}>{d.transport.delivers ? t('Mail is being delivered') : t('Nothing is being sent yet')}</p>
               <form method="post" action="/api/notifications/run" style={{ marginBlockStart: 14 }}>
                 <button className="btn" type="submit">{t('Run the rules now')}</button>
               </form>
@@ -40,7 +41,7 @@ export default async function Notifications({ searchParams }:
               {['queued', 'sent', 'failed', 'suppressed'].map((s) => (
                 <div className={`tile${s === 'failed' && d.counts.failed ? ' alarm' : ''}`} key={s}>
                   <span>{t(s)}</span>
-                  <strong>{d.counts[s] ?? 0}</strong>
+                  <strong>{formatNumber(d.counts[s] ?? 0, locale)}</strong>
                   <div className="split"><i className="dim">{t(HINT[s])}</i></div>
                 </div>
               ))}
@@ -57,21 +58,21 @@ export default async function Notifications({ searchParams }:
                    aria-label={labelFor("Notification outbox")} tabIndex={0}>
                 <table>
                   <thead><tr>
-                    <th>{t('Status')}</th><th>{t('Type')}</th><th>{t('To')}</th>
-                    <th>{t('Subject')}</th><th>{t('When')}</th>
+                    <th scope="col">{t('Status')}</th><th scope="col">{t('Type')}</th><th scope="col">{t('To')}</th>
+                    <th scope="col">{t('Subject')}</th><th scope="col">{t('When')}</th>
                   </tr></thead>
                   <tbody>
                     {d.items.map((m: any) => (
                       <tr key={m.id}>
                         <td><span className={`pill ${PILL[m.status] ?? 's-closed'}`}>{term(t, m.status)}</span></td>
-                        <td><code>{m.kind}</code></td>
-                        <td>{m.toEmail}</td>
+                        <td><code><bdi>{m.kind}</bdi></code></td>
+                        <td><bdi>{m.toEmail}</bdi></td>
                         <td>
-                          {m.subject}
-                          {m.error && <div className="crit" style={{ fontSize: 'var(--fs-sm)' }}>{m.error}</div>}
+                          <bdi>{m.subject}</bdi>
+                          {m.error && <div className="crit" style={{ fontSize: 'var(--fs-sm)' }}>{t('Notification delivery failed.')}</div>}
                         </td>
                         <td className="num">
-                          {m.sentAt ? when(m.sentAt, locale) : ago(m.createdAt, locale)}
+                          <time dateTime={m.sentAt ?? m.createdAt}>{m.sentAt ? when(m.sentAt, locale) : ago(m.createdAt, locale)}</time>
                         </td>
                       </tr>
                     ))}
