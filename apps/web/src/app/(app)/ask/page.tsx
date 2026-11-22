@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { ago } from '@/lib/fmt';
 
 const SUGGESTED = [
@@ -15,6 +15,7 @@ export default async function Ask({ searchParams }:
   { searchParams: Promise<{ thread?: string; error?: string }> }) {
   const { thread, error } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
 
   return (
@@ -60,7 +61,7 @@ export default async function Ask({ searchParams }:
                         {m.content.split('\n').filter(Boolean).map((line: string, i: number) => (
                           <p key={i}>{line}</p>
                         ))}
-                        <time className="dim">{ago(m.createdAt, lang)}</time>
+                        <time className="dim">{ago(m.createdAt, locale)}</time>
                       </div>
                     ))}
                   </div>
@@ -90,7 +91,7 @@ export default async function Ask({ searchParams }:
                         <li key={x.threadId} data-on={x.threadId === thread}>
                           <a href={`/ask?thread=${x.threadId}`}>
                             {x.opening.length > 70 ? `${x.opening.slice(0, 70)}…` : x.opening}
-                            <em>{ago(x.createdAt, lang)}</em>
+                            <em>{ago(x.createdAt, locale)}</em>
                           </a>
                         </li>
                       ))}
