@@ -79,6 +79,16 @@ export function stripeDeploymentModeAllowed(liveMode: boolean, nodeEnv: string |
   return nodeEnv === 'production' ? liveMode && allowTestMode !== 'true' : !liveMode;
 }
 
+/** Both new and persisted Checkout destinations must be Stripe-hosted and mode-bound. */
+export function stripeCheckoutDestinationAllowed(sessionId: unknown, address: unknown, liveMode: boolean): boolean {
+  if (typeof sessionId !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(sessionId) ||
+      !sessionId.startsWith(liveMode ? 'cs_live_' : 'cs_test_') || typeof address !== 'string') return false;
+  try {
+    const url = new URL(address);
+    return url.origin === 'https://checkout.stripe.com' && !url.username && !url.password;
+  } catch { return false; }
+}
+
 /** Stable for a pending attempt; different after an expired session was recorded.
  * Prevents Stripe from returning an expired Checkout session for a later retry.
  */
