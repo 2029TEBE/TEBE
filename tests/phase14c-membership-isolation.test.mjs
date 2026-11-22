@@ -70,3 +70,12 @@ test('new record form localizes temporary failures and preserves entered values'
     assert.ok(translated.trim(), locale);
   }
 });
+
+test('create flash uses the selected frontend locale and hides raw API errors', () => {
+  const form = text('apps/web/src/components/NewRecord.tsx');
+  const flash = form.slice(form.indexOf('export function Flash('));
+  assert.match(flash, /normalizeFrontendLocale\(root\.lang\)/);
+  assert.match(flash, /uiLabel\(label, selectedLocale, legacy\(label\)\)/);
+  assert.match(flash, /t\('That could not be saved\.'\)/);
+  assert.doesNotMatch(flash, /t\(error\)/);
+});

@@ -203,8 +203,19 @@ function openPicker(e: React.KeyboardEvent<HTMLSelectElement>) {
 }
 
 export function Flash({ error, done, lang }: { error?: string; done?: string; lang?: Lang }) {
-  const t = translator(lang ?? 'en');
-  if (error) return <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{lang === 'ar' ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.' : t(error)}</p>;
+  const [selectedLocale, setSelectedLocale] = useState(lang === 'ar' ? 'ar' : 'en-US');
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setSelectedLocale(normalizeFrontendLocale(root.lang) ?? (lang === 'ar' ? 'ar' : 'en-US'));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    return () => observer.disconnect();
+  }, [lang]);
+  const legacy = translator(lang ?? 'en');
+  const t = (label: string) => uiLabel(label, selectedLocale, legacy(label));
+  // Never render arbitrary server-provided error strings to the customer.
+  if (error) return <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{t('That could not be saved.')}</p>;
   if (done) return <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}>
     {t('Created')}: {t(done)}</p>;
   return null;
