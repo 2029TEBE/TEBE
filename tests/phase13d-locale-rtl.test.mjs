@@ -286,3 +286,19 @@ test('report title, no-definitions state and on-demand schedule support all fron
     }
   }
 });
+
+test('report generation status and board pack action resolve all supported frontend locales', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = ['Never generated', 'Open shared board pack'];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': missing wiring');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated label');
+      assert.equal(uiLabel(label, locale), translated, locale + ': lookup');
+    }
+  }
+});
