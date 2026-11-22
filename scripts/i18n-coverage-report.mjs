@@ -44,24 +44,37 @@ for (const locale of FRONTEND_LOCALES) {
 }
 console.log(`Enforced ${required.length} non-billing navigation labels across all ${FRONTEND_LOCALES.length} registered locale variants (English source, explicit non-English mappings). This does NOT certify full product translation coverage.`);
 
-// Catalog-wide source coverage: reports all shared UI keys, not just navigation.
-// This is not evidence of full rendered-screen or native translation acceptance.
+// Catalog-wide source coverage: report every shared UI key, not just navigation.
+// Explicit unchanged terms are brands or native-language cognates, not missing
+// translations. The allowlist is narrowly scoped to exact locale/source pairs;
+// no generic English fallback is accepted as translated.
 const allCatalogKeys = Object.keys(UI_LABELS);
 assert.ok(allCatalogKeys.length >= required.length, 'UI catalog smaller than required navigation inventory');
+const sharedBrands = new Set(['Power BI', 'The EPMO']);
+const nativeIdentical = {
+  de: new Set(['Person', 'Analyse', 'Portfolios']),
+  fr: new Set(['Analyse', 'Notifications', 'Documents', 'Modules']),
+};
 const catalogResults = FRONTEND_LOCALES.map(locale => ({ locale, ...uiLabelCoverage(allCatalogKeys, locale, arabic) }));
 for (const record of catalogResults) {
   assert.equal(record.translated + record.missing.length + record.invalidPlaceholders.length, record.total,
     record.locale + ': catalog coverage accounting drift');
-  process.stdout.write('CATALOG ' + record.locale.padEnd(8) + ' ' + record.translated + '/' + record.total +
-    ' mapped; missing-or-English=' + record.missing.length +
+  if (record.locale.startsWith('en-')) continue;
+  const accepted = new Set([...sharedBrands, ...(nativeIdentical[record.locale] ?? [])]);
+  // An allowed unchanged word must actually be in the catalog and unchanged.
+  // A stale exception should fail CI instead of hiding deleted or translated keys.
+  for (const term of accepted) {
+    assert.ok(record.missing.includes(term), record.locale + ': obsolete identical-text exception ' + term);
+  }
+  const unexpected = record.missing.filter(term => !accepted.has(term));
+  process.stdout.write('CATALOG ' + record.locale.padEnd(8) +
+    ' mapped=' + record.translated + '/' + record.total +
+    '; accepted-unchanged=' + accepted.size +
+    '; unexpected-unchanged-or-missing=' + unexpected.length +
     '; invalid-placeholders=' + record.invalidPlaceholders.length + '\n');
-  if (record.missing.length) process.stdout.write('  REVIEW ' + record.locale + ' missing-or-identical keys: ' + JSON.stringify(record.missing) + '\n');
-  if (record.invalidPlaceholders.length) process.stdout.write('  INVALID ' + record.locale + ' keys: ' + JSON.stringify(record.invalidPlaceholders) + '\n');
+  if (unexpected.length) process.stdout.write('  UNEXPECTED ' + record.locale + ': ' + JSON.stringify(unexpected) + '\n');
+  assert.deepEqual(unexpected, [], record.locale + ': new missing or English-identical UI translations');
+  assert.deepEqual(record.invalidPlaceholders, [], record.locale + ': invalid placeholder translations');
 }
-const uncertified = catalogResults.filter(row =>
-  !row.locale.startsWith('en-') && (row.missing.length || row.invalidPlaceholders.length));
-if (uncertified.length) {
-  process.stdout.write('NOT CERTIFIED: ' + uncertified.length +
-    ' non-English locale catalogs have missing/English or invalid-placeholder UI labels.\n');
-}
-process.stdout.write('LIMITATION: Shared UI label coverage does not certify every customer screen, API error, email, export, layout or native translation quality.\n');
+process.stdout.write('PASS: all shared UI catalog entries mapped across 23 variants, with precisely enumerated unchanged names and native-language equivalents.\n');
+process.stdout.write('LIMITATION: This certifies only the 208-key shared UI catalog source integrity. It does NOT certify all application screens, API errors, emails, document exports, native reviewer approval, or production acceptance.\n');
