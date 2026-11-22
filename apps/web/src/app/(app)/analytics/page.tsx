@@ -2,14 +2,14 @@ import { Fragment } from 'react';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { money, pct } from '@/lib/fmt';
-import { tr, getLang, term } from '@/lib/i18n';
+import { tr, getFrontendLocale, term } from '@/lib/i18n';
 import { LineChart, BarChart, StackedBar } from '@/components/Chart';
 
 export default async function Analytics() {
-  const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   return (
-    <Page title="Portfolio Analytics" sub="Distributions across the whole portfolio — where the risk, the slippage and the spend actually sit.">
+    <Page title={t("Portfolio Analytics")} sub={t("Distributions across the whole portfolio — where the risk, the slippage and the spend actually sit.")}>
       <Loaded load={async () => ({ d: await api.analytics(), tr: await api.trends() })}>
         {({ d, tr: tre }: any) => {
           const total = d.byHealth.reduce((a: number, r: any) => a + r.n, 0) || 1;
@@ -27,7 +27,7 @@ export default async function Analytics() {
                 <LineChart
                   caption={t('Spend against plan')}
                   labels={tre.sCurve.map((p: any) => p.period.slice(0, 7))}
-                  format={(v) => money(v) ?? '0'}
+                  format={(v) => money(v, locale)}
                   series={[
                     { key: 'plan', label: t('Planned'), colour: 'var(--ink-4)',
                       values: tre.sCurve.map((p: any) => p.cumBudget), dashed: true },
@@ -45,7 +45,7 @@ export default async function Analytics() {
                   <BarChart
                     labels={tre.sCurve.map((p: any) => p.period.slice(5, 7))}
                     values={tre.sCurve.map((p: any) => p.actual)}
-                    format={(v) => money(v) ?? '0'} />
+                    format={(v) => money(v, locale)} />
                 </div>
                 <div className="chartcard">
                   <h3>{t('Gates passed per month')}</h3>
@@ -144,13 +144,13 @@ export default async function Analytics() {
                 <tbody>{d.spendByProject.map((s: any) => (
                   <tr key={s.code}>
                     <td><strong>{s.code}</strong></td>
-                    <td className="num">{money(s.budget)}</td>
-                    <td className="num">{money(s.actual)}</td>
+                    <td className="num">{money(s.budget, locale)}</td>
+                    <td className="num">{money(s.actual, locale)}</td>
                     <td>
                       <div className="bar" style={{ inlineSize: `${Math.max(8, (s.budget / maxSpend) * 200)}px` }}>
                         <i style={{ width: `${s.budget ? Math.min(100, (s.actual / s.budget) * 100) : 0}%` }} />
                       </div>
-                      <span className="dim">{s.budget ? pct((s.actual / s.budget) * 100) : '—'}</span>
+                      <span className="dim">{s.budget ? pct((s.actual / s.budget) * 100, locale) : '—'}</span>
                     </td>
                   </tr>))}</tbody>
               </table></div>
