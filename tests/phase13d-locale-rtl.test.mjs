@@ -129,3 +129,18 @@ test('account role display labels cover each supported locale without modifying 
     }
   }
 });
+
+test('command palette and rail controls have explicit frontend locale mappings', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ["Search","Command palette","Search — command palette","Jump to a module…","Nothing matches","move","open","close","Expand the menu","Collapse the menu"]) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value);
+    }
+  }
+  const layout = read('apps/web/src/app/(app)/layout.tsx');
+  assert.ok(layout.includes('<RailToggle locale={locale} />'));
+  assert.ok(layout.includes("<CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} locale={locale} />"));
+});
