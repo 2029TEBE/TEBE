@@ -5,7 +5,7 @@ import { presentationLocale } from './locale-format.mjs';
  * unchanged, and keep the EN/AR backend export language contract separate.
  */
 const displayLocale = (locale = 'en') => {
-  if (locale === 'en') return 'en-GB';
+  if (locale === 'en') return 'en';
   const value = presentationLocale(locale);
   // Maintain Saudi Gregorian and Latin-digit conventions for business dates.
   return value === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : value;
@@ -31,7 +31,7 @@ export const when = (value, locale = 'en') => {
   if (!value) return '—';
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(displayLocale(locale), {
+  return new Intl.DateTimeFormat(displayLocale(locale === 'en' ? 'en-GB' : locale), {
     day: 'numeric', month: 'short', year: '2-digit',
   }).format(date);
 };
