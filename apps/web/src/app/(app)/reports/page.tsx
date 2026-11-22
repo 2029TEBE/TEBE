@@ -17,8 +17,8 @@ export default async function Reports() {
       <Loaded load={api.reports} empty={t('No report definitions yet.')}>
         {(list) => (
           <>
-            <section className="design-context" aria-label={labelFor("Reporting overview")}>
-              <div className="design-context-head"><span className="design-kicker">{labelFor("REPORTING OVERVIEW")}</span>
+            <section className="design-context" aria-label={t('Reporting overview')}>
+              <div className="design-context-head"><span className="design-kicker">{t('REPORTING OVERVIEW')}</span>
                 <h2>{t('Report catalogue')}</h2>
                 <p>{t('Definitions and most recent generation records from the workspace API. Scheduling and exports keep their existing behavior.')}</p></div>
               <div className="design-summary">
