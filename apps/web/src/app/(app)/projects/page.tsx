@@ -20,7 +20,7 @@ export default async function ProjectsPage({ searchParams }:
   const licensedModules = await api.enabledModules().catch(() => ['core360']);
   const mayCreate = can(capabilities, 'pmoa_manage_projects') && licensedModules.includes('pmo360');
   return (
-    <Page title={lang === 'ar' ? 'المشاريع' : 'Projects'}
+    <Page title="Projects"
           sub={lang === 'ar'
             ? 'تابع الميزانيات والحالة والتقدم. يبدأ كل مشروع مع بوابات الحوكمة.'
             : 'Everything being delivered, with budget, health and progress. Creating a project also opens its first gate.'}>
