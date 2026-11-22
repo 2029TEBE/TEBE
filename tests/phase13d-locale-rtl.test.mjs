@@ -428,3 +428,18 @@ test('report catalogue summary, editable Word and slide descriptions localize fo
     }
   }
 });
+
+
+test('report PDF description has explicit translations in every non-English frontend locale', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const label = 'The pack exactly as it appears on screen, fixed to the page. Arabic is joined and bidirectional lines are ordered correctly, so the Arabic pack reads as an Arabic document rather than a translated one.';
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  assert.ok(page.includes("t('" + label + "')"), 'PDF description is rendered through locale lookup');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+    assert.ok(typeof translated === 'string' && translated.trim(), locale + ': missing PDF description');
+    assert.notEqual(translated, label, locale + ': untranslated PDF description');
+    assert.equal(uiLabel(label, locale), translated, locale + ': PDF description lookup');
+  }
+});
