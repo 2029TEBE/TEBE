@@ -70,9 +70,7 @@ export default async function ProjectsPage({ searchParams }:
                 { name: 'startDate', label: 'Start date', type: 'date' },
                 { name: 'endDate', label: 'Target finish', type: 'date' },
                 { name: 'withGates', label: 'Create the seven stage gates', type: 'checkbox', defaultChecked: true },
-              ]} /> : <p className="dim">{lang === 'ar'
-                ? 'إنشاء المشاريع يتطلب الصلاحية المناسبة وتفعيل وحدة إدارة المشاريع.'
-                : 'Creating projects requires project-management permission and an enabled PMO module.'}</p>}
+              ]} /> : <p className="dim">{t('Creating projects requires project-management permission and an enabled PMO module.')}</p>}
             {programFilter && <p className="filtered">{t('Programme:')}{' '}
               <strong>{o.programs.find((p: any) => p.id === programFilter)?.name ??
                 t('Unavailable')}</strong>{' '}
@@ -97,8 +95,8 @@ export default async function ProjectsPage({ searchParams }:
                 ? (t('No matching projects'))
                 : (t('No projects yet'))}</strong>
                 <p>{mayCreate
-                  ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
-                  : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p>
+                  ? t('Create your first project above with its governance gates.')
+                  : t('Ask an authorized administrator to create the first project.')}</p>
                 {cursorFilter && <p><Link href={projectPageHref(null, programFilter, healthFilter)}>
                   {t('Return to first page')}
                 </Link></p>}</div>
