@@ -344,3 +344,15 @@ Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newl
 ## 2026-11-22 UTC — Reporting explanatory copy partial translation (LOC-02 / LOC-03 / LOC-09)
 - Added 63 explicit non-English translations for report catalogue summary, editable Word pack explanation, and PowerPoint slide-description copy in `apps/web/src/lib/ui-labels.mjs`; regression coverage in `tests/phase13d-locale-rtl.test.mjs`. Pending exact-head CI and review.
 - This source-only work does not change actual generated documents or guarantee all report-page copy has been translated. PDF descriptions, technical explanation, all backend exports, live production readback, RTL/linguistic acceptance and full 23-locale E2E checks remain open. No billing or production activation.
+
+
+## 2026-11-22 UTC — PDF description localization subcheck (LOC-02 / LOC-03 / LOC-09)
+- Added 21 explicit non-English translations for the report page's PDF layout/Arabic shaping description in `apps/web/src/lib/ui-labels.mjs`, with frontend-locale regression assertions in `tests/phase13d-locale-rtl.test.mjs`. Source-level work only, pending exact-head CI.
+- Product names Word, PowerPoint and PDF remain intentionally unchanged across locales. The lengthy technical PDF generation explanation is still missing full translated copy, and backend-generated export documents, native linguistic review, RTL PDF/browser acceptance and production readback remain unverified. This does not promote any full acceptance requirement to VERIFIED. Billing excluded.
+
+
+## 2026-11-22 UTC — LOC-05 / LOC-06 shared 23-variant presentation formatting (partial, module-level)
+- Proposed module-level change: `apps/web/src/lib/presentation-values.mjs` and typed `.d.mts` centralize presentation-only dates, amounts, ratios and relative time for all 23 frontend variants; `fmt.ts` delegates to the offline-testable implementation.
+- Connected real UI routes: `reports/page.tsx`, `reports/board-pack/page.tsx`, `analytics/page.tsx`, `board/page.tsx`, `financials/page.tsx` and `benefits/page.tsx`; backend Word/PPTX/PDF export `lang` contract and persisted numbers remain unchanged.
+- Regression: `apps/web/src/lib/presentation-values.test.mjs` and `tests/presentation-locale-wiring.test.mjs` check all 23 variants, English regional differences, Arabic business date convention, invalid source values, seven UI route contexts and the legacy export boundary. Exact-head CI and accessible browser acceptance are pending.
+- **No full acceptance promotion**: LOC-05 and LOC-06 cannot be VERIFIED until all 23 variants have authenticated browser/evidence review, cross-device preference persistence, rendering/fonts/RTL, all remaining consumer paths and generated exports. Billing remains excluded, no production release attested.
