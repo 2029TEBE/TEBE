@@ -3,13 +3,8 @@ import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { num } from '@/lib/fmt';
 import { formatNumber } from '@/lib/locale-format.mjs';
+import { capacityValue, capacityBarFill, isOverAllocated } from '@/lib/resource-capacity.mjs';
 import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
-
-/** Visual bar width only; over-allocated totals remain visible in text. */
-const capacityBarFill = (pct: number) =>
-  Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
-const capacityValue = (pct: unknown): pct is number =>
-  typeof pct === 'number' && Number.isFinite(pct) && pct >= 0;
 
 export default async function Resources({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
@@ -47,7 +42,7 @@ export default async function Resources({ searchParams }:
               </div>
               <div className="design-summary">
                 <div className="design-metric"><small>{t('Returned people')}</small><strong>{formatNumber(d.people.length, locale)}</strong></div>
-                <div className="design-metric"><small>{t('Allocated above 100%')}</small><strong>{formatNumber(d.people.filter((p: { allocatedPct: number }) => capacityValue(p.allocatedPct) && p.allocatedPct > 100).length, locale)}</strong></div>
+                <div className="design-metric"><small>{t('Allocated above 100%')}</small><strong>{formatNumber(d.people.filter((p: { allocatedPct: number }) => isOverAllocated(p.allocatedPct)).length, locale)}</strong></div>
                 <div className="design-metric"><small>{t('Returned allocations')}</small><strong>{formatNumber(d.byProject.length, locale)}</strong></div>
               </div>
             </section>
@@ -57,7 +52,7 @@ export default async function Resources({ searchParams }:
               <tbody>
                 {d.people.map((p: any) => {
                   const hasAllocation = capacityValue(p.allocatedPct);
-                  const over = hasAllocation && p.allocatedPct > 100;
+                  const over = isOverAllocated(p.allocatedPct);
                   return (
                     <tr key={p.id}>
                       <td><strong><bdi>{p.name}</bdi></strong></td>
