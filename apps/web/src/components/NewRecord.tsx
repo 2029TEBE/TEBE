@@ -107,7 +107,9 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
           // Avoid displaying raw English API error responses to Arabic users.
           // API errors may contain arbitrary server-language text or sensitive details.
           // Display a reviewed localized message while preserving field-specific errors.
-          setError(t('That could not be saved.'));
+          setError(res.status === 503
+            ? t('The service is temporarily unavailable. Try again shortly.')
+            : t('That could not be saved.'));
         }
         return;
       }
