@@ -1,12 +1,14 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { Flash } from '@/components/NewRecord';
-import { getLang, getFrontendLocale } from '@/lib/i18n';
+import { getLang, getFrontendLocale, tr } from '@/lib/i18n';
+import { directionForLocale, formatNumber } from '@/lib/locale-format.mjs';
+import type { T } from '@pmo/contracts';
 import { when } from '@/lib/fmt';
 
 const COLS = [
-  ['todo', 'To do', 'للعمل'], ['in_progress', 'In progress', 'قيد التنفيذ'],
-  ['blocked', 'Blocked', 'متعثر'], ['done', 'Done', 'مكتمل'],
+  ['todo', 'To do'], ['in_progress', 'In progress'],
+  ['blocked', 'Blocked'], ['done', 'Done'],
 ] as const;
 
 /**
@@ -16,8 +18,11 @@ const COLS = [
  * phone, on a touchpad, with a keyboard and with the client bundle broken —
  * and it goes through the same audited write path as every other change.
  */
-function Move({ id, to, label, glyph, lang, taskTitle }:
-  { id: string; to: string; label: string; glyph: string; lang: 'ar' | 'en'; taskTitle: string }) {
+function Move({ id, to, label, glyph, taskTitle, t }:
+  { id: string; to: string; label: string; glyph: string; taskTitle: string; t: T }) {
+  const title = t('Move to {state}').replace('{state}', label);
+  const accessibleLabel = t('Move {task} to {state}')
+    .replace('{task}', taskTitle).replace('{state}', label);
   return (
     <form method="post" action="/api/govern">
       <input type="hidden" name="intent" value="task" />
@@ -25,8 +30,7 @@ function Move({ id, to, label, glyph, lang, taskTitle }:
       <input type="hidden" name="state" value={to} />
       <input type="hidden" name="returnTo" value="/board" />
       <button type="submit" className="movebtn"
-              title={lang === 'ar' ? `نقل إلى ${label}` : `Move to ${label}`}
-              aria-label={lang === 'ar' ? `نقل المهمة ${taskTitle} إلى ${label}` : `Move ${taskTitle} to ${label}`}>{glyph}</button>
+              title={title} aria-label={accessibleLabel}>{glyph}</button>
     </form>
   );
 }
@@ -36,37 +40,35 @@ export default async function BoardPage({ searchParams }:
   const { error, done } = await searchParams;
   const lang = await getLang();
   const locale = await getFrontendLocale();
+  const t = await tr();
+  const rtl = directionForLocale(locale) === 'rtl';
   return (
-    <Page title={lang === 'ar' ? 'لوحة العمل' : 'Work Board'}
-          sub={lang === 'ar'
-            ? 'المهام حسب حالة التنفيذ. استخدم الأسهم لنقل المهمة بين الحالات؛ وتوثق كل حركة في سجل التدقيق.'
-            : 'Day-to-day work across the portfolio, by workflow state. Use the arrows on a card to move it — every move is recorded in the audit trail.'}>
+    <Page title={t('Work Board')}
+          sub={t('Day-to-day work across the portfolio, by workflow state. Use the arrows on a card to move it — every move is recorded in the audit trail.')}>
       <Flash error={error} done={done} lang={lang} />
-      <Loaded load={api.tasks} empty={lang === 'ar' ? 'لا توجد مهام بعد.' : 'No tasks yet.'}>
+      <Loaded load={api.tasks} empty={t('No tasks yet.')}>
         {(tasks) => (
           <>
-            <section className="design-context" aria-label={lang === 'ar' ? 'ملخص لوحة العمل' : 'Work board snapshot'}>
+            <section className="design-context" aria-label={t('Work board snapshot')}>
               <div className="design-context-head">
-                <span className="design-kicker">{lang === 'ar' ? 'متابعة المهام' : 'TASK DELIVERY'}</span>
-                <h2>{lang === 'ar' ? 'وضع المهام المعروضة' : 'Status of returned tasks'}</h2>
-                <p>{lang === 'ar'
-                  ? 'تعكس المؤشرات المهام التي أعادتها واجهة البيانات الحالية، ولا تمثل بالضرورة جميع مهام المؤسسة.'
-                  : 'These figures count tasks returned by this API response, not necessarily every task across the workspace.'}</p>
+                <span className="design-kicker">{t('TASK DELIVERY')}</span>
+                <h2>{t('Status of returned tasks')}</h2>
+                <p>{t('These figures count tasks returned by this API response, not necessarily every task across the workspace.')}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'المهام المعروضة' : 'Returned tasks'}</small><strong>{tasks.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام متعثرة' : 'Blocked tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'blocked').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'مهام مكتملة' : 'Completed tasks'}</small><strong>{tasks.filter((task: { state: string }) => task.state === 'done').length}</strong></div>
+                <div className="design-metric"><small>{t('Returned tasks')}</small><strong>{formatNumber(tasks.length, locale)}</strong></div>
+                <div className="design-metric"><small>{t('Blocked tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'blocked').length, locale)}</strong></div>
+                <div className="design-metric"><small>{t('Completed tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'done').length, locale)}</strong></div>
               </div>
             </section>
             <div className="board">
-            {COLS.map(([state, label, labelAr], i) => {
+            {COLS.map(([state, label], i) => {
               const col = tasks.filter((t) => t.state === state);
               const prev = COLS[i - 1];
               const next = COLS[i + 1];
               return (
-                <section key={state} className="col" aria-label={lang === 'ar' ? labelAr : label}>
-                  <header>{lang === 'ar' ? labelAr : label} <span className="count" aria-label={lang === 'ar' ? `عدد المهام: ${col.length}` : `${col.length} tasks`}>{col.length}</span></header>
+                <section key={state} className="col" aria-label={t(label)}>
+                  <header>{t(label)} <span className="count" aria-label={t('{count} tasks').replace('{count}', formatNumber(col.length, locale))}>{formatNumber(col.length, locale)}</span></header>
                   {col.length === 0
                     ? <p className="dim" style={{ padding: '8px 2px' }}>—</p>
                     : col.map((t) => (
@@ -74,15 +76,15 @@ export default async function BoardPage({ searchParams }:
                           <div className="num dim"><bdi>{t.projectCode}</bdi></div>
                           <strong><bdi>{t.title}</bdi></strong>
                           <div className="dim">
-                            <bdi>{t.assignee ?? (lang === 'ar' ? 'غير معين' : 'unassigned')}</bdi>
-                            {t.dueDate && <> {' · '}{lang === 'ar' ? 'الاستحقاق' : 'due'} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
+                            <bdi>{t.assignee ?? t('unassigned')}</bdi>
+                            {t.dueDate && <> {' · '}{t('due')} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
                           </div>
                           <div className="moverow">
-                            {prev ? <Move id={t.id} to={prev[0]} label={lang === 'ar' ? prev[2] : prev[1]}
-                                          glyph={lang === 'ar' ? '→' : '←'} lang={lang} taskTitle={t.title} />
+                            {prev ? <Move id={t.id} to={prev[0]} label={t(prev[1])}
+                                          glyph={rtl ? '→' : '←'} t={t} taskTitle={t.title} />
                                   : <span />}
-                            {next ? <Move id={t.id} to={next[0]} label={lang === 'ar' ? next[2] : next[1]}
-                                          glyph={lang === 'ar' ? '←' : '→'} lang={lang} taskTitle={t.title} />
+                            {next ? <Move id={t.id} to={next[0]} label={t(next[1])}
+                                          glyph={rtl ? '←' : '→'} t={t} taskTitle={t.title} />
                                   : <span />}
                           </div>
                         </article>
