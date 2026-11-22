@@ -73,10 +73,10 @@ export default async function ProjectsPage({ searchParams }:
               ]} /> : <p className="dim">{lang === 'ar'
                 ? 'إنشاء المشاريع يتطلب الصلاحية المناسبة وتفعيل وحدة إدارة المشاريع.'
                 : 'Creating projects requires project-management permission and an enabled PMO module.'}</p>}
-            {programFilter && <p className="filtered">{lang === 'ar' ? 'البرنامج:' : 'Programme:'}{' '}
+            {programFilter && <p className="filtered">{t('Programme:')}{' '}
               <strong>{o.programs.find((p: any) => p.id === programFilter)?.name ??
-                (lang === 'ar' ? 'غير متاح' : 'Unavailable')}</strong>{' '}
-              <Link href={projectPageHref(null, undefined, healthFilter)}>{lang === 'ar' ? 'عرض جميع البرامج' : 'Show all programmes'}</Link>
+                t('Unavailable')}</strong>{' '}
+              <Link href={projectPageHref(null, undefined, healthFilter)}>{t('Show all programmes')}</Link>
             </p>}
             <nav aria-label={t('Filter projects by health')}
                  style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
@@ -100,7 +100,7 @@ export default async function ProjectsPage({ searchParams }:
                   ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
                   : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p>
                 {cursorFilter && <p><Link href={projectPageHref(null, programFilter, healthFilter)}>
-                  {lang === 'ar' ? 'العودة إلى الصفحة الأولى' : 'Return to first page'}
+                  {t('Return to first page')}
                 </Link></p>}</div>
             ) : (
               <>
