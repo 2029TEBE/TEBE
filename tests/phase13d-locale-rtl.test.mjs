@@ -302,3 +302,23 @@ test('report generation status and board pack action resolve all supported front
     }
   }
 });
+
+
+test('board pack heading and live-data description are translated in all frontend locales', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = [
+    'Board pack',
+    'Board packs generated from live data rather than assembled by hand.',
+  ];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': locale wiring');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': lookup');
+    }
+  }
+});
