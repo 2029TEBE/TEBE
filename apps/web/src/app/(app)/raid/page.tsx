@@ -1,16 +1,19 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
-import { getLang, tr } from '@/lib/i18n';
+import { getLang, getFrontendLocale, tr } from '@/lib/i18n';
+import { num } from '@/lib/fmt';
+import { raidRiskScore, isCriticalRaidRisk } from '@/lib/raid-risk-score.mjs';
 
 export default async function RaidPage({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const t = await tr();
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   return (
-    <Page title="RAID & Governance"
-          sub="Risks, assumptions, issues, dependencies, changes and decisions. An open item pointed at a gate holds that gate shut.">
+    <Page title={t('RAID & Governance')}
+          sub={t('Risks, assumptions, issues, dependencies, changes and decisions. An open item pointed at a gate holds that gate shut.')}>
       <Flash error={error} done={done} lang={lang} />
       <Loaded load={async () => ({ items: await api.raid(), o: await api.createOptions() })}>
         {({ items, o }) => (
@@ -44,24 +47,24 @@ export default async function RaidPage({ searchParams }:
             ) : (
               <div className="design-table-scroll" role="region" aria-label={t('Risk and issue register')} tabIndex={0}><table>
                 <thead>
-                  <tr><th>{t('Project')}</th><th>{t('Type')}</th><th>{t('Item')}</th><th>{t('Risk')}</th>
-                      <th>{t('Owner')}</th><th>{t('Blocks')}</th><th>{t('Status')}</th></tr>
+                  <tr><th scope="col">{t('Project')}</th><th scope="col">{t('Type')}</th><th scope="col">{t('Item')}</th><th scope="col">{t('Risk')}</th>
+                      <th scope="col">{t('Owner')}</th><th scope="col">{t('Blocks')}</th><th scope="col">{t('Status')}</th></tr>
                 </thead>
                 <tbody>
                   {items.map((r: any) => (
                     <tr key={r.id} style={r.status === 'closed' ? { opacity: 0.55 } : undefined}>
-                      <td className="num">{r.projectCode}</td>
-                      <td><span className={`kind k-${r.kind}`}>{r.kind}</span></td>
-                      <td><strong>{r.title}</strong>{r.detail && <div className="dim">{r.detail}</div>}</td>
-                      <td className="num">{r.severity && r.likelihood
-                        ? <span className={r.severity * r.likelihood >= 15 ? 'crit' : 'warnt'}>
-                            {r.severity * r.likelihood} of 25</span>
+                      <td className="num"><bdi>{r.projectCode}</bdi></td>
+                      <td><span className={`kind k-${r.kind}`}><bdi>{t(r.kind)}</bdi></span></td>
+                      <td><strong><bdi>{r.title}</bdi></strong>{r.detail && <div className="dim"><bdi>{r.detail}</bdi></div>}</td>
+                      <td className="num">{raidRiskScore(r.severity, r.likelihood) != null
+                        ? <span className={isCriticalRaidRisk(raidRiskScore(r.severity, r.likelihood)) ? 'crit' : 'warnt'}>
+                            {num(raidRiskScore(r.severity, r.likelihood), 0, locale)} {t('of 25')}</span>
                         : <span className="dim">—</span>}</td>
-                      <td>{r.owner ?? <span className="dim">unassigned</span>}</td>
+                      <td>{r.owner ? <bdi>{r.owner}</bdi> : <span className="dim">{t("unassigned")}</span>}</td>
                       <td>{r.blocksGate
-                        ? <span className="crit">{r.blocksGate}</span>
+                        ? <span className="crit"><bdi>{r.blocksGate}</bdi></span>
                         : <span className="dim">—</span>}</td>
-                      <td><span className={`pill s-${r.status}`}>{r.status}</span></td>
+                      <td><span className={`pill s-${r.status}`}>{t(r.status)}</span></td>
                     </tr>
                   ))}
                 </tbody>
