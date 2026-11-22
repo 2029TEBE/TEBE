@@ -61,9 +61,12 @@ test('browser creation proxy returns retryable status if API is unreachable', ()
   assert.match(route, /status: 503, headers: \{ 'Retry-After': '5' \}/);
   assert.match(route, /safeReturnPath\(back, '\/'\)/);
 });
-test('new record form localizes temporary failures and preserves entered values', () => {
+test('new record form localizes temporary failures and preserves entered values', async () => {
   const form = text('apps/web/src/components/NewRecord.tsx');
   assert.match(form, /res.status === 503/);
-  assert.match(form, /الخدمة غير متاحة مؤقتًا/);
-  assert.match(form, /service is temporarily unavailable/);
+  assert.match(form, /t\('The service is temporarily unavailable\. Try again shortly\.'\)/);
+  const { UI_LABELS } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const [locale, translated] of Object.entries(UI_LABELS['The service is temporarily unavailable. Try again shortly.'])) {
+    assert.ok(translated.trim(), locale);
+  }
 });
