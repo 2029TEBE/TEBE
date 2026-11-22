@@ -166,3 +166,16 @@ test('shared page loading errors have explicit locale coverage', async () => {
     }
   }
 });
+
+
+test('shared catalog has explicit in-scope coverage for every locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, uiLabelCoverage } = await import('../apps/web/src/lib/ui-labels.mjs');
+  const labels = Object.keys(UI_LABELS).filter(label => !['Billing & Renewals', 'Subscriptions'].includes(label));
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    const coverage = uiLabelCoverage(labels, locale);
+    assert.deepEqual(coverage.missing, [], locale + ': missing labels');
+    assert.deepEqual(coverage.invalidPlaceholders, [], locale + ': invalid placeholders');
+  }
+  assert.deepEqual(uiLabelCoverage(['An unknown untranslated label'], 'fr-FR').missing, ['An unknown untranslated label']);
+});
