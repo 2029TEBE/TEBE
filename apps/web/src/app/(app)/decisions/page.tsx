@@ -4,10 +4,9 @@ import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
-import { tr, getLang, term } from '@/lib/i18n';
+import { tr, term } from '@/lib/i18n';
 
 export default async function Decisions() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("decisions", english));
   const t = await tr();
