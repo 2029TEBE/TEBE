@@ -169,22 +169,6 @@ export function translationHasMatchingPlaceholders(english, translated) {
  * a map of English source text to existing Arabic translations.
  * Do not count English fallback strings as translated.
  */
-// Explicitly reviewed invariant brand names and legitimate identical translations.
-const INVARIANT_LABELS = Object.freeze({
-  'Power BI': 'all',
-  'The EPMO': 'all',
-  'Analyse': ['de-DE', 'fr-FR'],
-  'Portfolios': ['de-DE'],
-  'Notifications': ['fr-FR'],
-  'Documents': ['fr-FR'],
-  'Modules': ['fr-FR'],
-});
-
-function isReviewedInvariant(english, locale) {
-  const allowed = Object.hasOwn(INVARIANT_LABELS, english) ? INVARIANT_LABELS[english] : null;
-  return allowed === 'all' || (Array.isArray(allowed) && allowed.includes(locale));
-}
-
 export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
   locale = catalogLocale(locale);
   const unique = [...new Set(englishLabels)];
@@ -197,7 +181,7 @@ export function uiLabelCoverage(englishLabels, locale, legacyArabic = {}) {
       ? legacyArabic[english] : null;
     const translated = typeof legacy === 'string' && legacy.trim() && legacy !== english
       ? legacy : row?.[locale];
-    if (typeof translated !== 'string' || !translated.trim() || (translated === english && !isReviewedInvariant(english, locale))) {
+    if (typeof translated !== 'string' || !translated.trim() || translated === english) {
       // An English fallback is not proof of a completed translation.
       missing.push(english);
     } else if (!translationHasMatchingPlaceholders(english, translated)) {
