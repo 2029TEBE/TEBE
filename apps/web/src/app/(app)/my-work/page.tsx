@@ -5,10 +5,9 @@ import { api } from '@/lib/api';
 import { fill, localizedStatus } from '@pmo/contracts';
 import { Page, Loaded } from '@/components/Page';
 import { when, num } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr } from '@/lib/i18n';
 
 export default async function MyWork() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const labelFor = (english: string) => uiLabel(english, locale, pageArabic("my-work", english));
   const t = await tr();
