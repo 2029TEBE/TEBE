@@ -35,8 +35,8 @@ export default async function ProjectsPage({ searchParams }:
               </div>
               <div className="design-summary">
                 <div className="design-metric"><small>{t('Returned projects')}</small><strong>{d.items.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'وفق الخطة' : 'On track'}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج انتباها' : 'Need attention'}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
+                <div className="design-metric"><small>{t('On track')}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
+                <div className="design-metric"><small>{t('Need attention')}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
               </div>
             </section>}
             {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
@@ -78,10 +78,10 @@ export default async function ProjectsPage({ searchParams }:
                 (lang === 'ar' ? 'غير متاح' : 'Unavailable')}</strong>{' '}
               <Link href={projectPageHref(null, undefined, healthFilter)}>{lang === 'ar' ? 'عرض جميع البرامج' : 'Show all programmes'}</Link>
             </p>}
-            <nav aria-label={lang === 'ar' ? 'تصفية المشاريع حسب الحالة' : 'Filter projects by health'}
+            <nav aria-label={t('Filter projects by health')}
                  style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               {([
-                [undefined, lang === 'ar' ? 'كل الحالات' : 'All health'],
+                [undefined, t('All health')],
                 ['on_track', t('on track')],
                 ['at_risk', t('at risk')],
                 ['critical', t('critical')],
@@ -112,7 +112,7 @@ export default async function ProjectsPage({ searchParams }:
                 )}
                 <ProjectsTable lang={lang} rows={d.items as any[]} />
                 {(d.nextCursor || cursorFilter) && (
-                  <nav aria-label={lang === 'ar' ? 'صفحات المشاريع' : 'Project pages'}
+                  <nav aria-label={t('Project pages')}
                        style={{ display: 'flex', gap: 16, marginTop: 16 }}>
                     {cursorFilter && <Link href={projectPageHref(null, programFilter, healthFilter)}>
                       {t('First page')}
