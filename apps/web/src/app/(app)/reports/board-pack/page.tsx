@@ -1,7 +1,7 @@
 import { api, getSession } from '@/lib/api';
 import { Loaded } from '@/components/Page';
 import { money, pct, when } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { parts, term, type T } from '@pmo/contracts';
 import { attentionReasonText } from '@/lib/executive-attention';
 
@@ -35,6 +35,7 @@ function Say({ t, s, v }: { t: T; s: string; v: Record<string, string | number> 
 export default async function BoardPack() {
   const t = await tr();
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   /*
    * The workspace name was hard-coded to one customer's, so every tenant's
    * board pack carried the same company name on its front page — including
@@ -60,7 +61,7 @@ export default async function BoardPack() {
                 <h1>{t('Portfolio Board Pack')}</h1>
                 <p className="dim">
                   <bdi>{workspace}</bdi> · <Say t={t} s="generated {date}"
-                    v={{ date: when(new Date().toISOString(), lang) }} />
+                    v={{ date: when(new Date().toISOString(), locale) }} />
                 </p>
               </div>
               <span className="tag">{t('Live data')}</span>
@@ -74,7 +75,7 @@ export default async function BoardPack() {
                     s="The portfolio holds {total} projects: {onTrack} on track, {atRisk} at risk and {critical} critical. Average delivery progress is {progress}."
                     v={{ total: o.health.total, onTrack: o.health.on_track,
                          atRisk: o.health.at_risk, critical: o.health.critical,
-                         progress: pct(o.health.avg_progress) }} />{' '}
+                         progress: pct(o.health.avg_progress, locale) }} />{' '}
                   <Say t={t}
                     s={one
                       ? 'Of {active} active stage gates, {blocked} is blocked, which holds the associated funding.'
@@ -83,8 +84,8 @@ export default async function BoardPack() {
                   {/* 0/0 is not 0% — an unfunded portfolio gets a different sentence. */}
                   {totals.budget > 0
                     ? <Say t={t} s="Approved budget stands at {budget} SAR with {actual} drawn ({drawn})."
-                        v={{ budget: money(totals.budget), actual: money(totals.actual),
-                             drawn: pct((totals.actual / totals.budget) * 100) }} />
+                        v={{ budget: money(totals.budget, locale), actual: money(totals.actual, locale),
+                             drawn: pct((totals.actual / totals.budget) * 100, locale) }} />
                     : t('No budget has been approved yet.')}
                 </>
               )}
@@ -131,9 +132,9 @@ export default async function BoardPack() {
               ) : f.byProject.map((r: any) => (
                 <tr key={r.id}>
                   <td><strong>{r.code}</strong></td>
-                  <td>{money(r.budget)}</td><td>{money(r.actual)}</td>
+                  <td>{money(r.budget, locale)}</td><td>{money(r.actual, locale)}</td>
                   <td>{r.cpi ? r.cpi.toFixed(2) : '—'}</td>
-                  <td>{money(r.forecast || r.budget)}</td>
+                  <td>{money(r.forecast || r.budget, locale)}</td>
                 </tr>))}</tbody>
             </table>
 

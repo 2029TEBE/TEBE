@@ -35,7 +35,7 @@ export default async function Reports() {
                     <td><strong><bdi>{r.name}</bdi></strong><div className="dim">{r.kind.replace(/_/g, ' ')}</div></td>
                     <td><bdi>{r.audience}</bdi></td>
                     <td className="dim"><bdi>{r.schedule ?? (t('On demand'))}</bdi></td>
-                    <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{t('Never generated')}</span>}</td>
+                    <td>{r.lastRunAt ? when(r.lastRunAt, locale) : <span className="dim">{t('Never generated')}</span>}</td>
                     <td><a className="btn" href="/reports/board-pack"
                       aria-label={t('Open shared board pack')}>
                       {t('Board pack')}</a></td>
