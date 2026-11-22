@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
+import { normalizeFrontendLocale } from '@/lib/frontend-locale.mjs';
+import { uiLabel } from '@/lib/ui-labels.mjs';
 import { validateCreateForm, formErrorText } from '@/lib/create-form-validation.mjs';
 
 type BaseField = { name: string; label: string; required?: boolean; hint?: string };
@@ -23,8 +25,18 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
   kind: string; title: string; cta?: string; fields: Field[]; returnTo: string; intro?: string;
   lang?: Lang; initialOpen?: boolean;
 }) {
-  const t = translator(lang ?? 'en');
-  const locale: 'en' | 'ar' = lang === 'ar' ? 'ar' : 'en';
+  const [selectedLocale, setSelectedLocale] = useState(lang === 'ar' ? 'ar' : 'en-US');
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setSelectedLocale(normalizeFrontendLocale(root.lang) ?? (lang === 'ar' ? 'ar' : 'en-US'));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
+    return () => observer.disconnect();
+  }, [lang]);
+  const locale: 'en' | 'ar' = selectedLocale === 'ar' ? 'ar' : 'en';
+  const legacy = translator(locale);
+  const t = (label: string) => uiLabel(label, selectedLocale, legacy(label));
   const id = useId();
   const busyGuard = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -168,7 +180,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
                            aria-invalid={invalid} aria-describedby={describedBy}
                            onChange={() => clearFieldError(f.name)} />
                   )}
-                  {errId && <small className="field-error" id={errId}>{formErrorText(fieldErrors[f.name], locale)}</small>}
+                  {errId && <small className="field-error" id={errId}>{formErrorText(fieldErrors[f.name], selectedLocale)}</small>}
                 </>
               )}
             </label>

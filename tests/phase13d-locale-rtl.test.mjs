@@ -144,3 +144,15 @@ test('command palette and rail controls have explicit frontend locale mappings',
   assert.ok(layout.includes('<RailToggle locale={locale} />'));
   assert.ok(layout.includes("<CommandPalette commands={commands} lang={locale === 'ar' ? 'ar' : 'en'} locale={locale} />"));
 });
+
+test('record validation messages cover all registered locales', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { formErrorText } = await import('../apps/web/src/lib/create-form-validation.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const code of ["invalid_project_code","invalid_date","end_before_start","nonnegative","finite_number","currency","required","invalid","range_0_100","range_1_100","range_1_5"]) {
+      assert.notEqual(formErrorText(code, locale), formErrorText(code, 'en'), locale + ': ' + code);
+      assert.ok(formErrorText(code, locale).trim());
+    }
+  }
+  assert.equal(formErrorText('__proto__', 'de'), formErrorText('invalid', 'de'));
+});
