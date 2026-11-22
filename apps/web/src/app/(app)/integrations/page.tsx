@@ -1,6 +1,7 @@
 import { api, getSession } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { ago, num } from '@/lib/fmt';
+import { formatNumber } from '@/lib/locale-format.mjs';
 import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { MicrosoftPanel } from '@/components/MicrosoftPanel';
 import { can, type Capability } from '@pmo/contracts';
@@ -35,16 +36,16 @@ export default async function Integrations({ searchParams }:
                   : 'These metrics count only the other integrations returned by this API response; Microsoft is displayed separately above.'}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'التكاملات المعادة' : 'Returned integrations'}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'متصلة' : 'Connected'}</small><strong>{list.filter((item: { status: string }) => item.status === 'connected').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج إلى معالجة' : 'Connection errors'}</small><strong>{list.filter((item: { status: string }) => item.status === 'error').length}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'التكاملات المعادة' : 'Returned integrations'}</small><strong>{formatNumber(list.length, locale)}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'متصلة' : 'Connected'}</small><strong>{formatNumber(list.filter((item: { status: string }) => item.status === 'connected').length, locale)}</strong></div>
+                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج إلى معالجة' : 'Connection errors'}</small><strong>{formatNumber(list.filter((item: { status: string }) => item.status === 'error').length, locale)}</strong></div>
               </div>
             </section>
             <div className="grid2">
               {list.map((i: any) => (
                 <div className={`panel integ s-${i.status}`} key={i.id}>
                   <header>
-                    <strong>{i.name}</strong>
+                    <strong><bdi>{i.name}</bdi></strong>
                     <span className={`pill ${i.status === 'connected' ? 'on_track'
                       : i.status === 'error' ? 'critical' : 's-closed'}`}>{
                         lang === 'ar' && i.status === 'connected' ? 'متصل'
@@ -53,12 +54,12 @@ export default async function Integrations({ searchParams }:
                       }</span>
                   </header>
                   <dl>
-                    <div><dt>{t('Provider')}</dt><dd><code>{i.provider}</code></dd></div>
-                    <div><dt>{t('Direction')}</dt><dd>{i.direction}</dd></div>
+                    <div><dt>{t('Provider')}</dt><dd><code><bdi>{i.provider}</bdi></code></dd></div>
+                    <div><dt>{t('Direction')}</dt><dd><bdi>{i.direction}</bdi></dd></div>
                     <div><dt>{t('Records synced')}</dt><dd className="num">{num(i.recordsSynced, 0, locale)}</dd></div>
                     <div><dt>{t('Last sync')}</dt><dd>{i.lastSyncAt ? ago(i.lastSyncAt, locale) : (lang === 'ar' ? 'لم تتم مزامنة' : 'Never synced')}</dd></div>
                   </dl>
-                  {i.lastError && <p className="err" style={{ marginBlockStart: 12 }}>{i.lastError}</p>}
+                  {i.lastError && <p className="err" role="status" style={{ marginBlockStart: 12 }}>{t("Connection errors")}</p>}
                 </div>
               ))}
             </div>
