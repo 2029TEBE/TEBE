@@ -80,10 +80,10 @@ export default async function BoardPage({ searchParams }:
                             {t.dueDate && <> {' · '}{tx('due')} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
                           </div>
                           <div className="moverow">
-                            {prev ? <Move id={t.id} to={prev[0]} label={t(prev[1])}
+                            {prev ? <Move id={t.id} to={prev[0]} label={tx(prev[1])}
                                           glyph={rtl ? '→' : '←'} t={tx} taskTitle={t.title} />
                                   : <span />}
-                            {next ? <Move id={t.id} to={next[0]} label={t(next[1])}
+                            {next ? <Move id={t.id} to={next[0]} label={tx(next[1])}
                                           glyph={rtl ? '←' : '→'} t={tx} taskTitle={t.title} />
                                   : <span />}
                           </div>
