@@ -1,10 +1,9 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
-import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
+import { tr, getFrontendLocale } from '@/lib/i18n';
 
 export default async function Approvals() {
-  const lang = await getLang();
   const locale = await getFrontendLocale();
   const t = await tr();
   return (
