@@ -391,3 +391,24 @@ test('report export and board-pack action labels resolve in all frontend locale 
     }
   }
 });
+
+
+test('report catalogue summary, editable Word and slide descriptions localize for all supported locales', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = [
+    'Definitions and most recent generation records from the workspace API. Scheduling and exports keep their existing behavior.',
+    'The full pack — position, gate status, decisions required, decisions taken and benefits. Editable, so a board secretary can add their own commentary before circulating it.',
+    'Four slides for the meeting itself: cover, position, gate status and the decisions the board has to make. Few slides, large numbers.',
+  ];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': expected localized UI call');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': missing ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': selected-locale lookup');
+    }
+  }
+});
