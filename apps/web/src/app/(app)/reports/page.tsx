@@ -13,7 +13,7 @@ export default async function Reports() {
   const t = await tr();
   return (
     <Page title={t('Reporting & Exports')}
-          sub={labelFor("Board packs generated from live data rather than assembled by hand.")}>
+          sub={t('Board packs generated from live data rather than assembled by hand.')}>
       <Loaded load={api.reports} empty={t('No report definitions yet.')}>
         {(list) => (
           <>
@@ -28,7 +28,7 @@ export default async function Reports() {
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Report catalogue")} tabIndex={0}><table>
-              <thead><tr><th scope="col">{t('Report')}</th><th scope="col">{t('Audience')}</th><th scope="col">{t('Schedule')}</th><th scope="col">{t('Last generated')}</th><th scope="col">{labelFor("Board pack")}</th></tr></thead>
+              <thead><tr><th scope="col">{t('Report')}</th><th scope="col">{t('Audience')}</th><th scope="col">{t('Schedule')}</th><th scope="col">{t('Last generated')}</th><th scope="col">{t('Board pack')}</th></tr></thead>
               <tbody>
                 {list.map((r: any) => (
                   <tr key={r.id}>
@@ -38,7 +38,7 @@ export default async function Reports() {
                     <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{t('Never generated')}</span>}</td>
                     <td><a className="btn" href="/reports/board-pack"
                       aria-label={t('Open shared board pack')}>
-                      {labelFor("Board pack")}</a></td>
+                      {t('Board pack')}</a></td>
                   </tr>
                 ))}
               </tbody>
