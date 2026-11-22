@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { uiLabel } from '@/lib/ui-labels.mjs';
+import type { FrontendLocale } from '@/lib/frontend-locale.mjs';
 
 /**
  * Collapses the rail to icons.
@@ -9,7 +11,7 @@ import { useEffect, useState } from 'react';
  * person and sticky, because a rail that reopens on every navigation is worse
  * than one that never collapses.
  */
-export function RailToggle() {
+export function RailToggle({ locale = 'en-US' }: { locale?: FrontendLocale }) {
   const [narrow, setNarrow] = useState(false);
 
   useEffect(() => {
@@ -27,8 +29,8 @@ export function RailToggle() {
 
   return (
     <button className="railtoggle" onClick={flip} aria-pressed={narrow}
-            title={narrow ? 'Expand the menu' : 'Collapse the menu'}
-            aria-label={narrow ? 'Expand the menu' : 'Collapse the menu'}>
+            title={uiLabel(narrow ? 'Expand the menu' : 'Collapse the menu', locale)}
+            aria-label={uiLabel(narrow ? 'Expand the menu' : 'Collapse the menu', locale)}>
       <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor"
            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="2.6" width="12" height="10.8" rx="1.8" />
