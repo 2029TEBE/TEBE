@@ -21,9 +21,7 @@ export default async function ProjectsPage({ searchParams }:
   const mayCreate = can(capabilities, 'pmoa_manage_projects') && licensedModules.includes('pmo360');
   return (
     <Page title="Projects"
-          sub={lang === 'ar'
-            ? 'تابع الميزانيات والحالة والتقدم. يبدأ كل مشروع مع بوابات الحوكمة.'
-            : 'Everything being delivered, with budget, health and progress. Creating a project also opens its first gate.'}>
+          sub={t('Everything being delivered, with budget, health and progress. Creating a project also opens its first gate.')}>
       <Flash error={error} done={done} lang={lang} />
       <Loaded load={async () => ({ d: await api.projects(programFilter, cursorFilter, healthFilter), o: await api.createOptions() })}>
         {({ d, o }) => (
@@ -43,9 +41,7 @@ export default async function ProjectsPage({ searchParams }:
               <h2 className="sec" style={{ marginTop: 0 }}>
                 {t('Set up your project structure')}
               </h2>
-              <p className="dim">{lang === 'ar'
-                ? 'يمكنك إنشاء مشروع مستقل الآن، لكن ننصح بإنشاء محفظة وبرنامج أولاً لربطه بالأهداف الاستراتيجية.'
-                : 'You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.'}</p>
+              <p className="dim">{t('You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.')}</p>
               <Link href="/portfolios?new=portfolio">
                 {t('Set up portfolio and programme')}
               </Link>
