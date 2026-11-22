@@ -200,3 +200,17 @@ test('projects title follows selected locale rather than the legacy English-Arab
     assert.notEqual(uiLabel('Projects', locale), 'Projects', locale);
   }
 });
+
+test('project governance table action resolves every supported frontend locale', async () => {
+  const table = read('apps/web/src/app/(app)/projects/ProjectsTable.tsx');
+  assert.match(table, /t\('Open governance'\)/);
+  assert.match(table, /normalizeFrontendLocale\(root\.lang\)/);
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { uiLabel, UI_LABELS, catalogLocale } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    const translated = UI_LABELS['Open governance']?.[catalogLocale(locale)];
+    assert.ok(typeof translated === 'string' && translated.trim(), locale);
+    assert.equal(uiLabel('Open governance', locale), translated, locale);
+    assert.notEqual(translated, 'Open governance', locale);
+  }
+});
