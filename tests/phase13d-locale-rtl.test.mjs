@@ -230,3 +230,23 @@ test('project governance table action resolves every supported frontend locale',
     assert.notEqual(translated, 'Open governance', locale);
   }
 });
+
+
+test('projects subtitle and strategy guidance use catalog translations for all frontend locales', async () => {
+  const page = read('apps/web/src/app/(app)/projects/page.tsx');
+  const labels = [
+    'Everything being delivered, with budget, health and progress. Creating a project also opens its first gate.',
+    'You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.',
+  ];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': wiring');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': lookup');
+    }
+  }
+});
