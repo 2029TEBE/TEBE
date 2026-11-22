@@ -44,7 +44,6 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const message = (english: string, arabic: string) => locale === 'ar' ? arabic : english;
 
   const clearFieldError = (name: string) => {
     setFieldErrors(previous => {
@@ -76,7 +75,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
     const validation = validateCreateForm(kind, values);
     if (Object.keys(validation).length > 0) {
       setFieldErrors(validation);
-      setError(message('Please correct the highlighted fields.', 'يرجى تصحيح الحقول المميزة.'));
+      setError(t('Please correct the highlighted fields.'))
       return;
     }
     busyGuard.current = true;
@@ -102,16 +101,15 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         }
         if (Object.keys(issues).length) {
           setFieldErrors(issues);
-          setError(message('Please correct the highlighted fields.', 'يرجى تصحيح الحقول المميزة.'));
+          setError(t('Please correct the highlighted fields.'))
         } else {
           // Connection failure is retryable; submitted form values stay intact.
           // Avoid displaying raw English API error responses to Arabic users.
+          // API errors may contain arbitrary server-language text or sensitive details.
+          // Display a reviewed localized message while preserving field-specific errors.
           setError(res.status === 503
-            ? message('The service is temporarily unavailable. Try again shortly.',
-                      'الخدمة غير متاحة مؤقتًا. يرجى المحاولة مجددًا بعد قليل.')
-            : locale === 'ar'
-              ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.'
-              : String(j?.error || t('That could not be saved.')));
+            ? t('The service is temporarily unavailable. Try again shortly.')
+            : t('That could not be saved.'));
         }
         return;
       }
