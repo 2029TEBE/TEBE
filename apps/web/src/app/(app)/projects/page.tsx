@@ -41,13 +41,13 @@ export default async function ProjectsPage({ searchParams }:
             </section>}
             {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
               <h2 className="sec" style={{ marginTop: 0 }}>
-                {lang === 'ar' ? 'جهّز هيكل مشروعك' : 'Set up your project structure'}
+                {t('Set up your project structure')}
               </h2>
               <p className="dim">{lang === 'ar'
                 ? 'يمكنك إنشاء مشروع مستقل الآن، لكن ننصح بإنشاء محفظة وبرنامج أولاً لربطه بالأهداف الاستراتيجية.'
                 : 'You can create a standalone project now, but we recommend a portfolio and programme first to connect it to your strategy.'}</p>
               <Link href="/portfolios?new=portfolio">
-                {lang === 'ar' ? 'فتح إعداد المحفظة والبرنامج' : 'Set up portfolio and programme'}
+                {t('Set up portfolio and programme')}
               </Link>
             </section>}
             {mayCreate ? <NewRecord lang={lang} kind="project" title="New project" cta="Create project" returnTo="/projects" initialOpen={openForm === 'project'}
