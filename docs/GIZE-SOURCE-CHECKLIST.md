@@ -340,3 +340,7 @@ Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newl
 ## 2026-11-22 UTC — Reporting download section and PDF explanation headings (partial LOC-02 / LOC-03 / LOC-09)
 - Source batch adds 42 non-English label mappings for `Take the board pack away` and `How the PDF is made` across 21 non-English frontend locales; regression coverage in `tests/phase13d-locale-rtl.test.mjs`. Source-only, subject to PR CI.
 - These changes do not localize full export bodies, alter API generation, or certify all report content. Remaining report-page untranslated descriptions and document/backend output still require full-surface locale auditing and native linguistic acceptance. No production readback; billing excluded.
+
+## 2026-11-22 UTC — Reporting explanatory copy partial translation (LOC-02 / LOC-03 / LOC-09)
+- Added 63 explicit non-English translations for report catalogue summary, editable Word pack explanation, and PowerPoint slide-description copy in `apps/web/src/lib/ui-labels.mjs`; regression coverage in `tests/phase13d-locale-rtl.test.mjs`. Pending exact-head CI and review.
+- This source-only work does not change actual generated documents or guarantee all report-page copy has been translated. PDF descriptions, technical explanation, all backend exports, live production readback, RTL/linguistic acceptance and full 23-locale E2E checks remain open. No billing or production activation.
