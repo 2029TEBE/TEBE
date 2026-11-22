@@ -27,7 +27,7 @@ export default async function Reports() {
                 <div className="design-metric"><small>{t('Not yet generated')}</small><strong>{list.filter((r: any) => !r.lastRunAt).length}</strong></div>
               </div>
             </section>
-            <div className="design-table-scroll" role="region" aria-label={labelFor("Report catalogue")} tabIndex={0}><table>
+            <div className="design-table-scroll" role="region" aria-label={t('Report catalogue')} tabIndex={0}><table>
               <thead><tr><th scope="col">{t('Report')}</th><th scope="col">{t('Audience')}</th><th scope="col">{t('Schedule')}</th><th scope="col">{t('Last generated')}</th><th scope="col">{labelFor("Board pack")}</th></tr></thead>
               <tbody>
                 {list.map((r: any) => (
@@ -43,7 +43,7 @@ export default async function Reports() {
                 ))}
               </tbody>
             </table></div>
-            <p className="dim">{labelFor("Each link in the table opens the shared board pack, not a separate preview of that report definition.")}</p>
+            <p className="dim">{t('Each link in the table opens the shared board pack, not a separate preview of that report definition.')}</p>
             <h2 className="sec">{t('Take the board pack away')}</h2>
             <div className="xlgrid">
               <section className="panel">
