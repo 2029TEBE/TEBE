@@ -335,3 +335,8 @@ Scope remains IMPLEMENTED_UNVERIFIED / partial integration. No source ID is newl
 ## 2026-11-22 UTC — Report action label coverage (LOC-02 / LOC-03 / LOC-09 partial)
 - Four report action labels (Word, PowerPoint, PDF downloads and open board pack) gain 84 explicit non-English frontend translations in `apps/web/src/lib/ui-labels.mjs`, with all-locale regression assertions in `tests/phase13d-locale-rtl.test.mjs`. Source-only; exact-head CI and release acceptance pending.
 - This batch does NOT change backend document generation, language propagation to export endpoints, or release status. LOC-02/03/09 remain not fully assessed/verified until missing-copy inventory, native linguistic and RTL browser reviews, translated backend exports and authenticated production/customer evidence are complete.
+
+
+## 2026-11-22 UTC — Reporting download section and PDF explanation headings (partial LOC-02 / LOC-03 / LOC-09)
+- Source batch adds 42 non-English label mappings for `Take the board pack away` and `How the PDF is made` across 21 non-English frontend locales; regression coverage in `tests/phase13d-locale-rtl.test.mjs`. Source-only, subject to PR CI.
+- These changes do not localize full export bodies, alter API generation, or certify all report content. Remaining report-page untranslated descriptions and document/backend output still require full-surface locale auditing and native linguistic acceptance. No production readback; billing excluded.
