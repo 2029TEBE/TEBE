@@ -200,3 +200,19 @@ test('projects title follows selected locale rather than the legacy English-Arab
     assert.notEqual(uiLabel('Projects', locale), 'Projects', locale);
   }
 });
+
+test('project onboarding calls to action use registered translations in every locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  const page = read('apps/web/src/app/(app)/projects/page.tsx');
+  const labels = ['Set up your project structure', 'Set up portfolio and programme'];
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ' is wired to locale');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const value = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof value === 'string' && value.trim(), locale + ': ' + label);
+      assert.equal(uiLabel(label, locale), value, locale + ': ' + label);
+      assert.notEqual(value, label, locale + ': untranslated ' + label);
+    }
+  }
+});
