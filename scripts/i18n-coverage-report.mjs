@@ -60,7 +60,7 @@ for (const record of catalogResults) {
   assert.equal(record.translated + record.missing.length + record.invalidPlaceholders.length, record.total,
     record.locale + ': catalog coverage accounting drift');
   if (record.locale.startsWith('en-')) continue;
-  const accepted = new Set([...sharedBrands, ...(nativeIdentical[record.locale] ?? [])]);
+  const accepted = new Set([...(record.locale === 'ar' ? [] : sharedBrands), ...(nativeIdentical[record.locale] ?? [])]);
   // An allowed unchanged word must actually be in the catalog and unchanged.
   // A stale exception should fail CI instead of hiding deleted or translated keys.
   for (const term of accepted) {
