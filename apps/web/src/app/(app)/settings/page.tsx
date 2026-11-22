@@ -93,7 +93,7 @@ export default async function Settings({ searchParams }:
               <tbody>
                 <tr><td style={{ width: 200 }}><strong>{labelFor("Name")}</strong></td><td>{d.tenant.name}</td></tr>
                 <tr><td><strong>{t('Identifier')}</strong></td><td><code>{d.tenant.slug}</code></td></tr>
-                <tr><td><strong>{t('Created')}</strong></td><td>{when(d.tenant.createdAt, lang)}</td></tr>
+                <tr><td><strong>{t('Created')}</strong></td><td>{when(d.tenant.createdAt, locale)}</td></tr>
                 <tr><td><strong>{t('Data isolation')}</strong></td>
                     <td><span className="pill on_track">{labelFor("enforced by the database")}</span>
                       <div className="dim">{t('No query from this workspace can return another workspace’s rows.')}</div></td></tr>
