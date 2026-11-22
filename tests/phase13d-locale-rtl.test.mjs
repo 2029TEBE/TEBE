@@ -319,3 +319,24 @@ test('report overview heading and accessibility text are localized in all fronte
     }
   }
 });
+
+
+test('report catalogue, generation timestamp and shared pack notice are localized for every frontend locale', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = [
+    'Report catalogue',
+    'Last generated',
+    'Each link in the table opens the shared board pack, not a separate preview of that report definition.',
+  ];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': expected active-locale rendering');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': lookup');
+    }
+  }
+});
