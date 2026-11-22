@@ -28,15 +28,15 @@ export default async function ProjectsPage({ searchParams }:
       <Loaded load={async () => ({ d: await api.projects(programFilter, cursorFilter, healthFilter), o: await api.createOptions() })}>
         {({ d, o }) => (
           <>
-            {d.items.length > 0 && <section className="design-context" aria-label={lang === 'ar' ? 'ملخص المشاريع' : 'Project snapshot'}>
+            {d.items.length > 0 && <section className="design-context" aria-label={t('Project snapshot')}>
               <div className="design-context-head"><span className="design-kicker">{lang === 'ar' ? 'متابعة التنفيذ' : 'DELIVERY SNAPSHOT'}</span>
                 <h2>{lang === 'ar' ? 'صحة المشاريع الحالية' : 'Project delivery at a glance'}</h2>
                 <p>{lang === 'ar' ? 'مؤشرات من سجلات المشاريع المسترجعة في الصفحة الحالية فقط.' : 'Metrics reflect returned project records only; they are not portfolio-wide totals when the API is paginated.'}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{lang === 'ar' ? 'السجلات المعروضة' : 'Returned projects'}</small><strong>{d.items.length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'وفق الخطة' : 'On track'}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
-                <div className="design-metric"><small>{lang === 'ar' ? 'تحتاج انتباها' : 'Need attention'}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
+                <div className="design-metric"><small>{t('Returned projects')}</small><strong>{d.items.length}</strong></div>
+                <div className="design-metric"><small>{t('On track')}</small><strong>{d.items.filter((project: any) => project.health === 'on_track').length}</strong></div>
+                <div className="design-metric"><small>{t('Need attention')}</small><strong>{d.items.filter((project: any) => project.health === 'at_risk' || project.health === 'critical').length}</strong></div>
               </div>
             </section>}
             {o.programs.length === 0 && <section className="panel" style={{ marginBottom: 16 }}> 
@@ -78,10 +78,10 @@ export default async function ProjectsPage({ searchParams }:
                 (lang === 'ar' ? 'غير متاح' : 'Unavailable')}</strong>{' '}
               <Link href={projectPageHref(null, undefined, healthFilter)}>{lang === 'ar' ? 'عرض جميع البرامج' : 'Show all programmes'}</Link>
             </p>}
-            <nav aria-label={lang === 'ar' ? 'تصفية المشاريع حسب الحالة' : 'Filter projects by health'}
+            <nav aria-label={t('Filter projects by health')}
                  style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               {([
-                [undefined, lang === 'ar' ? 'كل الحالات' : 'All health'],
+                [undefined, t('All health')],
                 ['on_track', t('on track')],
                 ['at_risk', t('at risk')],
                 ['critical', t('critical')],
@@ -94,8 +94,8 @@ export default async function ProjectsPage({ searchParams }:
             </nav>
             {d.items.length === 0 ? (
               <div className="empty"><strong>{healthFilter
-                ? (lang === 'ar' ? 'لا توجد مشاريع بهذه الحالة' : 'No matching projects')
-                : (lang === 'ar' ? 'لا توجد مشاريع بعد' : 'No projects yet')}</strong>
+                ? (t('No matching projects'))
+                : (t('No projects yet'))}</strong>
                 <p>{mayCreate
                   ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
                   : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p>
@@ -112,13 +112,13 @@ export default async function ProjectsPage({ searchParams }:
                 )}
                 <ProjectsTable lang={lang} rows={d.items as any[]} />
                 {(d.nextCursor || cursorFilter) && (
-                  <nav aria-label={lang === 'ar' ? 'صفحات المشاريع' : 'Project pages'}
+                  <nav aria-label={t('Project pages')}
                        style={{ display: 'flex', gap: 16, marginTop: 16 }}>
                     {cursorFilter && <Link href={projectPageHref(null, programFilter, healthFilter)}>
-                      {lang === 'ar' ? 'الصفحة الأولى' : 'First page'}
+                      {t('First page')}
                     </Link>}
                     {d.nextCursor && <Link href={projectPageHref(d.nextCursor, programFilter, healthFilter)}>
-                      {lang === 'ar' ? 'الصفحة التالية' : 'Next page'}
+                      {t('Next page')}
                     </Link>}
                   </nav>
                 )}

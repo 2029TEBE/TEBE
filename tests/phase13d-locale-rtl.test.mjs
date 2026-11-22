@@ -156,3 +156,37 @@ test('record validation messages cover all registered locales', async () => {
   }
   assert.equal(formErrorText('__proto__', 'de'), formErrorText('invalid', 'de'));
 });
+
+test('shared page loading errors have explicit locale coverage', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    for (const label of ["Unable to load this data","There was a problem loading this content. Refresh the page, or contact your workspace administrator if the issue continues."]) {
+      assert.notEqual(uiLabel(label, locale), label, locale + ': ' + label);
+    }
+  }
+});
+
+
+test('shared catalog has explicit in-scope coverage for every locale', async () => {
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, uiLabelCoverage } = await import('../apps/web/src/lib/ui-labels.mjs');
+  const labels = Object.keys(UI_LABELS).filter(label => !['Billing & Renewals', 'Subscriptions'].includes(label));
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    const coverage = uiLabelCoverage(labels, locale);
+    // An unchanged product name is intentionally reported as untranslated,
+    // not falsely included in the completion percentage.
+    const { catalogLocale, translationHasMatchingPlaceholders } =
+      await import('../apps/web/src/lib/ui-labels.mjs');
+    const normalized = catalogLocale(locale);
+    const unchanged = labels.filter(label => UI_LABELS[label][normalized] === label);
+    for (const label of labels) {
+      const translated = UI_LABELS[label][normalized];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.ok(translationHasMatchingPlaceholders(label, translated), locale + ': ' + label);
+    }
+    assert.deepEqual(coverage.missing, unchanged, locale + ': unchanged labels must be disclosed');
+    assert.deepEqual(coverage.invalidPlaceholders, [], locale + ': invalid placeholders');
+  }
+  assert.deepEqual(uiLabelCoverage(['An unknown untranslated label'], 'fr-FR').missing, ['An unknown untranslated label']);
+});
