@@ -270,3 +270,19 @@ test('projects subtitle and strategy guidance use catalog translations for all f
     }
   }
 });
+
+test('report title, no-definitions state and on-demand schedule support all frontend locales', async () => {
+  const reports = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = ['Reporting & Exports', 'No report definitions yet.', 'On demand'];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(reports.includes("t('" + label + "')"), label + ': report locale wiring');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': lookup');
+    }
+  }
+});

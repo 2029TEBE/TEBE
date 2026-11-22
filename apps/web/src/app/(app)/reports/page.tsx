@@ -12,9 +12,9 @@ export default async function Reports() {
   const labelFor = (english: string) => uiLabel(english, locale, reportsArabic(english));
   const t = await tr();
   return (
-    <Page title={labelFor("Reporting & Exports")}
+    <Page title={t('Reporting & Exports')}
           sub={labelFor("Board packs generated from live data rather than assembled by hand.")}>
-      <Loaded load={api.reports} empty={labelFor("No report definitions yet.")}>
+      <Loaded load={api.reports} empty={t('No report definitions yet.')}>
         {(list) => (
           <>
             <section className="design-context" aria-label={labelFor("Reporting overview")}>
@@ -34,7 +34,7 @@ export default async function Reports() {
                   <tr key={r.id}>
                     <td><strong><bdi>{r.name}</bdi></strong><div className="dim">{r.kind.replace(/_/g, ' ')}</div></td>
                     <td><bdi>{r.audience}</bdi></td>
-                    <td className="dim"><bdi>{r.schedule ?? (labelFor("On demand"))}</bdi></td>
+                    <td className="dim"><bdi>{r.schedule ?? (t('On demand'))}</bdi></td>
                     <td>{r.lastRunAt ? when(r.lastRunAt, lang) : <span className="dim">{labelFor("Never generated")}</span>}</td>
                     <td><a className="btn" href="/reports/board-pack"
                       aria-label={labelFor("Open shared board pack")}>
