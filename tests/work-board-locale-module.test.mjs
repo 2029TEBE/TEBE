@@ -43,12 +43,12 @@ test('board movement keeps the audited form POST, isolates user content and expo
     "tx('{count} tasks')", "t('Move to {state}')",
     "t('Move {task} to {state}')", 'aria-label={accessibleLabel}',
     "directionForLocale(locale) === 'rtl'", 'formatNumber(col.length, locale)',
-    'const tx = await tr()', 't={tx} taskTitle={t.title}',
+    'const tx = await tr()', 'aria-label={tx(label)}', '<header>{tx(label)}', 't={tx} taskTitle={t.title}',
     'when(t.dueDate, locale)']) {
     assert.ok(page.includes(x), x);
   }
   assert.doesNotMatch(page, /lang === 'ar' \?/, 'no English/Arabic-only workflow labels');
-  assert.doesNotMatch(page, /t\(prev\[1\]\)|t\(next\[1\]\)/, 'do not mistake task object for translator');
+  assert.doesNotMatch(page, /\bt\((?:label|prev\[1\]|next\[1\])\)/, 'do not mistake task object for translator');
   for (const code of ['ar','ur']) assert.equal(directionForLocale(code), 'rtl');
   for (const code of ['en-US','de','es-419','zh-TW']) assert.equal(directionForLocale(code), 'ltr');
 });
