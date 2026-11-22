@@ -1,7 +1,7 @@
 import { api, getSession } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { ago, num } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 import { MicrosoftPanel } from '@/components/MicrosoftPanel';
 import { can, type Capability } from '@pmo/contracts';
 
@@ -9,6 +9,7 @@ export default async function Integrations({ searchParams }:
   { searchParams: Promise<{ connected?: string; error?: string }> }) {
   const { connected, error } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   const session = await getSession();
   const caps = ((session.authenticated ? session.capabilities : ['read']) ?? ['read']) as Capability[];
@@ -54,8 +55,8 @@ export default async function Integrations({ searchParams }:
                   <dl>
                     <div><dt>{t('Provider')}</dt><dd><code>{i.provider}</code></dd></div>
                     <div><dt>{t('Direction')}</dt><dd>{i.direction}</dd></div>
-                    <div><dt>{t('Records synced')}</dt><dd className="num">{num(i.recordsSynced)}</dd></div>
-                    <div><dt>{t('Last sync')}</dt><dd>{i.lastSyncAt ? ago(i.lastSyncAt, lang) : (lang === 'ar' ? 'لم تتم مزامنة' : 'Never synced')}</dd></div>
+                    <div><dt>{t('Records synced')}</dt><dd className="num">{num(i.recordsSynced, 0, locale)}</dd></div>
+                    <div><dt>{t('Last sync')}</dt><dd>{i.lastSyncAt ? ago(i.lastSyncAt, locale) : (lang === 'ar' ? 'لم تتم مزامنة' : 'Never synced')}</dd></div>
                   </dl>
                   {i.lastError && <p className="err" style={{ marginBlockStart: 12 }}>{i.lastError}</p>}
                 </div>
