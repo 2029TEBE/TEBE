@@ -1,10 +1,11 @@
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 
 export default async function Approvals() {
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   return (
     <Page title="Approvals" sub="Every signature the platform is waiting on, and whether the gate is actually ready to sign.">
@@ -57,7 +58,7 @@ export default async function Approvals() {
                       <td>{a.decision === 'pending'
                         ? <span className="pill at_risk">{t('pending')}</span>
                         : <><span className="pill on_track">{t(a.decision)}</span>
-                            <div className="dim">{when(a.decidedAt, lang)}</div></>}</td>
+                            <div className="dim">{when(a.decidedAt, locale)}</div></>}</td>
                     </tr>);
                 })}</tbody>
               </table></div>
