@@ -51,7 +51,7 @@ export default async function Activity() {
                     <td className="num">{n.ref}</td>
                     <td>{n.detail}</td>
                     <td className={n.due && new Date(n.due) < new Date() ? 'crit' : undefined}>
-                      {when(n.due, lang)}</td>
+                      {when(n.due, locale)}</td>
                   </tr>))}</tbody>
                 </table>
               </div>
@@ -67,7 +67,7 @@ export default async function Activity() {
                       <span className="kind">{e.entity} {e.action}</span>
                       <strong>{e.actor}</strong>
                       {e.diff && <code>{JSON.stringify(e.diff)}</code>}
-                      <i>{ago(e.at, lang)}</i>
+                      <i>{ago(e.at, locale)}</i>
                     </li>
                   ))}
                 </ol>
