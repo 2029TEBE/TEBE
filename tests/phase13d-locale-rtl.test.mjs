@@ -190,3 +190,13 @@ test('shared catalog has explicit in-scope coverage for every locale', async () 
   }
   assert.deepEqual(uiLabelCoverage(['An unknown untranslated label'], 'fr-FR').missing, ['An unknown untranslated label']);
 });
+
+test('projects title follows selected locale rather than the legacy English-Arabic toggle', async () => {
+  const page = read('apps/web/src/app/(app)/projects/page.tsx');
+  assert.match(page, /<Page title="Projects"/);
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+    assert.notEqual(uiLabel('Projects', locale), 'Projects', locale);
+  }
+});
