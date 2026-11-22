@@ -43,3 +43,23 @@ for (const locale of FRONTEND_LOCALES) {
   }
 }
 console.log(`Enforced ${required.length} non-billing navigation labels across all ${FRONTEND_LOCALES.length} registered locale variants (English source, explicit non-English mappings). This does NOT certify full product translation coverage.`);
+
+// Catalog-wide source coverage: reports all shared UI keys, not just navigation.
+// This is not evidence of full rendered-screen or native translation acceptance.
+const allCatalogKeys = Object.keys(UI_LABELS);
+assert.ok(allCatalogKeys.length >= required.length, 'UI catalog smaller than required navigation inventory');
+const catalogResults = FRONTEND_LOCALES.map(locale => ({ locale, ...uiLabelCoverage(allCatalogKeys, locale, arabic) }));
+for (const record of catalogResults) {
+  assert.equal(record.translated + record.missing.length + record.invalidPlaceholders.length, record.total,
+    record.locale + ': catalog coverage accounting drift');
+  process.stdout.write('CATALOG ' + record.locale.padEnd(8) + ' ' + record.translated + '/' + record.total +
+    ' mapped; missing-or-English=' + record.missing.length +
+    '; invalid-placeholders=' + record.invalidPlaceholders.length + '\n');
+}
+const uncertified = catalogResults.filter(row =>
+  !row.locale.startsWith('en-') && (row.missing.length || row.invalidPlaceholders.length));
+if (uncertified.length) {
+  process.stdout.write('NOT CERTIFIED: ' + uncertified.length +
+    ' non-English locale catalogs have missing/English or invalid-placeholder UI labels.\n');
+}
+process.stdout.write('LIMITATION: Shared UI label coverage does not certify every customer screen, API error, email, export, layout or native translation quality.\n');
