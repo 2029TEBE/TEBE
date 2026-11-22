@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { num } from '@/lib/fmt';
-import { tr, getLang } from '@/lib/i18n';
+import { tr, getLang, getFrontendLocale } from '@/lib/i18n';
 
 /** Visual bar width only; over-allocated totals remain visible in text. */
 const capacityBarFill = (pct: number) =>
@@ -12,6 +12,7 @@ export default async function Resources({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string }> }) {
   const { error, done } = await searchParams;
   const lang = await getLang();
+  const locale = await getFrontendLocale();
   const t = await tr();
   // Outside <Loaded> on purpose: the create form must render even when the
   // list below is empty, which is precisely when someone needs it.
@@ -68,7 +69,7 @@ export default async function Resources({ searchParams }:
                         </div>
                         {over && <div className="crit">{lang === 'ar' ? 'تجاوز الطاقة بنسبة' : 'over-committed by'} {p.allocatedPct - 100}%</div>}
                       </td>
-                      <td className="num">{num(p.hoursLast7, 1)}</td>
+                      <td className="num">{num(p.hoursLast7, 1, locale)}</td>
                     </tr>
                   );
                 })}
