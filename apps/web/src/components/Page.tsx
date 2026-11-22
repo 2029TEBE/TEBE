@@ -1,4 +1,4 @@
-import { tr, getLang } from '@/lib/i18n';
+import { tr } from '@/lib/i18n';
 /**
  * Every screen's heading goes through here, so translating the shell
  * translates 26 titles and subtitles without touching 26 files. Pages keep
@@ -19,7 +19,6 @@ export async function Page({ title, sub, children }:
 export async function Loaded<T>({ load, children, empty }:
   { load: () => Promise<T>; children: (d: T) => React.ReactNode; empty?: string }) {
   const t = await tr();
-  const lang = await getLang();
   let data: T;
   try { data = await load(); }
   catch (e) {
@@ -49,10 +48,8 @@ export async function Loaded<T>({ load, children, empty }:
     }
     return (
       <div className="panel err" role="alert">
-        <strong>{lang === 'ar' ? 'تعذر تحميل هذه البيانات' : 'Unable to load this data'}</strong>
-        <p>{lang === 'ar'
-          ? 'حدث خطأ أثناء تحميل المحتوى. حدّث الصفحة، وإذا استمرت المشكلة فتواصل مع مسؤول مساحة العمل.'
-          : 'There was a problem loading this content. Refresh the page, or contact your workspace administrator if the issue continues.'}</p>
+        <strong>{t('Unable to load this data')}</strong>
+        <p>{t('There was a problem loading this content. Refresh the page, or contact your workspace administrator if the issue continues.')}</p>
       </div>
     );
   }
