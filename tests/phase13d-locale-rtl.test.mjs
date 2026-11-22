@@ -338,3 +338,20 @@ test('board pack heading and live-data description are translated in all fronten
     }
   }
 });
+
+
+test('report table labels and generation metrics have non-English translations for all supported frontend locales', async () => {
+  const page = read('apps/web/src/app/(app)/reports/page.tsx');
+  const labels = ['Report', 'Audience', 'Report definitions', 'Previously generated', 'Not yet generated'];
+  const { FRONTEND_LOCALES } = await import('../apps/web/src/lib/frontend-locale.mjs');
+  const { UI_LABELS, catalogLocale, uiLabel } = await import('../apps/web/src/lib/ui-labels.mjs');
+  for (const label of labels) {
+    assert.ok(page.includes("t('" + label + "')"), label + ': active-locale rendering');
+    for (const locale of FRONTEND_LOCALES.filter(code => !code.startsWith('en-'))) {
+      const translated = UI_LABELS[label]?.[catalogLocale(locale)];
+      assert.ok(typeof translated === 'string' && translated.trim(), locale + ': ' + label);
+      assert.notEqual(translated, label, locale + ': untranslated');
+      assert.equal(uiLabel(label, locale), translated, locale + ': catalog lookup');
+    }
+  }
+});
