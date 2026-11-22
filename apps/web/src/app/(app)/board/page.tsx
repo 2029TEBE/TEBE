@@ -40,25 +40,25 @@ export default async function BoardPage({ searchParams }:
   const { error, done } = await searchParams;
   const lang = await getLang();
   const locale = await getFrontendLocale();
-  const t = await tr();
+  const tx = await tr();
   const rtl = directionForLocale(locale) === 'rtl';
   return (
-    <Page title={t('Work Board')}
-          sub={t('Day-to-day work across the portfolio, by workflow state. Use the arrows on a card to move it — every move is recorded in the audit trail.')}>
+    <Page title={tx('Work Board')}
+          sub={tx('Day-to-day work across the portfolio, by workflow state. Use the arrows on a card to move it — every move is recorded in the audit trail.')}>
       <Flash error={error} done={done} lang={lang} />
-      <Loaded load={api.tasks} empty={t('No tasks yet.')}>
+      <Loaded load={api.tasks} empty={tx('No tasks yet.')}>
         {(tasks) => (
           <>
-            <section className="design-context" aria-label={t('Work board snapshot')}>
+            <section className="design-context" aria-label={tx('Work board snapshot')}>
               <div className="design-context-head">
-                <span className="design-kicker">{t('TASK DELIVERY')}</span>
-                <h2>{t('Status of returned tasks')}</h2>
-                <p>{t('These figures count tasks returned by this API response, not necessarily every task across the workspace.')}</p>
+                <span className="design-kicker">{tx('TASK DELIVERY')}</span>
+                <h2>{tx('Status of returned tasks')}</h2>
+                <p>{tx('These figures count tasks returned by this API response, not necessarily every task across the workspace.')}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{t('Returned tasks')}</small><strong>{formatNumber(tasks.length, locale)}</strong></div>
-                <div className="design-metric"><small>{t('Blocked tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'blocked').length, locale)}</strong></div>
-                <div className="design-metric"><small>{t('Completed tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'done').length, locale)}</strong></div>
+                <div className="design-metric"><small>{tx('Returned tasks')}</small><strong>{formatNumber(tasks.length, locale)}</strong></div>
+                <div className="design-metric"><small>{tx('Blocked tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'blocked').length, locale)}</strong></div>
+                <div className="design-metric"><small>{tx('Completed tasks')}</small><strong>{formatNumber(tasks.filter((task: { state: string }) => task.state === 'done').length, locale)}</strong></div>
               </div>
             </section>
             <div className="board">
@@ -68,7 +68,7 @@ export default async function BoardPage({ searchParams }:
               const next = COLS[i + 1];
               return (
                 <section key={state} className="col" aria-label={t(label)}>
-                  <header>{t(label)} <span className="count" aria-label={t('{count} tasks').replace('{count}', formatNumber(col.length, locale))}>{formatNumber(col.length, locale)}</span></header>
+                  <header>{t(label)} <span className="count" aria-label={tx('{count} tasks').replace('{count}', formatNumber(col.length, locale))}>{formatNumber(col.length, locale)}</span></header>
                   {col.length === 0
                     ? <p className="dim" style={{ padding: '8px 2px' }}>—</p>
                     : col.map((t) => (
@@ -76,15 +76,15 @@ export default async function BoardPage({ searchParams }:
                           <div className="num dim"><bdi>{t.projectCode}</bdi></div>
                           <strong><bdi>{t.title}</bdi></strong>
                           <div className="dim">
-                            <bdi>{t.assignee ?? t('unassigned')}</bdi>
-                            {t.dueDate && <> {' · '}{t('due')} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
+                            <bdi>{t.assignee ?? tx('unassigned')}</bdi>
+                            {t.dueDate && <> {' · '}{tx('due')} <time dateTime={t.dueDate}>{when(t.dueDate, locale)}</time></>}
                           </div>
                           <div className="moverow">
                             {prev ? <Move id={t.id} to={prev[0]} label={t(prev[1])}
-                                          glyph={rtl ? '→' : '←'} t={t} taskTitle={t.title} />
+                                          glyph={rtl ? '→' : '←'} t={tx} taskTitle={t.title} />
                                   : <span />}
                             {next ? <Move id={t.id} to={next[0]} label={t(next[1])}
-                                          glyph={rtl ? '←' : '→'} t={t} taskTitle={t.title} />
+                                          glyph={rtl ? '←' : '→'} t={tx} taskTitle={t.title} />
                                   : <span />}
                           </div>
                         </article>
