@@ -4,6 +4,7 @@ import { getFrontendLocale } from '@/lib/i18n';
 import { api } from '@/lib/api';
 import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
+import { formatNumber } from '@/lib/locale-format.mjs';
 import { tr, term } from '@/lib/i18n';
 
 export default async function Decisions() {
@@ -22,9 +23,9 @@ export default async function Decisions() {
                 <p>{labelFor("Counts reflect only the decisions returned by the authorized API, not necessarily every decision across the organization.")}</p>
               </div>
               <div className="design-summary">
-                <div className="design-metric"><small>{labelFor("Returned decisions")}</small><strong>{list.length}</strong></div>
-                <div className="design-metric"><small>{labelFor("Linked to a gate")}</small><strong>{list.filter((d: { atGate?: string | null }) => Boolean(d.atGate)).length}</strong></div>
-                <div className="design-metric"><small>{labelFor("With an owner")}</small><strong>{list.filter((d: { owner?: string | null }) => Boolean(d.owner)).length}</strong></div>
+                <div className="design-metric"><small>{labelFor("Returned decisions")}</small><strong>{formatNumber(list.length, locale)}</strong></div>
+                <div className="design-metric"><small>{labelFor("Linked to a gate")}</small><strong>{formatNumber(list.filter((d: { atGate?: string | null }) => Boolean(d.atGate)).length, locale)}</strong></div>
+                <div className="design-metric"><small>{labelFor("With an owner")}</small><strong>{formatNumber(list.filter((d: { owner?: string | null }) => Boolean(d.owner)).length, locale)}</strong></div>
               </div>
             </section>
             <div className="design-table-scroll" role="region" aria-label={labelFor("Decision register")} tabIndex={0}><table>
@@ -35,7 +36,7 @@ export default async function Decisions() {
                 <td className="num"><bdi>{d.projectCode}</bdi></td>
                 <td>{d.atGate ? <bdi>{d.atGate}</bdi> : <span className="dim">{labelFor("not gate-linked")}</span>}</td>
                 <td>{d.owner ? <bdi>{d.owner}</bdi> : <span className="dim">{labelFor("unassigned")}</span>}</td>
-                <td>{when(d.decidedAt, locale)}</td>
+                <td>{d.decidedAt ? <time dateTime={d.decidedAt}>{when(d.decidedAt, locale)}</time> : <span className="dim">—</span>}</td>
                 <td><span className={`pill s-${d.status}`}>{term(t, d.status)}</span></td>
               </tr>))}</tbody>
           </table></div>
